@@ -438,14 +438,12 @@ namespace UnhollowerRuntimeLib
             if (targetMethod == IntPtr.Zero)
                 return;
 
-            IntPtr* targetVarPointer = &targetMethod;
-            DoHook((IntPtr) targetVarPointer,
-                Marshal.GetFunctionPointerForDelegate(new TypeToClassDelegate(ClassFromTypePatch)));
-            ourOriginalTypeToClassMethod = Marshal.GetDelegateForFunctionPointer<TypeToClassDelegate>(targetMethod);
-            
+            ourOriginalTypeToClassMethod = Detour.Detour(targetMethod, new TypeToClassDelegate(ClassFromTypePatch));
             LogSupport.Trace("il2cpp_class_from_il2cpp_type patched");
         }
 
+        
+        public static ManagedDetour Detour = new MSDetour();
         public static Action<IntPtr, IntPtr> DoHook;
 
         private static long ourClassOverrideCounter = -2;
@@ -471,5 +469,21 @@ namespace UnhollowerRuntimeLib
         
         [DllImport("kernel32", SetLastError=true, CharSet = CharSet.Ansi)]
         static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPStr)]string lpFileName);
+        
+        private class MSDetour : ManagedDetour
+        {
+            public T Detour<T>(IntPtr @from, T to) where T : Delegate
+            {
+                IntPtr* targetVarPointer = &from;
+                DoHook((IntPtr) targetVarPointer,
+                    Marshal.GetFunctionPointerForDelegate(to));
+                return Marshal.GetDelegateForFunctionPointer<T>(from);
+            }
+        }
+    }
+
+    public interface ManagedDetour
+    {
+        T Detour<T>(IntPtr from, T to) where T : Delegate;
     }
 }
