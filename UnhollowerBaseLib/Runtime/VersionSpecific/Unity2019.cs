@@ -13,8 +13,8 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific
             LogSupport.Trace($"klass Offset:       {(byte*)&ex.Part1.klass - addr}");
             LogSupport.Trace($"typeHierarchy Offset:       {(byte*)&ex.Part1.typeHierarchy - addr}");
             LogSupport.Trace($"unity_user_data Offset:       {(byte*)&ex.unity_user_data - addr}");
-            LogSupport.Trace($"cctor_finished Offset:       {(byte*)&ex.Part2.cctor_finished - addr}");
-            LogSupport.Trace($"cctor_thread Offset:       {(byte*)&ex.Part2.cctor_thread - addr}");
+            LogSupport.Trace($"cctor_finished Offset:       {(byte*)&ex.cctor_finished - addr}");
+            LogSupport.Trace($"cctor_thread Offset:       {(byte*)&ex.cctor_thread - addr}");
             LogSupport.Trace($"genericContainerIndex Offset:       {(byte*)&ex.Part2.genericContainerIndex - addr}");
             LogSupport.Trace($"field_count Offset:       {(byte*)&ex.Part2.field_count - addr}");
             LogSupport.Trace($"interface_offsets_count Offset:       {(byte*)&ex.Part2.interface_offsets_count - addr}");
@@ -65,6 +65,10 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific
         {
             public Il2CppClassPart1 Part1;
             public IntPtr unity_user_data;
+            public uint initializationExceptionGCHandle;
+            public uint cctor_started;
+            public uint cctor_finished;
+            public /*ALIGN_TYPE(8)*/IntPtr cctor_thread;
             public Il2CppClassPart2 Part2;
             public byte typeHierarchyDepth; // Initialized in SetupTypeHierachy
             public byte genericRecursionDepth;
@@ -101,12 +105,16 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific
             public ClassBitfield1* Bitfield1 => &Instance->bitfield_1;
             public ClassBitfield2* Bitfield2 => &Instance->bitfield_2;
         }
-        
-        [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 192)]
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1, Size =188)]
         private struct Il2CppClassU2019_32
         {
             public Il2CppClassPart1 Part1;
             public int unity_user_data;
+            public uint initializationExceptionGCHandle;
+            public uint cctor_started;
+            public uint cctor_finished;
+            public /*ALIGN_TYPE(8)*/IntPtr cctor_thread;
             public Il2CppClassPart2_32 Part2;
             public byte typeHierarchyDepth; // Initialized in SetupTypeHierachy
             public byte genericRecursionDepth;

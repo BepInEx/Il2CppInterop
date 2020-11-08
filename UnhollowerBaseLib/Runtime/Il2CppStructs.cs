@@ -396,12 +396,6 @@ namespace UnhollowerBaseLib.Runtime
     [StructLayout(LayoutKind.Sequential)]
     public struct Il2CppClassPart2
     {
-        public uint initializationExceptionGCHandle;
-
-        public uint cctor_started;
-        public uint cctor_finished;
-        public /*ALIGN_TYPE(8)*/IntPtr cctor_thread;
-
         // Remaining fields are always valid except where noted
         public /*GenericContainerIndex*/ int genericContainerIndex;
         public uint instance_size;
@@ -427,12 +421,6 @@ namespace UnhollowerBaseLib.Runtime
     [StructLayout(LayoutKind.Sequential)]
     public struct Il2CppClassPart2_32
     {
-        public uint initializationExceptionGCHandle;
-
-        public uint cctor_started;
-        public uint cctor_finished;
-        public int cctor_thread;
-
         // Remaining fields are always valid except where noted
         public /*GenericContainerIndex*/ int genericContainerIndex;
         public uint instance_size;
