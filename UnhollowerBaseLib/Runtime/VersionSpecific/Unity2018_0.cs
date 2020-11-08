@@ -39,6 +39,10 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific
         private struct Il2CppClassU2018_0
         {
             public Il2CppClassPart1 Part1;
+            public uint initializationExceptionGCHandle;
+            public uint cctor_started;
+            public uint cctor_finished;
+            public /*ALIGN_TYPE(8)*/ulong cctor_thread;
             public Il2CppClassPart2 Part2;
             public byte typeHierarchyDepth; // Initialized in SetupTypeHierachy
             public byte genericRecursionDepth;
