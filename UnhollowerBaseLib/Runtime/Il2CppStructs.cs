@@ -417,29 +417,4 @@ namespace UnhollowerBaseLib.Runtime
         public ushort interfaces_count;
         public ushort interface_offsets_count; // lazily calculated for arrays, i.e. when rank > 0
     }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Il2CppClassPart2_32
-    {
-        // Remaining fields are always valid except where noted
-        public /*GenericContainerIndex*/ int genericContainerIndex;
-        public uint instance_size;
-        public uint actualSize;
-        public uint element_size;
-        public int native_size;
-        public uint static_fields_size;
-        public uint thread_static_fields_size;
-        public int thread_static_fields_offset;
-        public Il2CppClassAttributes flags;
-        public uint token;
-
-        public ushort method_count; // lazily calculated for arrays, i.e. when rank > 0
-        public ushort property_count;
-        public ushort field_count;
-        public ushort event_count;
-        public ushort nested_type_count;
-        public ushort vtable_count; // lazily calculated for arrays, i.e. when rank > 0
-        public ushort interfaces_count;
-        public ushort interface_offsets_count; // lazily calculated for arrays, i.e. when rank > 0
-    }
 }

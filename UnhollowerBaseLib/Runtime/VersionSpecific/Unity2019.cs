@@ -5,29 +5,6 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific
 {
     public class Unity2019NativeClassStructHandler : INativeClassStructHandler
     {
-        public unsafe Unity2019NativeClassStructHandler()
-        {
-            Il2CppClassU2019_32 ex = new Il2CppClassU2019_32();
-            byte* addr = (byte*)&ex;
-            LogSupport.Trace($"Size:                         {sizeof(Il2CppClassU2019_32)}");
-            LogSupport.Trace($"klass Offset:       {(byte*)&ex.Part1.klass - addr}");
-            LogSupport.Trace($"typeHierarchy Offset:       {(byte*)&ex.Part1.typeHierarchy - addr}");
-            LogSupport.Trace($"unity_user_data Offset:       {(byte*)&ex.unity_user_data - addr}");
-            LogSupport.Trace($"cctor_finished Offset:       {(byte*)&ex.cctor_finished - addr}");
-            LogSupport.Trace($"cctor_thread Offset:       {(byte*)&ex.cctor_thread - addr}");
-            LogSupport.Trace($"genericContainerIndex Offset:       {(byte*)&ex.Part2.genericContainerIndex - addr}");
-            LogSupport.Trace($"field_count Offset:       {(byte*)&ex.Part2.field_count - addr}");
-            LogSupport.Trace($"interface_offsets_count Offset:       {(byte*)&ex.Part2.interface_offsets_count - addr}");
-            LogSupport.Trace($"typeHierarchyDepth Offset:    {&ex.typeHierarchyDepth - addr}");
-            LogSupport.Trace($"genericRecursionDepth Offset: {&ex.genericRecursionDepth - addr}");
-            LogSupport.Trace($"rank Offset:                  {&ex.rank - addr}");
-            LogSupport.Trace($"minimumAlignment Offset:      {&ex.minimumAlignment - addr}");
-            LogSupport.Trace($"naturalAligmnent Offset:       {&ex.naturalAlignment - addr}");
-            LogSupport.Trace($"packingSize Offset:           {&ex.packingSize - addr}");
-            LogSupport.Trace($"bitfield_1 Offset:            {(byte*)&ex.bitfield_1 - addr}");
-            LogSupport.Trace($"bitfield_2 Offset:            {(byte*)&ex.bitfield_2 - addr}");
-        }
-
         public unsafe INativeClassStruct CreateNewClassStruct(int vTableSlots)
         {
 	        if (IntPtr.Size == 8)
@@ -60,7 +37,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific
             }
         }
         
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack = 8, Size = 304)]
         private struct Il2CppClassU2019_64
         {
             public Il2CppClassPart1 Part1;
@@ -78,7 +55,6 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific
             public byte packingSize;
             public ClassBitfield1 bitfield_1;
             public ClassBitfield2 bitfield_2;
-            public byte padding;
         }
 
         private unsafe class Unity2019NativeClassStruct_64 : INativeClassStruct
@@ -115,7 +91,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific
             public uint cctor_started;
             public uint cctor_finished;
             public /*ALIGN_TYPE(8)*/IntPtr cctor_thread;
-            public Il2CppClassPart2_32 Part2;
+            public Il2CppClassPart2 Part2;
             public byte typeHierarchyDepth; // Initialized in SetupTypeHierachy
             public byte genericRecursionDepth;
             public byte rank;
