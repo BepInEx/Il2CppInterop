@@ -6,21 +6,6 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific
 {
     public class Unity2018_0NativeClassStructHandler : INativeClassStructHandler
     {
-	    public unsafe Unity2018_0NativeClassStructHandler()
-	    {
-		    Il2CppClassU2018_0 ex = new Il2CppClassU2018_0();
-		    byte* addr = (byte*)&ex;
-		    LogSupport.Trace($"Size:                         {sizeof(Il2CppClassU2018_0)}");
-		    LogSupport.Trace($"typeHierarchyDepth Offset:    {&ex.typeHierarchyDepth - addr}");
-		    LogSupport.Trace($"genericRecursionDepth Offset: {&ex.genericRecursionDepth - addr}");
-		    LogSupport.Trace($"rank Offset:                  {&ex.rank - addr}");
-		    LogSupport.Trace($"minimumAlignment Offset:      {&ex.minimumAlignment - addr}");
-		    //LogSupport.Trace($"naturalAligment Offset:       {&ex.Part2.naturalAligment - addr}");
-		    LogSupport.Trace($"packingSize Offset:           {&ex.packingSize - addr}");
-		    LogSupport.Trace($"bitfield_1 Offset:            {(byte*)&ex.bitfield_1 - addr}");
-		    LogSupport.Trace($"bitfield_2 Offset:            {(byte*)&ex.bitfield_2 - addr}");
-	    }
-
         public unsafe INativeClassStruct CreateNewClassStruct(int vTableSlots)
         {
             var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppClassU2018_0>() + Marshal.SizeOf<VirtualInvokeData>() * vTableSlots);
