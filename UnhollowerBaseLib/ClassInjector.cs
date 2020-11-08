@@ -439,10 +439,7 @@ namespace UnhollowerRuntimeLib
             if (targetMethod == IntPtr.Zero)
                 return;
 
-            IntPtr* targetVarPointer = &targetMethod;
-            DoHook((IntPtr)targetVarPointer,
-                Marshal.GetFunctionPointerForDelegate(new TypeToClassDelegate(ClassFromTypePatch)));
-            ourOriginalTypeToClassMethod = Marshal.GetDelegateForFunctionPointer<TypeToClassDelegate>(targetMethod);
+            ourOriginalTypeToClassMethod = Detour.Detour(targetMethod, new TypeToClassDelegate(ClassFromTypePatch));
             LogSupport.Trace("il2cpp_class_from_il2cpp_type patched");
         }
 
