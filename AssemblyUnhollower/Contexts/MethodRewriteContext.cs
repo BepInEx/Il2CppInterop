@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using AssemblyUnhollower.Extensions;
 using AssemblyUnhollower.Passes;
 using Mono.Cecil;
+using UnhollowerRuntimeLib.XrefScans;
 
 namespace AssemblyUnhollower.Contexts
 {
@@ -12,8 +14,13 @@ namespace AssemblyUnhollower.Contexts
         public readonly MethodDefinition OriginalMethod;
         public readonly MethodDefinition NewMethod;
 
+        public readonly bool OriginalNameInvalidInSource;
+
         public readonly long FileOffset;
         public readonly long Rva;
+
+        public long MetadataInitFlagRva;
+        public long MetadataInitTokenRva;
 
         public string UnmangledName { get; private set; }
         public string UnmangledNameWithSignature { get; private set; }
@@ -23,10 +30,14 @@ namespace AssemblyUnhollower.Contexts
         public TypeReference? GenericInstantiationsStoreSelfSubstMethodRef { get; private set; }
         public FieldReference NonGenericMethodInfoPointerField { get; private set; }
 
+        public readonly List<XrefInstance> XrefScanResults = new List<XrefInstance>();
+
         public MethodRewriteContext(TypeRewriteContext declaringType, MethodDefinition originalMethod)
         {
             DeclaringType = declaringType;
             OriginalMethod = originalMethod;
+
+            OriginalNameInvalidInSource = OriginalMethod?.Name?.IsInvalidInSource() ?? false;
 
             var newMethod = new MethodDefinition("", AdjustAttributes(originalMethod.Attributes), declaringType.AssemblyContext.Imports.Void);
             NewMethod = newMethod;
@@ -174,7 +185,7 @@ namespace AssemblyUnhollower.Contexts
                 builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(param.ParameterType).GetUnmangledName());
             }
             
-            var address = FileOffset;
+            var address = Rva;
             if (address != 0 && Pass15GenerateMemberContexts.HasObfuscatedMethods && !Pass16ScanMethodRefs.NonDeadMethods.Contains(address)) builder.Append("_PDM");
 
             return builder.ToString();
@@ -192,7 +203,7 @@ namespace AssemblyUnhollower.Contexts
             var aM = otherRewriteContext.OriginalMethod;
             var bM = OriginalMethod;
             
-            if (!aM.Name.IsInvalidInSource())
+            if (!otherRewriteContext.OriginalNameInvalidInSource)
                 return false;
             
             var comparisonMask = MethodAttributes.MemberAccessMask | MethodAttributes.Static | MethodAttributes.Final |
@@ -221,8 +232,8 @@ namespace AssemblyUnhollower.Contexts
 
             if (Pass15GenerateMemberContexts.HasObfuscatedMethods)
             {
-                var addressA = otherRewriteContext.FileOffset;
-                var addressB = FileOffset;
+                var addressA = otherRewriteContext.Rva;
+                var addressB = Rva;
                 if (addressA != 0 && addressB != 0)
                     if (Pass16ScanMethodRefs.NonDeadMethods.Contains(addressA) != Pass16ScanMethodRefs.NonDeadMethods.Contains(addressB))
                         return false;
