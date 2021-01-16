@@ -1,10 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <PackageId>Il2CppAssemblyUnhollower.BaseLib</PackageId>
+        <Authors>knah et al.</Authors>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <TargetFrameworks>net4.7.2;netstandard2.1</TargetFrameworks>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
-        <Version>0.4.11.0</Version>
+        <Version>0.4.11.1</Version>
     </PropertyGroup>
 
     <ItemGroup>
