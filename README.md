@@ -18,6 +18,8 @@ This includes generic types and methods, arrays, and new object creation. Some t
 ```
 Usage: AssemblyUnhollower [parameters]
 Possible parameters:
+        --help, -h, /? - Optional. Show this help
+        --verbose - Optional. Produce more console output
         --input=<directory path> - Required. Directory with Il2CppDumper's dummy assemblies
         --output=<directory path> - Required. Directory to put results into
         --mscorlib=<file path> - Required. mscorlib.dll of target runtime system (typically loader's)
@@ -29,8 +31,13 @@ Possible parameters:
         --blacklist-assembly=<assembly name> - Optional. Don't write specified assembly to output. Can be used multiple times
         --no-xref-cache - Optional. Don't generate xref scanning cache. All scanning will be done at runtime.
         --no-copy-unhollower-libs - Optional. Don't copy unhollower libraries to output directory
-        --verbose - Optional. Produce more console output
-        --help, -h, /? - Optional. Show this help
+        --obf-regex=<regex> - Optional. Specifies a regex for obfuscated names. All types and members matching will be renamed
+        --rename-map=<file path> - Optional. Specifies a file specifying rename map for obfuscated types and members
+        --passthrough-names - Optional. If specified, names will be copied from input assemblies as-is without renaming or deobfuscation
+Deobfuscation map generation mode:
+        --deobf-generate - Generate a deobfuscation map for input files. Will not generate assemblies.
+        --deobf-generate-asm=<assembly name> - Optional. Include this assembly for deobfuscation map generation. If none are specified, all assemblies will be included.
+        --deobf-generate-new=<directory path> - Required. Specifies the directory with new (obfuscated) assemblies. The --input parameter specifies old (unobfuscated) assemblies. 
 ```
 
 ## Required external setup
@@ -43,7 +50,7 @@ Before certain features can be used (namely class injection and delegate convers
  * Non-blittable structs can't be used in delegates
  * Types implementing interfaces, particularly IEnumerable, may be arbitrarily janky with interface methods. Additionally, using them in foreach may result in implicit casts on managed side (instead of `Cast<T>`, see below), leading to exceptions. Use `var` in `foreach` or use `for` instead of `foreach` when possible as a workaround, or cast them to the specific interface you want to use.
  * in/out/ref parameters on generic parameter types (like `out T` in `Dictionary.TryGetValue`) are currently broken
- * Unity unstripping currently doesn't restore types (except for enums), and certain methods can't be unstripped still
+ * Unity unstripping only partially restores types, and certain methods can't be unstripped still; some calls to unstripped methods might result in crashes
  * Unstripped methods with array operations inside contain invalid bytecode
  * Unstripped methods with casts inside will likely throw invalid cast exceptions or produce nulls
  * Some unstripped methods are stubbed with `NotSupportedException` in cases where rewrite failed
