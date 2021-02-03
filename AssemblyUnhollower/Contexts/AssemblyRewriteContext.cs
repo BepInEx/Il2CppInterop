@@ -29,6 +29,7 @@ namespace AssemblyUnhollower.Contexts
         }
 
         public TypeRewriteContext GetContextForOriginalType(TypeDefinition type) => myOldTypeMap[type];
+        public TypeRewriteContext? TryGetContextForOriginalType(TypeDefinition type) => myOldTypeMap.TryGetValue(type, out var result) ? result : null;
         public TypeRewriteContext GetContextForNewType(TypeDefinition type) => myNewTypeMap[type];
 
         public void RegisterTypeRewrite(TypeRewriteContext context)
@@ -104,7 +105,10 @@ namespace AssemblyUnhollower.Contexts
 
             if(typeRef.FullName == "System.Object")
                 return sourceModule.ImportReference(GlobalContext.GetAssemblyByName("mscorlib").GetTypeByName("System.Object").NewType);
-            
+
+            if (typeRef.FullName == "System.Attribute")
+                return sourceModule.ImportReference(GlobalContext.GetAssemblyByName("mscorlib").GetTypeByName("System.Attribute").NewType);
+
             var originalTypeDef = typeRef.Resolve();
             var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.Module.Assembly);
             var target = targetAssembly.GetContextForOriginalType(originalTypeDef).NewType;
