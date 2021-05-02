@@ -63,7 +63,8 @@ namespace UnhollowerRuntimeLib
             *(IntPtr*) targetGcHandlePointer = handleAsPointer;
         }
 
-        public static void RegisterTypeInIl2Cpp<T>() where T : class
+        public static void RegisterTypeInIl2Cpp<T>() where T : class => RegisterTypeInIl2Cpp<T>(true);
+        public static void RegisterTypeInIl2Cpp<T>(bool logSuccess) where T : class
         {
             var type = typeof(T);
             
@@ -156,8 +157,8 @@ namespace UnhollowerRuntimeLib
 
             RuntimeSpecificsStore.SetClassInfo(classPointer.Pointer, true, true);
             Il2CppClassPointerStore<T>.NativeClassPtr = classPointer.Pointer;
-            
-            LogSupport.Info($"Registered mono type {typeof(T)} in il2cpp domain");
+
+            if (logSuccess) LogSupport.Info($"Registered mono type {typeof(T)} in il2cpp domain");
         }
 
         internal static IntPtr ReadClassPointerForType(Type type)
@@ -385,7 +386,18 @@ namespace UnhollowerRuntimeLib
                     if(parameter == typeof(string))
                         body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppStringToManaged))!);
                     else
-                        body.Emit(OpCodes.Newobj, parameter.GetConstructor(new []{typeof(IntPtr)})!);
+                    {
+                        var labelNull = body.DefineLabel();
+                        var labelNotNull = body.DefineLabel();
+                        body.Emit(OpCodes.Dup);
+                        body.Emit(OpCodes.Brfalse, labelNull);
+                        body.Emit(OpCodes.Newobj, parameter.GetConstructor(new[] {typeof(IntPtr)})!);
+                        body.Emit(OpCodes.Br, labelNotNull);
+                        body.MarkLabel(labelNull);
+                        body.Emit(OpCodes.Pop);
+                        body.Emit(OpCodes.Ldnull);
+                        body.MarkLabel(labelNotNull);
+                    }
                 }
             }
             

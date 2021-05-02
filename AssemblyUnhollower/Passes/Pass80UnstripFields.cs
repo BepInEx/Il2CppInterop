@@ -11,14 +11,10 @@ namespace AssemblyUnhollower.Passes
     {
         public static void DoPass(RewriteGlobalContext context)
         {
-            var unityAssemblyFiles = Directory.EnumerateFiles(context.Options.UnityBaseLibsDir, "*.dll");
-            var loadedAssemblies = unityAssemblyFiles.Select(it =>
-                AssemblyDefinition.ReadAssembly(it, new ReaderParameters(ReadingMode.Deferred))).ToList();
-
             int fieldsUnstripped = 0;
             int fieldsIgnored = 0;
             
-            foreach (var unityAssembly in loadedAssemblies)
+            foreach (var unityAssembly in context.UnityAssemblies.Assemblies)
             {
                 var processedAssembly = context.TryGetAssemblyByName(unityAssembly.Name.Name);
                 if (processedAssembly == null) continue;
@@ -29,7 +25,7 @@ namespace AssemblyUnhollower.Passes
                     var processedType = processedAssembly.TryGetTypeByName(unityType.FullName);
                     if (processedType == null) continue;
                     
-                    if (!unityType.IsValueType || unityType.IsEnum)
+                    if (!unityType.IsValueType || unityType.IsEnum || processedType.NewType.IsExplicitLayout)
                         continue;
 
                     foreach (var unityField in unityType.Fields)
