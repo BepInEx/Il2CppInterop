@@ -410,7 +410,14 @@ namespace UnhollowerRuntimeLib
                         var labelNotNull = body.DefineLabel();
                         body.Emit(OpCodes.Dup);
                         body.Emit(OpCodes.Brfalse, labelNull);
-                        body.Emit(OpCodes.Newobj, parameter.GetConstructor(new[] {typeof(IntPtr)})!);
+                        // We need to directly resolve from all constructors because on mono GetConstructor can cause the following issue:
+                        // `Missing field layout info for ...`
+                        // This is caused by GetConstructor calling RuntimeTypeHandle.CanCastTo which can fail since right now unhollower emits ALL fields which appear to now work properly
+                        body.Emit(OpCodes.Newobj, parameter.GetConstructors().FirstOrDefault(ci =>
+                        {
+                            var ps = ci.GetParameters();
+                            return ps.Length == 1 && ps[0].ParameterType == typeof(IntPtr);
+                        })!);
                         body.Emit(OpCodes.Br, labelNotNull);
                         body.MarkLabel(labelNull);
                         body.Emit(OpCodes.Pop);
