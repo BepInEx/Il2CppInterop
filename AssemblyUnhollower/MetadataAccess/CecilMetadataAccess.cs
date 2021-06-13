@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Mono.Cecil;
 
 namespace AssemblyUnhollower.MetadataAccess
@@ -13,10 +14,19 @@ namespace AssemblyUnhollower.MetadataAccess
         public CecilMetadataAccess(IEnumerable<string> assemblyPaths)
         {
             var metadataResolver = new MetadataResolver(myAssemblyResolver);
-            
-            foreach (var sourceAssemblyPath in assemblyPaths)
+
+            Load(assemblyPaths.Select(path => AssemblyDefinition.ReadAssembly(path, new ReaderParameters(ReadingMode.Deferred) { MetadataResolver = metadataResolver })));
+        }
+
+        public CecilMetadataAccess(IEnumerable<AssemblyDefinition> assemblies)
+        {
+            Load(assemblies);
+        }
+
+        private void Load(IEnumerable<AssemblyDefinition> assemblies)
+        {
+            foreach (var sourceAssembly in assemblies)
             {
-                var sourceAssembly = AssemblyDefinition.ReadAssembly(sourceAssemblyPath, new ReaderParameters(ReadingMode.Deferred) {MetadataResolver = metadataResolver});
                 myAssemblyResolver.Register(sourceAssembly);
                 myAssemblies.Add(sourceAssembly);
                 myAssembliesByName[sourceAssembly.Name.Name] = sourceAssembly;
