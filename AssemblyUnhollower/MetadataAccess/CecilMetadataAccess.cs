@@ -20,6 +20,8 @@ namespace AssemblyUnhollower.MetadataAccess
 
         public CecilMetadataAccess(IEnumerable<AssemblyDefinition> assemblies)
         {
+            // Note: At the moment this assumes that passed assemblies have their own assembly resolver setup
+            // If this is not true, this can cause issues with reference resolving
             Load(assemblies);
         }
 
