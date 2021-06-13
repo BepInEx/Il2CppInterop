@@ -20,7 +20,7 @@ namespace AssemblyUnhollower
             RewriteGlobalContext rewriteContext;
             IIl2CppMetadataAccess inputAssemblies;
             using (new TimingCookie("Reading assemblies"))
-                inputAssemblies = new CecilMetadataAccess(Directory.EnumerateFiles(options.SourceDir, "*.dll"));
+                inputAssemblies = new CecilMetadataAccess(options.Source);
             
             using(new TimingCookie("Creating assembly contexts"))
                 rewriteContext = new RewriteGlobalContext(options, inputAssemblies, NullMetadataAccess.Instance, NullMetadataAccess.Instance);
@@ -95,82 +95,14 @@ namespace AssemblyUnhollower
 
         public static void Main(string[] args)
         {
-            LogSupport.InstallConsoleHandlers();
-            
-            var options = new UnhollowerOptions();
-            var analyze = false;
-            var generateMap = false;
-            
-            foreach (var s in args)
-            {
-                if (s == ParamAnalyze) 
-                    analyze = true;
-                else if (s == ParamGenerateDeobMap)
-                    generateMap = true;
-                else if (s == ParamHelp || s == ParamHelpShort || s == ParamHelpShortSlash)
-                {
-                    PrintUsage();
-                    return;
-                } else if (s == ParamVerbose)
-                {
-                    LogSupport.TraceHandler += Console.WriteLine;
-                    options.Verbose = true;
-                } else if (s == ParamNoXrefCache)
-                    options.NoXrefCache = true;
-                else if (s == ParamNoCopyUnhollowerLibs)
-                    options.NoCopyUnhollowerLibs = true;
-                else if (s.StartsWith(ParamInputDir))
-                    options.SourceDir = s.Substring(ParamInputDir.Length);
-                else if (s.StartsWith(ParamOutputDir))
-                    options.OutputDir = s.Substring(ParamOutputDir.Length);
-                else if (s.StartsWith(ParamMscorlibPath))
-                    options.MscorlibPath = s.Substring(ParamMscorlibPath.Length);
-                else if (s.StartsWith(ParamSystemLibsPath))
-                    options.SystemLibrariesPath = s.Substring(ParamSystemLibsPath.Length);
-                else if (s.StartsWith(ParamUnityDir))
-                    options.UnityBaseLibsDir = s.Substring(ParamUnityDir.Length);
-                else if (s.StartsWith(ParamGameAssemblyPath))
-                    options.GameAssemblyPath = s.Substring(ParamGameAssemblyPath.Length);
-                else if(s.StartsWith(ParamUniqChars))
-                    options.TypeDeobfuscationCharsPerUniquifier = Int32.Parse(s.Substring(ParamUniqChars.Length));
-                else if(s.StartsWith(ParamUniqMax))
-                    options.TypeDeobfuscationMaxUniquifiers = Int32.Parse(s.Substring(ParamUniqMax.Length));
-                else if(s.StartsWith(ParamBlacklistAssembly))
-                    options.AdditionalAssembliesBlacklist.Add(s.Substring(ParamBlacklistAssembly.Length));
-                else if (s.StartsWith(ParamObfRegex))
-                    options.ObfuscatedNamesRegex = new Regex(s.Substring(ParamObfRegex.Length), RegexOptions.Compiled);
-                else if(s.StartsWith(ParamRenameMap))
-                    ReadRenameMap(s.Substring(ParamRenameMap.Length), options);
-                else if(s.StartsWith(ParamGenerateDeobMapAssembly))
-                    options.DeobfuscationGenerationAssemblies.Add(s.Substring(ParamGenerateDeobMapAssembly.Length));
-                else if (s.StartsWith(ParamGenerateDeobMapNew))
-                    options.DeobfuscationNewAssembliesPath = s.Substring(ParamGenerateDeobMapNew.Length);
-                else
-                {
-                    LogSupport.Error($"Unrecognized option {s}; use -h for help");
-                    return;
-                }
-            }
-
-            if (analyze && generateMap)
-            {
-                LogSupport.Error($"Can't use {ParamAnalyze} and {ParamGenerateDeobMap} at the same time");
-                return;
-            }
-            
-            if (analyze)
-                AnalyzeDeobfuscationParams(options);
-            else if (generateMap)
-                DeobfuscationMapGenerator.GenerateDeobfuscationMap(options);
-            else
-                Main(options);
+            throw new NotSupportedException();
         }
         
         public static void Main(UnhollowerOptions options)
         {
-            if (string.IsNullOrEmpty(options.SourceDir))
+            if (options.Source == null || !options.Source.Any())
             {
-                Console.WriteLine("No input dir specified; use -h for help");
+                Console.WriteLine("No input specified; use -h for help");
                 return;
             }
             
@@ -194,7 +126,7 @@ namespace AssemblyUnhollower
             IMetadataAccess unityAssemblies;
 
             using (new TimingCookie("Reading assemblies"))
-                gameAssemblies = new CecilMetadataAccess(Directory.EnumerateFiles(options.SourceDir, "*.dll"));
+                gameAssemblies = new CecilMetadataAccess(options.Source);
 
             using (new TimingCookie("Reading system assemblies"))
             {
