@@ -17,9 +17,9 @@ namespace AssemblyUnhollower
     {
         public static void GenerateDeobfuscationMap(UnhollowerOptions options)
         {
-            if (string.IsNullOrEmpty(options.SourceDir))
+            if (options.Source == null || !options.Source.Any())
             {
-                Console.WriteLine("No input dir specified; use -h for help");
+                Console.WriteLine("No input specified; use -h for help");
                 return;
             }
             
@@ -61,7 +61,7 @@ namespace AssemblyUnhollower
             RewriteGlobalContext cleanContext;
             IIl2CppMetadataAccess cleanAssemblies;
             using (new TimingCookie("Reading clean assemblies"))
-                cleanAssemblies = new CecilMetadataAccess(Directory.EnumerateFiles(options.SourceDir, "*.dll"));
+                cleanAssemblies = new CecilMetadataAccess(options.Source);
             
             using(new TimingCookie("Creating clean rewrite assemblies"))
                 cleanContext = new RewriteGlobalContext(options, cleanAssemblies, NullMetadataAccess.Instance, NullMetadataAccess.Instance);

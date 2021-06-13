@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Mono.Cecil;
 
 namespace AssemblyUnhollower
 {
     public class UnhollowerOptions
     {
-        public string SourceDir { get; set; }
+        public List<AssemblyDefinition>? Source { get; set; }
         public string OutputDir { get; set; }
         public string MscorlibPath { get; set; }
         public string SystemLibrariesPath { get; set; }
