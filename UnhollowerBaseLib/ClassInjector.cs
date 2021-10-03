@@ -71,6 +71,19 @@ namespace UnhollowerRuntimeLib
             *(IntPtr*)targetGcHandlePointer = handleAsPointer;
         }
 
+
+        public static bool IsTypeRegisteredInIl2Cpp<T>() where T : class => IsTypeRegisteredInIl2Cpp(typeof(T));
+        public static bool IsTypeRegisteredInIl2Cpp(Type type)
+        {
+            var currentPointer = ReadClassPointerForType(type);
+            if (currentPointer != IntPtr.Zero)
+                return true;
+            lock (InjectedTypes)
+                if (InjectedTypes.Contains(type.FullName))
+                    return true;
+            return false;
+        }
+        
         public static void RegisterTypeInIl2Cpp<T>() where T : class => RegisterTypeInIl2Cpp(typeof(T), true);
         public static void RegisterTypeInIl2Cpp<T>(params INativeClassStruct[] interfaces) where T : class => RegisterTypeInIl2Cpp(typeof(T), true, interfaces);
         public static void RegisterTypeInIl2Cpp<T>(bool logSuccess, params INativeClassStruct[] interfaces) where T : class => RegisterTypeInIl2Cpp(typeof(T), logSuccess, interfaces);
@@ -85,7 +98,7 @@ namespace UnhollowerRuntimeLib
 
             var currentPointer = ReadClassPointerForType(type);
             if (currentPointer != IntPtr.Zero)
-                return;//already registered in il2cpp
+                return; //already registered in il2cpp
 
             var baseType = type.BaseType;
             if (baseType == null)
@@ -162,7 +175,6 @@ namespace UnhollowerRuntimeLib
                 var methodInfoPointer = methodPointerArray[i + 2] = ConvertMethodInfo(methodInfo, classPointer);
                 if (methodInfo.IsGenericMethod)
                     InflatedMethodFromContextDictionary.Add((IntPtr)methodInfoPointer, (methodInfo, new Dictionary<IntPtr, IntPtr>()));
-                var methodName = methodInfo.Name;
                 infos[(methodInfo.Name, methodInfo.GetParameters().Length, methodInfo.IsGenericMethod)] = i + 2;
             }
 
