@@ -2,16 +2,24 @@ using System;
 
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.MethodInfo
 {
-    public interface INativeMethodStructHandler : INativeStructHandler
+    public interface INativeMethodInfoStructHandler : INativeStructHandler
     {
-        INativeMethodStruct CreateNewMethodStruct();
-        unsafe INativeMethodStruct Wrap(Il2CppMethodInfo* methodPointer);
+        INativeMethodInfoStruct CreateNewMethodStruct();
+        unsafe INativeMethodInfoStruct Wrap(Il2CppMethodInfo* methodPointer);
         IntPtr GetMethodFromReflection(IntPtr method);
-        Type StructType { get; }
+        IntPtr CopyMethodInfoStruct(IntPtr origMethodInfo);
+        IntPtr il2cpp_method_get_class(IntPtr method);
+        IntPtr il2cpp_method_get_name(IntPtr method);
+        uint il2cpp_method_get_param_count(IntPtr method);
+        IntPtr il2cpp_method_get_return_type(IntPtr method);
+        uint il2cpp_method_get_token(IntPtr method);
+#if DEBUG
+        string GetName();
+#endif
     }
 
 
-    public interface INativeMethodStruct : INativeStruct
+    public interface INativeMethodInfoStruct : INativeStruct
     {
         int StructSize { get; }
         unsafe Il2CppMethodInfo* MethodInfoPointer { get; }
