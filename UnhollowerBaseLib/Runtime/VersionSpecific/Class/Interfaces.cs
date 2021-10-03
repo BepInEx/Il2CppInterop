@@ -1,4 +1,5 @@
 using System;
+using UnhollowerBaseLib.Runtime.VersionSpecific.Type;
 
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
 {
@@ -6,6 +7,9 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
     {
         INativeClassStruct CreateNewClassStruct(int vTableSlots);
         unsafe INativeClassStruct Wrap(Il2CppClass* classPointer);
+#if DEBUG
+        string GetName();
+#endif
     }
 
     public interface INativeClassStruct : INativeStruct
@@ -15,6 +19,9 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
 
         ref uint InstanceSize { get; }
         ref ushort VtableCount { get; }
+        ref ushort InterfaceCount { get; }
+        ref ushort InterfaceOffsetsCount { get; }
+        ref byte TypeHierarchyDepth { get; }
         ref int NativeSize { get; }
         ref uint ActualSize { get; }
         ref ushort MethodCount { get; }
@@ -32,8 +39,8 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
         ref IntPtr Name { get; }
         ref IntPtr Namespace { get; }
 
-        ref Il2CppTypeStruct ByValArg { get; }
-        ref Il2CppTypeStruct ThisArg { get; }
+        INativeTypeStruct ByValArg { get; }
+        INativeTypeStruct ThisArg { get; }
 
         unsafe ref Il2CppImage* Image { get; }
         unsafe ref Il2CppClass* Parent { get; }
@@ -42,5 +49,8 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
         unsafe ref Il2CppClass* Class { get; }
 
         unsafe ref Il2CppMethodInfo** Methods { get; }
+        unsafe ref Il2CppClass** ImplementedInterfaces { get; }
+        unsafe ref Il2CppRuntimeInterfaceOffsetPair* InterfaceOffsets { get; }
+        unsafe ref Il2CppClass** TypeHierarchy { get; }
     }
 }

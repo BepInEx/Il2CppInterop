@@ -47,7 +47,7 @@ namespace UnhollowerBaseLib
         {
             var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
             if (nestedTypeClassPointer == IntPtr.Zero)
-                throw new ArgumentException($"{typeof(T)} is not al Il2Cpp reference type");
+                throw new ArgumentException($"{typeof(T)} is not an Il2Cpp reference type");
             
             var ownClass = IL2CPP.il2cpp_object_get_class(Pointer);
             if (!IL2CPP.il2cpp_class_is_assignable_from(nestedTypeClassPointer, ownClass))
@@ -60,13 +60,13 @@ namespace UnhollowerBaseLib
         {
             var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
             if (nestedTypeClassPointer == IntPtr.Zero)
-                throw new ArgumentException($"{typeof(T)} is not al Il2Cpp reference type");
+                throw new ArgumentException($"{typeof(T)} is not an Il2Cpp reference type");
 
             var ownClass = IL2CPP.il2cpp_object_get_class(Pointer);
             if (!IL2CPP.il2cpp_class_is_assignable_from(nestedTypeClassPointer, ownClass))
                 return null;
 
-            if (RuntimeSpecificsStore.IsInjected(ownClass))
+            if (ownClass == nestedTypeClassPointer && RuntimeSpecificsStore.IsInjected(ownClass))
                 return ClassInjectorBase.GetMonoObjectFromIl2CppPointer(Pointer) as T;
 
             return (T) Activator.CreateInstance(Il2CppClassPointerStore<T>.CreatedTypeRedirect ?? typeof(T), Pointer);

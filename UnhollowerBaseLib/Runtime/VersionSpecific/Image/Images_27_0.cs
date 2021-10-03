@@ -4,61 +4,63 @@ using System.Runtime.InteropServices;
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.Image
 {
     [ApplicableToUnityVersionsSince("2020.2.0")]
-    public unsafe class NativeImageStructHandler_27 : INativeImageStructHandler
+    public unsafe class NativeImageStructHandler_27_0 : INativeImageStructHandler
     {
         public INativeImageStruct CreateNewImageStruct()
         {
-            var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppImageU2020_2>());
-            var imageMetadata =
-                (Il2CppImageGlobalMetadata*) Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppImageGlobalMetadata>());
+            var pointer = (Il2CppImage_27_0*) Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppImage_27_0>());
+            var metadataPointer = (Il2CppImageGlobalMetadata_27_0*) Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppImageGlobalMetadata_27_0>());
 
-            *(Il2CppImageU2020_2*) pointer = default;
-            *imageMetadata = default;
+            *pointer = default;
+            *metadataPointer = default;
+            pointer->metadataHandle = metadataPointer;
+            metadataPointer->image = pointer;
 
-            imageMetadata->image = (Il2CppImage*) pointer;
-            ((Il2CppImageU2020_2*) pointer)->metadataHandle = imageMetadata;
-
-            return new NativeImageStruct(pointer);
+            return new NativeImageStruct((IntPtr) pointer);
         }
 
         public INativeImageStruct Wrap(Il2CppImage* imagePointer)
         {
-            return new NativeImageStruct((IntPtr)imagePointer);
+            if ((IntPtr)imagePointer == IntPtr.Zero) return null;
+            else return new NativeImageStruct((IntPtr)imagePointer);
         }
 
+#if DEBUG
+        public string GetName() => "NativeImageStructHandler_27_0";
+#endif
+
         [StructLayout(LayoutKind.Sequential)]
-        private struct Il2CppImageU2020_2
+        internal struct Il2CppImage_27_0
         {
-            public IntPtr name;      // const char*
+            public IntPtr name; // const char*
             public IntPtr nameNoExt; // const char*
             public Il2CppAssembly* assembly;
 
             public uint typeCount;
 
             public uint exportedTypeCount;
-
             public uint customAttributeCount;
 
-            public /*Il2CppNameToTypeDefinitionIndexHashTable **/ Il2CppImageGlobalMetadata* metadataHandle;
+            public Il2CppImageGlobalMetadata_27_0* metadataHandle;
 
             public /*Il2CppNameToTypeDefinitionIndexHashTable **/ IntPtr nameToClassHashTable;
-
-            public /*Il2CppCodeGenModule*/ IntPtr codeGenModule;
+            public IntPtr codeGenModule;
 
             public uint token;
             public byte dynamic;
         }
-        
-        private struct Il2CppImageGlobalMetadata
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct Il2CppImageGlobalMetadata_27_0
         {
             public int typeStart;
             public int exportedTypeStart;
             public int customAttributeStart;
             public int entryPointIndex;
-            public Il2CppImage* image;
+            public Il2CppImage_27_0* image;
         }
 
-        private class NativeImageStruct : INativeImageStruct
+        internal class NativeImageStruct : INativeImageStruct
         {
             public NativeImageStruct(IntPtr pointer)
             {
@@ -67,16 +69,16 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Image
 
             public IntPtr Pointer { get; }
 
-            public Il2CppImage* ImagePointer => (Il2CppImage*) Pointer;
+            public Il2CppImage* ImagePointer => (Il2CppImage*)Pointer;
 
-            private Il2CppImageU2020_2* NativeImage => (Il2CppImageU2020_2*) ImagePointer;
+            private Il2CppImage_27_0* NativeImage => (Il2CppImage_27_0*)Pointer;
 
             public ref Il2CppAssembly* Assembly => ref NativeImage->assembly;
 
             public ref byte Dynamic => ref NativeImage->dynamic;
 
             public ref IntPtr Name => ref NativeImage->name;
-            
+
             public bool HasNameNoExt => true;
 
             public ref IntPtr NameNoExt => ref NativeImage->nameNoExt;

@@ -3,34 +3,54 @@ using System.Runtime.InteropServices;
 
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.MethodInfo
 {
-    [ApplicableToUnityVersionsSince("2017.1.0")]
-    public unsafe class NativeMethodStructHandler_24 : INativeMethodStructHandler
+    [ApplicableToUnityVersionsSince("5.3.0")]
+    public unsafe class NativeMethodInfoStructHandler_16_0 : INativeMethodInfoStructHandler
     {
-        public INativeMethodStruct CreateNewMethodStruct()
+        public INativeMethodInfoStruct CreateNewMethodStruct()
         {
-            var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppMethodInfoU2018>());
-            *(Il2CppMethodInfoU2018*)pointer = default;
+            var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppMethodInfo_16_0>());
+            *(Il2CppMethodInfo_16_0*)pointer = default;
 
             return new NativeMethodInfoStructWrapper(pointer);
         }
 
-        public INativeMethodStruct Wrap(Il2CppMethodInfo* methodPointer)
+        public INativeMethodInfoStruct Wrap(Il2CppMethodInfo* methodPointer)
         {
-            return new NativeMethodInfoStructWrapper((IntPtr)methodPointer);
+            if ((IntPtr)methodPointer == IntPtr.Zero) return null;
+            else return new NativeMethodInfoStructWrapper((IntPtr)methodPointer);
         }
 
         [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public static extern IntPtr il2cpp_method_get_from_reflection(IntPtr method);
+        private static extern IntPtr il2cpp_method_get_from_reflection(IntPtr method);
 
         public IntPtr GetMethodFromReflection(IntPtr method)
         {
             return il2cpp_method_get_from_reflection(method);
         }
 
-        public Type StructType => typeof(Il2CppMethodInfoU2018);
+        public IntPtr CopyMethodInfoStruct(IntPtr origMethodInfo)
+        {
+            int sizeOfMethodInfo = Marshal.SizeOf<Il2CppMethodInfo_16_0>();
+            IntPtr copiedMethodInfo = Marshal.AllocHGlobal(sizeOfMethodInfo);
+
+            object temp = Marshal.PtrToStructure<Il2CppMethodInfo_16_0>(origMethodInfo);
+            Marshal.StructureToPtr(temp, copiedMethodInfo, false);
+
+            return copiedMethodInfo;
+        }
+
+        public IntPtr il2cpp_method_get_class(IntPtr method) => (IntPtr)((Il2CppMethodInfo_16_0*)method)->klass;
+        public IntPtr il2cpp_method_get_name(IntPtr method) => ((Il2CppMethodInfo_16_0*)method)->name;
+        public uint il2cpp_method_get_param_count(IntPtr method) => ((Il2CppMethodInfo_16_0*)method)->parameters_count;
+        public IntPtr il2cpp_method_get_return_type(IntPtr method) => (IntPtr)((Il2CppMethodInfo_16_0*)method)->return_type;
+        public uint il2cpp_method_get_token(IntPtr method) => ((Il2CppMethodInfo_16_0*)method)->token;
+
+#if DEBUG
+        public string GetName() => "NativeMethodInfoStructHandler_16_0";
+#endif
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct Il2CppMethodInfoU2018
+        internal struct Il2CppMethodInfo_16_0
         {
             public IntPtr methodPointer;
             public IntPtr invoker_method;
@@ -69,20 +89,20 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.MethodInfo
         }
 
 
-        private class NativeMethodInfoStructWrapper : INativeMethodStruct
+        internal class NativeMethodInfoStructWrapper : INativeMethodInfoStruct
         {
             public NativeMethodInfoStructWrapper(IntPtr pointer)
             {
                 Pointer = pointer;
             }
 
-            public int StructSize => Marshal.SizeOf<Il2CppMethodInfoU2018>();
+            public int StructSize => Marshal.SizeOf<Il2CppMethodInfo_16_0>();
 
             public IntPtr Pointer { get; }
 
             public Il2CppMethodInfo* MethodInfoPointer => (Il2CppMethodInfo*)Pointer;
 
-            private Il2CppMethodInfoU2018* NativeMethod => (Il2CppMethodInfoU2018*)Pointer;
+            private Il2CppMethodInfo_16_0* NativeMethod => (Il2CppMethodInfo_16_0*)Pointer;
 
             public ref IntPtr Name => ref NativeMethod->name;
 

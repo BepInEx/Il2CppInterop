@@ -10,6 +10,19 @@ using System.Runtime.InteropServices;
 
 namespace UnhollowerBaseLib.Runtime
 {
+    //Stub structs
+    public struct Il2CppAssembly { }
+    public struct Il2CppClass { }
+    public struct Il2CppEventInfo { }
+    public struct Il2CppException { }
+    public struct Il2CppFieldInfo { }
+    public struct Il2CppImage { }
+    public struct Il2CppMethodInfo { }
+    public struct Il2CppParameterInfo { }
+    public struct Il2CppPropertyInfo { }
+    public struct Il2CppTypeStruct { }
+
+
     [Flags]
     public enum Il2CppMethodImplFlags : ushort
     {
@@ -58,7 +71,7 @@ namespace UnhollowerBaseLib.Runtime
 
         METHOD_ATTRIBUTE_PINVOKE_IMPL = 0x2000,
         METHOD_ATTRIBUTE_UNMANAGED_EXPORT = 0x0008,
-        
+
         /*
          * For runtime use only
          */
@@ -112,48 +125,44 @@ namespace UnhollowerBaseLib.Runtime
 
     public enum Il2CppTypeEnum : byte
     {
-        IL2CPP_TYPE_END        = 0x00,       /* End of List */
-        IL2CPP_TYPE_VOID       = 0x01,
-        IL2CPP_TYPE_BOOLEAN    = 0x02,
-        IL2CPP_TYPE_CHAR       = 0x03,
-        IL2CPP_TYPE_I1         = 0x04,
-        IL2CPP_TYPE_U1         = 0x05,
-        IL2CPP_TYPE_I2         = 0x06,
-        IL2CPP_TYPE_U2         = 0x07,
-        IL2CPP_TYPE_I4         = 0x08,
-        IL2CPP_TYPE_U4         = 0x09,
-        IL2CPP_TYPE_I8         = 0x0a,
-        IL2CPP_TYPE_U8         = 0x0b,
-        IL2CPP_TYPE_R4         = 0x0c,
-        IL2CPP_TYPE_R8         = 0x0d,
-        IL2CPP_TYPE_STRING     = 0x0e,
-        IL2CPP_TYPE_PTR        = 0x0f,       /* arg: <type> token */
-        IL2CPP_TYPE_BYREF      = 0x10,       /* arg: <type> token */
-        IL2CPP_TYPE_VALUETYPE  = 0x11,       /* arg: <type> token */
-        IL2CPP_TYPE_CLASS      = 0x12,       /* arg: <type> token */
-        IL2CPP_TYPE_VAR        = 0x13,       /* Generic parameter in a generic type definition, represented as number (compressed unsigned integer) number */
-        IL2CPP_TYPE_ARRAY      = 0x14,       /* type, rank, boundsCount, bound1, loCount, lo1 */
+        IL2CPP_TYPE_END         = 0x00,       /* End of List */
+        IL2CPP_TYPE_VOID        = 0x01,
+        IL2CPP_TYPE_BOOLEAN     = 0x02,
+        IL2CPP_TYPE_CHAR        = 0x03,
+        IL2CPP_TYPE_I1          = 0x04,
+        IL2CPP_TYPE_U1          = 0x05,
+        IL2CPP_TYPE_I2          = 0x06,
+        IL2CPP_TYPE_U2          = 0x07,
+        IL2CPP_TYPE_I4          = 0x08,
+        IL2CPP_TYPE_U4          = 0x09,
+        IL2CPP_TYPE_I8          = 0x0a,
+        IL2CPP_TYPE_U8          = 0x0b,
+        IL2CPP_TYPE_R4          = 0x0c,
+        IL2CPP_TYPE_R8          = 0x0d,
+        IL2CPP_TYPE_STRING      = 0x0e,
+        IL2CPP_TYPE_PTR         = 0x0f,       /* arg: <type> token */
+        IL2CPP_TYPE_BYREF       = 0x10,       /* arg: <type> token */
+        IL2CPP_TYPE_VALUETYPE   = 0x11,       /* arg: <type> token */
+        IL2CPP_TYPE_CLASS       = 0x12,       /* arg: <type> token */
+        IL2CPP_TYPE_VAR         = 0x13,       /* Generic parameter in a generic type definition, represented as number (compressed unsigned integer) number */
+        IL2CPP_TYPE_ARRAY       = 0x14,       /* type, rank, boundsCount, bound1, loCount, lo1 */
         IL2CPP_TYPE_GENERICINST = 0x15,     /* <type> <type-arg-count> <type-1> \x{2026} <type-n> */
-        IL2CPP_TYPE_TYPEDBYREF = 0x16,
-        IL2CPP_TYPE_I          = 0x18,
-        IL2CPP_TYPE_U          = 0x19,
-        IL2CPP_TYPE_FNPTR      = 0x1b,        /* arg: full method signature */
-        IL2CPP_TYPE_OBJECT     = 0x1c,
-        IL2CPP_TYPE_SZARRAY    = 0x1d,       /* 0-based one-dim-array */
-        IL2CPP_TYPE_MVAR       = 0x1e,       /* Generic parameter in a generic method definition, represented as number (compressed unsigned integer)  */
-        IL2CPP_TYPE_CMOD_REQD  = 0x1f,       /* arg: typedef or typeref token */
-        IL2CPP_TYPE_CMOD_OPT   = 0x20,       /* optional arg: typedef or typref token */
-        IL2CPP_TYPE_INTERNAL   = 0x21,       /* CLR internal type */
+        IL2CPP_TYPE_TYPEDBYREF  = 0x16,
+        IL2CPP_TYPE_I           = 0x18,
+        IL2CPP_TYPE_U           = 0x19,
+        IL2CPP_TYPE_FNPTR       = 0x1b,        /* arg: full method signature */
+        IL2CPP_TYPE_OBJECT      = 0x1c,
+        IL2CPP_TYPE_SZARRAY     = 0x1d,       /* 0-based one-dim-array */
+        IL2CPP_TYPE_MVAR        = 0x1e,       /* Generic parameter in a generic method definition, represented as number (compressed unsigned integer)  */
+        IL2CPP_TYPE_CMOD_REQD   = 0x1f,       /* arg: typedef or typeref token */
+        IL2CPP_TYPE_CMOD_OPT    = 0x20,       /* optional arg: typedef or typref token */
+        IL2CPP_TYPE_INTERNAL    = 0x21,       /* CLR internal type */
 
-        IL2CPP_TYPE_MODIFIER   = 0x40,       /* Or with the following types */
-        IL2CPP_TYPE_SENTINEL   = 0x41,       /* Sentinel for varargs method signature */
-        IL2CPP_TYPE_PINNED     = 0x45,       /* Local var that points to pinned object */
+        IL2CPP_TYPE_MODIFIER    = 0x40,       /* Or with the following types */
+        IL2CPP_TYPE_SENTINEL    = 0x41,       /* Sentinel for varargs method signature */
+        IL2CPP_TYPE_PINNED      = 0x45,       /* Local var that points to pinned object */
 
-        IL2CPP_TYPE_ENUM       = 0x55        /* an enumeration */
-    }
-    
-    public struct Il2CppMethodInfo
-    {
+        IL2CPP_TYPE_ENUM        = 0x55        /* an enumeration */
     }
 
     [Flags]
@@ -164,78 +173,14 @@ namespace UnhollowerBaseLib.Runtime
         wrapper_type = 0x4,
         is_marshalled_from_native = 0x8
     }
-    
+
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct VirtualInvokeData
     {
         public IntPtr methodPtr;
         public Il2CppMethodInfo* method;
     }
-    
-    [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct FieldInfo
-    {
-        public IntPtr name; // const char*
-        public Il2CppTypeStruct* type; // const
-        public Il2CppClass* parent; // non-const?
-        public int offset; // If offset is -1, then it's thread static
-        public uint token;
-    }
 
-    [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct PropertyInfo
-    {
-        public Il2CppClass* parent;
-        public IntPtr name; // const char*
-        public Il2CppMethodInfo *get; // const
-        public Il2CppMethodInfo *set; // const
-        public uint attrs;
-        public uint token;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct EventInfo
-    {
-        public IntPtr name; // const char*
-        public Il2CppTypeStruct* eventType; // const
-        public Il2CppClass* parent; // non const
-        public Il2CppMethodInfo* add; // const
-        public Il2CppMethodInfo* remove; // const
-        public Il2CppMethodInfo* raise; // const
-        public uint token;
-    }
-
-    public struct Il2CppParameterInfo
-    {
-    }
-    
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Il2CppTypeStruct
-    {
-        /*union
-        {
-            // We have this dummy field first because pre C99 compilers (MSVC) can only initializer the first value in a union.
-            void* dummy;
-            TypeDefinitionIndex klassIndex; /* for VALUETYPE and CLASS #1#
-            const Il2CppType *type;   /* for PTR and SZARRAY #1#
-            Il2CppArrayType *array; /* for ARRAY #1#
-            //MonoMethodSignature *method;
-            GenericParameterIndex genericParameterIndex; /* for VAR and MVAR #1#
-            Il2CppGenericClass *generic_class; /* for GENERICINST #1#
-        } data;*/
-        public IntPtr data;
-
-        public ushort attrs;
-        public Il2CppTypeEnum type;
-        public byte mods_byref_pin;
-        /*unsigned int attrs    : 16; /* param attributes or field flags #1#
-        Il2CppTypeEnum type     : 8;
-        unsigned int num_mods : 6;  /* max 64 modifiers follow at the end #1#
-        unsigned int byref    : 1;
-        unsigned int pinned   : 1;  /* valid when included in a local var signature #1#*/
-        //MonoCustomMod modifiers [MONO_ZERO_LEN_ARRAY]; /* this may grow */
-    }
-    
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct Il2CppRuntimeInterfaceOffsetPair
     {
@@ -243,16 +188,13 @@ namespace UnhollowerBaseLib.Runtime
         public int offset;
     }
 
-    [Flags]
-    public enum ClassBitfield2 : byte
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct Il2CppObject
     {
-        has_finalize = 0x1,
-        has_cctor = 0x2,
-        is_blittable = 0x4,
-        is_import_or_windows_runtime = 0x8,
-        is_vtable_initialized = 0x10,
-        has_initialization_error = 0x20
+        IntPtr data;
+        IntPtr monitor;
     }
+
 
     [Flags]
     public enum ClassBitfield1 : byte
@@ -266,40 +208,17 @@ namespace UnhollowerBaseLib.Runtime
         init_pending = 0x40,
         size_inited = 0x80
     }
-    
-    public unsafe struct Il2CppAssemblyName
-    {
-        public IntPtr name; // const char* 
-        public IntPtr culture; // const char*
-        public IntPtr hash_value; // const char*
-        public IntPtr public_key; // const char*
-        public uint hash_alg;
-        public int hash_len;
-        public uint flags;
-        public int major;
-        public int minor;
-        public int build;
-        public int revision;
-        public fixed byte public_key_token[16]; // PUBLIC_KEY_BYTE_LENGTH
-    }
 
-    public struct Il2CppImage
+    [Flags]
+    public enum ClassBitfield2 : byte
     {
+        has_finalize = 0x1,
+        has_cctor = 0x2,
+        is_blittable = 0x4,
+        is_import_or_windows_runtime = 0x8,
+        is_vtable_initialized = 0x10,
+        has_initialization_error = 0x20
     }
-
-    public unsafe struct Il2CppAssembly
-    {
-        public Il2CppImage* image;
-        public uint token;
-        public int referencedAssemblyStart;
-        public int referencedAssemblyCount;
-        public Il2CppAssemblyName aname;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Il2CppClass
-    {
-    } // stub struct
 
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct Il2CppClassPart1
@@ -322,9 +241,9 @@ namespace UnhollowerBaseLib.Runtime
         // End always valid fields
 
         // The following fields need initialized before access. This can be done per field or as an aggregate via a call to Class::Init
-        public FieldInfo* fields; // Initialized in SetupFields
-        public EventInfo* events; // const; Initialized in SetupEvents
-        public PropertyInfo* properties; // const; Initialized in SetupProperties
+        public Il2CppFieldInfo* fields; // Initialized in SetupFields
+        public Il2CppEventInfo* events; // const; Initialized in SetupEvents
+        public Il2CppPropertyInfo* properties; // const; Initialized in SetupProperties
         public Il2CppMethodInfo** methods; // const; Initialized in SetupMethods
         public Il2CppClass** nestedTypes; // not const; Initialized in SetupNestedTypes
         public Il2CppClass** implementedInterfaces; // not const; Initialized in SetupInterfaces
@@ -396,4 +315,29 @@ namespace UnhollowerBaseLib.Runtime
 
         //VirtualInvokeData vtable[IL2CPP_ZERO_LEN_ARRAY];
     }
+    
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct Il2CppGenericInst
+    {
+        public uint type_argc;
+        public Il2CppTypeStruct **type_argv;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct Il2CppGenericContext
+    {
+        /* The instantiation corresponding to the class generic parameters */
+        public Il2CppGenericInst *class_inst;
+        /* The instantiation corresponding to the method generic parameters */
+        public Il2CppGenericInst *method_inst;
+    };
+
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct Il2CppGenericMethod
+    {
+        public Il2CppMethodInfo* methodDefinition;
+        public Il2CppGenericContext context;
+    };
+
 }

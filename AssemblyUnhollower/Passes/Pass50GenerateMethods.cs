@@ -72,11 +72,13 @@ namespace AssemblyUnhollower.Passes
                         for (var i = 0; i < newMethod.Parameters.Count; i++)
                         {
                             bodyBuilder.Emit(OpCodes.Ldloc, argArray);
-                            bodyBuilder.EmitLdcI4(i);
-                            bodyBuilder.Emit(OpCodes.Conv_U);
-                            bodyBuilder.Emit(OpCodes.Sizeof, imports.IntPtr);
-                            bodyBuilder.Emit(OpCodes.Mul_Ovf_Un);
-                            bodyBuilder.Emit(OpCodes.Add);
+                            if (i > 0) {
+                                bodyBuilder.EmitLdcI4(i);
+                                bodyBuilder.Emit(OpCodes.Conv_U);
+                                bodyBuilder.Emit(OpCodes.Sizeof, imports.IntPtr);
+                                bodyBuilder.Emit(OpCodes.Mul_Ovf_Un);
+                                bodyBuilder.Emit(OpCodes.Add);
+                            }
 
                             var newParam = newMethod.Parameters[i];
                             bodyBuilder.EmitObjectToPointer(originalMethod.Parameters[i].ParameterType, newParam.ParameterType, methodRewriteContext.DeclaringType, argOffset + i, false, true, true, out var refVar);
@@ -86,17 +88,19 @@ namespace AssemblyUnhollower.Passes
                                 byRefParams.Add((i, refVar));
                         }
 
-                        if (originalMethod.IsVirtual && !originalMethod.DeclaringType.IsValueType || originalMethod.IsAbstract)
+                        if (!originalMethod.DeclaringType.IsSealed && !originalMethod.IsFinal && (originalMethod.IsVirtual && !originalMethod.DeclaringType.IsValueType || originalMethod.IsAbstract))
                         {
                             bodyBuilder.Emit(OpCodes.Ldarg_0);
                             bodyBuilder.Emit(OpCodes.Call, imports.Il2CppObjectBaseToPointer);
-                            bodyBuilder.Emit(OpCodes.Ldsfld, methodRewriteContext.NonGenericMethodInfoPointerField);
+                            if (methodRewriteContext.GenericInstantiationsStoreSelfSubstRef != null)
+                                bodyBuilder.Emit(OpCodes.Ldsfld, new FieldReference("Pointer", imports.IntPtr, methodRewriteContext.GenericInstantiationsStoreSelfSubstMethodRef));
+                            else
+                                bodyBuilder.Emit(OpCodes.Ldsfld, methodRewriteContext.NonGenericMethodInfoPointerField);
                             bodyBuilder.Emit(OpCodes.Call, imports.GetVirtualMethod);
                         }
                         else if (methodRewriteContext.GenericInstantiationsStoreSelfSubstRef != null)
-                        {
                             bodyBuilder.Emit(OpCodes.Ldsfld, new FieldReference("Pointer", imports.IntPtr, methodRewriteContext.GenericInstantiationsStoreSelfSubstMethodRef));
-                        } else
+                        else
                             bodyBuilder.Emit(OpCodes.Ldsfld, methodRewriteContext.NonGenericMethodInfoPointerField);
 
                         if (originalMethod.IsStatic)

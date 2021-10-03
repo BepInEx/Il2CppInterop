@@ -8,20 +8,25 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Image
     {
         public INativeImageStruct CreateNewImageStruct()
         {
-            var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppImageU2019>());
+            var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppImage_24_2>());
 
-            *(Il2CppImageU2019*)pointer = default;
+            *(Il2CppImage_24_2*)pointer = default;
 
             return new NativeImageStruct(pointer);
         }
 
         public INativeImageStruct Wrap(Il2CppImage* imagePointer)
         {
-            return new NativeImageStruct((IntPtr)imagePointer);
+            if ((IntPtr)imagePointer == IntPtr.Zero) return null;
+            else return new NativeImageStruct((IntPtr)imagePointer);
         }
 
+#if DEBUG
+        public string GetName() => "NativeImageStructHandler_24_2";
+#endif
+
         [StructLayout(LayoutKind.Sequential)]
-        private struct Il2CppImageU2019
+        internal struct Il2CppImage_24_2
         {
             public IntPtr name; // const char*
             public IntPtr nameNoExt; // const char*
@@ -46,7 +51,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Image
             public byte dynamic;
         }
 
-        private class NativeImageStruct : INativeImageStruct
+        internal class NativeImageStruct : INativeImageStruct
         {
             public NativeImageStruct(IntPtr pointer)
             {
@@ -57,13 +62,14 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Image
 
             public Il2CppImage* ImagePointer => (Il2CppImage*)Pointer;
 
-            private Il2CppImageU2019* NativeImage => (Il2CppImageU2019*)ImagePointer;
+            private Il2CppImage_24_2* NativeImage => (Il2CppImage_24_2*)Pointer;
 
             public ref Il2CppAssembly* Assembly => ref NativeImage->assembly;
 
             public ref byte Dynamic => ref NativeImage->dynamic;
 
             public ref IntPtr Name => ref NativeImage->name;
+
             public bool HasNameNoExt => true;
 
             public ref IntPtr NameNoExt => ref NativeImage->nameNoExt;
