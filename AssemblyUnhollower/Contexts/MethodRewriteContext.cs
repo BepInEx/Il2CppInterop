@@ -44,7 +44,6 @@ namespace AssemblyUnhollower.Contexts
                                      (OriginalMethod?.Name?.IsObfuscated(declaringType.AssemblyContext.GlobalContext
                                          .Options) ?? false);
 
-            // The keeping of the virtual flag is only done on Assembly-CSharp as other assemblies seemed to cause hard crashing
             var newMethod = new MethodDefinition("", AdjustAttributes(originalMethod.Attributes, originalMethod.Name == "Finalize"), declaringType.AssemblyContext.Imports.Void);
             NewMethod = newMethod;
 
