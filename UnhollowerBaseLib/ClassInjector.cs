@@ -358,14 +358,23 @@ namespace UnhollowerRuntimeLib
             if (method.IsStatic || method.IsAbstract) return false;
             if (method.CustomAttributes.Any(it => it.AttributeType == typeof(HideFromIl2CppAttribute))) return false;
 
-            if (
-                method.DeclaringType != null &&
-                method.DeclaringType.GetProperties()
-                    .Where(property => property.GetAccessors(true).Contains(method))
-                    .Any(property => property.CustomAttributes.Any(it => it.AttributeType == typeof(HideFromIl2CppAttribute)))
-            )
+            if (method.DeclaringType != null)
             {
-                return false;
+                if (method.DeclaringType.GetProperties()
+                        .Where(property => property.GetAccessors(true).Contains(method))
+                        .Any(property => property.CustomAttributes.Any(it => it.AttributeType == typeof(HideFromIl2CppAttribute)))
+                )
+                {
+                    return false;
+                }
+                
+                foreach (var eventInfo in method.DeclaringType.GetEvents((BindingFlags) 62))
+                {
+                    if ((eventInfo.GetAddMethod(true) == method || eventInfo.GetRemoveMethod(true) == method) && eventInfo.GetCustomAttribute<HideFromIl2CppAttribute>() != null)
+                    {
+                        return false;
+                    }
+                }
             }
 
             if (!IsTypeSupported(method.ReturnType))
