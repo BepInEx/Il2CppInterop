@@ -45,7 +45,7 @@ namespace AssemblyUnhollower.Contexts
                                          .Options) ?? false);
 
             // The keeping of the virtual flag is only done on Assembly-CSharp as other assemblies seemed to cause hard crashing
-            var newMethod = new MethodDefinition("", AdjustAttributes(originalMethod.Attributes, originalMethod.Module.Assembly.Name.Name != "Assembly-CSharp"), declaringType.AssemblyContext.Imports.Void);
+            var newMethod = new MethodDefinition("", AdjustAttributes(originalMethod.Attributes, originalMethod.Name == "Finalize"), declaringType.AssemblyContext.Imports.Void);
             NewMethod = newMethod;
 
             if (originalMethod.CustomAttributes.Any(x => x.AttributeType.FullName == typeof(ExtensionAttribute).FullName))
