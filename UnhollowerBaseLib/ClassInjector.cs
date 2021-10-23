@@ -708,7 +708,7 @@ namespace UnhollowerRuntimeLib
             var entryPointAddress = GetProcAddress(lib, nameof(IL2CPP.il2cpp_object_new));
             LogSupport.Trace($"il2cpp_object_new: {entryPointAddress}");
 
-            var objectNewAddress = XrefScannerLowLevel.JumpTargets(entryPointAddress).Single();
+            var objectNewAddress = XrefScannerLowLevel.JumpTargets(entryPointAddress).First();
             LogSupport.Trace($"Object::New: {objectNewAddress}");
 
             var objectNewAllocSpecificAddress = XrefScannerLowLevel.JumpTargets(objectNewAddress).Single();
