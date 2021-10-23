@@ -44,7 +44,8 @@ namespace AssemblyUnhollower.Contexts
                                      (OriginalMethod?.Name?.IsObfuscated(declaringType.AssemblyContext.GlobalContext
                                          .Options) ?? false);
 
-            var newMethod = new MethodDefinition("", AdjustAttributes(originalMethod.Attributes), declaringType.AssemblyContext.Imports.Void);
+            // The keeping of the virtual flag is only done on Assembly-CSharp as other assemblies seemed to cause hard crashing
+            var newMethod = new MethodDefinition("", originalMethod.Module.Assembly.Name.Name == "Assembly-CSharp" ? AssemblyCSharpAdjustAttributes(originalMethod.Attributes) : AdjustAttributes(originalMethod.Attributes), declaringType.AssemblyContext.Imports.Void);
             NewMethod = newMethod;
 
             if (originalMethod.CustomAttributes.Any(x => x.AttributeType.FullName == typeof(ExtensionAttribute).FullName))
@@ -135,6 +136,20 @@ namespace AssemblyUnhollower.Contexts
             original &= ~(MethodAttributes.PInvokeImpl);
             original &= ~(MethodAttributes.Abstract);
             original &= ~(MethodAttributes.Virtual);
+            original &= ~(MethodAttributes.Final);
+            original &= ~(MethodAttributes.NewSlot);
+            original &= ~(MethodAttributes.ReuseSlot);
+            original &= ~(MethodAttributes.CheckAccessOnOverride);
+            original |= MethodAttributes.Public;
+            return original;
+        }
+
+        private MethodAttributes AssemblyCSharpAdjustAttributes(MethodAttributes original)
+        {
+            original &= ~(MethodAttributes.MemberAccessMask); // todo: handle Object overload correctly
+            original &= ~(MethodAttributes.PInvokeImpl);
+            original &= ~(MethodAttributes.Abstract);
+            //original &= ~(MethodAttributes.Virtual);
             original &= ~(MethodAttributes.Final);
             original &= ~(MethodAttributes.NewSlot);
             original &= ~(MethodAttributes.ReuseSlot);
