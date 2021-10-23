@@ -111,6 +111,10 @@ namespace UnhollowerRuntimeLib
                 baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)ReadClassPointerForType(baseType));
             }
 
+            // Initialize the vtable of all base types (Class::Init is recursive internally)
+            ourClassInitMethod ??= FindClassInitMethod();
+            ourClassInitMethod.Invoke(baseClassPointer.ClassPointer);
+
             if (baseClassPointer.ValueType || baseClassPointer.EnumType)
                 throw new ArgumentException($"Base class {baseType} is value type and can't be inherited from");
 
@@ -692,6 +696,28 @@ namespace UnhollowerRuntimeLib
         private static Type NativeType(this Type type)
         {
             return type.IsValueType ? type : typeof(IntPtr);
+        }
+        
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void ClassInitDelegate(Il2CppClass* klass);
+        private static ClassInitDelegate ourClassInitMethod;
+
+        private static ClassInitDelegate FindClassInitMethod()
+        {
+            var lib = LoadLibrary("GameAssembly.dll");
+            var entryPointAddress = GetProcAddress(lib, nameof(IL2CPP.il2cpp_object_new));
+            LogSupport.Trace($"il2cpp_object_new: {entryPointAddress}");
+
+            var objectNewAddress = XrefScannerLowLevel.JumpTargets(entryPointAddress).Single();
+            LogSupport.Trace($"Object::New: {objectNewAddress}");
+
+            var objectNewAllocSpecificAddress = XrefScannerLowLevel.JumpTargets(objectNewAddress).Single();
+            LogSupport.Trace($"Object::NewAllocSpecific: {objectNewAllocSpecificAddress}");
+
+            var classInitAddress = XrefScannerLowLevel.JumpTargets(objectNewAllocSpecificAddress).First();
+            LogSupport.Trace($"Class::Init: {classInitAddress}");
+
+            return Marshal.GetDelegateForFunctionPointer<ClassInitDelegate>(classInitAddress);
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
