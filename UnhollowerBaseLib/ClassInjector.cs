@@ -708,10 +708,34 @@ namespace UnhollowerRuntimeLib
             var entryPointAddress = GetProcAddress(lib, nameof(IL2CPP.il2cpp_object_new));
             LogSupport.Trace($"il2cpp_object_new: {entryPointAddress}");
 
-            var objectNewAddress = XrefScannerLowLevel.JumpTargets(entryPointAddress).Single();
-            LogSupport.Trace($"Object::New: {objectNewAddress}");
+            var entrypointTargets = XrefScannerLowLevel.JumpTargets(entryPointAddress).ToArray();
 
-            var objectNewAllocSpecificAddress = XrefScannerLowLevel.JumpTargets(objectNewAddress).Single();
+            IntPtr objectNewAllocSpecificAddress;
+
+            switch (entrypointTargets.Length)
+            {
+                case 1:
+                {
+                    var objectNewAddress = entrypointTargets.Single();
+                    LogSupport.Trace($"Object::New: {objectNewAddress}");
+
+                    objectNewAllocSpecificAddress = XrefScannerLowLevel.JumpTargets(objectNewAddress).Single();
+
+                    break;
+                }
+
+                case 2:
+                {
+                    objectNewAllocSpecificAddress = entrypointTargets.First();
+                    break;
+                }
+
+                default:
+                {
+                    throw new NotSupportedException("Failed to find Class::Init, please create an issue and report your unity version");
+                }
+            }
+
             LogSupport.Trace($"Object::NewAllocSpecific: {objectNewAllocSpecificAddress}");
 
             var classInitAddress = XrefScannerLowLevel.JumpTargets(objectNewAllocSpecificAddress).First();
