@@ -181,11 +181,74 @@ namespace UnhollowerRuntimeLib
             var vTablePointer = (VirtualInvokeData*)classPointer.VTable;
             var baseVTablePointer = (VirtualInvokeData*)baseClassPointer.VTable;
             classPointer.VtableCount = (ushort)(baseClassPointer.VtableCount + interfaceFunctionCount);
+            
+            //Abstract and Virtual Fix
+            if (classPointer.Flags.HasFlag(Il2CppClassAttributes.TYPE_ATTRIBUTE_ABSTRACT) && IL2CPP.il2cpp_class_is_abstract((IntPtr)baseClassPointer.Class))
+            {
+                //Inheriting from an abstract class, make injected class not abstract.
+                classPointer.Flags &= ~Il2CppClassAttributes.TYPE_ATTRIBUTE_ABSTRACT;
+
+                int nativeMethodCount = baseClassPointer.MethodCount;
+                List<int> methofPointerArrayIndices = new List<int>();
+                for (int x = 0; x < nativeMethodCount; x++)
+                {
+                    var method = UnityVersionHandler.Wrap(baseClassPointer.Methods[x]);
+
+                    //VTable entries for abstact methods are empty point them to implementation methods
+                    if (method.Flags.HasFlag(Il2CppMethodFlags.METHOD_ATTRIBUTE_ABSTRACT))
+                    {
+                        string Il2CppMethodName = Marshal.PtrToStringAnsi(method.Name);
+
+                        MethodInfo monoMethodImplementation = type.GetMethod(Il2CppMethodName);
+
+
+                        int methodPointerArrayIndex = Array.IndexOf(eligibleMethods, monoMethodImplementation);
+                        if (methodPointerArrayIndex < 0)
+                        {
+                            LogSupport.Error($"No implementation defined for abstract method: {Il2CppMethodName}");
+                            throw new Exception("All abstract methods must be defined in injected class");
+                        }
+                        else
+                        {
+                            methodPointerArrayIndex += 2;
+                            methofPointerArrayIndices.Add(methodPointerArrayIndex);
+                        }
+                    }
+                }
+
+
+                int abstractMethodIndex = 0;
+                int[] abstractIndices = methofPointerArrayIndices.ToArray();
+
+                for (var y = 0; y < classPointer.VtableCount; y++)
+                {
+                    if ((int)baseVTablePointer[y].methodPtr == 0)
+                    {
+                        var method = UnityVersionHandler.Wrap(methodPointerArray[abstractIndices[abstractMethodIndex]]);
+                        vTablePointer[y].method = methodPointerArray[abstractIndices[abstractMethodIndex]];
+                        vTablePointer[y].methodPtr = method.MethodPointer;
+                        abstractMethodIndex++;
+
+                    }
+                }
+            }
+            
             for (var i = 0; i < baseClassPointer.VtableCount; i++)
             {
+                if (baseVTablePointer[i].methodPtr == (IntPtr) 0) continue;
                 vTablePointer[i] = baseVTablePointer[i];
-                var vTableMethod = UnityVersionHandler.Wrap(vTablePointer[i].method);
-                if (Marshal.PtrToStringAnsi(vTableMethod.Name) == "Finalize") // slot number is not static
+                string Il2CppMethodName = Marshal.PtrToStringAnsi(UnityVersionHandler.Wrap(vTablePointer[i].method).Name);
+                MethodInfo monoMethodImplementation = type.GetMethod(Il2CppMethodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+
+                int methodPointerArrayIndex = Array.IndexOf(eligibleMethods, monoMethodImplementation);
+                if (methodPointerArrayIndex > 0)
+                {
+                    var method = UnityVersionHandler.Wrap(methodPointerArray[methodPointerArrayIndex + 2]);
+                    vTablePointer[i].method = methodPointerArray[methodPointerArrayIndex + 2];
+                    vTablePointer[i].methodPtr = method.MethodPointer;
+                }
+
+                if (Il2CppMethodName == "Finalize") // slot number is not static
                 {
                     vTablePointer[i].method = methodPointerArray[0];
                     vTablePointer[i].methodPtr = finalizeMethod.MethodPointer;
