@@ -111,6 +111,10 @@ namespace UnhollowerRuntimeLib
                 baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)ReadClassPointerForType(baseType));
             }
 
+            // Initialize the vtable of all base types (Class::Init is recursive internally)
+            ourClassInitMethod ??= FindClassInitMethod();
+            ourClassInitMethod.Invoke(baseClassPointer.ClassPointer);
+
             if (baseClassPointer.ValueType || baseClassPointer.EnumType)
                 throw new ArgumentException($"Base class {baseType} is value type and can't be inherited from");
 
@@ -181,11 +185,72 @@ namespace UnhollowerRuntimeLib
             var vTablePointer = (VirtualInvokeData*)classPointer.VTable;
             var baseVTablePointer = (VirtualInvokeData*)baseClassPointer.VTable;
             classPointer.VtableCount = (ushort)(baseClassPointer.VtableCount + interfaceFunctionCount);
+            
+            //Abstract and Virtual Fix
+            if (classPointer.Flags.HasFlag(Il2CppClassAttributes.TYPE_ATTRIBUTE_ABSTRACT) && IL2CPP.il2cpp_class_is_abstract((IntPtr)baseClassPointer.Class))
+            {
+                //Inheriting from an abstract class, make injected class not abstract.
+                classPointer.Flags &= ~Il2CppClassAttributes.TYPE_ATTRIBUTE_ABSTRACT;
+
+                int nativeMethodCount = baseClassPointer.MethodCount;
+                List<int> methofPointerArrayIndices = new List<int>();
+                for (int x = 0; x < nativeMethodCount; x++)
+                {
+                    var method = UnityVersionHandler.Wrap(baseClassPointer.Methods[x]);
+
+                    //VTable entries for abstact methods are empty point them to implementation methods
+                    if (method.Flags.HasFlag(Il2CppMethodFlags.METHOD_ATTRIBUTE_ABSTRACT))
+                    {
+                        string il2CppMethodName = Marshal.PtrToStringAnsi(method.Name);
+
+                        MethodInfo monoMethodImplementation = type.GetMethod(il2CppMethodName);
+
+                        int methodPointerArrayIndex = Array.IndexOf(eligibleMethods, monoMethodImplementation);
+                        if (methodPointerArrayIndex < 0)
+                        {
+                            throw new ArgumentException($"{type.Name} does not implement the abstract method {il2CppMethodName}");
+                        }
+                        else
+                        {
+                            methodPointerArrayIndex += 2;
+                            methofPointerArrayIndices.Add(methodPointerArrayIndex);
+                        }
+                    }
+                }
+
+
+                int abstractMethodIndex = 0;
+                int[] abstractIndices = methofPointerArrayIndices.ToArray();
+
+                for (var y = 0; y < classPointer.VtableCount; y++)
+                {
+                    if ((int)baseVTablePointer[y].methodPtr == 0)
+                    {
+                        var method = UnityVersionHandler.Wrap(methodPointerArray[abstractIndices[abstractMethodIndex]]);
+                        vTablePointer[y].method = methodPointerArray[abstractIndices[abstractMethodIndex]];
+                        vTablePointer[y].methodPtr = method.MethodPointer;
+                        abstractMethodIndex++;
+
+                    }
+                }
+            }
+            
             for (var i = 0; i < baseClassPointer.VtableCount; i++)
             {
+                if (baseVTablePointer[i].methodPtr == IntPtr.Zero) continue;
                 vTablePointer[i] = baseVTablePointer[i];
-                var vTableMethod = UnityVersionHandler.Wrap(vTablePointer[i].method);
-                if (Marshal.PtrToStringAnsi(vTableMethod.Name) == "Finalize") // slot number is not static
+                string Il2CppMethodName = Marshal.PtrToStringAnsi(UnityVersionHandler.Wrap(vTablePointer[i].method).Name);
+                MethodInfo monoMethodImplementation = type.GetMethod(Il2CppMethodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+
+                int methodPointerArrayIndex = Array.IndexOf(eligibleMethods, monoMethodImplementation);
+                if (methodPointerArrayIndex > 0)
+                {
+                    var method = UnityVersionHandler.Wrap(methodPointerArray[methodPointerArrayIndex + 2]);
+                    vTablePointer[i].method = methodPointerArray[methodPointerArrayIndex + 2];
+                    vTablePointer[i].methodPtr = method.MethodPointer;
+                }
+
+                if (Il2CppMethodName == "Finalize") // slot number is not static
                 {
                     vTablePointer[i].method = methodPointerArray[0];
                     vTablePointer[i].methodPtr = finalizeMethod.MethodPointer;
@@ -295,14 +360,23 @@ namespace UnhollowerRuntimeLib
             if (method.IsStatic || method.IsAbstract) return false;
             if (method.CustomAttributes.Any(it => it.AttributeType == typeof(HideFromIl2CppAttribute))) return false;
 
-            if (
-                method.DeclaringType != null &&
-                method.DeclaringType.GetProperties()
-                    .Where(property => property.GetAccessors(true).Contains(method))
-                    .Any(property => property.CustomAttributes.Any(it => it.AttributeType == typeof(HideFromIl2CppAttribute)))
-            )
+            if (method.DeclaringType != null)
             {
-                return false;
+                if (method.DeclaringType.GetProperties()
+                        .Where(property => property.GetAccessors(true).Contains(method))
+                        .Any(property => property.CustomAttributes.Any(it => it.AttributeType == typeof(HideFromIl2CppAttribute)))
+                )
+                {
+                    return false;
+                }
+                
+                foreach (var eventInfo in method.DeclaringType.GetEvents(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+                {
+                    if ((eventInfo.GetAddMethod(true) == method || eventInfo.GetRemoveMethod(true) == method) && eventInfo.GetCustomAttribute<HideFromIl2CppAttribute>() != null)
+                    {
+                        return false;
+                    }
+                }
             }
 
             if (!IsTypeSupported(method.ReturnType))
@@ -620,6 +694,52 @@ namespace UnhollowerRuntimeLib
         private static Type NativeType(this Type type)
         {
             return type.IsValueType ? type : typeof(IntPtr);
+        }
+        
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void ClassInitDelegate(Il2CppClass* klass);
+        private static ClassInitDelegate ourClassInitMethod;
+
+        private static ClassInitDelegate FindClassInitMethod()
+        {
+            var lib = LoadLibrary("GameAssembly.dll");
+            var entryPointAddress = GetProcAddress(lib, nameof(IL2CPP.il2cpp_object_new));
+            LogSupport.Trace($"il2cpp_object_new: {entryPointAddress}");
+
+            var entrypointTargets = XrefScannerLowLevel.JumpTargets(entryPointAddress).ToArray();
+
+            IntPtr objectNewAllocSpecificAddress;
+
+            switch (entrypointTargets.Length)
+            {
+                case 1:
+                {
+                    var objectNewAddress = entrypointTargets.Single();
+                    LogSupport.Trace($"Object::New: {objectNewAddress}");
+
+                    objectNewAllocSpecificAddress = XrefScannerLowLevel.JumpTargets(objectNewAddress).Single();
+
+                    break;
+                }
+
+                case 2:
+                {
+                    objectNewAllocSpecificAddress = entrypointTargets.First();
+                    break;
+                }
+
+                default:
+                {
+                    throw new NotSupportedException("Failed to find Class::Init, please create an issue and report your unity version");
+                }
+            }
+
+            LogSupport.Trace($"Object::NewAllocSpecific: {objectNewAllocSpecificAddress}");
+
+            var classInitAddress = XrefScannerLowLevel.JumpTargets(objectNewAllocSpecificAddress).First();
+            LogSupport.Trace($"Class::Init: {classInitAddress}");
+
+            return Marshal.GetDelegateForFunctionPointer<ClassInitDelegate>(classInitAddress);
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
