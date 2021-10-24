@@ -44,7 +44,7 @@ namespace AssemblyUnhollower.Contexts
                                      (OriginalMethod?.Name?.IsObfuscated(declaringType.AssemblyContext.GlobalContext
                                          .Options) ?? false);
 
-            var newMethod = new MethodDefinition("", AdjustAttributes(originalMethod.Attributes), declaringType.AssemblyContext.Imports.Void);
+            var newMethod = new MethodDefinition("", AdjustAttributes(originalMethod.Attributes, originalMethod.Name == "Finalize"), declaringType.AssemblyContext.Imports.Void);
             NewMethod = newMethod;
 
             if (originalMethod.CustomAttributes.Any(x => x.AttributeType.FullName == typeof(ExtensionAttribute).FullName))
@@ -129,12 +129,12 @@ namespace AssemblyUnhollower.Contexts
             DeclaringType.NewType.Methods.Add(NewMethod);
         }
 
-        private MethodAttributes AdjustAttributes(MethodAttributes original)
+        private MethodAttributes AdjustAttributes(MethodAttributes original, bool stripVirtual)
         {
             original &= ~(MethodAttributes.MemberAccessMask); // todo: handle Object overload correctly
             original &= ~(MethodAttributes.PInvokeImpl);
             original &= ~(MethodAttributes.Abstract);
-            original &= ~(MethodAttributes.Virtual);
+            if (stripVirtual) original &= ~(MethodAttributes.Virtual);
             original &= ~(MethodAttributes.Final);
             original &= ~(MethodAttributes.NewSlot);
             original &= ~(MethodAttributes.ReuseSlot);

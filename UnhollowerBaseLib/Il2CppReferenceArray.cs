@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using UnhollowerBaseLib.Runtime;
 
 namespace UnhollowerBaseLib
 {
@@ -98,6 +99,14 @@ namespace UnhollowerBaseLib
             var referencePointer = *(IntPtr*) memberPointer;
             if (referencePointer == IntPtr.Zero) return null;
             
+            if (typeof(Il2CppObjectBase).IsAssignableFrom(typeof(T)))
+            {
+                var typePtr = Il2CppClassPointerStore<T>.NativeClassPtr;
+                var referenceClassPtr = IL2CPP.il2cpp_object_get_class(referencePointer);
+                if (RuntimeSpecificsStore.IsInjected(typePtr) && IL2CPP.il2cpp_class_is_assignable_from(typePtr, referenceClassPtr))
+                    return ClassInjectorBase.GetMonoObjectFromIl2CppPointer(referencePointer) as T;
+            }
+
             return (T) ourCachedInstanceCtor.Invoke(new object[] {referencePointer});
         }
 
