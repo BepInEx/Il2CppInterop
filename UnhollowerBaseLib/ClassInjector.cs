@@ -667,8 +667,13 @@ namespace UnhollowerRuntimeLib
                         body.Emit(OpCodes.Ldc_R4, 0);
                     else if (monoMethod.ReturnType == typeof(double))
                         body.Emit(OpCodes.Ldc_R8, 0);
-                    else
-                        body.Emit(OpCodes.Ldc_I4_0);
+                    else {
+                        var local = body.DeclareLocal(monoMethod.ReturnType);
+
+                        body.Emit(OpCodes.Ldloca_S, local);
+                        body.Emit(OpCodes.Initobj, monoMethod.ReturnType);
+                        body.Emit(OpCodes.Ldloc_S, local);
+                    }
                 } else {
                     body.Emit(OpCodes.Ldc_I4_0);
                     body.Emit(OpCodes.Conv_I);
