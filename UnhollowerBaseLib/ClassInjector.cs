@@ -201,16 +201,14 @@ namespace UnhollowerRuntimeLib
                     //VTable entries for abstact methods are empty point them to implementation methods
                     if (method.Flags.HasFlag(Il2CppMethodFlags.METHOD_ATTRIBUTE_ABSTRACT))
                     {
-                        string Il2CppMethodName = Marshal.PtrToStringAnsi(method.Name);
+                        string il2CppMethodName = Marshal.PtrToStringAnsi(method.Name);
 
-                        MethodInfo monoMethodImplementation = type.GetMethod(Il2CppMethodName);
-
+                        MethodInfo monoMethodImplementation = type.GetMethod(il2CppMethodName);
 
                         int methodPointerArrayIndex = Array.IndexOf(eligibleMethods, monoMethodImplementation);
                         if (methodPointerArrayIndex < 0)
                         {
-                            LogSupport.Error($"No implementation defined for abstract method: {Il2CppMethodName}");
-                            throw new Exception("All abstract methods must be defined in injected class");
+                            throw new ArgumentException($"{type.Name} does not implement the abstract method {il2CppMethodName}");
                         }
                         else
                         {
@@ -239,7 +237,7 @@ namespace UnhollowerRuntimeLib
             
             for (var i = 0; i < baseClassPointer.VtableCount; i++)
             {
-                if (baseVTablePointer[i].methodPtr == (IntPtr) 0) continue;
+                if (baseVTablePointer[i].methodPtr == IntPtr.Zero) continue;
                 vTablePointer[i] = baseVTablePointer[i];
                 string Il2CppMethodName = Marshal.PtrToStringAnsi(UnityVersionHandler.Wrap(vTablePointer[i].method).Name);
                 MethodInfo monoMethodImplementation = type.GetMethod(Il2CppMethodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
@@ -372,7 +370,7 @@ namespace UnhollowerRuntimeLib
                     return false;
                 }
                 
-                foreach (var eventInfo in method.DeclaringType.GetEvents((BindingFlags) 62))
+                foreach (var eventInfo in method.DeclaringType.GetEvents(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
                 {
                     if ((eventInfo.GetAddMethod(true) == method || eventInfo.GetRemoveMethod(true) == method) && eventInfo.GetCustomAttribute<HideFromIl2CppAttribute>() != null)
                     {
