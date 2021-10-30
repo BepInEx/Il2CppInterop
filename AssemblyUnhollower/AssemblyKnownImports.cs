@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using AssemblyUnhollower.Contexts;
 using AssemblyUnhollower.Extensions;
@@ -39,6 +40,9 @@ namespace AssemblyUnhollower
         private readonly Lazy<TypeReference> myIl2CppReferenceArray;
         private readonly Lazy<TypeReference> myIl2CppStructArray;
         private readonly Lazy<TypeReference> myIl2CppStringArray;
+        private readonly Lazy<MethodReference> myIl2CppReferenceArrayCtor;
+        private readonly Lazy<MethodReference> myIl2CppStructArrayCtor;
+        private readonly Lazy<MethodReference> myIl2CppStringArrayCtor;
         private readonly Lazy<TypeReference> myIl2CppArrayBase;
         private readonly Lazy<TypeReference> myIl2CppArrayBaseSetlfSubst;
         private readonly Lazy<TypeReference> myDefaultMemberAttribute;
@@ -59,6 +63,9 @@ namespace AssemblyUnhollower
         public TypeReference Il2CppReferenceArray => myIl2CppReferenceArray.Value;
         public TypeReference Il2CppStructArray => myIl2CppStructArray.Value;
         public TypeReference Il2CppStringArray => myIl2CppStringArray.Value;
+        public MethodReference Il2CppReferenceArrayCtor => myIl2CppReferenceArrayCtor.Value;
+        public MethodReference Il2CppStructArrayCtor => myIl2CppStructArrayCtor.Value;
+        public MethodReference Il2CppStringArrayCtor => myIl2CppStringArrayCtor.Value;
         public TypeReference Il2CppArrayBase => myIl2CppArrayBase.Value;
         public TypeReference Il2CppArrayBaseSelfSubst => myIl2CppArrayBaseSetlfSubst.Value;
         public TypeReference DefaultMemberAttribute => myDefaultMemberAttribute.Value;
@@ -119,6 +126,7 @@ namespace AssemblyUnhollower
         private readonly Lazy<MethodReference> myCallerCountAttributeCtor;
         private readonly Lazy<MethodReference> myCachedScanResultsAttributeCtor;
         private readonly Lazy<MethodReference> myExtensionAttributeCtor;
+        private readonly Lazy<MethodReference> myParamArrayAttributeCtor;
         
         public MethodReference FieldGetOffset => myFieldGetOffset.Value;
         public MethodReference FieldStaticGet => myFieldStaticGet.Value;
@@ -158,6 +166,7 @@ namespace AssemblyUnhollower
         public MethodReference CallerCountAttributeCtor => myCallerCountAttributeCtor.Value;
         public MethodReference CachedScanResultsAttributeCtor => myCachedScanResultsAttributeCtor.Value;
         public MethodReference ExtensionAttributeCtor => myExtensionAttributeCtor.Value;
+        public MethodReference ParamArrayAttributeCtor => myParamArrayAttributeCtor.Value;
         
 
         public AssemblyKnownImports(ModuleDefinition module, RewriteGlobalContext context)
@@ -177,9 +186,24 @@ namespace AssemblyUnhollower
             myValueTypeReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.ValueType));
             myObjectReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.Object));
             myIl2CppClassPointerStoreReference = new Lazy<TypeReference>(() => Module.ImportReference(typeof(Il2CppClassPointerStore<>)));
+
             myIl2CppReferenceArray = new Lazy<TypeReference>(() => Module.ImportReference(typeof(Il2CppReferenceArray<>)));
             myIl2CppStructArray = new Lazy<TypeReference>(() => Module.ImportReference(typeof(Il2CppStructArray<>)));
             myIl2CppStringArray = new Lazy<TypeReference>(() => Module.ImportReference(typeof(Il2CppStringArray)));
+
+            static ConstructorInfo FindArrayConstructor(Type type)
+            {
+                return type.GetConstructors().Single(constructorInfo =>
+                {
+                    var parameters = constructorInfo.GetParameters();
+                    return parameters.Length == 1 && parameters.Single().ParameterType.IsArray;
+                });
+            }
+
+            myIl2CppReferenceArrayCtor = new Lazy<MethodReference>(() => Module.ImportReference(FindArrayConstructor(typeof(Il2CppReferenceArray<>))));
+            myIl2CppStructArrayCtor = new Lazy<MethodReference>(() => Module.ImportReference(FindArrayConstructor(typeof(Il2CppStructArray<>))));
+            myIl2CppStringArrayCtor = new Lazy<MethodReference>(() => Module.ImportReference(FindArrayConstructor(typeof(Il2CppStringArray))));
+
             myIl2CppArrayBase = new Lazy<TypeReference>(() => Module.ImportReference(typeof(Il2CppArrayBase<>)));
             myIl2CppArrayBaseSetlfSubst = new Lazy<TypeReference>(() => Module.ImportReference(new GenericInstanceType(Il2CppArrayBase) { GenericArguments = { Il2CppArrayBase.GenericParameters[0] }}));
             myIl2CppObjectBaseReference = new Lazy<TypeReference>(() => Module.ImportReference(typeof(Il2CppObjectBase)));
@@ -261,6 +285,10 @@ namespace AssemblyUnhollower
 
             myExtensionAttributeCtor = new Lazy<MethodReference>(() =>
                 new MethodReference(".ctor", Void, Module.ImportReference(typeof(ExtensionAttribute))) { HasThis = true }
+            );
+
+            myParamArrayAttributeCtor = new Lazy<MethodReference>(() =>
+                new MethodReference(".ctor", Void, Module.ImportReference(typeof(ParamArrayAttribute))) { HasThis = true }
             );
         }
     }

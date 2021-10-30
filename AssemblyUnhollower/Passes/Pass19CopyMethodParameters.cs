@@ -36,6 +36,12 @@ namespace AssemblyUnhollower.Passes
 
                             newMethod.Parameters.Add(newParameter);
                         }
+
+                        var paramsMethod = context.CreateParamsMethod(originalMethod, newMethod, assemblyContext.Imports, type => assemblyContext.RewriteTypeRef(type));
+                        if (paramsMethod != null)
+                        {
+                            typeContext.NewType.Methods.Add(paramsMethod);
+                        }
                     }
                 }
             }
