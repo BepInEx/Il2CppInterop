@@ -77,6 +77,8 @@ namespace AssemblyUnhollower.Contexts
             foreach (var originalTypeField in OriginalType.Fields)
                 myFieldContexts[originalTypeField] = new FieldRewriteContext(this, originalTypeField, renamedFieldCounts);
 
+            var hasExtensionMethods = false;
+
             foreach (var originalTypeMethod in OriginalType.Methods)
             {
                 if (originalTypeMethod.Name == ".cctor") continue;
@@ -86,6 +88,16 @@ namespace AssemblyUnhollower.Contexts
                 var methodRewriteContext = new MethodRewriteContext(this, originalTypeMethod);
                 myMethodContexts[originalTypeMethod] = methodRewriteContext;
                 myMethodContextsByName[originalTypeMethod.Name] = methodRewriteContext;
+
+                if (methodRewriteContext.HasExtensionAttribute)
+                {
+                    hasExtensionMethods = true;
+                }
+            }
+
+            if (hasExtensionMethods)
+            {
+                NewType.CustomAttributes.Add(new CustomAttribute(AssemblyContext.Imports.ExtensionAttributeCtor));
             }
         }
 

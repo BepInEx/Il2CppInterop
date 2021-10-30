@@ -32,6 +32,8 @@ namespace AssemblyUnhollower.Contexts
         public FieldReference NonGenericMethodInfoPointerField { get; private set; }
 
         public readonly List<XrefInstance> XrefScanResults = new List<XrefInstance>();
+        
+        public bool HasExtensionAttribute { get; }
 
         public MethodRewriteContext(TypeRewriteContext declaringType, MethodDefinition originalMethod)
         {
@@ -47,7 +49,7 @@ namespace AssemblyUnhollower.Contexts
             var newMethod = new MethodDefinition("", AdjustAttributes(originalMethod.Attributes, originalMethod.Name == "Finalize"), declaringType.AssemblyContext.Imports.Void);
             NewMethod = newMethod;
 
-            if (originalMethod.CustomAttributes.Any(x => x.AttributeType.FullName == typeof(ExtensionAttribute).FullName))
+            if (HasExtensionAttribute = originalMethod.CustomAttributes.Any(x => x.AttributeType.FullName == typeof(ExtensionAttribute).FullName))
             {
                 newMethod.CustomAttributes.Add(new CustomAttribute(declaringType.AssemblyContext.Imports.ExtensionAttributeCtor));
             }
