@@ -40,8 +40,12 @@ namespace AssemblyUnhollower.Contexts
             foreach (var sourceAssembly in gameAssemblies.Assemblies)
             {
                 var assemblyName = sourceAssembly.Name.Name;
-                if (assemblyName == "Il2CppDummyDll") continue;
-                
+                if (assemblyName == "Il2CppDummyDll")
+                {
+                    sourceAssembly.Dispose();
+                    continue;
+                }
+
                 var newAssembly = AssemblyDefinition.CreateAssembly(
                     new AssemblyNameDefinition(sourceAssembly.Name.Name.UnSystemify(), sourceAssembly.Name.Version),
                     sourceAssembly.MainModule.Name.UnSystemify(), sourceAssembly.MainModule.Kind);
@@ -109,6 +113,9 @@ namespace AssemblyUnhollower.Contexts
                 assembly.NewAssembly.Dispose();
                 assembly.OriginalAssembly.Dispose();
             }
+
+            SystemAssemblies.Dispose();
+            UnityAssemblies.Dispose();
         }
 
         public MethodDefinition? CreateParamsMethod(MethodDefinition originalMethod, MethodDefinition newMethod, AssemblyKnownImports imports, Func<TypeReference, TypeReference?> resolve)
