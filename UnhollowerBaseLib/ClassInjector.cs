@@ -86,6 +86,7 @@ namespace UnhollowerRuntimeLib
         
         public static void RegisterTypeInIl2Cpp<T>() where T : class => RegisterTypeInIl2Cpp(typeof(T), true, Array.Empty<INativeClassStruct>());
         public static void RegisterTypeInIl2Cpp<T>(bool logSuccess) where T : class => RegisterTypeInIl2Cpp(typeof(T), logSuccess, Array.Empty<INativeClassStruct>());
+        public static void RegisterTypeInIl2Cpp(Type type) => RegisterTypeInIl2Cpp(type, true);
         public static void RegisterTypeInIl2Cpp(Type type, bool logSuccess) => RegisterTypeInIl2Cpp(type, logSuccess, Array.Empty<INativeClassStruct>());
         public static void RegisterTypeInIl2CppWithInterfaces<T>(params Type[] interfaces) where T : class => RegisterTypeInIl2CppWithInterfaces(typeof(T), true, interfaces);
         public static void RegisterTypeInIl2CppWithInterfaces<T>(bool logSuccess, params Type[] interfaces) where T : class => RegisterTypeInIl2CppWithInterfaces(typeof(T), logSuccess, interfaces);
