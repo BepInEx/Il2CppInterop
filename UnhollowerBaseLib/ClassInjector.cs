@@ -213,14 +213,23 @@ namespace UnhollowerRuntimeLib
                     //VTable entries for abstact methods are empty point them to implementation methods
                     if (method.Flags.HasFlag(Il2CppMethodFlags.METHOD_ATTRIBUTE_ABSTRACT))
                     {
-                        string il2CppMethodName = Marshal.PtrToStringAnsi(method.Name);
+                        var name = Marshal.PtrToStringAnsi(method.Name);
+                        var parameters = new Type[method.ParametersCount];
 
-                        MethodInfo monoMethodImplementation = type.GetMethod(il2CppMethodName);
+                        for (var i = 0; i < method.ParametersCount; i++)
+                        {
+                            var parameterInfo = UnityVersionHandler.Wrap(method.Parameters, i);
+                            var parameterType = SystemTypeFromIl2CppType(parameterInfo.ParameterType);
 
-                        int methodPointerArrayIndex = Array.IndexOf(eligibleMethods, monoMethodImplementation);
+                            parameters[i] = parameterType;
+                        }
+                        
+                        var monoMethodImplementation = type.GetMethod(name, parameters);
+
+                        var methodPointerArrayIndex = Array.IndexOf(eligibleMethods, monoMethodImplementation);
                         if (methodPointerArrayIndex < 0)
                         {
-                            throw new ArgumentException($"{type.Name} does not implement the abstract method {il2CppMethodName}");
+                            throw new ArgumentException($"{type.Name} does not implement the abstract method {name}");
                         }
                         else
                         {
@@ -789,23 +798,49 @@ namespace UnhollowerRuntimeLib
             LogSupport.Trace("il2cpp_class_from_il2cpp_type patched");
         }
 
-        private static System.Type SystemTypeFromIl2CppType(Il2CppTypeStruct *typePointer)
+        private static System.Type RewriteType(Type type)
+        {
+            if (type.IsValueType && !type.IsEnum)
+                return type;
+
+            if (type.IsArray)
+            {
+                var elementType = type.GetElementType();
+                if (elementType!.FullName == "System.String")
+                {
+                    return typeof(Il2CppStringArray);
+                }
+
+                var convertedElementType = RewriteType(elementType);
+                if (elementType.IsGenericParameter)
+                {
+                    return typeof(Il2CppArrayBase<>).MakeGenericType(convertedElementType);
+                }
+
+                return (convertedElementType.IsValueType ? typeof(Il2CppStructArray<>) : typeof(Il2CppReferenceArray<>)).MakeGenericType(convertedElementType);
+            }
+
+            if (type.FullName!.StartsWith("System"))
+            {
+                var fullName = "Il2Cpp" + type.FullName;
+
+                return AppDomain.CurrentDomain.GetAssemblies()
+                    .SelectMany(a => a.GetTypes())
+                    .First(t => t.FullName == fullName);
+            }
+
+            return type;
+        }
+
+        private static System.Type SystemTypeFromIl2CppType(Il2CppTypeStruct* typePointer)
         {
             var klass = UnityVersionHandler.Wrap(ClassFromTypePatch(typePointer));
             var fullName = Marshal.PtrToStringAnsi(klass.Namespace) + "." + Marshal.PtrToStringAnsi(klass.Name);
             if (fullName == "System.String")
                 return typeof(string);
 
-            var type = Type.GetType(fullName);
-            if (type.IsValueType)
-                return type;
-
-            if (fullName.StartsWith("System"))
-                fullName = "Il2Cpp" + fullName;
-            var systemType = AppDomain.CurrentDomain.GetAssemblies()
-                                .SelectMany(a => a.GetTypes())
-                                .First(t => t.FullName == fullName);
-            return systemType;
+            var type = Type.GetType(fullName) ?? throw new NullReferenceException($"Couldn't find System.Type for Il2Cpp type: {fullName}");
+            return RewriteType(type);
         }
 
         private static Il2CppMethodInfo* GenericGetMethodPatch(Il2CppGenericMethod* gmethod, bool copyMethodPtr)
