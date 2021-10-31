@@ -823,11 +823,14 @@ namespace UnhollowerRuntimeLib
 
             if (type.FullName!.StartsWith("System"))
             {
-                var fullName = "Il2Cpp" + type.FullName;
+                var fullName = $"Il2Cpp{type.FullName}";
+                var resolvedType = Type.GetType($"{fullName}, Il2Cpp{type.Assembly.GetName().Name}", false);
+                if (resolvedType != null)
+                    return resolvedType;
 
                 return AppDomain.CurrentDomain.GetAssemblies()
-                    .SelectMany(a => a.GetTypes())
-                    .First(t => t.FullName == fullName);
+                    .Select(a => a.GetType(fullName, false))
+                    .First(t => t != null);
             }
 
             return type;
