@@ -101,6 +101,12 @@ namespace AssemblyUnhollower.Passes
                         else if(unityMethod.IsSetter)
                             GetOrCreateProperty(unityMethod, newMethod).SetMethod = newMethod;
 
+                        var paramsMethod = context.CreateParamsMethod(unityMethod, newMethod, imports, type => ResolveTypeInNewAssemblies(context, type, imports));
+                        if (paramsMethod != null)
+                        {
+                            processedType.NewType.Methods.Add(paramsMethod);
+                        }
+
                         methodsUnstripped++;
                     }
                 }
