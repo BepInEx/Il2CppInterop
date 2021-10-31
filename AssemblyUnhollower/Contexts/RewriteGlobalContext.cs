@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using AssemblyUnhollower.Extensions;
 using AssemblyUnhollower.MetadataAccess;
 using Mono.Cecil;
+using Mono.Cecil.Cil;
 
 namespace AssemblyUnhollower.Contexts
 {
@@ -107,6 +109,99 @@ namespace AssemblyUnhollower.Contexts
                 assembly.NewAssembly.Dispose();
                 assembly.OriginalAssembly.Dispose();
             }
+        }
+
+        public MethodDefinition? CreateParamsMethod(MethodDefinition originalMethod, MethodDefinition newMethod, AssemblyKnownImports imports, Func<TypeReference, TypeReference?> resolve)
+        {
+            if (newMethod.Name == "Invoke")
+                return null;
+
+            var paramsParameters = originalMethod.Parameters.Where(parameter =>
+                parameter.ParameterType is ArrayType { Rank: 1 } arrayType
+                && !(resolve(arrayType.ElementType)?.IsGenericParameter ?? true)
+                && parameter.CustomAttributes.Any(attribute => attribute.AttributeType.FullName == typeof(ParamArrayAttribute).FullName)
+            ).ToArray();
+
+            if (paramsParameters.Any())
+            {
+                var paramsMethod = new MethodDefinition(newMethod.Name, newMethod.Attributes, newMethod.ReturnType);
+                foreach (var genericParameter in newMethod.GenericParameters)
+                {
+                    paramsMethod.GenericParameters.Add(genericParameter);
+                }
+
+                foreach (var originalParameter in originalMethod.Parameters)
+                {
+                    var isParams = paramsParameters.Contains(originalParameter);
+
+                    TypeReference? convertedType;
+                    if (isParams && originalParameter.ParameterType is ArrayType arrayType)
+                    {
+                        var resolvedElementType = resolve(arrayType.GetElementType());
+                        convertedType = resolvedElementType == null ? null : new ArrayType(resolvedElementType, arrayType.Rank);
+                    }
+                    else
+                    {
+                        convertedType = resolve(originalParameter.ParameterType);
+                    }
+
+                    var parameter = new ParameterDefinition(originalParameter.Name, originalParameter.Attributes, convertedType);
+
+                    if (isParams)
+                    {
+                        parameter.CustomAttributes.Add(new CustomAttribute(imports.ParamArrayAttributeCtor));
+                    }
+
+                    paramsMethod.Parameters.Add(parameter);
+                }
+
+                var body = paramsMethod.Body.GetILProcessor();
+
+                if (newMethod.HasThis)
+                {
+                    body.Emit(OpCodes.Ldarg_0);
+                }
+
+                var argOffset = newMethod.HasThis ? 1 : 0;
+
+                for (var i = 0; i < newMethod.Parameters.Count; i++)
+                {
+                    body.Emit(OpCodes.Ldarg, argOffset + i);
+
+                    var parameter = originalMethod.Parameters[i];
+                    if (paramsParameters.Contains(parameter))
+                    {
+                        var parameterType = (ArrayType)parameter.ParameterType;
+
+                        MethodReference constructorReference;
+
+                        var elementType = parameterType.ElementType;
+                        if (elementType.FullName == "System.String")
+                        {
+                            constructorReference = imports.Il2CppStringArrayCtor;
+                        }
+                        else
+                        {
+                            var convertedElementType = resolve(elementType)!;
+
+                            constructorReference = imports.Module.ImportReference(convertedElementType.IsValueType ? imports.Il2CppStructArrayCtor : imports.Il2CppReferenceArrayCtor);
+
+                            var declaringType = (GenericInstanceType)constructorReference.DeclaringType;
+                            declaringType.GenericArguments.Clear();
+                            declaringType.GenericArguments.Add(convertedElementType);
+                        }
+
+                        body.Emit(OpCodes.Newobj, constructorReference);
+                    }
+                }
+
+                body.Emit(OpCodes.Call, newMethod);
+                body.Emit(OpCodes.Ret);
+
+                return paramsMethod;
+            }
+
+            return null;
         }
     }
 }

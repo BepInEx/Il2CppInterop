@@ -11,20 +11,23 @@ namespace UnhollowerBaseLib
         public Il2CppStructArray(long size) : base(AllocateArray(size))
         {
         }
+        
+        public Il2CppStructArray(T[] arr) : base(AllocateArray(arr.Length))
+        {
+            for (var i = 0; i < arr.Length; i++) 
+                this[i] = arr[i];
+        }
 
         static Il2CppStructArray()
         {
             StaticCtorBody(typeof(Il2CppStructArray<T>));
         }
-        
+
         public static implicit operator Il2CppStructArray<T>(T[] arr)
         {
             if (arr == null) return null;
-            
-            var il2CppArray = new Il2CppStructArray<T>(arr.Length);
-            for (var i = 0; i < arr.Length; i++) il2CppArray[i] = arr[i];
 
-            return il2CppArray;
+            return new Il2CppStructArray<T>(arr);
         }
 
         public override unsafe T this[int index]
