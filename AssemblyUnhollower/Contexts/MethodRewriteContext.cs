@@ -49,7 +49,9 @@ namespace AssemblyUnhollower.Contexts
             var newMethod = new MethodDefinition("", AdjustAttributes(originalMethod.Attributes, originalMethod.Name == "Finalize"), declaringType.AssemblyContext.Imports.Void);
             NewMethod = newMethod;
 
-            if (HasExtensionAttribute = originalMethod.CustomAttributes.Any(x => x.AttributeType.FullName == typeof(ExtensionAttribute).FullName))
+            HasExtensionAttribute = originalMethod.CustomAttributes.Any(x => x.AttributeType.FullName == typeof(ExtensionAttribute).FullName);
+
+            if (HasExtensionAttribute)
             {
                 newMethod.CustomAttributes.Add(new CustomAttribute(declaringType.AssemblyContext.Imports.ExtensionAttributeCtor));
             }
