@@ -1,18 +1,26 @@
 # Il2CppAssemblyUnhollower
+
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/BepInEx/Il2CppAssemblyUnhollower/.NET)](https://github.com/BepInEx/Il2CppAssemblyUnhollower/actions/workflows/dotnet.yml)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/BepInEx/Il2CppAssemblyUnhollower)](https://github.com/BepInEx/Il2CppAssemblyUnhollower/releases)
+[![BepInEx NuGet (Tool)](https://img.shields.io/badge/NuGet-Tool-brightgreen)](https://nuget.bepinex.dev/packages/Il2CppAssemblyUnhollower.Tool)
+[![BepInEx NuGet (RuntimeLib)](https://img.shields.io/badge/NuGet-RuntimeLib-brightgreen)](https://nuget.bepinex.dev/packages/Il2CppAssemblyUnhollower.BaseLib)
+
 A tool to generate Managed->IL2CPP proxy assemblies from
- [Il2CppDumper](https://github.com/Perfare/Il2CppDumper )'s output.
+ [Il2CppDumper](https://github.com/Perfare/Il2CppDumper)'s or [Cpp2IL](https://github.com/SamboyCoding/Cpp2IL)'s output.
 
 This allows the use of IL2CPP domain and objects in it from a managed domain. 
 This includes generic types and methods, arrays, and new object creation. Some things may be horribly broken. 
  
 ## Usage
-  0. Build or get a release
-  1. Obtain dummy assemblies using [Il2CppDumper](https://github.com/Perfare/Il2CppDumper)
-  2. Run `AssemblyUnhollower --input=<path to Il2CppDumper's dummy dll dir> --output=<output directory> --mscorlib=<path to target mscorlib>`    
+  0. Obtain a release using one of the following methods
+     * Download latest AssemblyUnhollower release from [GitHub releases](https://github.com/BepInEx/Il2CppAssemblyUnhollower/releases)
+     * Reference tool and libraries in your projects via BepInEx NuGet: [Il2CppAssemblyUnhollower.Tool](https://nuget.bepinex.dev/packages/Il2CppAssemblyUnhollower.Tool); [Il2CppAssemblyUnhollower.BaseLib](https://nuget.bepinex.dev/packages/Il2CppAssemblyUnhollower.BaseLib)
+     * Clone this repository and build from source
+  2. Obtain dummy assemblies using [Il2CppDumper](https://github.com/Perfare/Il2CppDumper) or [Cpp2IL](https://github.com/SamboyCoding/Cpp2IL)
+  3. Run `AssemblyUnhollower --input=<path to Il2CppDumper's or Cpp2IL's dummy dll dir> --output=<output directory> --mscorlib=<path to target mscorlib>`    
        
- Resulting assemblies may be used with your favorite loader that offers a Mono domain in the IL2CPP game process, such as [MelonLoader](https://github.com/HerpDerpinstine/MelonLoader).    
- This appears to be working reasonably well for Unity 2018.4.x games, but more extensive testing is required.  
- Generated assemblies appear to be invalid according to .NET Core/.NET Framework, but run fine on Mono.
+ Resulting assemblies may be used with your favorite loader that offers a Mono domain in the IL2CPP game process, such as [MelonLoader](https://github.com/LavaGang/MelonLoader), [BepInEx](https://github.com/BepInEx/BepInEx) and any other IL2CPP modding tools.
+Generated assemblies appear to be invalid according to .NET Core/.NET Framework, but run fine on Mono.
 
 ### Command-line parameter reference
 ```
