@@ -70,7 +70,6 @@ How-to:
  * Your class must inherit from a non-abstract IL2CPP class.
  * You must include a constructor that takes IntPtr and passes it to base class constructor. It will be called when objects of your class are created from IL2CPP side.
  * To create your object from managed side, call base class IntPtr constructor with result of `ClassInjector.DerivedConstructorPointer<T>()`, where T is your class type, and call `ClassInjector.DerivedConstructorBody(this)` in constructor body.
- * An example of injected class is `Il2CppToMonoDelegateReference` in [DelegateSupport.cs](UnhollowerRuntimeLib/DelegateSupport.cs)
  * Call `ClassInjector.RegisterTypeInIl2Cpp<T>()` before first use of class to be injected
  * The injected class can be used normally afterwards, for example a custom MonoBehavior implementation would work with `AddComponent<T>`
  
@@ -90,8 +89,7 @@ class Injected: Il2CppSystem.Object {
 ```
 
 Limitations:
- * Interfaces can't be implemented
- * Virtual methods can't be overridden
+ * Interfaces can be implemented but right now require listing them all in `ClassInjector.RegisterTypeInIl2Cpp`
  * Only instance methods are exposed to IL2CPP side - no fields, properties, events or static methods will be visible to IL2CPP reflection
  * Only a limited set of types is supported for method signatures
  
@@ -99,7 +97,7 @@ Limitations:
  Starting with version 0.4.15.0, injected components can be used in asset bundles. Currently, deserialization for component fields is not supported. Any fields on the component will initially have their default value as defined in the mono assembly.
 
  How-to:
- * Your class must meet the above critereon mentioned in Class Injection.
+ * Your class must meet the above criteria mentioned in Class Injection.
  * Add a dummy script for your component into Unity. Remove any methods, constructors, and properties. Fields can optionally be left in for future deserialization support.
  * Apply the component to your intended objects in Unity and build the asset bundle.
  * At runtime, register your component with `RegisterTypeInIl2Cpp` before loading any objects from the asset bundle.
@@ -116,7 +114,6 @@ Known caveats:
 ## Upcoming features (aka TODO list)
  * Unstripping engine code - fix current issues with unstripping failing or generating invalid bytecode
  * Proper interface support - IL2CPP interfaces will be generated as interfaces and properly implemented by IL2CPP types
- * Improve class injection to support virtual methods and interfaces
  * Improve class injection to support deserializing fields
 
 ## Used libraries
