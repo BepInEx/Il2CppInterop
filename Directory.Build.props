@@ -1,0 +1,6 @@
+<Project>
+    <PropertyGroup>
+        <PackageOutputPath>../bin/NuGet</PackageOutputPath>
+        <OutputPath Condition="'$(Configuration)' == 'Release'">../bin/$(MSBuildProjectName)</OutputPath>
+    </PropertyGroup>
+</Project>
