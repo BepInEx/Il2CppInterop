@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using AssemblyUnhollower.Extensions;
 using AssemblyUnhollower.MetadataAccess;
 using Mono.Cecil;
@@ -108,8 +109,17 @@ namespace AssemblyUnhollower.Contexts
 
         public void Dispose()
         {
+            var resolverCacheField = typeof(DefaultAssemblyResolver).
+                GetField("cache", BindingFlags.Instance | BindingFlags.NonPublic);
+            
             foreach (var assembly in Assemblies)
             {
+                foreach (var module in assembly.NewAssembly.Modules)
+                {
+                    var resolver = (DefaultAssemblyResolver) module.AssemblyResolver;
+                    var cache = (Dictionary<string, AssemblyDefinition>) resolverCacheField!.GetValue(resolver);
+                    cache.Clear();
+                }
                 assembly.NewAssembly.Dispose();
                 assembly.OriginalAssembly.Dispose();
             }
