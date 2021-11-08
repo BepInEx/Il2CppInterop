@@ -140,7 +140,7 @@ namespace AssemblyUnhollower.Contexts
             original &= ~(MethodAttributes.Abstract);
             if (stripVirtual) original &= ~(MethodAttributes.Virtual);
             original &= ~(MethodAttributes.Final);
-            original &= ~(MethodAttributes.NewSlot);
+            if (stripVirtual) original &= ~(MethodAttributes.NewSlot);
             original &= ~(MethodAttributes.ReuseSlot);
             original &= ~(MethodAttributes.CheckAccessOnOverride);
             original |= MethodAttributes.Public;
