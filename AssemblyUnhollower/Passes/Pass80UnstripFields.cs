@@ -24,14 +24,15 @@ namespace AssemblyUnhollower.Passes
                 {
                     var processedType = processedAssembly.TryGetTypeByName(unityType.FullName);
                     if (processedType == null) continue;
-                    
-                    if (!unityType.IsValueType || unityType.IsEnum || processedType.NewType.IsExplicitLayout)
+
+                    if (!unityType.IsValueType || unityType.IsEnum)
                         continue;
 
                     foreach (var unityField in unityType.Fields)
                     {
-                        if(unityField.IsStatic) continue;
-                        
+                        if (unityField.IsStatic && !unityField.HasConstant) continue;
+                        if (processedType.NewType.IsExplicitLayout && !unityField.IsStatic) continue;
+
                         var processedField = processedType.TryGetFieldByUnityAssemblyField(unityField);
                         if (processedField != null) continue;
 
@@ -42,11 +43,16 @@ namespace AssemblyUnhollower.Passes
                             fieldsIgnored++;
                             continue;
                         }
-                        
-                        var newMethod = new FieldDefinition(unityField.Name, unityField.Attributes & ~FieldAttributes.FieldAccessMask | FieldAttributes.Public, fieldType);
-                        
-                        processedType.NewType.Fields.Add(newMethod);
-                        
+
+                        var newField = new FieldDefinition(unityField.Name, unityField.Attributes & ~FieldAttributes.FieldAccessMask | FieldAttributes.Public, fieldType);
+
+                        if (unityField.HasConstant)
+                        {
+                            newField.Constant = unityField.Constant;
+                        }
+
+                        processedType.NewType.Fields.Add(newField);
+
                         fieldsUnstripped++;
                     }
                 }
