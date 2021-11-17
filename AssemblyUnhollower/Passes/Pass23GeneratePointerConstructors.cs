@@ -19,7 +19,7 @@ namespace AssemblyUnhollower.Passes
                         MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName |
                         MethodAttributes.HideBySig, assemblyContext.Imports.Void);
 
-                    nativeCtor.Parameters.Add(new ParameterDefinition(assemblyContext.Imports.IntPtr));
+                    nativeCtor.Parameters.Add(new ParameterDefinition("pointer", ParameterAttributes.None, assemblyContext.Imports.IntPtr));
                     
                     var ctorBody = nativeCtor.Body.GetILProcessor();
                     newType.Methods.Add(nativeCtor);
