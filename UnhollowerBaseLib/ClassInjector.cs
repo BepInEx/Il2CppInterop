@@ -20,8 +20,6 @@ namespace UnhollowerRuntimeLib
 {
     public unsafe static class ClassInjector
     {
-        public delegate Type[] FindImplementsDelegate(Type type);
-
         private static INativeAssemblyStruct FakeAssembly;
         private static INativeImageStruct FakeImage;
 
@@ -90,8 +88,8 @@ namespace UnhollowerRuntimeLib
         public static void RegisterTypeInIl2Cpp<T>(bool logSuccess) where T : class => RegisterTypeInIl2Cpp(typeof(T), logSuccess, Array.Empty<INativeClassStruct>());
         public static void RegisterTypeInIl2Cpp(Type type) => RegisterTypeInIl2Cpp(type, true);
         public static void RegisterTypeInIl2Cpp(Type type, bool logSuccess) => RegisterTypeInIl2Cpp(type, logSuccess, Array.Empty<INativeClassStruct>());
-        public static void RegisterTypeInIl2CppWithInterfaces<T>(FindImplementsDelegate fallback = null, bool logSuccess = true) where T : class => RegisterTypeInIl2CppWithInterfaces(typeof(T), fallback, logSuccess);
-        public static void RegisterTypeInIl2CppWithInterfaces(Type type, FindImplementsDelegate fallback, bool logSuccess)
+        public static void RegisterTypeInIl2CppWithInterfaces<T>(Func<Type, Type[]> fallback = null, bool logSuccess = true) where T : class => RegisterTypeInIl2CppWithInterfaces(typeof(T), fallback, logSuccess);
+        public static void RegisterTypeInIl2CppWithInterfaces(Type type, Func<Type, Type[]> fallback, bool logSuccess)
         {
             var interfacesAttribute = type.GetCustomAttribute<Il2CppImplementsAttribute>();
 
