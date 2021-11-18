@@ -18,6 +18,13 @@ using Void = Il2CppSystem.Void;
 
 namespace UnhollowerRuntimeLib
 {
+
+    public class RegisterTypeOptions
+    {
+        public bool LogSuccess { get; init; } = true;
+        public Func<Type, Type[]> InterfacesResolver { get; init; } = null;
+    }
+
     public unsafe static class ClassInjector
     {
         private static INativeAssemblyStruct FakeAssembly;
@@ -88,6 +95,19 @@ namespace UnhollowerRuntimeLib
         public static void RegisterTypeInIl2Cpp<T>(bool logSuccess) where T : class => RegisterTypeInIl2Cpp(typeof(T), logSuccess, Array.Empty<INativeClassStruct>());
         public static void RegisterTypeInIl2Cpp(Type type) => RegisterTypeInIl2Cpp(type, true);
         public static void RegisterTypeInIl2Cpp(Type type, bool logSuccess) => RegisterTypeInIl2Cpp(type, logSuccess, Array.Empty<INativeClassStruct>());
+        public static void RegisterTypeInIl2Cpp<T>(RegisterTypeOptions options) where T : class => RegisterTypeInIl2Cpp(typeof(T), options);
+        public static void RegisterTypeInIl2Cpp(Type type, RegisterTypeOptions options)
+        {
+            var interfacesAttribute = type.GetCustomAttribute<Il2CppImplementsAttribute>();
+
+            if (interfacesAttribute == null)
+#nullable enable
+                RegisterTypeInIl2CppWithInterfaces(type, options.LogSuccess, options.InterfacesResolver?.Invoke(type) ?? Array.Empty<Type>());
+#nullable restore
+            else
+                RegisterTypeInIl2CppWithInterfaces(type, options.LogSuccess, interfacesAttribute.Interfaces);
+        }
+
         public static void RegisterTypeInIl2CppWithInterfaces<T>(params Type[] interfaces) where T : class => RegisterTypeInIl2CppWithInterfaces(typeof(T), true, interfaces);
         public static void RegisterTypeInIl2CppWithInterfaces<T>(bool logSuccess, params Type[] interfaces) where T : class => RegisterTypeInIl2CppWithInterfaces(typeof(T), logSuccess, interfaces);
         public static void RegisterTypeInIl2CppWithInterfaces(Type type, bool logSuccess, params Type[] interfaces)
