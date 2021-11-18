@@ -5,7 +5,7 @@ namespace UnhollowerBaseLib.Attributes
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public class Il2CppImplementsAttribute : Attribute
     {
-        public Type[] Interfaces { get; private init; }
+        public Type[] Interfaces { get; }
 
         public Il2CppImplementsAttribute(params Type[] interfaces)
         {
