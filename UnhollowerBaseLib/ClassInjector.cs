@@ -83,7 +83,7 @@ namespace UnhollowerRuntimeLib
                     return true;
             return false;
         }
-
+        
         public static void RegisterTypeInIl2Cpp<T>() where T : class => RegisterTypeInIl2Cpp(typeof(T), true, Array.Empty<INativeClassStruct>());
         public static void RegisterTypeInIl2Cpp<T>(bool logSuccess) where T : class => RegisterTypeInIl2Cpp(typeof(T), logSuccess, Array.Empty<INativeClassStruct>());
         public static void RegisterTypeInIl2Cpp(Type type) => RegisterTypeInIl2Cpp(type, true);
@@ -113,10 +113,10 @@ namespace UnhollowerRuntimeLib
                 return UnityVersionHandler.Wrap((Il2CppClass*)classPointer);
             }).ToArray());
         }
-
+        
         public static void RegisterTypeInIl2Cpp(Type type, bool logSuccess, params INativeClassStruct[] interfaces)
         {
-            if (type == null)
+            if(type == null)
                 throw new ArgumentException($"Type argument cannot be null");
 
             if (type.IsGenericType || type.IsGenericTypeDefinition)
@@ -211,7 +211,7 @@ namespace UnhollowerRuntimeLib
             var vTablePointer = (VirtualInvokeData*)classPointer.VTable;
             var baseVTablePointer = (VirtualInvokeData*)baseClassPointer.VTable;
             classPointer.VtableCount = (ushort)(baseClassPointer.VtableCount + interfaceFunctionCount);
-
+            
             //Abstract and Virtual Fix
             if (classPointer.Flags.HasFlag(Il2CppClassAttributes.TYPE_ATTRIBUTE_ABSTRACT) && IL2CPP.il2cpp_class_is_abstract((IntPtr)baseClassPointer.Class))
             {
@@ -237,7 +237,7 @@ namespace UnhollowerRuntimeLib
 
                             parameters[i] = parameterType;
                         }
-
+                        
                         var monoMethodImplementation = type.GetMethod(name, parameters);
 
                         var methodPointerArrayIndex = Array.IndexOf(eligibleMethods, monoMethodImplementation);
@@ -269,7 +269,7 @@ namespace UnhollowerRuntimeLib
                     }
                 }
             }
-
+            
             for (var i = 0; i < baseClassPointer.VtableCount; i++)
             {
                 if (baseVTablePointer[i].methodPtr == IntPtr.Zero) continue;
@@ -328,8 +328,7 @@ namespace UnhollowerRuntimeLib
             for (int i = 0; i < baseClassPointer.InterfaceOffsetsCount; i++)
                 classPointer.InterfaceOffsets[i] = baseClassPointer.InterfaceOffsets[i];
             for (int i = baseClassPointer.InterfaceOffsetsCount; i < interfaceOffsetsCount; i++)
-                classPointer.InterfaceOffsets[i] = new Il2CppRuntimeInterfaceOffsetPair
-                {
+                classPointer.InterfaceOffsets[i] = new Il2CppRuntimeInterfaceOffsetPair {
                     interfaceType = interfaces[i - baseClassPointer.InterfaceOffsetsCount].ClassPointer,
                     offset = offsets[i - baseClassPointer.InterfaceOffsetsCount]
                 };
@@ -361,7 +360,7 @@ namespace UnhollowerRuntimeLib
             string namespaze = type.Namespace ?? string.Empty;
             var attribute = Attribute.GetCustomAttribute(type, typeof(UnhollowerBaseLib.Attributes.ClassInjectionAssemblyTargetAttribute)) as UnhollowerBaseLib.Attributes.ClassInjectionAssemblyTargetAttribute;
 
-            foreach (IntPtr image in ((attribute is null) ? IL2CPP.GetIl2CppImages() : attribute.GetImagePointers()))
+            foreach (IntPtr image in ((attribute is null) ? IL2CPP.GetIl2CppImages() : attribute.GetImagePointers()) )
             {
                 ClassFromNameDictionary.Add((namespaze, klass, image), typePointer);
             }
@@ -405,7 +404,7 @@ namespace UnhollowerRuntimeLib
                 {
                     return false;
                 }
-
+                
                 foreach (var eventInfo in method.DeclaringType.GetEvents(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
                 {
                     if ((eventInfo.GetAddMethod(true) == method || eventInfo.GetRemoveMethod(true) == method) && eventInfo.GetCustomAttribute<HideFromIl2CppAttribute>() != null)
@@ -694,16 +693,16 @@ namespace UnhollowerRuntimeLib
             {
                 if (monoMethod.ReturnType.IsValueType)
                 {
-                    if (monoMethod.ReturnType.IsPrimitive)
-                    {
-                        if (monoMethod.ReturnType == typeof(float))
+                    if(monoMethod.ReturnType.IsPrimitive)
+                    { 
+                        if(monoMethod.ReturnType == typeof(float))
                             body.Emit(OpCodes.Ldc_R4, 0);
                         else if (monoMethod.ReturnType == typeof(double))
                             body.Emit(OpCodes.Ldc_R8, 0);
                         else
                         {
                             body.Emit(OpCodes.Ldc_I4_0);
-                            if (monoMethod.ReturnType == typeof(long) || monoMethod.ReturnType == typeof(ulong))
+                            if(monoMethod.ReturnType == typeof(long) || monoMethod.ReturnType == typeof(ulong))
                             {
                                 body.Emit(OpCodes.Conv_I8);
                             }
@@ -717,9 +716,7 @@ namespace UnhollowerRuntimeLib
                         body.Emit(OpCodes.Initobj, monoMethod.ReturnType);
                         body.Emit(OpCodes.Ldloc_S, local);
                     }
-                }
-                else
-                {
+                } else {
                     body.Emit(OpCodes.Ldc_I4_0);
                     body.Emit(OpCodes.Conv_I);
                 }
@@ -745,7 +742,7 @@ namespace UnhollowerRuntimeLib
         {
             return type.IsValueType ? type : typeof(IntPtr);
         }
-
+        
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void ClassInitDelegate(Il2CppClass* klass);
         private static ClassInitDelegate ourClassInitMethod;
@@ -763,25 +760,25 @@ namespace UnhollowerRuntimeLib
             switch (entrypointTargets.Length)
             {
                 case 1:
-                    {
-                        var objectNewAddress = entrypointTargets.Single();
-                        LogSupport.Trace($"Object::New: {objectNewAddress}");
+                {
+                    var objectNewAddress = entrypointTargets.Single();
+                    LogSupport.Trace($"Object::New: {objectNewAddress}");
 
-                        objectNewAllocSpecificAddress = XrefScannerLowLevel.JumpTargets(objectNewAddress).Single();
+                    objectNewAllocSpecificAddress = XrefScannerLowLevel.JumpTargets(objectNewAddress).Single();
 
-                        break;
-                    }
+                    break;
+                }
 
                 case 2:
-                    {
-                        objectNewAllocSpecificAddress = entrypointTargets.First();
-                        break;
-                    }
+                {
+                    objectNewAllocSpecificAddress = entrypointTargets.First();
+                    break;
+                }
 
                 default:
-                    {
-                        throw new NotSupportedException("Failed to find Class::Init, please create an issue and report your unity version");
-                    }
+                {
+                    throw new NotSupportedException("Failed to find Class::Init, please create an issue and report your unity version");
+                }
             }
 
             LogSupport.Trace($"Object::NewAllocSpecific: {objectNewAllocSpecificAddress}");
@@ -955,7 +952,7 @@ namespace UnhollowerRuntimeLib
                 {
                     string namespaze = Marshal.PtrToStringAnsi(param2);
                     string klass = Marshal.PtrToStringAnsi(param3);
-                    ClassFromNameDictionary.TryGetValue((namespaze, klass, param1), out intPtr);
+                    ClassFromNameDictionary.TryGetValue((namespaze, klass, param1),out intPtr);
                 }
 
                 return intPtr;
