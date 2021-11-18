@@ -19,10 +19,10 @@ using Void = Il2CppSystem.Void;
 namespace UnhollowerRuntimeLib
 {
 
-    public struct RegisterTypeOptions
+    public class RegisterTypeOptions
     {
-        public bool LogSuccess = true;
-        public Func<Type, Type[]> InterfacesResolver = null;
+        public bool LogSuccess { get; init; } = true;
+        public Func<Type, Type[]> InterfacesResolver { get; init; } = null;
     }
 
     public unsafe static class ClassInjector
