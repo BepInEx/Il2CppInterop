@@ -18,11 +18,36 @@ using Void = Il2CppSystem.Void;
 
 namespace UnhollowerRuntimeLib
 {
+    public unsafe class Il2CppInterfaceCollection : List<INativeClassStruct>
+    {
+        public Il2CppInterfaceCollection(IEnumerable<INativeClassStruct> interfaces) : base(interfaces) { }
 
+        public Il2CppInterfaceCollection(IEnumerable<Type> interfaces) : base(ResolveNativeInterfaces(interfaces)) { }
+
+        private static IEnumerable<INativeClassStruct> ResolveNativeInterfaces(IEnumerable<Type> interfaces)
+        {
+            return interfaces.Select(it =>
+            {
+                var classPointer = ClassInjector.ReadClassPointerForType(it);
+                if (classPointer == IntPtr.Zero)
+                    throw new ArgumentException(
+                        $"Type {it} doesn't have an IL2CPP class pointer, which means it's not an IL2CPP interface");
+                return UnityVersionHandler.Wrap((Il2CppClass*)classPointer);
+            });
+        }
+
+        public static implicit operator Il2CppInterfaceCollection(INativeClassStruct[] interfaces) => new(interfaces);
+
+        public static implicit operator Il2CppInterfaceCollection(Type[] interfaces) => new(interfaces);
+    }
+    
     public class RegisterTypeOptions
     {
+        public static readonly RegisterTypeOptions Default = new();
+        
         public bool LogSuccess { get; init; } = true;
         public Func<Type, Type[]> InterfacesResolver { get; init; } = null;
+        public Il2CppInterfaceCollection Interfaces { get; init; } = null;
     }
 
     public unsafe static class ClassInjector
@@ -91,38 +116,32 @@ namespace UnhollowerRuntimeLib
             return false;
         }
         
-        public static void RegisterTypeInIl2Cpp<T>() where T : class => RegisterTypeInIl2Cpp(typeof(T), true, Array.Empty<INativeClassStruct>());
-        public static void RegisterTypeInIl2Cpp<T>(bool logSuccess) where T : class => RegisterTypeInIl2Cpp(typeof(T), logSuccess, Array.Empty<INativeClassStruct>());
-        public static void RegisterTypeInIl2Cpp(Type type) => RegisterTypeInIl2Cpp(type, true);
-        public static void RegisterTypeInIl2Cpp(Type type, bool logSuccess) => RegisterTypeInIl2Cpp(type, logSuccess, Array.Empty<INativeClassStruct>());
+        [Obsolete("Use RegisterTypeInIl2Cpp<T>(RegisterTypeOptions)", true)]
+        public static void RegisterTypeInIl2Cpp<T>(bool logSuccess) where T : class => RegisterTypeInIl2Cpp(typeof(T), new RegisterTypeOptions { LogSuccess = logSuccess });
+        [Obsolete("Use RegisterTypeInIl2Cpp(Type, RegisterTypeOptions)", true)]
+        public static void RegisterTypeInIl2Cpp(Type type, bool logSuccess) => RegisterTypeInIl2Cpp(type, new RegisterTypeOptions { LogSuccess = logSuccess });
+        [Obsolete("Use RegisterTypeInIl2Cpp(Type, RegisterTypeOptions) or [Il2CppImplementsAttribute]", true)]
+        public static void RegisterTypeInIl2CppWithInterfaces<T>(params Type[] interfaces) where T : class => RegisterTypeInIl2CppWithInterfaces(typeof(T), true, interfaces);
+        [Obsolete("Use RegisterTypeInIl2Cpp(Type, RegisterTypeOptions) or [Il2CppImplementsAttribute]", true)]
+        public static void RegisterTypeInIl2CppWithInterfaces<T>(bool logSuccess, params Type[] interfaces) where T : class => RegisterTypeInIl2CppWithInterfaces(typeof(T), logSuccess, interfaces);
+        [Obsolete("Use RegisterTypeInIl2Cpp(Type, RegisterTypeOptions) or [Il2CppImplementsAttribute]", true)]
+        public static void RegisterTypeInIl2CppWithInterfaces(Type type, bool logSuccess, params Type[] interfaces) => RegisterTypeInIl2Cpp(type, new RegisterTypeOptions() { LogSuccess = logSuccess, Interfaces = interfaces });
+        [Obsolete("Use RegisterTypeInIl2Cpp(Type, RegisterTypeOptions)", true)]
+        public static void RegisterTypeInIl2Cpp(Type type, bool logSuccess, params INativeClassStruct[] interfaces) => RegisterTypeInIl2Cpp(type, new RegisterTypeOptions { LogSuccess = logSuccess, Interfaces = interfaces });
+        
+        public static void RegisterTypeInIl2Cpp<T>() where T : class => RegisterTypeInIl2Cpp(typeof(T));
+        public static void RegisterTypeInIl2Cpp(Type type) => RegisterTypeInIl2Cpp(type, RegisterTypeOptions.Default);
         public static void RegisterTypeInIl2Cpp<T>(RegisterTypeOptions options) where T : class => RegisterTypeInIl2Cpp(typeof(T), options);
+        
         public static void RegisterTypeInIl2Cpp(Type type, RegisterTypeOptions options)
         {
-            var interfacesAttribute = type.GetCustomAttribute<Il2CppImplementsAttribute>();
-
-            if (interfacesAttribute == null)
-#nullable enable
-                RegisterTypeInIl2CppWithInterfaces(type, options.LogSuccess, options.InterfacesResolver?.Invoke(type) ?? Array.Empty<Type>());
-#nullable restore
-            else
-                RegisterTypeInIl2CppWithInterfaces(type, options.LogSuccess, interfacesAttribute.Interfaces);
-        }
-
-        public static void RegisterTypeInIl2CppWithInterfaces<T>(params Type[] interfaces) where T : class => RegisterTypeInIl2CppWithInterfaces(typeof(T), true, interfaces);
-        public static void RegisterTypeInIl2CppWithInterfaces<T>(bool logSuccess, params Type[] interfaces) where T : class => RegisterTypeInIl2CppWithInterfaces(typeof(T), logSuccess, interfaces);
-        public static void RegisterTypeInIl2CppWithInterfaces(Type type, bool logSuccess, params Type[] interfaces)
-        {
-            RegisterTypeInIl2Cpp(type, logSuccess, interfaces.Select(it =>
+            var interfaces = options.Interfaces; 
+            if (interfaces == null)
             {
-                var classPointer = ReadClassPointerForType(it);
-                if (classPointer == IntPtr.Zero)
-                    throw new ArgumentException($"Type {it} doesn't have an IL2CPP class pointer, which means it's not an IL2CPP interface");
-                return UnityVersionHandler.Wrap((Il2CppClass*)classPointer);
-            }).ToArray());
-        }
-        
-        public static void RegisterTypeInIl2Cpp(Type type, bool logSuccess, params INativeClassStruct[] interfaces)
-        {
+                var interfacesAttribute = type.GetCustomAttribute<Il2CppImplementsAttribute>();
+                interfaces = interfacesAttribute?.Interfaces ?? options.InterfacesResolver?.Invoke(type) ?? Array.Empty<Type>();
+            }
+            
             if(type == null)
                 throw new ArgumentException($"Type argument cannot be null");
 
@@ -140,7 +159,7 @@ namespace UnhollowerRuntimeLib
             var baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)ReadClassPointerForType(baseType));
             if (baseClassPointer == null)
             {
-                RegisterTypeInIl2Cpp(baseType, logSuccess);
+                RegisterTypeInIl2Cpp(baseType, new RegisterTypeOptions() { LogSuccess = options.LogSuccess });
                 baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)ReadClassPointerForType(baseType));
             }
 
@@ -161,7 +180,7 @@ namespace UnhollowerRuntimeLib
                 throw new ArgumentException($"Base class {baseType} is an interface and can't be inherited from");
 
             if (interfaces.Any(i => (i.Flags & Il2CppClassAttributes.TYPE_ATTRIBUTE_INTERFACE) == 0))
-                throw new ArgumentException($"Interfaces {interfaces} are not interfaces");
+                throw new ArgumentException($"Some of the interfaces in {interfaces} are not interfaces");
 
             lock (InjectedTypes)
                 if (!InjectedTypes.Add(type.FullName))
@@ -299,10 +318,10 @@ namespace UnhollowerRuntimeLib
                 }
             }
 
-            var offsets = new int[interfaces.Length];
+            var offsets = new int[interfaces.Count];
 
             var index = baseClassPointer.VtableCount;
-            for (var i = 0; i < interfaces.Length; i++)
+            for (var i = 0; i < interfaces.Count; i++)
             {
                 offsets[i] = index;
                 for (var j = 0; j < interfaces[i].MethodCount; j++)
@@ -321,7 +340,7 @@ namespace UnhollowerRuntimeLib
                 }
             }
 
-            var interfaceCount = baseClassPointer.InterfaceCount + interfaces.Length;
+            var interfaceCount = baseClassPointer.InterfaceCount + interfaces.Count;
             classPointer.InterfaceCount = (ushort)interfaceCount;
             classPointer.ImplementedInterfaces = (Il2CppClass**)Marshal.AllocHGlobal(interfaceCount * IntPtr.Size);
             for (int i = 0; i < baseClassPointer.InterfaceCount; i++)
@@ -329,7 +348,7 @@ namespace UnhollowerRuntimeLib
             for (int i = baseClassPointer.InterfaceCount; i < interfaceCount; i++)
                 classPointer.ImplementedInterfaces[i] = interfaces[i - baseClassPointer.InterfaceCount].ClassPointer;
 
-            var interfaceOffsetsCount = baseClassPointer.InterfaceOffsetsCount + interfaces.Length;
+            var interfaceOffsetsCount = baseClassPointer.InterfaceOffsetsCount + interfaces.Count;
             classPointer.InterfaceOffsetsCount = (ushort)interfaceOffsetsCount;
             classPointer.InterfaceOffsets = (Il2CppRuntimeInterfaceOffsetPair*)Marshal.AllocHGlobal(interfaceOffsetsCount * Marshal.SizeOf<Il2CppRuntimeInterfaceOffsetPair>());
             for (int i = 0; i < baseClassPointer.InterfaceOffsetsCount; i++)
@@ -356,7 +375,7 @@ namespace UnhollowerRuntimeLib
 
             AddToClassFromNameDictionary(type, classPointer.Pointer);
 
-            if (logSuccess) LogSupport.Info($"Registered mono type {type} in il2cpp domain");
+            if (options.LogSuccess) LogSupport.Info($"Registered mono type {type} in il2cpp domain");
         }
 
         private static void AddToClassFromNameDictionary<T>(IntPtr typePointer) where T : class => AddToClassFromNameDictionary(typeof(T), typePointer);
