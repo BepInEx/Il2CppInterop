@@ -878,11 +878,23 @@ namespace UnhollowerRuntimeLib
         private static System.Type SystemTypeFromIl2CppType(Il2CppTypeStruct* typePointer)
         {
             var klass = UnityVersionHandler.Wrap(ClassFromTypePatch(typePointer));
-            var fullName = Marshal.PtrToStringAnsi(klass.Namespace) + "." + Marshal.PtrToStringAnsi(klass.Name);
-            if (fullName == "System.String")
-                return typeof(string);
+            var assembly = UnityVersionHandler.Wrap(UnityVersionHandler.Wrap(klass.Image).Assembly);
 
-            var type = Type.GetType(fullName) ?? throw new NullReferenceException($"Couldn't find System.Type for Il2Cpp type: {fullName}");
+            var fullName = new StringBuilder();
+
+            var namespaceName = Marshal.PtrToStringAnsi(klass.Namespace);
+            if (!string.IsNullOrEmpty(namespaceName))
+            {
+                fullName.Append(namespaceName);
+                fullName.Append('.');
+            }
+
+            fullName.Append(Marshal.PtrToStringAnsi(klass.Name));
+
+            fullName.Append(", ");
+            fullName.Append(Marshal.PtrToStringAnsi(assembly.Name));
+
+            var type = Type.GetType(fullName.ToString()) ?? throw new NullReferenceException($"Couldn't find System.Type for Il2Cpp type: {fullName}");
             return RewriteType(type);
         }
 
