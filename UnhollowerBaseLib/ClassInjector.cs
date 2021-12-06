@@ -774,13 +774,6 @@ namespace UnhollowerRuntimeLib
         private delegate void ClassInitDelegate(Il2CppClass* klass);
         private static ClassInitDelegate ourClassInitMethod;
 
-        private struct SignatureDefinition
-        {
-            public string pattern;
-            public string mask;
-            public int offset;
-            public bool xref;
-        }
         private static readonly SignatureDefinition[] classInitSignatures =
         {
             new SignatureDefinition
