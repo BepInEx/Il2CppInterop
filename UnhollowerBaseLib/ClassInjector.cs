@@ -774,15 +774,15 @@ namespace UnhollowerRuntimeLib
         private delegate void ClassInitDelegate(Il2CppClass* klass);
         private static ClassInitDelegate ourClassInitMethod;
 
-        private static readonly SignatureDefinition[] classInitSignatures =
+        private static readonly MemoryUtils.SignatureDefinition[] classInitSignatures =
         {
-            new SignatureDefinition
+            new MemoryUtils.SignatureDefinition
             {
                 pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x28\x83",
                 mask = "x????xxxxx",
                 xref = true
             },
-            new SignatureDefinition
+            new MemoryUtils.SignatureDefinition
             {
                 pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x48\x48",
                 mask = "x????xxxxx",
@@ -796,29 +796,16 @@ namespace UnhollowerRuntimeLib
                 .Modules.OfType<ProcessModule>()
                 .Single((x) => x.ModuleName == "GameAssembly.dll");
             void* pClassInit = (void*)0;
-            for (int i = 0; i < classInitSignatures.Length; i++)
+            foreach(var signature in classInitSignatures)
             {
-                void* ptr = MemoryUtils.FindSignatureInBlock(
-                    gameAssembly.BaseAddress.ToPointer(),
-                    gameAssembly.ModuleMemorySize,
-                    classInitSignatures[i].pattern,
-                    classInitSignatures[i].mask,
-                    classInitSignatures[i].offset
-                );
-                if (ptr != (void*)0)
-                {
-                    if (classInitSignatures[i].xref)
-                        pClassInit = XrefScannerLowLevel.JumpTargets((IntPtr)ptr).FirstOrDefault().ToPointer();
-                    else
-                        pClassInit = ptr;
-                }
+                pClassInit = MemoryUtils.FindSignatureInModule(gameAssembly, signature);
                 if (pClassInit != (void*)0) break;
             }
 
             if (pClassInit == (void*)0)
             {
                 // WARN: There might be a race condition with il2cpp_class_has_references
-                LogSupport.Trace("Signatures exhausted, settling with il2cpp_class_has_references");
+                LogSupport.Warning("Signatures exhausted, settling with il2cpp_class_has_references");
                 pClassInit = GetProcAddress(gameAssembly.BaseAddress, nameof(IL2CPP.il2cpp_class_has_references)).ToPointer();
             }
 
