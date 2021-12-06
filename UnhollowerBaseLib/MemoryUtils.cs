@@ -1,4 +1,9 @@
-﻿namespace UnhollowerBaseLib
+﻿using System;
+using System.Diagnostics;
+using System.Linq;
+using UnhollowerRuntimeLib.XrefScans;
+
+namespace UnhollowerBaseLib
 {
     internal class MemoryUtils
     {
@@ -8,6 +13,19 @@
             public string mask;
             public int offset;
             public bool xref;
+        }
+        public static unsafe void* FindSignatureInModule(ProcessModule module, SignatureDefinition sigDef)
+        {
+            void* ptr = FindSignatureInBlock(
+                module.BaseAddress.ToPointer(),
+                module.ModuleMemorySize,
+                sigDef.pattern,
+                sigDef.mask,
+                sigDef.offset
+            );
+            if (ptr != (void*)0 && sigDef.xref)
+                ptr = XrefScannerLowLevel.JumpTargets((IntPtr)ptr).FirstOrDefault().ToPointer();
+            return ptr;
         }
 
         public static unsafe void* FindSignatureInBlock(void* block, long blockSize, string pattern, string mask, long sigOffset = 0)
