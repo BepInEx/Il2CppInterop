@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -773,46 +774,64 @@ namespace UnhollowerRuntimeLib
         private delegate void ClassInitDelegate(Il2CppClass* klass);
         private static ClassInitDelegate ourClassInitMethod;
 
+        private struct SignatureDefinition
+        {
+            public string pattern;
+            public string mask;
+            public int offset;
+            public bool xref;
+        }
+        private static readonly SignatureDefinition[] classInitSignatures =
+        {
+            new SignatureDefinition
+            {
+                pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x28\x83",
+                mask = "x????xxxxx",
+                xref = true
+            },
+            new SignatureDefinition
+            {
+                pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x48\x48",
+                mask = "x????xxxxx",
+                xref = true
+            }
+        };
+
         private static ClassInitDelegate FindClassInitMethod()
         {
-            var lib = LoadLibrary("GameAssembly.dll");
-            var entryPointAddress = GetProcAddress(lib, nameof(IL2CPP.il2cpp_object_new));
-            LogSupport.Trace($"il2cpp_object_new: {entryPointAddress}");
-
-            var entrypointTargets = XrefScannerLowLevel.JumpTargets(entryPointAddress).ToArray();
-
-            IntPtr objectNewAllocSpecificAddress;
-
-            switch (entrypointTargets.Length)
+            ProcessModule gameAssembly = Process.GetCurrentProcess()
+                .Modules.OfType<ProcessModule>()
+                .Single((x) => x.ModuleName == "GameAssembly.dll");
+            void* pClassInit = (void*)0;
+            for (int i = 0; i < classInitSignatures.Length; i++)
             {
-                case 1:
+                void* ptr = MemoryUtils.FindSignatureInBlock(
+                    gameAssembly.BaseAddress.ToPointer(),
+                    gameAssembly.ModuleMemorySize,
+                    classInitSignatures[i].pattern,
+                    classInitSignatures[i].mask,
+                    classInitSignatures[i].offset
+                );
+                if (ptr != (void*)0)
                 {
-                    var objectNewAddress = entrypointTargets.Single();
-                    LogSupport.Trace($"Object::New: {objectNewAddress}");
-
-                    objectNewAllocSpecificAddress = XrefScannerLowLevel.JumpTargets(objectNewAddress).Single();
-
-                    break;
+                    if (classInitSignatures[i].xref)
+                        pClassInit = XrefScannerLowLevel.JumpTargets((IntPtr)ptr).FirstOrDefault().ToPointer();
+                    else
+                        pClassInit = ptr;
                 }
-
-                case 2:
-                {
-                    objectNewAllocSpecificAddress = entrypointTargets.First();
-                    break;
-                }
-
-                default:
-                {
-                    throw new NotSupportedException("Failed to find Class::Init, please create an issue and report your unity version");
-                }
+                if (pClassInit != (void*)0) break;
             }
 
-            LogSupport.Trace($"Object::NewAllocSpecific: {objectNewAllocSpecificAddress}");
+            if (pClassInit == (void*)0)
+            {
+                // WARN: There might be a race condition with il2cpp_class_has_references
+                LogSupport.Trace("Signatures exhausted, settling with il2cpp_class_has_references");
+                pClassInit = GetProcAddress(gameAssembly.BaseAddress, nameof(IL2CPP.il2cpp_class_has_references)).ToPointer();
+            }
 
-            var classInitAddress = XrefScannerLowLevel.JumpTargets(objectNewAllocSpecificAddress).First();
-            LogSupport.Trace($"Class::Init: {classInitAddress}");
+            LogSupport.Trace($"Class::Init: 0x{(long)pClassInit:X2}");
 
-            return Marshal.GetDelegateForFunctionPointer<ClassInitDelegate>(classInitAddress);
+            return Marshal.GetDelegateForFunctionPointer<ClassInitDelegate>((IntPtr)pClassInit);
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
