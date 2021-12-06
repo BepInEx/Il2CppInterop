@@ -2,6 +2,14 @@
 {
     internal class MemoryUtils
     {
+        private struct SignatureDefinition
+        {
+            public string pattern;
+            public string mask;
+            public int offset;
+            public bool xref;
+        }
+
         public static unsafe void* FindSignatureInBlock(void* block, long blockSize, string pattern, string mask, long sigOffset = 0)
             => FindSignatureInBlock(block, blockSize, pattern.ToCharArray(), mask.ToCharArray(), sigOffset);
         public static unsafe void* FindSignatureInBlock(void* block, long blockSize, char[] pattern, char[] mask, long sigOffset = 0)
