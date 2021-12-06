@@ -2,7 +2,7 @@
 {
     internal class MemoryUtils
     {
-        private struct SignatureDefinition
+        public struct SignatureDefinition
         {
             public string pattern;
             public string mask;
