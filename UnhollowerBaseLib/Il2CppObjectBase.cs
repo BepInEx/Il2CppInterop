@@ -26,16 +26,21 @@ namespace UnhollowerBaseLib
             }
         }
 
-        private readonly uint myGcHandle;
+        private uint myGcHandle;
+
+        internal void CreateGCHandle(IntPtr objHdl)
+        {
+            if (objHdl == IntPtr.Zero)
+                throw new NullReferenceException();
+
+            myGcHandle = RuntimeSpecificsStore.ShouldUseWeakRefs(IL2CPP.il2cpp_object_get_class(objHdl))
+                ? IL2CPP.il2cpp_gchandle_new_weakref(objHdl, false)
+                : IL2CPP.il2cpp_gchandle_new(objHdl, false);
+        }
 
         public Il2CppObjectBase(IntPtr pointer)
         {
-            if (pointer == IntPtr.Zero)
-                throw new NullReferenceException();
-
-            myGcHandle = RuntimeSpecificsStore.ShouldUseWeakRefs(IL2CPP.il2cpp_object_get_class(pointer))
-                ? IL2CPP.il2cpp_gchandle_new_weakref(pointer, false)
-                : IL2CPP.il2cpp_gchandle_new(pointer, false);
+            CreateGCHandle(pointer);
         }
 
         public T Cast<T>() where T: Il2CppObjectBase
