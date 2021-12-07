@@ -76,8 +76,8 @@ Starting with version 0.4.0.0, managed classes can be injected into IL2CPP domai
 
 How-to:
  * Your class must inherit from a non-abstract IL2CPP class.
- * You must include a constructor that takes IntPtr and passes it to base class constructor. It will be called when objects of your class are created from IL2CPP side.
  * To create your object from managed side, call base class IntPtr constructor with result of `ClassInjector.DerivedConstructorPointer<T>()`, where T is your class type, and call `ClassInjector.DerivedConstructorBody(this)` in constructor body.
+ * If you need extra initialization logic for when an instance is created from Il2Cpp side, add a constructor that has an `IntPtr` as a parameter and calls `base`. For example `public MyClass(IntPtr p) : base(p) {}`.
  * Call `ClassInjector.RegisterTypeInIl2Cpp<T>()` before first use of class to be injected
  * The injected class can be used normally afterwards, for example a custom MonoBehavior implementation would work with `AddComponent<T>`
  
