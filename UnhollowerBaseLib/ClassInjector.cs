@@ -556,7 +556,6 @@ namespace UnhollowerRuntimeLib
             }
             else
             {
-                var defaultCtor = targetType.GetConstructor(Array.Empty<Type>());
                 var local = body.DeclareLocal(targetType);
                 body.Emit(OpCodes.Ldtoken, targetType);
                 body.Emit(OpCodes.Call, typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle), BindingFlags.Public | BindingFlags.Static)!);
