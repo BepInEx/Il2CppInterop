@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -773,46 +774,47 @@ namespace UnhollowerRuntimeLib
         private delegate void ClassInitDelegate(Il2CppClass* klass);
         private static ClassInitDelegate ourClassInitMethod;
 
+        private static readonly MemoryUtils.SignatureDefinition[] classInitSignatures =
+        {
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x28\x83",
+                mask = "x????xxxxx",
+                xref = true
+            },
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x48\x48",
+                mask = "x????xxxxx",
+                xref = true
+            }
+        };
+
         private static ClassInitDelegate FindClassInitMethod()
         {
-            var lib = LoadLibrary("GameAssembly.dll");
-            var entryPointAddress = GetProcAddress(lib, nameof(IL2CPP.il2cpp_object_new));
-            LogSupport.Trace($"il2cpp_object_new: {entryPointAddress}");
+            ProcessModule gameAssembly = Process.GetCurrentProcess()
+                .Modules.OfType<ProcessModule>()
+                .Single((x) => x.ModuleName == "GameAssembly.dll");
 
-            var entrypointTargets = XrefScannerLowLevel.JumpTargets(entryPointAddress).ToArray();
+            nint pClassInit = classInitSignatures
+                .Select(s => MemoryUtils.FindSignatureInModule(gameAssembly, s))
+                .FirstOrDefault(p => p != 0);
 
-            IntPtr objectNewAllocSpecificAddress;
-
-            switch (entrypointTargets.Length)
+            if (pClassInit == 0)
             {
-                case 1:
+                // WARN: There might be a race condition with il2cpp_class_has_references
+                LogSupport.Warning("Class::Init signatures have been exhausted, using il2cpp_class_has_references as a substitute!");
+                pClassInit = GetProcAddress(gameAssembly.BaseAddress, nameof(IL2CPP.il2cpp_class_has_references));
+                if (pClassInit == 0)
                 {
-                    var objectNewAddress = entrypointTargets.Single();
-                    LogSupport.Trace($"Object::New: {objectNewAddress}");
-
-                    objectNewAllocSpecificAddress = XrefScannerLowLevel.JumpTargets(objectNewAddress).Single();
-
-                    break;
-                }
-
-                case 2:
-                {
-                    objectNewAllocSpecificAddress = entrypointTargets.First();
-                    break;
-                }
-
-                default:
-                {
-                    throw new NotSupportedException("Failed to find Class::Init, please create an issue and report your unity version");
+                    LogSupport.Trace($"GameAssembly.dll: 0x{(long)gameAssembly.BaseAddress}");
+                    throw new NotSupportedException("Failed to use signature for Class::Init and il2cpp_class_has_references cannot be found, please create an issue and report your unity version & game");
                 }
             }
 
-            LogSupport.Trace($"Object::NewAllocSpecific: {objectNewAllocSpecificAddress}");
+            LogSupport.Trace($"Class::Init: 0x{(long)pClassInit:X2}");
 
-            var classInitAddress = XrefScannerLowLevel.JumpTargets(objectNewAllocSpecificAddress).First();
-            LogSupport.Trace($"Class::Init: {classInitAddress}");
-
-            return Marshal.GetDelegateForFunctionPointer<ClassInitDelegate>(classInitAddress);
+            return Marshal.GetDelegateForFunctionPointer<ClassInitDelegate>(pClassInit);
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
