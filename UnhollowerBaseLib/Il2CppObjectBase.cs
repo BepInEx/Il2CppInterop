@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
 using UnhollowerBaseLib.Runtime;
 
 namespace UnhollowerBaseLib
@@ -76,8 +77,16 @@ namespace UnhollowerBaseLib
                 var monoObject = ClassInjectorBase.GetMonoObjectFromIl2CppPointer(Pointer) as T;
                 if (monoObject != null) return monoObject;
             }
-            
-            return (T) Activator.CreateInstance(Il2CppClassPointerStore<T>.CreatedTypeRedirect ?? typeof(T), Pointer);
+
+            Type type = Il2CppClassPointerStore<T>.CreatedTypeRedirect ?? typeof(T);
+            if (type.GetConstructor(new Type[] { typeof(IntPtr) }) != null)
+                return (T)Activator.CreateInstance(type, Pointer);
+            else
+            {
+                T obj = (T)FormatterServices.GetUninitializedObject(type);
+                obj.CreateGCHandle(Pointer);
+                return obj;
+            }
         }
 
         ~Il2CppObjectBase()
