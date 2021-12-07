@@ -547,8 +547,24 @@ namespace UnhollowerRuntimeLib
 
             var body = method.GetILGenerator();
 
-            body.Emit(OpCodes.Ldarg_0);
-            body.Emit(OpCodes.Newobj, targetType.GetConstructor(new[] { typeof(IntPtr) })!);
+            var monoCtor = targetType.GetConstructor(new[] { typeof(IntPtr) });
+            if (monoCtor != null)
+            {
+                body.Emit(OpCodes.Ldarg_0);
+                body.Emit(OpCodes.Newobj, monoCtor);
+            }
+            else
+            {
+                var local = body.DeclareLocal(targetType);
+                var defaultCtor = targetType.GetConstructor(Array.Empty<Type>());
+                body.Emit(OpCodes.Newobj, defaultCtor);
+                body.Emit(OpCodes.Stloc, local);
+                body.Emit(OpCodes.Ldloc, local);
+                body.Emit(OpCodes.Ldarg_0);
+                body.Emit(OpCodes.Call, typeof(Il2CppObjectBase).GetMethod(nameof(Il2CppObjectBase.CreateGCHandle), BindingFlags.NonPublic | BindingFlags.Instance)!);
+                body.Emit(OpCodes.Ldloc, local);
+            }
+
             body.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(ProcessNewObject))!);
 
             body.Emit(OpCodes.Ret);
