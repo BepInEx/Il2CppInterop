@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using UnhollowerBaseLib;
@@ -556,8 +557,9 @@ namespace UnhollowerRuntimeLib
             else
             {
                 var local = body.DeclareLocal(targetType);
-                var defaultCtor = targetType.GetConstructor(Array.Empty<Type>());
-                body.Emit(OpCodes.Newobj, defaultCtor);
+                body.Emit(OpCodes.Ldtoken, targetType);
+                body.Emit(OpCodes.Call, typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle), BindingFlags.Public | BindingFlags.Static)!);
+                body.Emit(OpCodes.Call, typeof(FormatterServices).GetMethod(nameof(FormatterServices.GetUninitializedObject), BindingFlags.Public | BindingFlags.Static)!);
                 body.Emit(OpCodes.Stloc, local);
                 body.Emit(OpCodes.Ldloc, local);
                 body.Emit(OpCodes.Ldarg_0);
