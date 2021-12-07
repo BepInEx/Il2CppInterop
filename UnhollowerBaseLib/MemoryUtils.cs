@@ -14,39 +14,39 @@ namespace UnhollowerBaseLib
             public int offset;
             public bool xref;
         }
-        public static unsafe void* FindSignatureInModule(ProcessModule module, SignatureDefinition sigDef)
+        public static unsafe nint FindSignatureInModule(ProcessModule module, SignatureDefinition sigDef)
         {
-            void* ptr = FindSignatureInBlock(
-                module.BaseAddress.ToPointer(),
+            nint ptr = FindSignatureInBlock(
+                module.BaseAddress,
                 module.ModuleMemorySize,
                 sigDef.pattern,
                 sigDef.mask,
                 sigDef.offset
             );
-            if (ptr != (void*)0 && sigDef.xref)
-                ptr = XrefScannerLowLevel.JumpTargets((IntPtr)ptr).FirstOrDefault().ToPointer();
+            if (ptr != 0 && sigDef.xref)
+                ptr = XrefScannerLowLevel.JumpTargets(ptr).FirstOrDefault();
             return ptr;
         }
 
-        public static unsafe void* FindSignatureInBlock(void* block, long blockSize, string pattern, string mask, long sigOffset = 0)
+        public static unsafe nint FindSignatureInBlock(nint block, long blockSize, string pattern, string mask, long sigOffset = 0)
             => FindSignatureInBlock(block, blockSize, pattern.ToCharArray(), mask.ToCharArray(), sigOffset);
-        public static unsafe void* FindSignatureInBlock(void* block, long blockSize, char[] pattern, char[] mask, long sigOffset = 0)
+        public static unsafe nint FindSignatureInBlock(nint block, long blockSize, char[] pattern, char[] mask, long sigOffset = 0)
         {
             for (long address = 0; address < blockSize; address++)
             {
                 bool found = true;
                 for (uint offset = 0; offset < mask.Length; offset++)
                 {
-                    if (((*(byte*)(address + (long)block + offset)) != (byte)pattern[offset]) && mask[offset] != '?')
+                    if (((*(byte*)(address + block + offset)) != (byte)pattern[offset]) && mask[offset] != '?')
                     {
                         found = false;
                         break;
                     }
                 }
                 if (found)
-                    return (void*)(address + (long)block + sigOffset);
+                    return (nint)(address + block + sigOffset);
             }
-            return (void*)0;
+            return 0;
         }
     }
 }

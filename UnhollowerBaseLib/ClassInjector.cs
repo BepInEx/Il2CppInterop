@@ -795,23 +795,26 @@ namespace UnhollowerRuntimeLib
             ProcessModule gameAssembly = Process.GetCurrentProcess()
                 .Modules.OfType<ProcessModule>()
                 .Single((x) => x.ModuleName == "GameAssembly.dll");
-            void* pClassInit = (void*)0;
-            foreach(var signature in classInitSignatures)
-            {
-                pClassInit = MemoryUtils.FindSignatureInModule(gameAssembly, signature);
-                if (pClassInit != (void*)0) break;
-            }
 
-            if (pClassInit == (void*)0)
+            nint pClassInit = classInitSignatures
+                .Select(s => MemoryUtils.FindSignatureInModule(gameAssembly, s))
+                .FirstOrDefault(p => p != 0);
+
+            if (pClassInit == 0)
             {
                 // WARN: There might be a race condition with il2cpp_class_has_references
-                LogSupport.Warning("Signatures exhausted, settling with il2cpp_class_has_references");
-                pClassInit = GetProcAddress(gameAssembly.BaseAddress, nameof(IL2CPP.il2cpp_class_has_references)).ToPointer();
+                LogSupport.Warning("Class::Init signatures have been exhausted, using il2cpp_class_has_references as a substitute!");
+                pClassInit = GetProcAddress(gameAssembly.BaseAddress, nameof(IL2CPP.il2cpp_class_has_references));
+                if (pClassInit == 0)
+                {
+                    LogSupport.Trace($"GameAssembly.dll: 0x{(long)gameAssembly.BaseAddress}");
+                    throw new NotSupportedException("Failed to use signature for Class::Init and il2cpp_class_has_references cannot be found, please create an issue and report your unity version & game");
+                }
             }
 
             LogSupport.Trace($"Class::Init: 0x{(long)pClassInit:X2}");
 
-            return Marshal.GetDelegateForFunctionPointer<ClassInitDelegate>((IntPtr)pClassInit);
+            return Marshal.GetDelegateForFunctionPointer<ClassInitDelegate>(pClassInit);
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
