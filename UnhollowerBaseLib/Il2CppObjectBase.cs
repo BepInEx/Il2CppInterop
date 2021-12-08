@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using UnhollowerBaseLib.Runtime;
@@ -28,12 +29,17 @@ namespace UnhollowerBaseLib
         }
 
         private uint myGcHandle;
+        internal bool isWrapped;
 
         internal void CreateGCHandle(IntPtr objHdl)
         {
             if (objHdl == IntPtr.Zero)
                 throw new NullReferenceException();
 
+            // This object already wraps an Il2Cpp object, skip the pointer and let it be GC'd
+            if (isWrapped)
+                return;
+            
             myGcHandle = RuntimeSpecificsStore.ShouldUseWeakRefs(IL2CPP.il2cpp_object_get_class(objHdl))
                 ? IL2CPP.il2cpp_gchandle_new_weakref(objHdl, false)
                 : IL2CPP.il2cpp_gchandle_new(objHdl, false);
@@ -78,15 +84,22 @@ namespace UnhollowerBaseLib
                 if (monoObject != null) return monoObject;
             }
 
-            Type type = Il2CppClassPointerStore<T>.CreatedTypeRedirect ?? typeof(T);
-            if (type.GetConstructor(new Type[] { typeof(IntPtr) }) != null)
+            var type = Il2CppClassPointerStore<T>.CreatedTypeRedirect ?? typeof(T);
+            // Base case: Il2Cpp constructor => call it directly
+            if (type.GetConstructor(new[] { typeof(IntPtr) }) != null)
                 return (T)Activator.CreateInstance(type, Pointer);
-            else
-            {
-                T obj = (T)FormatterServices.GetUninitializedObject(type);
-                obj.CreateGCHandle(Pointer);
-                return obj;
-            }
+            
+            // Special case: We have a parameterless constructor
+            // However, it could be be user-made or implicit
+            // In that case we set the GCHandle and then call the ctor and let GC destroy any objects created by DerivedConstructorPointer
+            var obj = (T)FormatterServices.GetUninitializedObject(type);
+            obj.CreateGCHandle(Pointer);
+            obj.isWrapped = true;
+            var ctor = type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
+                Type.EmptyTypes, Array.Empty<ParameterModifier>());
+            if (ctor != null)
+                ctor.Invoke(obj, null);
+            return obj;
         }
 
         ~Il2CppObjectBase()
