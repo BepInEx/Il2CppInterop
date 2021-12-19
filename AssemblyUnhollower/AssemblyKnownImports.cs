@@ -40,8 +40,10 @@ namespace AssemblyUnhollower
         private readonly Lazy<TypeReference> myIl2CppReferenceArray;
         private readonly Lazy<TypeReference> myIl2CppStructArray;
         private readonly Lazy<TypeReference> myIl2CppStringArray;
-        private readonly Lazy<MethodReference> myIl2CppReferenceArrayCtor;
-        private readonly Lazy<MethodReference> myIl2CppStructArrayCtor;
+        // Il2Cpp*Array are generic and we will insert generic arguments ourselves
+        // Therefore we resolve them as MethodBase and import reference each time we need a clean copy of MethodReference
+        private readonly Lazy<MethodBase> myIl2CppReferenceArrayCtor;
+        private readonly Lazy<MethodBase> myIl2CppStructArrayCtor;
         private readonly Lazy<MethodReference> myIl2CppStringArrayCtor;
         private readonly Lazy<TypeReference> myIl2CppArrayBase;
         private readonly Lazy<TypeReference> myIl2CppArrayBaseSetlfSubst;
@@ -63,8 +65,8 @@ namespace AssemblyUnhollower
         public TypeReference Il2CppReferenceArray => myIl2CppReferenceArray.Value;
         public TypeReference Il2CppStructArray => myIl2CppStructArray.Value;
         public TypeReference Il2CppStringArray => myIl2CppStringArray.Value;
-        public MethodReference Il2CppReferenceArrayCtor => myIl2CppReferenceArrayCtor.Value;
-        public MethodReference Il2CppStructArrayCtor => myIl2CppStructArrayCtor.Value;
+        public MethodBase Il2CppReferenceArrayCtor => myIl2CppReferenceArrayCtor.Value;
+        public MethodBase Il2CppStructArrayCtor => myIl2CppStructArrayCtor.Value;
         public MethodReference Il2CppStringArrayCtor => myIl2CppStringArrayCtor.Value;
         public TypeReference Il2CppArrayBase => myIl2CppArrayBase.Value;
         public TypeReference Il2CppArrayBaseSelfSubst => myIl2CppArrayBaseSetlfSubst.Value;
@@ -200,8 +202,8 @@ namespace AssemblyUnhollower
                 });
             }
 
-            myIl2CppReferenceArrayCtor = new Lazy<MethodReference>(() => Module.ImportReference(FindArrayConstructor(typeof(Il2CppReferenceArray<>))));
-            myIl2CppStructArrayCtor = new Lazy<MethodReference>(() => Module.ImportReference(FindArrayConstructor(typeof(Il2CppStructArray<>))));
+            myIl2CppReferenceArrayCtor = new Lazy<MethodBase>(() => FindArrayConstructor(typeof(Il2CppReferenceArray<>)));
+            myIl2CppStructArrayCtor = new Lazy<MethodBase>(() => FindArrayConstructor(typeof(Il2CppStructArray<>)));
             myIl2CppStringArrayCtor = new Lazy<MethodReference>(() => Module.ImportReference(FindArrayConstructor(typeof(Il2CppStringArray))));
 
             myIl2CppArrayBase = new Lazy<TypeReference>(() => Module.ImportReference(typeof(Il2CppArrayBase<>)));

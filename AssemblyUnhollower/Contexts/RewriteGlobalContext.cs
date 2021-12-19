@@ -192,7 +192,7 @@ namespace AssemblyUnhollower.Contexts
 
                         MethodReference constructorReference;
 
-                        var elementType = parameterType.ElementType;
+                        var elementType = parameterType.GetElementType();
                         if (elementType.FullName == "System.String")
                         {
                             constructorReference = imports.Il2CppStringArrayCtor;
