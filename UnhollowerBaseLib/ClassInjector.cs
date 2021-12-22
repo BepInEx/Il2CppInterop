@@ -92,6 +92,8 @@ namespace UnhollowerRuntimeLib
 
         public static void DerivedConstructorBody(Il2CppObjectBase objectBase)
         {
+            if (objectBase.isWrapped)
+                return;
             var ownGcHandle = GCHandle.Alloc(objectBase, GCHandleType.Normal);
             AssignGcHandle(objectBase.Pointer, ownGcHandle);
         }
@@ -547,7 +549,7 @@ namespace UnhollowerRuntimeLib
             var method = new DynamicMethod("FromIl2CppCtorDelegate", MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, typeof(void), new[] { typeof(IntPtr) }, targetType, true);
 
             var body = method.GetILGenerator();
-
+            
             var monoCtor = targetType.GetConstructor(new[] { typeof(IntPtr) });
             if (monoCtor != null)
             {
@@ -564,6 +566,11 @@ namespace UnhollowerRuntimeLib
                 body.Emit(OpCodes.Ldloc, local);
                 body.Emit(OpCodes.Ldarg_0);
                 body.Emit(OpCodes.Call, typeof(Il2CppObjectBase).GetMethod(nameof(Il2CppObjectBase.CreateGCHandle), BindingFlags.NonPublic | BindingFlags.Instance)!);
+                body.Emit(OpCodes.Ldloc, local);
+                body.Emit(OpCodes.Ldc_I4_1);
+                body.Emit(OpCodes.Stfld, typeof(Il2CppObjectBase).GetField(nameof(Il2CppObjectBase.isWrapped), BindingFlags.NonPublic | BindingFlags.Instance)!);
+                body.Emit(OpCodes.Ldloc, local);
+                body.Emit(OpCodes.Call, targetType.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, Type.EmptyTypes, Array.Empty<ParameterModifier>())!);
                 body.Emit(OpCodes.Ldloc, local);
             }
 
