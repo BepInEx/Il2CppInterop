@@ -11,6 +11,14 @@ A tool to generate Managed->IL2CPP proxy assemblies from
 This allows the use of IL2CPP domain and objects in it from a managed domain. 
 This includes generic types and methods, arrays, and new object creation. Some things may be horribly broken. 
  
+This project is a fork of [knah/Il2CppAssemblyUnhollower](https://github.com/knah/Il2CppAssemblyUnhollower) with some additional features and modifications by BepInEx users.
+The main changes and features are:
+
+* Optimizations for running Unhollower as a library instead of CLI
+* Support for inheriting abstract classes
+* Cleaned up `RegisterTypeInIl2Cpp` API
+* Fast release schedule: CI builds on GitHub, releases on NuGet
+
 ## Usage
   0. Obtain a release using one of the following methods
      * Download latest AssemblyUnhollower release from [GitHub releases](https://github.com/BepInEx/Il2CppAssemblyUnhollower/releases)
@@ -74,50 +82,17 @@ Before certain features can be used (namely class injection and delegate convers
 ## Class injection
 Starting with version 0.4.0.0, managed classes can be injected into IL2CPP domain. Currently this is fairly limited, but functional enough for GC integration and implementing custom MonoBehaviors.
 
-How-to:
- * Your class must inherit from a non-abstract IL2CPP class.
- * To create your object from managed side, call base class IntPtr constructor with result of `ClassInjector.DerivedConstructorPointer<T>()`, where T is your class type, and call `ClassInjector.DerivedConstructorBody(this)` in constructor body.
- * If you need extra initialization logic for when an instance is created from Il2Cpp side, add a constructor that has an `IntPtr` as a parameter and calls `base`. For example `public MyClass(IntPtr p) : base(p) {}`.
- * Call `ClassInjector.RegisterTypeInIl2Cpp<T>()` before first use of class to be injected
- * The injected class can be used normally afterwards, for example a custom MonoBehavior implementation would work with `AddComponent<T>`
- 
-Fine-tuning:
-  * `[HideFromIl2Cpp]` can be used to prevent a method from being exposed to il2cpp
- 
-Caveats:
- * Injected class instances are handled by IL2CPP garbage collection. This means that an object may be collected even if it's referenced from managed domain. Attempting to use that object afterwards will result in `ObjectCollectedException`. Conversely, managed representation of injected object will not be garbage collected as long as it's referenced from IL2CPP domain.
- * It might be possible to create a cross-domain reference loop that will prevent objects from being garbage collected. Avoid doing anything that will result in injected class instances (indirectly) storing references to itself. The simplest example of how to leak memory is this:
-```c#
-class Injected: Il2CppSystem.Object {
-    Il2CppSystem.Collections.Generic.List<Il2CppSystem.Object> list = new ...;
-    public Injected() {
-        list.Add(this); // reference to itself through an IL2CPP list. This will prevent both this and list from being garbage collected, ever.
-    }
-}
-```
-
-Limitations:
- * Interfaces can be implemented but right now require listing them all in `ClassInjector.RegisterTypeInIl2Cpp`
- * Only instance methods are exposed to IL2CPP side - no fields, properties, events or static methods will be visible to IL2CPP reflection
- * Only a limited set of types is supported for method signatures
+See [Class injection documentation](Documentation/Class-Injection.md) for more information.
  
 ## Injected components in asset bundles
  Starting with version 0.4.15.0, injected components can be used in asset bundles. Currently, deserialization for component fields is not supported. Any fields on the component will initially have their default value as defined in the mono assembly.
 
- How-to:
- * Your class must meet the above criteria mentioned in Class Injection.
- * Add a dummy script for your component into Unity. Remove any methods, constructors, and properties. Fields can optionally be left in for future deserialization support.
- * Apply the component to your intended objects in Unity and build the asset bundle.
- * At runtime, register your component with `RegisterTypeInIl2Cpp` before loading any objects from the asset bundle.
+See [Injected components in asset bundles documentation](Documentation/Injected-Components-In-Asset-Bundles.md) for more information.
 
 ## Implementing interfaces with injected types
 Starting with 0.4.16.0, injected types can implement IL2CPP interfaces.  
-Just like previously, your type can't implement the interface directly, as it's still generated as a class.  
-However, you can pass additional interface types to `RegisterTypeInIl2CppWithInterfaces`, and they will be implemented as interfaces on the IL2CPP version of your type.  
-Interface methods are matched to methods in your class by name, parameter count and genericness.  
-Known caveats:   
- * `obj.Cast<InterfaceType>()` will fail if you try to cast an object of your injected type to an interface. You can work around that with `new InterfaceType(obj.Pointer)` if you're absolutely sure it implements that interface.
- * Limited method matching might result in some interfaces being trickier or impossible to implement, namely those with overloads differing only in parameter types.
+
+See [Implementing interfaces documentation](Documentation/Implementing-Interfaces.md) for more information.
 
 ## Upcoming features (aka TODO list)
  * Unstripping engine code - fix current issues with unstripping failing or generating invalid bytecode
