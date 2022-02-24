@@ -24,6 +24,8 @@ namespace AssemblyUnhollower.Passes
         {
             var oldType = typeContext.OriginalType;
             var newType = typeContext.NewType;
+            // TODO: Check if breaking
+            if (newType.IsEnum) return;
 
             var staticCtorMethod = new MethodDefinition(".cctor",
                 MethodAttributes.Static | MethodAttributes.Private | MethodAttributes.SpecialName |
@@ -150,7 +152,7 @@ namespace AssemblyUnhollower.Passes
             else
             {
                 ctorBuilder.Emit(newTypeReference.IsByReference ? OpCodes.Ldc_I4_1 :  OpCodes.Ldc_I4_0);
-                ctorBuilder.Emit(OpCodes.Call, imports.Module.ImportReference(new GenericInstanceMethod(imports.Il2CppRenderTypeNameGeneric) {GenericArguments = {newTypeReference}}));
+                ctorBuilder.Emit(OpCodes.Call, imports.Module.ImportReference(new GenericInstanceMethod(imports.Il2CppRenderTypeNameGeneric) {GenericArguments = {newTypeReference.IsByReference ? newTypeReference.GetElementType() : newTypeReference}}));
             }
         }
     }

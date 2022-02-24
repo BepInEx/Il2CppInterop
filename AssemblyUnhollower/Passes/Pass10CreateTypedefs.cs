@@ -19,7 +19,8 @@ namespace AssemblyUnhollower.Passes
         {
             var convertedTypeName = GetConvertedTypeName(assemblyContext.GlobalContext, type, parentType);
             var newType = new TypeDefinition(convertedTypeName.Namespace ?? type.Namespace.UnSystemify(assemblyContext.GlobalContext.Options), convertedTypeName.Name, AdjustAttributes(type.Attributes));
-
+            newType.IsSequentialLayout = false; // TODO: needs more testing, does it matter if anything isn't sequential?
+            
             if (type.IsSealed && type.IsAbstract) // is static
             {
                 newType.IsSealed = newType.IsAbstract = true;
