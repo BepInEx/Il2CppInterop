@@ -209,7 +209,7 @@ namespace UnhollowerRuntimeLib
             classPointer.IsVtableInitialized = true;
 
             classPointer.Name = Marshal.StringToHGlobalAnsi(type.Name);
-            classPointer.Namespace = Marshal.StringToHGlobalAnsi(type.Namespace);
+            classPointer.Namespace = Marshal.StringToHGlobalAnsi(type.Namespace ?? string.Empty);
 
             classPointer.ThisArg.Type = classPointer.ByValArg.Type = Il2CppTypeEnum.IL2CPP_TYPE_CLASS;
             classPointer.ThisArg.ByRef = true;
