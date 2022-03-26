@@ -3,6 +3,10 @@ using System.Runtime.InteropServices;
 
 namespace UnhollowerBaseLib.Runtime
 {
+    internal unsafe struct InjectedClassData
+    {
+        public IntPtr managedGcHandle;
+    }
     public static class ClassInjectorBase
     {
         public static object GetMonoObjectFromIl2CppPointer(IntPtr pointer)
@@ -11,13 +15,10 @@ namespace UnhollowerBaseLib.Runtime
             return GCHandle.FromIntPtr(gcHandle).Target;
         }
 
-        public static unsafe IntPtr GetGcHandlePtrFromIl2CppObject(IntPtr pointer)
-        {
-            if (pointer == IntPtr.Zero) throw new NullReferenceException();
-            var objectKlass = (Il2CppClass*) IL2CPP.il2cpp_object_get_class(pointer);
-            var targetGcHandlePointer = IntPtr.Add(pointer, (int) UnityVersionHandler.Wrap(objectKlass).InstanceSize - IntPtr.Size);
-            var gcHandle = *(IntPtr*) targetGcHandlePointer;
-            return gcHandle;
+        public static unsafe IntPtr GetGcHandlePtrFromIl2CppObject(IntPtr pointer) => GetInjectedData(pointer)->managedGcHandle;
+        internal static unsafe InjectedClassData* GetInjectedData(IntPtr objectPointer) {
+            Il2CppClass* pObjectClass = (Il2CppClass*)IL2CPP.il2cpp_object_get_class(objectPointer);
+            return (InjectedClassData*)(objectPointer + (int)UnityVersionHandler.Wrap(pObjectClass).InstanceSize - sizeof(InjectedClassData)).ToPointer();
         }
     }
 }

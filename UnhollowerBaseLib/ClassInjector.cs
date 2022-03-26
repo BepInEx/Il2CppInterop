@@ -102,12 +102,10 @@ namespace UnhollowerRuntimeLib
         {
             var handleAsPointer = GCHandle.ToIntPtr(gcHandle);
             if (pointer == IntPtr.Zero) throw new NullReferenceException(nameof(pointer));
-            var objectKlass = (Il2CppClass*)IL2CPP.il2cpp_object_get_class(pointer);
-            var targetGcHandlePointer = IntPtr.Add(pointer, (int)UnityVersionHandler.Wrap(objectKlass).InstanceSize - IntPtr.Size);
-            *(IntPtr*)targetGcHandlePointer = handleAsPointer;
+            ClassInjectorBase.GetInjectedData(pointer)->managedGcHandle = GCHandle.ToIntPtr(gcHandle);
         }
 
-
+            
         public static bool IsTypeRegisteredInIl2Cpp<T>() where T : class => IsTypeRegisteredInIl2Cpp(typeof(T));
         public static bool IsTypeRegisteredInIl2Cpp(Type type)
         {
@@ -202,7 +200,7 @@ namespace UnhollowerRuntimeLib
             classPointer.Parent = baseClassPointer.ClassPointer;
             classPointer.ElementClass = classPointer.Class = classPointer.CastClass = classPointer.ClassPointer;
             classPointer.NativeSize = -1;
-            classPointer.ActualSize = classPointer.InstanceSize = baseClassPointer.InstanceSize + (uint)IntPtr.Size;
+            classPointer.ActualSize = classPointer.InstanceSize = (uint)(baseClassPointer.InstanceSize + sizeof(InjectedClassData));
 
             classPointer.Initialized = true;
             classPointer.InitializedAndNoError = true;
