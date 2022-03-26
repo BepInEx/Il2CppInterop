@@ -6,6 +6,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Type
     [ApplicableToUnityVersionsSince("5.3.0")]
     public unsafe class NativeTypeStructHandler_16_0 : INativeTypeStructHandler
     {
+        public unsafe int Size() => sizeof(Il2CppType_16_0);
         public INativeTypeStruct CreateNewTypeStruct()
         {
             var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppType_16_0>());

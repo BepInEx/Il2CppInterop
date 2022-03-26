@@ -25,6 +25,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
         ref int NativeSize { get; }
         ref uint ActualSize { get; }
         ref ushort MethodCount { get; }
+        ref ushort FieldCount { get; }
         ref Il2CppClassAttributes Flags { get; }
 
         bool ValueType { get; set; }
@@ -48,6 +49,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
         unsafe ref Il2CppClass* CastClass { get; }
         unsafe ref Il2CppClass* Class { get; }
 
+        unsafe ref Il2CppFieldInfo* Fields { get; }
         unsafe ref Il2CppMethodInfo** Methods { get; }
         unsafe ref Il2CppClass** ImplementedInterfaces { get; }
         unsafe ref Il2CppRuntimeInterfaceOffsetPair* InterfaceOffsets { get; }

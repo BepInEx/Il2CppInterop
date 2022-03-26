@@ -145,6 +145,7 @@ namespace UnhollowerBaseLib.Runtime
         public static unsafe INativeAssemblyStruct Wrap(Il2CppAssembly* assemblyPointer) =>
             assemblyStructHandler.Wrap(assemblyPointer);
 
+        public static unsafe int AssemblySize() => assemblyStructHandler.Size();
 
         //Classes
         public static INativeClassStruct NewClass(int vTableSlots) =>
@@ -153,6 +154,7 @@ namespace UnhollowerBaseLib.Runtime
         public static unsafe INativeClassStruct Wrap(Il2CppClass* classPointer) =>
             classStructHandler.Wrap(classPointer);
 
+        public static unsafe int ClassSize() => classStructHandler.Size();
 
         //Events
         public static INativeEventInfoStruct NewEvent() =>
@@ -161,6 +163,7 @@ namespace UnhollowerBaseLib.Runtime
         public static unsafe INativeEventInfoStruct Wrap(Il2CppEventInfo* eventInfoPointer) =>
             eventInfoStructHandler.Wrap(eventInfoPointer);
 
+        public static unsafe int EventSize() => eventInfoStructHandler.Size();
 
         //Exceptions
         public static INativeExceptionStruct NewException() =>
@@ -169,6 +172,7 @@ namespace UnhollowerBaseLib.Runtime
         public static unsafe INativeExceptionStruct Wrap(Il2CppException* exceptionPointer) =>
             exceptionStructHandler.Wrap(exceptionPointer);
 
+        public static unsafe int ExceptionSize() => exceptionStructHandler.Size();
 
         //Fields
         public static INativeFieldInfoStruct NewField() =>
@@ -177,6 +181,8 @@ namespace UnhollowerBaseLib.Runtime
         public static unsafe INativeFieldInfoStruct Wrap(Il2CppFieldInfo* fieldInfoPointer) =>
             fieldInfoStructHandler.Wrap(fieldInfoPointer);
 
+        public static unsafe int FieldInfoSize() => fieldInfoStructHandler.Size();
+
 
         //Images
         public static INativeImageStruct NewImage() =>
@@ -184,7 +190,8 @@ namespace UnhollowerBaseLib.Runtime
         
         public static unsafe INativeImageStruct Wrap(Il2CppImage* imagePointer) =>
             imageStructHandler.Wrap(imagePointer);
-        
+
+        public static unsafe int ImageSize() => imageStructHandler.Size();
 
         //Methods
         public static INativeMethodInfoStruct NewMethod() =>
@@ -193,6 +200,7 @@ namespace UnhollowerBaseLib.Runtime
         public static unsafe INativeMethodInfoStruct Wrap(Il2CppMethodInfo* methodPointer) =>
             methodInfoStructHandler.Wrap(methodPointer);
 
+        public static unsafe int MethodSize() => methodInfoStructHandler.Size();
         public static IntPtr GetMethodFromReflection(IntPtr method) =>
             methodInfoStructHandler.GetMethodFromReflection(method);
 
@@ -218,6 +226,7 @@ namespace UnhollowerBaseLib.Runtime
         public static unsafe INativePropertyInfoStruct Wrap(Il2CppPropertyInfo* propertyInfoPointer) =>
             propertyInfoStructHandler.Wrap(propertyInfoPointer);
 
+        public static unsafe int ParameterInfoSize() => parameterInfoStructHandler.Size();
 
         //Types
         public static INativeTypeStruct NewType() =>
@@ -225,5 +234,6 @@ namespace UnhollowerBaseLib.Runtime
 
         public static unsafe INativeTypeStruct Wrap(Il2CppTypeStruct* typePointer) =>
             typeStructHandler.Wrap(typePointer);
+        public static unsafe int TypeSize() => typeStructHandler.Size();
     }
 }

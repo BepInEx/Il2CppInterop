@@ -6,6 +6,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.EventInfo
     [ApplicableToUnityVersionsSince("2018.3.0")]
     public unsafe class NativeEventInfoStructHandler_24_1 : INativeEventInfoStructHandler
     {
+        public unsafe int Size() => sizeof(Il2CppEventInfo_24_1);
         public INativeEventInfoStruct CreateNewEventInfoStruct()
         {
             var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppEventInfo_24_1>());

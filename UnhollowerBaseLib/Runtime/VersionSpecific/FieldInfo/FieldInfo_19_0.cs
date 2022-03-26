@@ -6,6 +6,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.FieldInfo
     [ApplicableToUnityVersionsSince("5.3.2")]
     public unsafe class NativeFieldInfoStructHandler_19_0 : INativeFieldInfoStructHandler
     {
+        public unsafe int Size() => sizeof(Il2CppFieldInfo_19_0);
         public INativeFieldInfoStruct CreateNewFieldInfoStruct()
         {
             var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppFieldInfo_19_0>());
