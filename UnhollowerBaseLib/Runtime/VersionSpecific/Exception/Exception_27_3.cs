@@ -6,6 +6,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Exception
     [ApplicableToUnityVersionsSince("2021.2.0")]
     public unsafe class NativeExceptionStructHandler_27_3 : INativeExceptionStructHandler
     {
+        public unsafe int Size() => sizeof(Il2CppException_27_3);
         public INativeExceptionStruct CreateNewExceptionStruct()
         {
             var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppException_27_3>());
