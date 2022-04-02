@@ -17,6 +17,8 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Type
 
         ref IntPtr Data { get; }
 
+        ref ushort Attrs { get; }
+
         ref Il2CppTypeEnum Type { get; }
 
         bool ByRef { get; set; }

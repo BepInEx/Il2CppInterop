@@ -71,6 +71,8 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Type
 
             public ref IntPtr Data => ref NativeType->data;
 
+            public ref ushort Attrs => ref NativeType->attrs;
+
             public ref Il2CppTypeEnum Type => ref NativeType->type;
 
             public bool ByRef
