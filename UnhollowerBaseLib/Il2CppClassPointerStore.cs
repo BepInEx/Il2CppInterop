@@ -5,6 +5,27 @@ using UnhollowerBaseLib.Attributes;
 
 namespace UnhollowerBaseLib
 {
+    public static class Il2CppClassPointerStore
+    {
+        public static IntPtr GetNativeClassPointer(Type type)
+        {
+            if (type == typeof(void)) return Il2CppClassPointerStore<Il2CppSystem.Void>.NativeClassPtr;
+            if (type == typeof(Il2CppSystem.String)) return Il2CppClassPointerStore<string>.NativeClassPtr;
+            return (IntPtr)typeof(Il2CppClassPointerStore<>)
+                .MakeGenericType(type)
+                .GetField(nameof(Il2CppClassPointerStore<int>.NativeClassPtr))
+                .GetValue(null);
+        }
+
+        internal static void SetNativeClassPointer(Type type, IntPtr value)
+        {
+            typeof(Il2CppClassPointerStore<>)
+                .MakeGenericType(type)
+                .GetField(nameof(Il2CppClassPointerStore<int>.NativeClassPtr))
+                .SetValue(null, value);
+        }
+    }
+
     public static class Il2CppClassPointerStore<T>
     {
         public static IntPtr NativeClassPtr;

@@ -14,7 +14,9 @@ using UnhollowerBaseLib.Attributes;
 using UnhollowerBaseLib.Runtime;
 using UnhollowerBaseLib.Runtime.VersionSpecific.Assembly;
 using UnhollowerBaseLib.Runtime.VersionSpecific.Class;
+using UnhollowerBaseLib.Runtime.VersionSpecific.FieldInfo;
 using UnhollowerBaseLib.Runtime.VersionSpecific.Image;
+using UnhollowerBaseLib.Runtime.VersionSpecific.Type;
 using UnhollowerRuntimeLib.XrefScans;
 using Void = Il2CppSystem.Void;
 
@@ -30,7 +32,7 @@ namespace UnhollowerRuntimeLib
         {
             return interfaces.Select(it =>
             {
-                var classPointer = ClassInjector.ReadClassPointerForType(it);
+                var classPointer = Il2CppClassPointerStore.GetNativeClassPointer(it);
                 if (classPointer == IntPtr.Zero)
                     throw new ArgumentException(
                         $"Type {it} doesn't have an IL2CPP class pointer, which means it's not an IL2CPP interface");
@@ -94,6 +96,18 @@ namespace UnhollowerRuntimeLib
         {
             if (objectBase.isWrapped)
                 return;
+            FieldInfo[] fields = objectBase.GetType()
+                 .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                 .Where(IsFieldEligible)
+                 .ToArray();
+            foreach (FieldInfo field in fields)
+            {
+                field.SetValue(objectBase, field.FieldType.GetConstructor(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
+                    new Type[] { typeof(Il2CppObjectBase), typeof(string) }, Array.Empty<ParameterModifier>())
+                    .Invoke(new object[] { objectBase, field.Name })
+                );
+            }
             var ownGcHandle = GCHandle.Alloc(objectBase, GCHandleType.Normal);
             AssignGcHandle(objectBase.Pointer, ownGcHandle);
         }
@@ -102,16 +116,14 @@ namespace UnhollowerRuntimeLib
         {
             var handleAsPointer = GCHandle.ToIntPtr(gcHandle);
             if (pointer == IntPtr.Zero) throw new NullReferenceException(nameof(pointer));
-            var objectKlass = (Il2CppClass*)IL2CPP.il2cpp_object_get_class(pointer);
-            var targetGcHandlePointer = IntPtr.Add(pointer, (int)UnityVersionHandler.Wrap(objectKlass).InstanceSize - IntPtr.Size);
-            *(IntPtr*)targetGcHandlePointer = handleAsPointer;
+            ClassInjectorBase.GetInjectedData(pointer)->managedGcHandle = GCHandle.ToIntPtr(gcHandle);
         }
 
-
+            
         public static bool IsTypeRegisteredInIl2Cpp<T>() where T : class => IsTypeRegisteredInIl2Cpp(typeof(T));
         public static bool IsTypeRegisteredInIl2Cpp(Type type)
         {
-            var currentPointer = ReadClassPointerForType(type);
+            var currentPointer = Il2CppClassPointerStore.GetNativeClassPointer(type);
             if (currentPointer != IntPtr.Zero)
                 return true;
             lock (InjectedTypes)
@@ -152,7 +164,7 @@ namespace UnhollowerRuntimeLib
             if (type.IsGenericType || type.IsGenericTypeDefinition)
                 throw new ArgumentException($"Type {type} is generic and can't be used in il2cpp");
 
-            var currentPointer = ReadClassPointerForType(type);
+            var currentPointer = Il2CppClassPointerStore.GetNativeClassPointer(type);
             if (currentPointer != IntPtr.Zero)
                 return; //already registered in il2cpp
 
@@ -160,11 +172,11 @@ namespace UnhollowerRuntimeLib
             if (baseType == null)
                 throw new ArgumentException($"Class {type} does not inherit from a class registered in il2cpp");
 
-            var baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)ReadClassPointerForType(baseType));
+            var baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore.GetNativeClassPointer(baseType));
             if (baseClassPointer == null)
             {
                 RegisterTypeInIl2Cpp(baseType, new RegisterTypeOptions() { LogSuccess = options.LogSuccess });
-                baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)ReadClassPointerForType(baseType));
+                baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore.GetNativeClassPointer(baseType));
             }
 
             // Initialize the vtable of all base types (Class::Init is recursive internally)
@@ -202,7 +214,7 @@ namespace UnhollowerRuntimeLib
             classPointer.Parent = baseClassPointer.ClassPointer;
             classPointer.ElementClass = classPointer.Class = classPointer.CastClass = classPointer.ClassPointer;
             classPointer.NativeSize = -1;
-            classPointer.ActualSize = classPointer.InstanceSize = baseClassPointer.InstanceSize + (uint)IntPtr.Size;
+            classPointer.ActualSize = classPointer.InstanceSize = baseClassPointer.InstanceSize;
 
             classPointer.Initialized = true;
             classPointer.InitializedAndNoError = true;
@@ -211,12 +223,60 @@ namespace UnhollowerRuntimeLib
             classPointer.IsVtableInitialized = true;
 
             classPointer.Name = Marshal.StringToHGlobalAnsi(type.Name);
-            classPointer.Namespace = Marshal.StringToHGlobalAnsi(type.Namespace);
+            classPointer.Namespace = Marshal.StringToHGlobalAnsi(type.Namespace ?? string.Empty);
 
             classPointer.ThisArg.Type = classPointer.ByValArg.Type = Il2CppTypeEnum.IL2CPP_TYPE_CLASS;
             classPointer.ThisArg.ByRef = true;
 
             classPointer.Flags = baseClassPointer.Flags; // todo: adjust flags?
+
+            FieldInfo[] fieldsToInject = type
+                .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                .Where(IsFieldEligible)
+                .ToArray();
+            classPointer.FieldCount = (ushort)fieldsToInject.Length;
+
+            Il2CppFieldInfo* il2cppFields = (Il2CppFieldInfo*)Marshal.AllocHGlobal(classPointer.FieldCount * UnityVersionHandler.FieldInfoSize());
+            int fieldOffset = (int)classPointer.InstanceSize;
+            for (int i = 0; i < classPointer.FieldCount; i++) {
+                INativeFieldInfoStruct fieldInfo = UnityVersionHandler.Wrap(il2cppFields + (i * UnityVersionHandler.FieldInfoSize()));
+                fieldInfo.Name = Marshal.StringToHGlobalAnsi(fieldsToInject[i].Name);
+                fieldInfo.Parent = classPointer.ClassPointer;
+                fieldInfo.Offset = fieldOffset;
+
+                Type fieldType = fieldsToInject[i].FieldType.GenericTypeArguments[0];
+                FieldAttributes fieldAttributes = fieldsToInject[i].Attributes;
+                IntPtr fieldInfoClass = Il2CppClassPointerStore.GetNativeClassPointer(fieldType);
+                if (!_injectedFieldTypes.TryGetValue((fieldType, fieldAttributes), out IntPtr fieldTypePtr)) {
+                    INativeTypeStruct classType = UnityVersionHandler.Wrap((Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(fieldInfoClass));
+
+                    INativeTypeStruct duplicatedType = UnityVersionHandler.NewType();
+                    duplicatedType.Data = classType.Data;
+                    duplicatedType.Attrs = (ushort)fieldAttributes;
+                    duplicatedType.Type = classType.Type;
+                    duplicatedType.ByRef = classType.ByRef;
+                    duplicatedType.Pinned = classType.Pinned;
+
+                    _injectedFieldTypes[(fieldType, fieldAttributes)] = duplicatedType.Pointer;
+                    fieldTypePtr = duplicatedType.Pointer;
+                }
+
+                fieldInfo.Type = (Il2CppTypeStruct*)fieldTypePtr;
+                if (fieldInfoClass == IntPtr.Zero)
+                    throw new Exception($"Type {fieldType} in {type}.{fieldsToInject[i].Name} doesn't exist in Il2Cpp");
+
+                if (IL2CPP.il2cpp_class_is_valuetype(fieldInfoClass)) {
+                    uint _align = 0;
+                    int fieldSize = IL2CPP.il2cpp_class_value_size(fieldInfoClass, ref _align);
+                    fieldOffset += fieldSize;
+                } else {
+                    fieldOffset += sizeof(Il2CppObject*);
+                }
+            }
+            classPointer.Fields = il2cppFields;
+
+            classPointer.InstanceSize = (uint)(fieldOffset + sizeof(InjectedClassData));
+            classPointer.ActualSize = classPointer.InstanceSize;
 
             var eligibleMethods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).Where(IsMethodEligible).ToArray();
             var methodCount = 2 + eligibleMethods.Length; // 1 is the finalizer, 1 is empty ctor
@@ -227,7 +287,7 @@ namespace UnhollowerRuntimeLib
 
             methodPointerArray[0] = ConvertStaticMethod(FinalizeDelegate, "Finalize", classPointer);
             var finalizeMethod = UnityVersionHandler.Wrap(methodPointerArray[0]);
-            if (!type.IsAbstract) methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type), ".ctor", classPointer);
+            if (!type.IsAbstract) methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type, fieldsToInject), ".ctor", classPointer);
             Dictionary<(string name, int paramCount, bool isGeneric), int> infos = new Dictionary<(string, int, bool), int>(eligibleMethods.Length);
             for (var i = 0; i < eligibleMethods.Length; i++)
             {
@@ -375,7 +435,7 @@ namespace UnhollowerRuntimeLib
             classPointer.ByValArg.Data = classPointer.ThisArg.Data = (IntPtr)newCounter;
 
             RuntimeSpecificsStore.SetClassInfo(classPointer.Pointer, true, true);
-            WriteClassPointerForType(type, classPointer.Pointer);
+            Il2CppClassPointerStore.SetNativeClassPointer(type, classPointer.Pointer);
 
             AddToClassFromNameDictionary(type, classPointer.Pointer);
 
@@ -396,19 +456,6 @@ namespace UnhollowerRuntimeLib
             }
         }
 
-        internal static IntPtr ReadClassPointerForType(Type type)
-        {
-            if (type == typeof(void)) return Il2CppClassPointerStore<Void>.NativeClassPtr;
-            return (IntPtr)typeof(Il2CppClassPointerStore<>).MakeGenericType(type)
-                .GetField(nameof(Il2CppClassPointerStore<int>.NativeClassPtr)).GetValue(null);
-        }
-
-        internal static void WriteClassPointerForType(Type type, IntPtr value)
-        {
-            typeof(Il2CppClassPointerStore<>).MakeGenericType(type)
-                .GetField(nameof(Il2CppClassPointerStore<int>.NativeClassPtr)).SetValue(null, value);
-        }
-
         private static bool IsTypeSupported(Type type)
         {
             if (type.IsValueType ||
@@ -417,6 +464,14 @@ namespace UnhollowerRuntimeLib
             if (typeof(Il2CppSystem.ValueType).IsAssignableFrom(type)) return false;
 
             return typeof(Il2CppObjectBase).IsAssignableFrom(type);
+        }
+
+        private static bool IsFieldEligible(FieldInfo field) {
+            if (!field.FieldType.IsGenericType) return false;
+            Type genericTypeDef = field.FieldType.GetGenericTypeDefinition();
+            if (genericTypeDef != typeof(Il2CppReferenceField<>) && genericTypeDef != typeof(Il2CppValueField<>)) return false;
+
+            return IsTypeSupported(field.FieldType.GenericTypeArguments[0]);
         }
 
         private static bool IsMethodEligible(MethodInfo method)
@@ -504,7 +559,7 @@ namespace UnhollowerRuntimeLib
                     }
                     var parameterType = parameterInfo.ParameterType;
                     if (!parameterType.IsGenericParameter)
-                        param.ParameterType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(ReadClassPointerForType(parameterType));
+                        param.ParameterType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore.GetNativeClassPointer(parameterType));
                     else
                     {
                         var type = UnityVersionHandler.NewType();
@@ -530,7 +585,7 @@ namespace UnhollowerRuntimeLib
             converted.Slot = ushort.MaxValue;
 
             if (!monoMethod.ReturnType.IsGenericParameter)
-                converted.ReturnType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(ReadClassPointerForType(monoMethod.ReturnType));
+                converted.ReturnType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore.GetNativeClassPointer(monoMethod.ReturnType));
             else
             {
                 var type = UnityVersionHandler.NewType();
@@ -544,7 +599,7 @@ namespace UnhollowerRuntimeLib
             return converted.MethodInfoPointer;
         }
 
-        private static VoidCtorDelegate CreateEmptyCtor(Type targetType)
+        private static VoidCtorDelegate CreateEmptyCtor(Type targetType, FieldInfo[] fieldsToInitialize)
         {
             var method = new DynamicMethod("FromIl2CppCtorDelegate", MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, typeof(void), new[] { typeof(IntPtr) }, targetType, true);
 
@@ -573,7 +628,17 @@ namespace UnhollowerRuntimeLib
                 body.Emit(OpCodes.Call, targetType.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, Type.EmptyTypes, Array.Empty<ParameterModifier>())!);
                 body.Emit(OpCodes.Ldloc, local);
             }
-
+            foreach (FieldInfo field in fieldsToInitialize)
+            {
+                body.Emit(OpCodes.Dup);
+                body.Emit(OpCodes.Dup);
+                body.Emit(OpCodes.Ldstr, field.Name);
+                body.Emit(OpCodes.Newobj, field.FieldType.GetConstructor(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
+                    new Type[] { typeof(Il2CppObjectBase), typeof(string) }, Array.Empty<ParameterModifier>())
+                );
+                body.Emit(OpCodes.Stfld, field);
+            }
             body.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(ProcessNewObject))!);
 
             body.Emit(OpCodes.Ret);
@@ -974,6 +1039,7 @@ namespace UnhollowerRuntimeLib
         private static long ourClassOverrideCounter = -2;
         private static readonly ConcurrentDictionary<long, IntPtr> FakeTokenClasses = new ConcurrentDictionary<long, IntPtr>();
 
+        private static readonly ConcurrentDictionary<(Type type, FieldAttributes attrs), IntPtr> _injectedFieldTypes = new();
         private static volatile TypeToClassDelegate ourOriginalTypeToClassMethod;
         private static readonly VoidCtorDelegate FinalizeDelegate = Finalize;
 

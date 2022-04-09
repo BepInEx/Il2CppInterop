@@ -6,6 +6,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.PropertyInfo
     [ApplicableToUnityVersionsSince("2018.3.0")]
     public unsafe class NativePropertyInfoStructHandler_24_1 : INativePropertyInfoStructHandler
     {
+        public unsafe int Size() => sizeof(Il2CppPropertyInfo_24_1);
         public INativePropertyInfoStruct CreateNewPropertyInfoStruct()
         {
             var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppPropertyInfo_24_1>());

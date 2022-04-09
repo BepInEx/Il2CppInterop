@@ -6,6 +6,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.ParameterInfo
     [ApplicableToUnityVersionsSince("2018.3.0")]
     internal class NativeParameterInfoStructHandler_24_1 : INativeParameterInfoStructHandler
     {
+        public unsafe int Size() => sizeof(Il2CppParameterInfo_24_1);
         public unsafe Il2CppParameterInfo*[] CreateNewParameterInfoArray(int paramCount)
         {
             var ptr = (Il2CppParameterInfo_24_1*) Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppParameterInfo_24_1>() * paramCount);

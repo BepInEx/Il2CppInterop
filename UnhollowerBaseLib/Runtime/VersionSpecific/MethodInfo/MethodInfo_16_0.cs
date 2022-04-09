@@ -6,6 +6,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.MethodInfo
     [ApplicableToUnityVersionsSince("5.3.0")]
     public unsafe class NativeMethodInfoStructHandler_16_0 : INativeMethodInfoStructHandler
     {
+        public unsafe int Size() => sizeof(Il2CppMethodInfo_16_0);
         public INativeMethodInfoStruct CreateNewMethodStruct()
         {
             var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppMethodInfo_16_0>());
