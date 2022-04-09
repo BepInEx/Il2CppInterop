@@ -2,7 +2,10 @@
 
 namespace UnhollowerBaseLib.Runtime
 {
-    public interface INativeStructHandler {}
+    public interface INativeStructHandler
+    {
+        public int Size();
+    }
     
     public interface INativeStruct
     {

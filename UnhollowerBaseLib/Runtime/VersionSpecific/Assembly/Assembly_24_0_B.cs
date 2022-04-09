@@ -6,6 +6,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Assembly
     [ApplicableToUnityVersionsSince("2018.1.0")]
     public unsafe class NativeAssemblyStructHandler_24_0_B : INativeAssemblyStructHandler
     {
+        public unsafe int Size() => sizeof(Il2CppAssembly_24_0_B);
         public INativeAssemblyStruct CreateNewAssemblyStruct()
         {
             var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppAssembly_24_0_B>());

@@ -7,6 +7,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
     [ApplicableToUnityVersionsSince("5.4.4")]
     public class NativeClassStructHandler_21_0_C : INativeClassStructHandler
     {
+        public unsafe int Size() => sizeof(Il2CppClass_21_0_C);
         public unsafe INativeClassStruct CreateNewClassStruct(int vTableSlots)
         {
             var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppClass_21_0_C>() +
@@ -158,6 +159,8 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
 
             public ref ushort MethodCount => ref NativeClass->method_count;
 
+            public ref ushort FieldCount => ref NativeClass->field_count;
+
             private static int bitfield1offset =
                 Marshal.OffsetOf<Il2CppClass_21_0_C>(nameof(Il2CppClass_21_0_C.bitfield_1)).ToInt32();
 
@@ -233,6 +236,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
 
             public ref Il2CppClass* Class => ref NativeClass->klass;
 
+            public ref Il2CppFieldInfo* Fields => ref NativeClass->fields;
             public ref Il2CppMethodInfo** Methods => ref NativeClass->methods;
 
             public ref Il2CppClass** ImplementedInterfaces => ref NativeClass->implementedInterfaces;

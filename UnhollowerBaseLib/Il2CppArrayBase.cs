@@ -16,9 +16,9 @@ namespace UnhollowerBaseLib
             var targetClassType = IL2CPP.il2cpp_array_class_get(nativeClassPtr, 1);
             if (targetClassType == IntPtr.Zero)
                 return;
-            
-            ClassInjector.WriteClassPointerForType(ownType, targetClassType);
-            ClassInjector.WriteClassPointerForType(typeof(Il2CppArrayBase<T>), targetClassType);
+
+            Il2CppClassPointerStore.SetNativeClassPointer(ownType, targetClassType);
+            Il2CppClassPointerStore.SetNativeClassPointer(typeof(Il2CppArrayBase<T>), targetClassType);
             Il2CppClassPointerStore<Il2CppArrayBase<T>>.CreatedTypeRedirect = ownType;
         }
 

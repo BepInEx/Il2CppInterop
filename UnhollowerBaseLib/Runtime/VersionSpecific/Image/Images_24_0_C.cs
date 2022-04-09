@@ -6,6 +6,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Image
     [ApplicableToUnityVersionsSince("2018.1.0")]
     public unsafe class NativeImageStructHandler_24_0_C : INativeImageStructHandler
     {
+        public unsafe int Size() => sizeof(Il2CppImage_24_0_C);
         public INativeImageStruct CreateNewImageStruct()
         {
             var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppImage_24_0_C>());

@@ -27,7 +27,7 @@ namespace UnhollowerRuntimeLib
 
         public static Il2CppSystem.Type From(Type type, bool throwOnFailure)
         {
-            var pointer = ClassInjector.ReadClassPointerForType(type);
+            var pointer = Il2CppClassPointerStore.GetNativeClassPointer(type);
             return TypeFromPointerInternal(pointer, type.Name, throwOnFailure);
         }
 

@@ -8,6 +8,7 @@ namespace UnhollowerBaseLib
 {
     public class Il2CppObjectBase
     {
+        public IntPtr ObjectClass => IL2CPP.il2cpp_object_get_class(Pointer);
         public IntPtr Pointer
         {
             get
