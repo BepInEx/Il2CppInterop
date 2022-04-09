@@ -96,6 +96,18 @@ namespace UnhollowerRuntimeLib
         {
             if (objectBase.isWrapped)
                 return;
+            FieldInfo[] fields = objectBase.GetType()
+                 .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                 .Where(IsFieldEligible)
+                 .ToArray();
+            foreach (FieldInfo field in fields)
+            {
+                field.SetValue(objectBase, field.FieldType.GetConstructor(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
+                    new Type[] { typeof(Il2CppObjectBase), typeof(string) }, Array.Empty<ParameterModifier>())
+                    .Invoke(new object[] { objectBase, field.Name })
+                );
+            }
             var ownGcHandle = GCHandle.Alloc(objectBase, GCHandleType.Normal);
             AssignGcHandle(objectBase.Pointer, ownGcHandle);
         }
