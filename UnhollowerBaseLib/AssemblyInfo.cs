@@ -1,4 +1,4 @@
 
 using System.Runtime.CompilerServices;
 
-[assembly:InternalsVisibleTo("AssemblyUnhollower")]
+[assembly:InternalsVisibleTo("LibAssemblyUnhollower")]

@@ -10,13 +10,6 @@ namespace UnhollowerBaseLib
         public static event Action<string> InfoHandler;
         public static event Action<string> TraceHandler;
 
-        public static void InstallConsoleHandlers()
-        {
-            ErrorHandler += Console.WriteLine;
-            WarningHandler += Console.WriteLine;
-            InfoHandler += Console.WriteLine;
-        }
-        
         public static void RemoveAllHandlers()
         {
             ErrorHandler = null;

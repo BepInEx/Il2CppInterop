@@ -15,6 +15,34 @@ namespace AssemblyUnhollower
 {
     public static class DeobfuscationMapGenerator
     {
+        public static void AnalyzeDeobfuscationParams(UnhollowerOptions options)
+        {
+            RewriteGlobalContext rewriteContext;
+            IIl2CppMetadataAccess inputAssemblies;
+            using (new TimingCookie("Reading assemblies"))
+                inputAssemblies = new CecilMetadataAccess(options.Source);
+            
+            using(new TimingCookie("Creating assembly contexts"))
+                rewriteContext = new RewriteGlobalContext(options, inputAssemblies, NullMetadataAccess.Instance, NullMetadataAccess.Instance);
+
+            for (var chars = 1; chars <= 3; chars++)
+            for (var uniq = 3; uniq <= 15; uniq++)
+            {
+                options.TypeDeobfuscationCharsPerUniquifier = chars;
+                options.TypeDeobfuscationMaxUniquifiers = uniq;
+                
+                rewriteContext.RenamedTypes.Clear();
+                rewriteContext.RenameGroups.Clear();
+
+                Pass05CreateRenameGroups.DoPass(rewriteContext);
+
+                var uniqueTypes = rewriteContext.RenameGroups.Values.Count(it => it.Count == 1);
+                var nonUniqueTypes = rewriteContext.RenameGroups.Values.Count(it => it.Count > 1);
+                
+                Console.WriteLine($"Chars=\t{chars}\tMaxU=\t{uniq}\tUniq=\t{uniqueTypes}\tNonUniq=\t{nonUniqueTypes}");
+            }
+        }
+        
         public static void GenerateDeobfuscationMap(UnhollowerOptions options)
         {
             if (options.Source == null || !options.Source.Any())
