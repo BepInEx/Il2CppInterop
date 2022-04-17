@@ -4,7 +4,7 @@
         <PackageId>Il2CppAssemblyUnhollower.BaseLib</PackageId>
         <Authors>knah et al.</Authors>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <TargetFrameworks>net4.7.2;netstandard2.1</TargetFrameworks>
+        <TargetFramework>netstandard2.1</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
     </PropertyGroup>
