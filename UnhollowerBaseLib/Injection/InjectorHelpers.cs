@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Threading;
 using UnhollowerBaseLib;
@@ -22,6 +23,21 @@ namespace UnhollowerRuntimeLib.Injection
         internal static ProcessModule Il2CppModule = Process.GetCurrentProcess()
             .Modules.OfType<ProcessModule>()
             .Single((x) => x.ModuleName == "GameAssembly.dll" || x.ModuleName == "UserAssembly.dll");
+
+        internal static readonly Dictionary<Type, OpCode> StIndOpcodes = new()
+        {
+            [typeof(byte)] = OpCodes.Stind_I1,
+            [typeof(sbyte)] = OpCodes.Stind_I1,
+            [typeof(bool)] = OpCodes.Stind_I1,
+            [typeof(short)] = OpCodes.Stind_I2,
+            [typeof(ushort)] = OpCodes.Stind_I2,
+            [typeof(int)] = OpCodes.Stind_I4,
+            [typeof(uint)] = OpCodes.Stind_I4,
+            [typeof(long)] = OpCodes.Stind_I8,
+            [typeof(ulong)] = OpCodes.Stind_I8,
+            [typeof(float)] = OpCodes.Stind_R4,
+            [typeof(double)] = OpCodes.Stind_R8
+        };
 
         private static void CreateInjectedAssembly()
         {
