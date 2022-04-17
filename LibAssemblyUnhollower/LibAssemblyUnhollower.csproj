@@ -1,14 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <PackageId>Il2CppAssemblyUnhollower.Tool</PackageId>
+        <PackageId>Il2CppAssemblyUnhollower.Lib</PackageId>
         <Authors>knah et al.</Authors>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <OutputType>Exe</OutputType>
-        <TargetFrameworks>net4.7.2;net5.0;netstandard2.1</TargetFrameworks>
-        <Nullable>enable</Nullable>
-        <LangVersion>latest</LangVersion>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <RootNamespace>AssemblyUnhollower</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
