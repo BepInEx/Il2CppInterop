@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31402.337
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AssemblyUnhollower", "AssemblyUnhollower\AssemblyUnhollower.csproj", "{7C3FD45B-A563-47AF-90DF-8B051A8C33A0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibAssemblyUnhollower", "LibAssemblyUnhollower\LibAssemblyUnhollower.csproj", "{7C3FD45B-A563-47AF-90DF-8B051A8C33A0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnhollowerBaseLib", "UnhollowerBaseLib\UnhollowerBaseLib.csproj", "{F6405B5F-9162-49EA-9C8A-CE1AA0916CF3}"
 EndProject
@@ -13,6 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
 		README.md = README.md
 		Directory.Build.props = Directory.Build.props
+		build.cake = build.cake
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnhollowerRuntimeLib", "UnhollowerRuntimeLib\UnhollowerRuntimeLib.csproj", "{7B7E5024-385D-4A46-9196-A6AF8F7FBDD5}"
@@ -27,6 +28,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentat
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnhollowerPdbGen", "UnhollowerPdbGen\UnhollowerPdbGen.csproj", "{7508A51A-9721-4E03-A484-477EC71F3E54}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AssemblyUnhollower.CLI", "AssemblyUnhollower.CLI\AssemblyUnhollower.CLI.csproj", "{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -50,6 +53,10 @@ Global
 		{7508A51A-9721-4E03-A484-477EC71F3E54}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7508A51A-9721-4E03-A484-477EC71F3E54}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7508A51A-9721-4E03-A484-477EC71F3E54}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
