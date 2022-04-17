@@ -8,6 +8,7 @@ using UnhollowerRuntimeLib.XrefScans;
 [assembly:TypeForwardedTo(typeof(Il2CppTypeOf<>))]
 [assembly:TypeForwardedTo(typeof(RuntimeReflectionHelper))]
 [assembly:TypeForwardedTo(typeof(ClassInjector))]
+[assembly:TypeForwardedTo(typeof(EnumInjector))]
 [assembly:TypeForwardedTo(typeof(DelegateSupport))]
 [assembly:TypeForwardedTo(typeof(XrefInstance))]
 [assembly:TypeForwardedTo(typeof(XrefScanner))]
