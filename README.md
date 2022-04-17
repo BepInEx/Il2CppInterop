@@ -15,6 +15,7 @@ This project is a fork of [knah/Il2CppAssemblyUnhollower](https://github.com/kna
 The main changes and features are:
 
 * Optimizations for running Unhollower as a library instead of CLI
+  * CLI is now a separate tool from the main library 
 * Support for inheriting abstract classes
 * Cleaned up `RegisterTypeInIl2Cpp` API
 * Fast release schedule: CI builds on GitHub, releases on NuGet
@@ -32,29 +33,42 @@ Generated assemblies appear to be invalid according to .NET Core/.NET Framework,
 
 ### Command-line parameter reference
 ```
-Usage: AssemblyUnhollower [parameters]
-Possible parameters:
-        --help, -h, /? - Optional. Show this help
-        --verbose - Optional. Produce more console output
-        --input=<directory path> - Required. Directory with Il2CppDumper's dummy assemblies
-        --output=<directory path> - Required. Directory to put results into
-        --mscorlib=<file path> - Required. mscorlib.dll of target runtime system (typically loader's)
-        --unity=<directory path> - Optional. Directory with original Unity assemblies for unstripping
-        --gameassembly=<file path> - Optional. Path to GameAssembly.dll. Used for certain analyses
-        --deobf-uniq-chars=<number> - Optional. How many characters per unique token to use during deobfuscation
-        --deobf-uniq-max=<number> - Optional. How many maximum unique tokens per type are allowed during deobfuscation
-        --deobf-analyze - Optional. Analyze deobfuscation performance with different parameter values. Will not generate assemblies.
-        --blacklist-assembly=<assembly name> - Optional. Don't write specified assembly to output. Can be used multiple times
-        --add-prefix-to=<assembly name/namespace> - Optional. Assemblies and namespaces starting with these will get an Il2Cpp prefix in generated assemblies. Can be used multiple times.
-        --no-xref-cache - Optional. Don't generate xref scanning cache. All scanning will be done at runtime.
-        --no-copy-unhollower-libs - Optional. Don't copy unhollower libraries to output directory
-        --obf-regex=<regex> - Optional. Specifies a regex for obfuscated names. All types and members matching will be renamed
-        --rename-map=<file path> - Optional. Specifies a file specifying rename map for obfuscated types and members
-        --passthrough-names - Optional. If specified, names will be copied from input assemblies as-is without renaming or deobfuscation
-Deobfuscation map generation mode:
-        --deobf-generate - Generate a deobfuscation map for input files. Will not generate assemblies.
-        --deobf-generate-asm=<assembly name> - Optional. Include this assembly for deobfuscation map generation. If none are specified, all assemblies will be included.
-        --deobf-generate-new=<directory path> - Required. Specifies the directory with new (obfuscated) assemblies. The --input parameter specifies old (unobfuscated) assemblies. 
+Description:
+  Generate Managed<->IL2CPP proxy assemblies from Il2CppDumper's or Cpp2IL's output.
+
+Usage:
+  AssemblyUnhollower.CLI [options]
+
+Options:
+  --verbose                                  Produce more verbose output
+  --input <input> (REQUIRED)                 Directory with Il2CppDumper's dummy assemblies
+  --output <output> (REQUIRED)               Directory to write generated assemblies to
+  --system-libs <system-libs> (REQUIRED)     Directory with system libraries of target runtime system (typically
+                                             loader's)
+  --mscorlib <mscorlib>                      Deprecated. mscorlib.dll of target runtime system (typically loader's)
+  --unity <unity>                            Directory with original Unity assemblies for unstripping
+  --gameassembly <gameassembly>              Path to GameAssembly.dll. Used for certain analyses
+  --deobf-uniq-chars <deobf-uniq-chars>      How many characters per unique token to use during deobfuscation
+  --deobf-uniq-max <deobf-uniq-max>          How many maximum unique tokens per type are allowed during deobfuscation
+  --deobf-analyze                            Analyze deobfuscation performance with different parameter values. Will
+                                             not generate assemblies.
+  --blacklist-assembly <blacklist-assembly>  Don't write specified assembly to output. Allows multiple values.
+  --add-prefix-to <add-prefix-to>            Assemblies and namespaces starting with these will get an Il2Cpp prefix in
+                                             generated assemblies. Allows multiple values.
+  --no-xref-cache                            Don't generate xref scanning cache. All scanning will be done at runtime.
+  --no-copy-unhollower-libs                  Don't copy unhollower libraries to output directory.
+  --obf-regex <obf-regex>                    Specifies a regex for obfuscated names. All types and members matching
+                                             will be renamed.
+  --rename-map <rename-map>                  Specifies a file specifying rename map for obfuscated types and members.
+  --passthrough-names                        If specified, names will be copied from input assemblies as-is without
+                                             renaming or deobfuscation.
+  --deobf-generate                           Generate a deobfuscation map for input files. Will not generate assemblies.
+  --deobf-generate-asm <deobf-generate-asm>  Include these assemblies for deobfuscation map generation. If none are
+                                             specified, all assemblies will be included.
+  --deobf-generate-new <deobf-generate-new>  Specifies the directory with new (obfuscated) assemblies. The --input
+                                             parameter specifies old (unobfuscated) assemblies.
+  --version                                  Show version information
+  -?, -h, --help                             Show help and usage information 
 ```
 
 ## Required external setup
