@@ -422,7 +422,7 @@ namespace UnhollowerRuntimeLib
             if (type.IsValueType ||
                 type == typeof(string) ||
                 type.IsGenericParameter) return true;
-            if (typeof(Il2CppSystem.ValueType).IsAssignableFrom(type)) return false;
+            if (type.IsByRef) return IsTypeSupported(type.GetElementType());
 
             return typeof(Il2CppObjectBase).IsAssignableFrom(type);
         }
@@ -520,7 +520,21 @@ namespace UnhollowerRuntimeLib
                     }
                     var parameterType = parameterInfo.ParameterType;
                     if (!parameterType.IsGenericParameter)
-                        param.ParameterType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore.GetNativeClassPointer(parameterType));
+                    {
+                        if (parameterType.IsByRef)
+                        {
+                            var elemType = UnityVersionHandler.Wrap((Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore.GetNativeClassPointer(parameterType.GetElementType())));
+                            var refType = UnityVersionHandler.NewType();
+                            refType.Data = elemType.Data;
+                            refType.Attrs = elemType.Attrs;
+                            refType.Type = elemType.Type;
+                            refType.ByRef = true;
+                            refType.Pinned = elemType.Pinned;
+                            param.ParameterType = refType.TypePointer;
+                        }
+                        else
+                            param.ParameterType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore.GetNativeClassPointer(parameterType));
+                    }
                     else
                     {
                         var type = UnityVersionHandler.NewType();
@@ -707,15 +721,26 @@ namespace UnhollowerRuntimeLib
             body.Emit(OpCodes.Call, typeof(ClassInjectorBase).GetMethod(nameof(ClassInjectorBase.GetMonoObjectFromIl2CppPointer))!);
             body.Emit(OpCodes.Castclass, monoMethod.DeclaringType);
 
+            var indirectVariables = new LocalBuilder[managedParameters.Length];
+
             for (var i = 1; i < managedParameters.Length; i++)
             {
-                body.Emit(OpCodes.Ldarg, i);
                 var parameter = managedParameters[i];
-                if (!parameter.IsValueType)
+                if (parameter.IsSubclassOf(typeof(Il2CppSystem.ValueType)))
                 {
-                    if (parameter == typeof(string))
+                    body.Emit(OpCodes.Ldc_I8, Il2CppClassPointerStore.GetNativeClassPointer(parameter).ToInt64());
+                    body.Emit(OpCodes.Conv_I);
+                    body.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga_S, i);
+                    body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_value_box)));
+                }
+                else body.Emit(OpCodes.Ldarg, i);
+                if (parameter.IsValueType) continue;
+                
+                void HandleTypeConversion(Type type)
+                {
+                    if (type == typeof(string))
                         body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppStringToManaged))!);
-                    else
+                    else if (type.IsSubclassOf(typeof(Il2CppObjectBase)))
                     {
                         var labelNull = body.DefineLabel();
                         var labelNotNull = body.DefineLabel();
@@ -724,7 +749,7 @@ namespace UnhollowerRuntimeLib
                         // We need to directly resolve from all constructors because on mono GetConstructor can cause the following issue:
                         // `Missing field layout info for ...`
                         // This is caused by GetConstructor calling RuntimeTypeHandle.CanCastTo which can fail since right now unhollower emits ALL fields which appear to now work properly
-                        body.Emit(OpCodes.Newobj, parameter.GetConstructors().FirstOrDefault(ci =>
+                        body.Emit(OpCodes.Newobj, type.GetConstructors().FirstOrDefault(ci =>
                         {
                             var ps = ci.GetParameters();
                             return ps.Length == 1 && ps[0].ParameterType == typeof(IntPtr);
@@ -736,20 +761,53 @@ namespace UnhollowerRuntimeLib
                         body.MarkLabel(labelNotNull);
                     }
                 }
+                if (parameter.IsByRef)
+                {
+                    var elemType = parameter.GetElementType();
+
+                    indirectVariables[i] = body.DeclareLocal(elemType);
+
+                    body.Emit(OpCodes.Ldind_I);
+                    HandleTypeConversion(elemType);
+                    body.Emit(OpCodes.Stloc, indirectVariables[i]);
+                    body.Emit(OpCodes.Ldloca, indirectVariables[i]);
+                }
+                else HandleTypeConversion(parameter);
             }
 
             body.Emit(OpCodes.Call, monoMethod);
-            if (monoMethod.ReturnType == typeof(void))
+            LocalBuilder managedReturnVariable = null;
+            if (monoMethod.ReturnType != typeof(void))
             {
-                // do nothing
+                managedReturnVariable = body.DeclareLocal(monoMethod.ReturnType);
+                body.Emit(OpCodes.Stloc, managedReturnVariable);
             }
-            else if (monoMethod.ReturnType == typeof(string))
+
+            for (var i = 1; i < managedParameters.Length; i++)
             {
-                body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!);
+                LocalBuilder variable = indirectVariables[i];
+                if (variable == null)
+                    continue;
+                body.Emit(OpCodes.Ldarg_S, i);
+                body.Emit(OpCodes.Ldloc, variable);
+                var directType = managedParameters[i].GetElementType();
+                if(directType == typeof(string))
+                    body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!);
+                else if(!directType.IsValueType)
+                    body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectBaseToPtr))!);
+                body.Emit(InjectorHelpers.StIndOpcodes.TryGetValue(directType, out OpCode stindOpCodde) ? stindOpCodde : OpCodes.Stind_I);
             }
-            else if (!monoMethod.ReturnType.IsValueType)
+            if (managedReturnVariable != null)
             {
-                body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectBaseToPtr))!);
+                body.Emit(OpCodes.Ldloc, managedReturnVariable);
+                if (monoMethod.ReturnType == typeof(string))
+                {
+                    body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!);
+                }
+                else if (!monoMethod.ReturnType.IsValueType)
+                {
+                    body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectBaseToPtr))!);
+                }
             }
             body.Emit(OpCodes.Ret);
 
