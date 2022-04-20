@@ -143,7 +143,7 @@ namespace UnhollowerBaseLib.Runtime
 
         //Assemblies
         public static INativeAssemblyStruct NewAssembly() =>
-            assemblyStructHandler.CreateNewAssemblyStruct();
+            assemblyStructHandler.CreateNewStruct();
 
         public static unsafe INativeAssemblyStruct Wrap(Il2CppAssembly* assemblyPointer) =>
             assemblyStructHandler.Wrap(assemblyPointer);

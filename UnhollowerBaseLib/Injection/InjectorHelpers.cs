@@ -44,13 +44,13 @@ namespace UnhollowerRuntimeLib.Injection
             InjectedAssembly = UnityVersionHandler.NewAssembly();
             InjectedImage = UnityVersionHandler.NewImage();
 
-            InjectedAssembly.Name = Marshal.StringToHGlobalAnsi("InjectedMonoTypes");
+            InjectedAssembly.Name.Name = Marshal.StringToHGlobalAnsi("InjectedMonoTypes");
 
             InjectedImage.Assembly = InjectedAssembly.AssemblyPointer;
             InjectedImage.Dynamic = 1;
-            InjectedImage.Name = InjectedAssembly.Name;
+            InjectedImage.Name = InjectedAssembly.Name.Name;
             if (InjectedImage.HasNameNoExt)
-                InjectedImage.NameNoExt = InjectedAssembly.Name;
+                InjectedImage.NameNoExt = InjectedAssembly.Name.Name;
         }
 
         internal static void Setup()
