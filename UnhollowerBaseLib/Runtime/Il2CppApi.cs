@@ -387,13 +387,13 @@ namespace UnhollowerBaseLib.Runtime
 
         public static uint il2cpp_property_get_flags(IntPtr prop) => IL2CPP.il2cpp_property_get_flags(prop);
 
-        public static IntPtr il2cpp_property_get_get_method(IntPtr prop) => UnityVersionHandler.propertyInfoStructHandler.il2cpp_property_get_get_method(prop);
+        public static IntPtr il2cpp_property_get_get_method(IntPtr prop) => (IntPtr)UnityVersionHandler.Wrap((Il2CppPropertyInfo*)prop).Get;
 
-        public static IntPtr il2cpp_property_get_set_method(IntPtr prop) => UnityVersionHandler.propertyInfoStructHandler.il2cpp_property_get_set_method(prop);
+        public static IntPtr il2cpp_property_get_set_method(IntPtr prop) => (IntPtr)UnityVersionHandler.Wrap((Il2CppPropertyInfo*)prop).Set;
 
-        public static IntPtr il2cpp_property_get_name(IntPtr prop) => UnityVersionHandler.propertyInfoStructHandler.il2cpp_property_get_name(prop);
+        public static IntPtr il2cpp_property_get_name(IntPtr prop) => UnityVersionHandler.Wrap((Il2CppPropertyInfo*)prop).Name;
 
-        public static IntPtr il2cpp_property_get_parent(IntPtr prop) => UnityVersionHandler.propertyInfoStructHandler.il2cpp_property_get_parent(prop);
+        public static IntPtr il2cpp_property_get_parent(IntPtr prop) => (IntPtr)UnityVersionHandler.Wrap((Il2CppPropertyInfo*)prop).Parent;
 
         #endregion
 

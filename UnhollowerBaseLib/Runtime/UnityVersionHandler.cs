@@ -233,7 +233,7 @@ namespace UnhollowerBaseLib.Runtime
 
         //Properties
         public static INativePropertyInfoStruct NewProperty() =>
-            propertyInfoStructHandler.CreateNewPropertyInfoStruct();
+            propertyInfoStructHandler.CreateNewStruct();
 
         public static unsafe INativePropertyInfoStruct Wrap(Il2CppPropertyInfo* propertyInfoPointer) =>
             propertyInfoStructHandler.Wrap(propertyInfoPointer);
