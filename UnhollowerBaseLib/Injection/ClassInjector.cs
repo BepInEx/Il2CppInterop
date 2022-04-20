@@ -422,7 +422,7 @@ namespace UnhollowerRuntimeLib
             if (type.IsValueType ||
                 type == typeof(string) ||
                 type.IsGenericParameter) return true;
-            if (type.IsByRef) return IsTypeSupported(type.GetElementType());
+            if (type.IsByRef) return IsTypeSupported(type.GetElementType()) && !type.GetElementType().IsGenericMethodParameter;
 
             return typeof(Il2CppObjectBase).IsAssignableFrom(type);
         }
