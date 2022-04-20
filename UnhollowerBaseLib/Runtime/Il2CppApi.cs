@@ -65,7 +65,7 @@ namespace UnhollowerBaseLib.Runtime
 
         public static IntPtr il2cpp_assembly_get_image(IntPtr assembly) => IL2CPP.il2cpp_assembly_get_image(assembly);
 
-        public static IntPtr il2cpp_assembly_get_name(IntPtr assembly) => UnityVersionHandler.assemblyStructHandler.il2cpp_assembly_get_name(assembly);
+        public static IntPtr il2cpp_assembly_get_name(IntPtr assembly) => UnityVersionHandler.Wrap((Il2CppAssembly*)assembly).Name.Name;
 
         #endregion
 

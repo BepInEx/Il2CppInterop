@@ -3,14 +3,14 @@ using System.Runtime.InteropServices;
 using UnhollowerBaseLib.Runtime.VersionSpecific.AssemblyName;
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.Assembly
 {
-    [ApplicableToUnityVersionsSince("5.3.3")]
-    public unsafe class NativeAssemblyStructHandler_20_0 : INativeAssemblyStructHandler
+    [ApplicableToUnityVersionsSince("2018.1.0")]
+    public unsafe class NativeAssemblyStructHandler_24_0 : INativeAssemblyStructHandler
     {
-        public int Size() => sizeof(Il2CppAssembly_20_0);
+        public int Size() => sizeof(Il2CppAssembly_24_0);
         public INativeAssemblyStruct CreateNewStruct()
         {
             IntPtr ptr = Marshal.AllocHGlobal(Size());
-            Il2CppAssembly_20_0* _ = (Il2CppAssembly_20_0*)ptr;
+            Il2CppAssembly_24_0* _ = (Il2CppAssembly_24_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
         }
@@ -19,27 +19,27 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Assembly
             if (ptr == null) return null;
             return new NativeStructWrapper((IntPtr)ptr);
         }
-        internal unsafe struct Il2CppAssembly_20_0
+        internal unsafe struct Il2CppAssembly_24_0
         {
-            public int imageIndex;
+            public Il2CppImage* image;
             public int customAttributeIndex;
             public int referencedAssemblyStart;
             public int referencedAssemblyCount;
-            public NativeAssemblyNameStructHandler_16_0.Il2CppAssemblyName_16_0 aname;
+            public NativeAssemblyNameStructHandler_24_0.Il2CppAssemblyName_24_0 aname;
         }
 
         internal class NativeStructWrapper : INativeAssemblyStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
             public IntPtr Pointer { get; }
-            private Il2CppAssembly_20_0* _ => (Il2CppAssembly_20_0*)Pointer;
+            private Il2CppAssembly_24_0* _ => (Il2CppAssembly_24_0*)Pointer;
             public Il2CppAssembly* AssemblyPointer => (Il2CppAssembly*)Pointer;
             public INativeAssemblyNameStruct Name
             {
                 get => UnityVersionHandler.Wrap((Il2CppAssemblyName*)&_->aname);
-                set => _->aname = *(NativeAssemblyNameStructHandler_16_0.Il2CppAssemblyName_16_0*)Name.AssemblyNamePointer;
+                set => _->aname = *(NativeAssemblyNameStructHandler_24_0.Il2CppAssemblyName_24_0*)Name.AssemblyNamePointer;
             }
-            public ref Il2CppImage* Image => throw new NotSupportedException();
+            public ref Il2CppImage* Image => ref _->image;
         }
 
     }

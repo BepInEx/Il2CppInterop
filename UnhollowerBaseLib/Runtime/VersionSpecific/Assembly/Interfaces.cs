@@ -1,15 +1,12 @@
 ﻿using System;
+using UnhollowerBaseLib.Runtime.VersionSpecific.AssemblyName;
 
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.Assembly
 {
     public interface INativeAssemblyStructHandler : INativeStructHandler
     {
-        INativeAssemblyStruct CreateNewAssemblyStruct();
+        INativeAssemblyStruct CreateNewStruct();
         unsafe INativeAssemblyStruct Wrap(Il2CppAssembly* assemblyPointer);
-        IntPtr il2cpp_assembly_get_name(IntPtr assembly);
-#if DEBUG
-        string GetName();
-#endif
     }
 
     public interface INativeAssemblyStruct : INativeStruct
@@ -18,14 +15,6 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Assembly
 
         unsafe ref Il2CppImage* Image { get; }
 
-        ref IntPtr Name { get; }
-
-        ref int Major { get; }
-
-        ref int Minor { get; }
-
-        ref int Build { get; }
-
-        ref int Revision { get; }
+        INativeAssemblyNameStruct Name { get; }
     }
 }
