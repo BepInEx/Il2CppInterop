@@ -112,11 +112,6 @@ namespace UnhollowerBaseLib.Runtime
             throw new ApplicationException("No handler");
         }
 
-        public static IntPtr CopyMethodInfoStruct(IntPtr origMethodInfo)
-        {
-            return GetHandler<INativeMethodInfoStructHandler>().CopyMethodInfoStruct(origMethodInfo);
-        }
-
         private static Type[] GetAllTypesSafe()
         {
             try
@@ -207,15 +202,12 @@ namespace UnhollowerBaseLib.Runtime
 
         //Methods
         public static INativeMethodInfoStruct NewMethod() =>
-            methodInfoStructHandler.CreateNewMethodStruct();
+            methodInfoStructHandler.CreateNewStruct();
 
         public static unsafe INativeMethodInfoStruct Wrap(Il2CppMethodInfo* methodPointer) =>
             methodInfoStructHandler.Wrap(methodPointer);
 
         public static unsafe int MethodSize() => methodInfoStructHandler.Size();
-        public static IntPtr GetMethodFromReflection(IntPtr method) =>
-            methodInfoStructHandler.GetMethodFromReflection(method);
-
 
         //Parameters
         public static unsafe Il2CppParameterInfo*[] NewMethodParameterArray(int count) =>
