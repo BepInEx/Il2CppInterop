@@ -22,7 +22,14 @@ namespace UnhollowerBaseLib.Runtime
     public struct Il2CppPropertyInfo { }
     public struct Il2CppTypeStruct { }
     public struct Il2CppAssemblyName { }
-
+    public struct Il2CppMetadataTypeHandle
+    {
+        private unsafe readonly void* dummy;
+    }
+    public struct Il2CppMetadataGenericContainerHandle
+    {
+        private unsafe readonly void* dummy;
+    }
 
     [Flags]
     public enum Il2CppMethodImplFlags : ushort

@@ -4,11 +4,8 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Type
 {
     public interface INativeTypeStructHandler : INativeStructHandler
     {
-        INativeTypeStruct CreateNewTypeStruct();
+        INativeTypeStruct CreateNewStruct();
         unsafe INativeTypeStruct Wrap(Il2CppTypeStruct* typePointer);
-#if DEBUG
-        string GetName();
-#endif
     }
 
     public interface INativeTypeStruct : INativeStruct
@@ -24,5 +21,6 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Type
         bool ByRef { get; set; }
 
         bool Pinned { get; set; }
+        bool ValueType { get; set; }
     }
 }
