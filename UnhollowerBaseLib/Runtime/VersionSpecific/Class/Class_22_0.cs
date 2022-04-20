@@ -3,14 +3,14 @@ using System.Runtime.InteropServices;
 using UnhollowerBaseLib.Runtime.VersionSpecific.Type;
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
 {
-    [ApplicableToUnityVersionsSince("5.6.0")]
-    public unsafe class NativeClassStructHandler_23_0 : INativeClassStructHandler
+    [ApplicableToUnityVersionsSince("5.5.0")]
+    public unsafe class NativeClassStructHandler_22_0 : INativeClassStructHandler
     {
-        public int Size() => sizeof(Il2CppClass_23_0);
+        public int Size() => sizeof(Il2CppClass_22_0);
         public INativeClassStruct CreateNewStruct(int vTableSlots)
         {
             IntPtr ptr = Marshal.AllocHGlobal(Size() + sizeof(VirtualInvokeData) * vTableSlots);
-            Il2CppClass_23_0* _ = (Il2CppClass_23_0*)ptr;
+            Il2CppClass_22_0* _ = (Il2CppClass_22_0*)ptr;
             *_ = default;
             _->byval_arg = UnityVersionHandler.NewType().TypePointer;
             _->this_arg = UnityVersionHandler.NewType().TypePointer;
@@ -21,7 +21,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
             if (ptr == null) return null;
             return new NativeStructWrapper((IntPtr)ptr);
         }
-        internal unsafe struct Il2CppClass_23_0
+        internal unsafe struct Il2CppClass_22_0
         {
             public Il2CppImage* image;
             public void* gc_desc;
@@ -35,7 +35,6 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
             public Il2CppClass* parent;
             public void* generic_class;
             public void* typeDefinition;
-            public void* interopData;
             public Il2CppFieldInfo* fields;
             public Il2CppEventInfo* events;
             public Il2CppPropertyInfo* properties;
@@ -69,7 +68,6 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
             public ushort interfaces_count;
             public ushort interface_offsets_count;
             public byte typeHierarchyDepth;
-            public byte genericRecursionDepth;
             public byte rank;
             public byte minimumAlignment;
             public byte packingSize;
@@ -107,11 +105,11 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
         internal class NativeStructWrapper : INativeClassStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
-            private static int _bitfield0offset = Marshal.OffsetOf<Il2CppClass_23_0>(nameof(Il2CppClass_23_0._bitfield0)).ToInt32();
+            private static int _bitfield0offset = Marshal.OffsetOf<Il2CppClass_22_0>(nameof(Il2CppClass_22_0._bitfield0)).ToInt32();
             private Il2CppClass* _klassDummy;
             public IntPtr Pointer { get; }
-            private Il2CppClass_23_0* _ => (Il2CppClass_23_0*)Pointer;
-            public IntPtr VTable => IntPtr.Add(Pointer, sizeof(Il2CppClass_23_0));
+            private Il2CppClass_22_0* _ => (Il2CppClass_22_0*)Pointer;
+            public IntPtr VTable => IntPtr.Add(Pointer, sizeof(Il2CppClass_22_0));
             public Il2CppClass* ClassPointer => (Il2CppClass*)Pointer;
             public INativeTypeStruct ByValArg => UnityVersionHandler.Wrap(_->byval_arg);
             public INativeTypeStruct ThisArg => UnityVersionHandler.Wrap(_->this_arg);
@@ -139,43 +137,43 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
             public ref Il2CppClass** TypeHierarchy => ref _->typeHierarchy;
             public bool ValueType
             {
-                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_valuetype);
-                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_valuetype, value);
+                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_valuetype);
+                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_valuetype, value);
             }
             public bool Initialized
             {
-                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_initialized);
-                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_initialized, value);
+                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_initialized);
+                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_initialized, value);
             }
             public bool EnumType
             {
-                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_enumtype);
-                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_enumtype, value);
+                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_enumtype);
+                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_enumtype, value);
             }
             public bool IsGeneric
             {
-                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_is_generic);
-                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_is_generic, value);
+                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_is_generic);
+                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_is_generic, value);
             }
             public bool HasReferences
             {
-                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_has_references);
-                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_has_references, value);
+                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_has_references);
+                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_has_references, value);
             }
             public bool SizeInited
             {
-                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_size_inited);
-                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_size_inited, value);
+                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_size_inited);
+                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_size_inited, value);
             }
             public bool HasFinalize
             {
-                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_has_finalize);
-                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_has_finalize, value);
+                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_has_finalize);
+                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_has_finalize, value);
             }
             public bool IsVtableInitialized
             {
-                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_is_vtable_initialized);
-                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_23_0.Bitfield0.BIT_is_vtable_initialized, value);
+                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_is_vtable_initialized);
+                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_22_0.Bitfield0.BIT_is_vtable_initialized, value);
             }
             public bool InitializedAndNoError
             {
