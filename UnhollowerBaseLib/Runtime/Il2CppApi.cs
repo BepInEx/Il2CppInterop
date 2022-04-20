@@ -299,11 +299,11 @@ namespace UnhollowerBaseLib.Runtime
 
         #region Methods
 
-        public static IntPtr il2cpp_method_get_return_type(IntPtr method) => UnityVersionHandler.methodInfoStructHandler.il2cpp_method_get_return_type(method);
+        public static IntPtr il2cpp_method_get_return_type(IntPtr method) => (IntPtr)UnityVersionHandler.Wrap((Il2CppMethodInfo*)method).ReturnType;
 
         public static IntPtr il2cpp_method_get_declaring_type(IntPtr method) => IL2CPP.il2cpp_method_get_declaring_type(method);
 
-        public static IntPtr il2cpp_method_get_name(IntPtr method) => UnityVersionHandler.methodInfoStructHandler.il2cpp_method_get_name(method);
+        public static IntPtr il2cpp_method_get_name(IntPtr method) => UnityVersionHandler.Wrap((Il2CppMethodInfo*)method).Name;
 
         public static IntPtr il2cpp_method_get_from_reflection(IntPtr method) => IL2CPP.il2cpp_method_get_from_reflection(method);
 
@@ -315,17 +315,17 @@ namespace UnhollowerBaseLib.Runtime
 
         public static bool il2cpp_method_is_instance(IntPtr method) => IL2CPP.il2cpp_method_is_instance(method);
 
-        public static uint il2cpp_method_get_param_count(IntPtr method) => UnityVersionHandler.methodInfoStructHandler.il2cpp_method_get_param_count(method);
+        public static uint il2cpp_method_get_param_count(IntPtr method) => UnityVersionHandler.Wrap((Il2CppMethodInfo*)method).ParametersCount;
 
         public static IntPtr il2cpp_method_get_param(IntPtr method, uint index) => IL2CPP.il2cpp_method_get_param(method, index);
 
-        public static IntPtr il2cpp_method_get_class(IntPtr method) => UnityVersionHandler.methodInfoStructHandler.il2cpp_method_get_class(method);
+        public static IntPtr il2cpp_method_get_class(IntPtr method) => (IntPtr)UnityVersionHandler.Wrap((Il2CppMethodInfo*)method).Class;
 
         public static bool il2cpp_method_has_attribute(IntPtr method, IntPtr attr_class) => IL2CPP.il2cpp_method_has_attribute(method, attr_class);
 
         public static uint il2cpp_method_get_flags(IntPtr method, ref uint iflags) => IL2CPP.il2cpp_method_get_flags(method, ref iflags);
 
-        public static uint il2cpp_method_get_token(IntPtr method) => UnityVersionHandler.methodInfoStructHandler.il2cpp_method_get_token(method);
+        public static uint il2cpp_method_get_token(IntPtr method) => UnityVersionHandler.Wrap((Il2CppMethodInfo*)method).Token;
 
         public static IntPtr il2cpp_method_get_param_name(IntPtr method, uint index) => IL2CPP.il2cpp_method_get_param_name(method, index);
 
