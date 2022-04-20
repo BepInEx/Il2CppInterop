@@ -1,70 +1,47 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
-
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.PropertyInfo
 {
     [ApplicableToUnityVersionsSince("5.3.2")]
     public unsafe class NativePropertyInfoStructHandler_19_0 : INativePropertyInfoStructHandler
     {
-        public unsafe int Size() => sizeof(Il2CppPropertyInfo_19_0);
-        public INativePropertyInfoStruct CreateNewPropertyInfoStruct()
+        public int Size() => sizeof(Il2CppPropertyInfo_19_0);
+        public INativePropertyInfoStruct CreateNewStruct()
         {
-            var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppPropertyInfo_19_0>());
-
-            *(Il2CppPropertyInfo_19_0*)pointer = default;
-
-            return new NativePropertyInfoStruct(pointer);
+            IntPtr ptr = Marshal.AllocHGlobal(Size());
+            Il2CppPropertyInfo_19_0* _ = (Il2CppPropertyInfo_19_0*)ptr;
+            *_ = default;
+            return new NativeStructWrapper(ptr);
         }
-
-        public INativePropertyInfoStruct Wrap(Il2CppPropertyInfo* propertyInfoPointer)
+        public INativePropertyInfoStruct Wrap(Il2CppPropertyInfo* ptr)
         {
-            if ((IntPtr)propertyInfoPointer == IntPtr.Zero) return null;
-            else return new NativePropertyInfoStruct((IntPtr)propertyInfoPointer);
+            if (ptr == null) return null;
+            return new NativeStructWrapper((IntPtr)ptr);
         }
-
-        public IntPtr il2cpp_property_get_name(IntPtr prop) => ((Il2CppPropertyInfo_19_0*)prop)->name;
-        public IntPtr il2cpp_property_get_parent(IntPtr prop) => (IntPtr)((Il2CppPropertyInfo_19_0*)prop)->parent;
-        public IntPtr il2cpp_property_get_get_method(IntPtr prop) => (IntPtr)((Il2CppPropertyInfo_19_0*)prop)->get;
-        public IntPtr il2cpp_property_get_set_method(IntPtr prop) => (IntPtr)((Il2CppPropertyInfo_19_0*)prop)->set;
-
-#if DEBUG
-        public string GetName() => "NativePropertyInfoStructHandler_19_0";
-#endif
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct Il2CppPropertyInfo_19_0
+        internal unsafe struct Il2CppPropertyInfo_19_0
         {
             public Il2CppClass* parent;
-            public IntPtr name; // const char*
-            public Il2CppMethodInfo* get; // const
-            public Il2CppMethodInfo* set; // const
+            public byte* name;
+            public Il2CppMethodInfo* get;
+            public Il2CppMethodInfo* set;
             public uint attrs;
             public int customAttributeIndex;
             public uint token;
         }
 
-        internal class NativePropertyInfoStruct : INativePropertyInfoStruct
+        internal class NativeStructWrapper : INativePropertyInfoStruct
         {
-            public NativePropertyInfoStruct(IntPtr pointer)
-            {
-                Pointer = pointer;
-            }
-
+            public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
             public IntPtr Pointer { get; }
-
+            private Il2CppPropertyInfo_19_0* _ => (Il2CppPropertyInfo_19_0*)Pointer;
             public Il2CppPropertyInfo* PropertyInfoPointer => (Il2CppPropertyInfo*)Pointer;
-
-            private Il2CppPropertyInfo_19_0* NativeProperty => (Il2CppPropertyInfo_19_0*)Pointer;
-
-            public ref IntPtr Name => ref NativeProperty->name;
-
-            public ref Il2CppClass* Parent => ref NativeProperty->parent;
-
-            public ref Il2CppMethodInfo* Get => ref NativeProperty->get;
-
-            public ref Il2CppMethodInfo* Set => ref NativeProperty->set;
-
-            public ref uint Attrs => ref NativeProperty->attrs;
+            public ref IntPtr Name => ref *(IntPtr*)&_->name;
+            public ref Il2CppClass* Parent => ref _->parent;
+            public ref Il2CppMethodInfo* Get => ref _->get;
+            public ref Il2CppMethodInfo* Set => ref _->set;
+            public ref uint Attrs => ref _->attrs;
         }
+
     }
+
 }
