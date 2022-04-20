@@ -165,7 +165,7 @@ namespace UnhollowerBaseLib.Runtime
 
         //Events
         public static INativeEventInfoStruct NewEvent() =>
-            eventInfoStructHandler.CreateNewEventInfoStruct();
+            eventInfoStructHandler.CreateNewStruct();
 
         public static unsafe INativeEventInfoStruct Wrap(Il2CppEventInfo* eventInfoPointer) =>
             eventInfoStructHandler.Wrap(eventInfoPointer);
