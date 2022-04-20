@@ -2,14 +2,14 @@ using System;
 using System.Runtime.InteropServices;
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.EventInfo
 {
-    [ApplicableToUnityVersionsSince("5.2.2")]
-    public unsafe class NativeEventInfoStructHandler_16_0 : INativeEventInfoStructHandler
+    [ApplicableToUnityVersionsSince("2018.3.0")]
+    public unsafe class NativeEventInfoStructHandler_24_0 : INativeEventInfoStructHandler
     {
-        public int Size() => sizeof(Il2CppEventInfo_16_0);
+        public int Size() => sizeof(Il2CppEventInfo_24_0);
         public INativeEventInfoStruct CreateNewStruct()
         {
             IntPtr ptr = Marshal.AllocHGlobal(Size());
-            Il2CppEventInfo_16_0* _ = (Il2CppEventInfo_16_0*)ptr;
+            Il2CppEventInfo_24_0* _ = (Il2CppEventInfo_24_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
         }
@@ -18,7 +18,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.EventInfo
             if (ptr == null) return null;
             return new NativeStructWrapper((IntPtr)ptr);
         }
-        internal unsafe struct Il2CppEventInfo_16_0
+        internal unsafe struct Il2CppEventInfo_24_0
         {
             public byte* name;
             public Il2CppTypeStruct* eventType;
@@ -26,14 +26,14 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.EventInfo
             public Il2CppMethodInfo* add;
             public Il2CppMethodInfo* remove;
             public Il2CppMethodInfo* raise;
-            public int customAttributeIndex;
+            public uint token;
         }
 
         internal class NativeStructWrapper : INativeEventInfoStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
             public IntPtr Pointer { get; }
-            private Il2CppEventInfo_16_0* _ => (Il2CppEventInfo_16_0*)Pointer;
+            private Il2CppEventInfo_24_0* _ => (Il2CppEventInfo_24_0*)Pointer;
             public Il2CppEventInfo* EventInfoPointer => (Il2CppEventInfo*)Pointer;
             public ref IntPtr Name => ref *(IntPtr*)&_->name;
             public ref Il2CppTypeStruct* EventType => ref _->eventType;
