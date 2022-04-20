@@ -22,6 +22,7 @@ namespace UnhollowerBaseLib.Runtime
     public struct Il2CppPropertyInfo { }
     public struct Il2CppTypeStruct { }
     public struct Il2CppAssemblyName { }
+    public struct Il2CppString { }
     public struct Il2CppMetadataTypeHandle
     {
         private unsafe readonly void* dummy;
@@ -33,6 +34,9 @@ namespace UnhollowerBaseLib.Runtime
     public struct Il2CppMetadataImageHandle
     {
         private unsafe readonly void* dummy;
+    }
+    public struct il2cpp_hresult_t {
+        private unsafe readonly int dummy;
     }
 
     [Flags]

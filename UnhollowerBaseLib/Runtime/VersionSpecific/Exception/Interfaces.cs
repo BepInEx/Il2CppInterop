@@ -4,11 +4,8 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Exception
 {
     public interface INativeExceptionStructHandler : INativeStructHandler
     {
-        INativeExceptionStruct CreateNewExceptionStruct();
+        INativeExceptionStruct CreateNewStruct();
         unsafe INativeExceptionStruct Wrap(Il2CppException* exceptionPointer);
-#if DEBUG
-        string GetName();
-#endif
     }
 
     public interface INativeExceptionStruct : INativeStruct
@@ -17,16 +14,14 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Exception
 
         unsafe ref Il2CppException* InnerException { get; }
 
-        INativeExceptionStruct InnerExceptionWrapped { get; }
+        unsafe ref Il2CppString* Message { get; }
 
-        ref IntPtr Message { get; }
+        unsafe ref Il2CppString* HelpLink { get; }
 
-        ref IntPtr HelpLink { get; }
+        unsafe ref Il2CppString* ClassName { get; }
 
-        ref IntPtr ClassName { get; }
+        unsafe ref Il2CppString* StackTrace { get; }
 
-        ref IntPtr StackTrace { get; }
-
-        ref IntPtr RemoteStackTrace { get; }
+        unsafe ref Il2CppString* RemoteStackTrace { get; }
     }
 }

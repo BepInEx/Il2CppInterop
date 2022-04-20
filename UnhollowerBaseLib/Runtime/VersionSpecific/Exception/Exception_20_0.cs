@@ -2,14 +2,14 @@ using System;
 using System.Runtime.InteropServices;
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.Exception
 {
-    [ApplicableToUnityVersionsSince("5.3.5")]
-    public unsafe class NativeExceptionStructHandler_21_0 : INativeExceptionStructHandler
+    [ApplicableToUnityVersionsSince("5.3.3")]
+    public unsafe class NativeExceptionStructHandler_20_0 : INativeExceptionStructHandler
     {
-        public int Size() => sizeof(Il2CppException_21_0);
+        public int Size() => sizeof(Il2CppException_20_0);
         public INativeExceptionStruct CreateNewStruct()
         {
             IntPtr ptr = Marshal.AllocHGlobal(Size());
-            Il2CppException_21_0* _ = (Il2CppException_21_0*)ptr;
+            Il2CppException_20_0* _ = (Il2CppException_20_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
         }
@@ -18,11 +18,11 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Exception
             if (ptr == null) return null;
             return new NativeStructWrapper((IntPtr)ptr);
         }
-        internal unsafe struct Il2CppException_21_0
+        internal unsafe struct Il2CppException_20_0
         {
             public Il2CppObject _object;
             public void* trace_ips;
-            public Il2CppException* inner_ex;
+            public Il2CppObject* inner_ex;
             public Il2CppString* message;
             public Il2CppString* help_link;
             public Il2CppString* class_name;
@@ -38,9 +38,9 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Exception
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
             public IntPtr Pointer { get; }
-            private Il2CppException_21_0* _ => (Il2CppException_21_0*)Pointer;
+            private Il2CppException_20_0* _ => (Il2CppException_20_0*)Pointer;
             public Il2CppException* ExceptionPointer => (Il2CppException*)Pointer;
-            public ref Il2CppException* InnerException => ref _->inner_ex;
+            public ref Il2CppException* InnerException => ref *(Il2CppException**)&_->inner_ex;
             public ref Il2CppString* Message => ref _->message;
             public ref Il2CppString* HelpLink => ref _->help_link;
             public ref Il2CppString* ClassName => ref _->class_name;
