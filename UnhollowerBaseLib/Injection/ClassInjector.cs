@@ -445,7 +445,7 @@ namespace UnhollowerRuntimeLib
             {
                 if (method.DeclaringType.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
                         .Where(property => property.GetAccessors(true).Contains(method))
-                        .Any(property => property.CustomAttributes.Any(it => typeof(HideFromIl2CppAttribute).IsAssignableFrom(it.AttributeType))))
+                        .Any(property => property.CustomAttributes.Any(it => typeof(HideFromIl2CppAttribute).IsAssignableFrom(it.AttributeType)))
                 )
                 {
                     return false;
