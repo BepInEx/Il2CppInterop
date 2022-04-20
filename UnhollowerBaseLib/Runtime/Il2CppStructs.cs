@@ -30,6 +30,10 @@ namespace UnhollowerBaseLib.Runtime
     {
         private unsafe readonly void* dummy;
     }
+    public struct Il2CppMetadataImageHandle
+    {
+        private unsafe readonly void* dummy;
+    }
 
     [Flags]
     public enum Il2CppMethodImplFlags : ushort
