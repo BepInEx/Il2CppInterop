@@ -439,13 +439,13 @@ namespace UnhollowerRuntimeLib
         {
             if (method.Name == "Finalize") return false;
             if (method.IsStatic || method.IsAbstract) return false;
-            if (method.CustomAttributes.Any(it => it.AttributeType == typeof(HideFromIl2CppAttribute))) return false;
+            if (method.CustomAttributes.Any(it => typeof(HideFromIl2CppAttribute).IsAssignableFrom(it.AttributeType))) return false;
 
             if (method.DeclaringType != null)
             {
                 if (method.DeclaringType.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
                         .Where(property => property.GetAccessors(true).Contains(method))
-                        .Any(property => property.CustomAttributes.Any(it => it.AttributeType == typeof(HideFromIl2CppAttribute)))
+                        .Any(property => property.CustomAttributes.Any(it => typeof(HideFromIl2CppAttribute).IsAssignableFrom(it.AttributeType))))
                 )
                 {
                     return false;
