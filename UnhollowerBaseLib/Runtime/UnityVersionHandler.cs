@@ -174,7 +174,7 @@ namespace UnhollowerBaseLib.Runtime
 
         //Exceptions
         public static INativeExceptionStruct NewException() =>
-            exceptionStructHandler.CreateNewExceptionStruct();
+            exceptionStructHandler.CreateNewStruct();
 
         public static unsafe INativeExceptionStruct Wrap(Il2CppException* exceptionPointer) =>
             exceptionStructHandler.Wrap(exceptionPointer);
