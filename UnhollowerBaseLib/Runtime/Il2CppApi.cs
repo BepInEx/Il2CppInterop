@@ -217,13 +217,13 @@ namespace UnhollowerBaseLib.Runtime
 
         public static int il2cpp_field_get_flags(IntPtr field) => IL2CPP.il2cpp_field_get_flags(field);
 
-        public static IntPtr il2cpp_field_get_name(IntPtr field) => UnityVersionHandler.fieldInfoStructHandler.il2cpp_field_get_name(field);
+        public static IntPtr il2cpp_field_get_name(IntPtr field) => UnityVersionHandler.Wrap((Il2CppFieldInfo*)field).Name;
 
-        public static IntPtr il2cpp_field_get_parent(IntPtr field) => UnityVersionHandler.fieldInfoStructHandler.il2cpp_field_get_parent(field);
+        public static IntPtr il2cpp_field_get_parent(IntPtr field) => (IntPtr)UnityVersionHandler.Wrap((Il2CppFieldInfo*)field).Parent;
 
-        public static uint il2cpp_field_get_offset(IntPtr field) => UnityVersionHandler.fieldInfoStructHandler.il2cpp_field_get_offset(field);
+        public static uint il2cpp_field_get_offset(IntPtr field) => (uint)UnityVersionHandler.Wrap((Il2CppFieldInfo*)field).Offset;
 
-        public static IntPtr il2cpp_field_get_type(IntPtr field) => UnityVersionHandler.fieldInfoStructHandler.il2cpp_field_get_type(field);
+        public static IntPtr il2cpp_field_get_type(IntPtr field) => (IntPtr)UnityVersionHandler.Wrap((Il2CppFieldInfo*)field).Type;
 
         public static void il2cpp_field_get_value(IntPtr obj, IntPtr field, void* value) => IL2CPP.il2cpp_field_get_value(obj, field, value);
 

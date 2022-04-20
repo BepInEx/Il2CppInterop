@@ -4,15 +4,8 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.FieldInfo
 {
     public interface INativeFieldInfoStructHandler : INativeStructHandler
     {
-        INativeFieldInfoStruct CreateNewFieldInfoStruct();
+        INativeFieldInfoStruct CreateNewStruct();
         unsafe INativeFieldInfoStruct Wrap(Il2CppFieldInfo* fieldInfoPointer);
-        IntPtr il2cpp_field_get_name(IntPtr field);
-        uint il2cpp_field_get_offset(IntPtr field);
-        IntPtr il2cpp_field_get_parent(IntPtr field);
-        IntPtr il2cpp_field_get_type(IntPtr field);
-#if DEBUG
-        string GetName();
-#endif
     }
 
     public interface INativeFieldInfoStruct : INativeStruct
