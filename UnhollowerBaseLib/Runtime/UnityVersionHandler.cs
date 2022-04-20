@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnhollowerBaseLib.Runtime.VersionSpecific.Assembly;
+using UnhollowerBaseLib.Runtime.VersionSpecific.AssemblyName;
 using UnhollowerBaseLib.Runtime.VersionSpecific.Class;
 using UnhollowerBaseLib.Runtime.VersionSpecific.EventInfo;
 using UnhollowerBaseLib.Runtime.VersionSpecific.Exception;
@@ -37,6 +38,7 @@ namespace UnhollowerBaseLib.Runtime
         private static readonly Version DelegatesGotComplexVersion = new Version(2021, 2, 0);
 
         internal static INativeAssemblyStructHandler assemblyStructHandler;
+        internal static INativeAssemblyNameStructHandler assemblyNameStructHandler;
         internal static INativeClassStructHandler classStructHandler;
         internal static INativeEventInfoStructHandler eventInfoStructHandler;
         internal static INativeExceptionStructHandler exceptionStructHandler;
@@ -86,6 +88,7 @@ namespace UnhollowerBaseLib.Runtime
                 }
             }
             assemblyStructHandler = GetHandler<INativeAssemblyStructHandler>();
+            assemblyNameStructHandler = GetHandler<INativeAssemblyNameStructHandler>();
             classStructHandler = GetHandler<INativeClassStructHandler>();
             eventInfoStructHandler = GetHandler<INativeEventInfoStructHandler>();
             exceptionStructHandler = GetHandler<INativeExceptionStructHandler>();
@@ -146,6 +149,15 @@ namespace UnhollowerBaseLib.Runtime
             assemblyStructHandler.Wrap(assemblyPointer);
 
         public static unsafe int AssemblySize() => assemblyStructHandler.Size();
+
+        //Assembly Names
+        public static INativeAssemblyNameStruct NewAssemblyName() =>
+            assemblyNameStructHandler.CreateNewStruct();
+
+        public static unsafe INativeAssemblyNameStruct Wrap(Il2CppAssemblyName* assemblyNamePointer) =>
+            assemblyNameStructHandler.Wrap(assemblyNamePointer);
+
+        public static unsafe int AssemblyNameSize() => assemblyNameStructHandler.Size();
 
         //Classes
         public static INativeClassStruct NewClass(int vTableSlots) =>

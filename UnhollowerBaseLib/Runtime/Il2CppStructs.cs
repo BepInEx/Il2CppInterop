@@ -21,6 +21,7 @@ namespace UnhollowerBaseLib.Runtime
     public struct Il2CppParameterInfo { }
     public struct Il2CppPropertyInfo { }
     public struct Il2CppTypeStruct { }
+    public struct Il2CppAssemblyName { }
 
 
     [Flags]
