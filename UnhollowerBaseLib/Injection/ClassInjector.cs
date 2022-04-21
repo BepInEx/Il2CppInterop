@@ -41,11 +41,11 @@ namespace UnhollowerRuntimeLib
 
         public static implicit operator Il2CppInterfaceCollection(Type[] interfaces) => new(interfaces);
     }
-    
+
     public class RegisterTypeOptions
     {
         public static readonly RegisterTypeOptions Default = new();
-        
+
         public bool LogSuccess { get; init; } = true;
         public Func<Type, Type[]> InterfacesResolver { get; init; } = null;
         public Il2CppInterfaceCollection Interfaces { get; init; } = null;
@@ -98,7 +98,7 @@ namespace UnhollowerRuntimeLib
             ClassInjectorBase.GetInjectedData(pointer)->managedGcHandle = GCHandle.ToIntPtr(gcHandle);
         }
 
-            
+
         public static bool IsTypeRegisteredInIl2Cpp<T>() where T : class => IsTypeRegisteredInIl2Cpp(typeof(T));
         public static bool IsTypeRegisteredInIl2Cpp(Type type)
         {
@@ -110,7 +110,7 @@ namespace UnhollowerRuntimeLib
                     return true;
             return false;
         }
-        
+
         [Obsolete("Use RegisterTypeInIl2Cpp<T>(RegisterTypeOptions)", true)]
         public static void RegisterTypeInIl2Cpp<T>(bool logSuccess) where T : class => RegisterTypeInIl2Cpp(typeof(T), new RegisterTypeOptions { LogSuccess = logSuccess });
         [Obsolete("Use RegisterTypeInIl2Cpp(Type, RegisterTypeOptions)", true)]
@@ -123,21 +123,21 @@ namespace UnhollowerRuntimeLib
         public static void RegisterTypeInIl2CppWithInterfaces(Type type, bool logSuccess, params Type[] interfaces) => RegisterTypeInIl2Cpp(type, new RegisterTypeOptions() { LogSuccess = logSuccess, Interfaces = interfaces });
         [Obsolete("Use RegisterTypeInIl2Cpp(Type, RegisterTypeOptions)", true)]
         public static void RegisterTypeInIl2Cpp(Type type, bool logSuccess, params INativeClassStruct[] interfaces) => RegisterTypeInIl2Cpp(type, new RegisterTypeOptions { LogSuccess = logSuccess, Interfaces = interfaces });
-        
+
         public static void RegisterTypeInIl2Cpp<T>() where T : class => RegisterTypeInIl2Cpp(typeof(T));
         public static void RegisterTypeInIl2Cpp(Type type) => RegisterTypeInIl2Cpp(type, RegisterTypeOptions.Default);
         public static void RegisterTypeInIl2Cpp<T>(RegisterTypeOptions options) where T : class => RegisterTypeInIl2Cpp(typeof(T), options);
-        
+
         public static void RegisterTypeInIl2Cpp(Type type, RegisterTypeOptions options)
         {
-            var interfaces = options.Interfaces; 
+            var interfaces = options.Interfaces;
             if (interfaces == null)
             {
                 var interfacesAttribute = type.GetCustomAttribute<Il2CppImplementsAttribute>();
                 interfaces = interfacesAttribute?.Interfaces ?? options.InterfacesResolver?.Invoke(type) ?? Array.Empty<Type>();
             }
-            
-            if(type == null)
+
+            if (type == null)
                 throw new ArgumentException($"Type argument cannot be null");
 
             if (type.IsGenericType || type.IsGenericTypeDefinition)
@@ -215,7 +215,8 @@ namespace UnhollowerRuntimeLib
 
             Il2CppFieldInfo* il2cppFields = (Il2CppFieldInfo*)Marshal.AllocHGlobal(classPointer.FieldCount * UnityVersionHandler.FieldInfoSize());
             int fieldOffset = (int)classPointer.InstanceSize;
-            for (int i = 0; i < classPointer.FieldCount; i++) {
+            for (int i = 0; i < classPointer.FieldCount; i++)
+            {
                 INativeFieldInfoStruct fieldInfo = UnityVersionHandler.Wrap(il2cppFields + (i * UnityVersionHandler.FieldInfoSize()));
                 fieldInfo.Name = Marshal.StringToHGlobalAnsi(fieldsToInject[i].Name);
                 fieldInfo.Parent = classPointer.ClassPointer;
@@ -224,7 +225,8 @@ namespace UnhollowerRuntimeLib
                 Type fieldType = fieldsToInject[i].FieldType.GenericTypeArguments[0];
                 FieldAttributes fieldAttributes = fieldsToInject[i].Attributes;
                 IntPtr fieldInfoClass = Il2CppClassPointerStore.GetNativeClassPointer(fieldType);
-                if (!_injectedFieldTypes.TryGetValue((fieldType, fieldAttributes), out IntPtr fieldTypePtr)) {
+                if (!_injectedFieldTypes.TryGetValue((fieldType, fieldAttributes), out IntPtr fieldTypePtr))
+                {
                     INativeTypeStruct classType = UnityVersionHandler.Wrap((Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(fieldInfoClass));
 
                     INativeTypeStruct duplicatedType = UnityVersionHandler.NewType();
@@ -242,11 +244,14 @@ namespace UnhollowerRuntimeLib
                 if (fieldInfoClass == IntPtr.Zero)
                     throw new Exception($"Type {fieldType} in {type}.{fieldsToInject[i].Name} doesn't exist in Il2Cpp");
 
-                if (IL2CPP.il2cpp_class_is_valuetype(fieldInfoClass)) {
+                if (IL2CPP.il2cpp_class_is_valuetype(fieldInfoClass))
+                {
                     uint _align = 0;
                     int fieldSize = IL2CPP.il2cpp_class_value_size(fieldInfoClass, ref _align);
                     fieldOffset += fieldSize;
-                } else {
+                }
+                else
+                {
                     fieldOffset += sizeof(Il2CppObject*);
                 }
             }
@@ -278,7 +283,7 @@ namespace UnhollowerRuntimeLib
             var vTablePointer = (VirtualInvokeData*)classPointer.VTable;
             var baseVTablePointer = (VirtualInvokeData*)baseClassPointer.VTable;
             classPointer.VtableCount = (ushort)(baseClassPointer.VtableCount + interfaceFunctionCount);
-            
+
             //Abstract and Virtual Fix
             if (classPointer.Flags.HasFlag(Il2CppClassAttributes.TYPE_ATTRIBUTE_ABSTRACT) && IL2CPP.il2cpp_class_is_abstract((IntPtr)baseClassPointer.Class))
             {
@@ -304,7 +309,7 @@ namespace UnhollowerRuntimeLib
 
                             parameters[i] = parameterType;
                         }
-                        
+
                         var monoMethodImplementation = type.GetMethod(name, parameters);
 
                         var methodPointerArrayIndex = Array.IndexOf(eligibleMethods, monoMethodImplementation);
@@ -336,7 +341,7 @@ namespace UnhollowerRuntimeLib
                     }
                 }
             }
-            
+
             for (var i = 0; i < baseClassPointer.VtableCount; i++)
             {
                 if (baseVTablePointer[i].methodPtr == IntPtr.Zero) continue;
@@ -395,7 +400,8 @@ namespace UnhollowerRuntimeLib
             for (int i = 0; i < baseClassPointer.InterfaceOffsetsCount; i++)
                 classPointer.InterfaceOffsets[i] = baseClassPointer.InterfaceOffsets[i];
             for (int i = baseClassPointer.InterfaceOffsetsCount; i < interfaceOffsetsCount; i++)
-                classPointer.InterfaceOffsets[i] = new Il2CppRuntimeInterfaceOffsetPair {
+                classPointer.InterfaceOffsets[i] = new Il2CppRuntimeInterfaceOffsetPair
+                {
                     interfaceType = interfaces[i - baseClassPointer.InterfaceOffsetsCount].ClassPointer,
                     offset = offsets[i - baseClassPointer.InterfaceOffsetsCount]
                 };
@@ -427,7 +433,8 @@ namespace UnhollowerRuntimeLib
             return typeof(Il2CppObjectBase).IsAssignableFrom(type);
         }
 
-        private static bool IsFieldEligible(FieldInfo field) {
+        private static bool IsFieldEligible(FieldInfo field)
+        {
             if (!field.FieldType.IsGenericType) return false;
             Type genericTypeDef = field.FieldType.GetGenericTypeDefinition();
             if (genericTypeDef != typeof(Il2CppReferenceField<>) && genericTypeDef != typeof(Il2CppValueField<>)) return false;
@@ -450,7 +457,7 @@ namespace UnhollowerRuntimeLib
                 {
                     return false;
                 }
-                
+
                 foreach (var eventInfo in method.DeclaringType.GetEvents(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
                 {
                     if ((eventInfo.GetAddMethod(true) == method || eventInfo.GetRemoveMethod(true) == method) && eventInfo.GetCustomAttribute<HideFromIl2CppAttribute>() != null)
@@ -590,7 +597,7 @@ namespace UnhollowerRuntimeLib
             var method = new DynamicMethod("FromIl2CppCtorDelegate", MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, typeof(void), new[] { typeof(IntPtr) }, targetType, true);
 
             var body = method.GetILGenerator();
-            
+
             var monoCtor = targetType.GetConstructor(new[] { typeof(IntPtr) });
             if (monoCtor != null)
             {
@@ -746,7 +753,7 @@ namespace UnhollowerRuntimeLib
                 }
                 else body.Emit(OpCodes.Ldarg, i);
                 if (parameter.IsValueType) continue;
-                
+
                 void HandleTypeConversion(Type type)
                 {
                     if (type == typeof(string))
@@ -802,9 +809,9 @@ namespace UnhollowerRuntimeLib
                 body.Emit(OpCodes.Ldarg_S, i);
                 body.Emit(OpCodes.Ldloc, variable);
                 var directType = managedParameters[i].GetElementType();
-                if(directType == typeof(string))
+                if (directType == typeof(string))
                     body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!);
-                else if(!directType.IsValueType)
+                else if (!directType.IsValueType)
                     body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectBaseToPtr))!);
                 body.Emit(InjectorHelpers.StIndOpcodes.TryGetValue(directType, out OpCode stindOpCodde) ? stindOpCodde : OpCodes.Stind_I);
             }
@@ -837,16 +844,16 @@ namespace UnhollowerRuntimeLib
             {
                 if (monoMethod.ReturnType.IsValueType)
                 {
-                    if(monoMethod.ReturnType.IsPrimitive)
-                    { 
-                        if(monoMethod.ReturnType == typeof(float))
+                    if (monoMethod.ReturnType.IsPrimitive)
+                    {
+                        if (monoMethod.ReturnType == typeof(float))
                             body.Emit(OpCodes.Ldc_R4, 0);
                         else if (monoMethod.ReturnType == typeof(double))
                             body.Emit(OpCodes.Ldc_R8, 0);
                         else
                         {
                             body.Emit(OpCodes.Ldc_I4_0);
-                            if(monoMethod.ReturnType == typeof(long) || monoMethod.ReturnType == typeof(ulong))
+                            if (monoMethod.ReturnType == typeof(long) || monoMethod.ReturnType == typeof(ulong))
                             {
                                 body.Emit(OpCodes.Conv_I8);
                             }
@@ -860,7 +867,9 @@ namespace UnhollowerRuntimeLib
                         body.Emit(OpCodes.Initobj, monoMethod.ReturnType);
                         body.Emit(OpCodes.Ldloc_S, local);
                     }
-                } else {
+                }
+                else
+                {
                     body.Emit(OpCodes.Ldc_I4_0);
                     body.Emit(OpCodes.Conv_I);
                 }
@@ -886,7 +895,7 @@ namespace UnhollowerRuntimeLib
         {
             return type.IsValueType ? type : typeof(IntPtr);
         }
-        
+
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate Il2CppMethodInfo* GenericGetMethodDelegate(Il2CppGenericMethod* gmethod, bool copyMethodPtr);
         private static volatile GenericGetMethodDelegate ourOriginalGenericGetMethod;
