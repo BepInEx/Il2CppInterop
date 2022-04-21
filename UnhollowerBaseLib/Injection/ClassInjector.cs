@@ -523,14 +523,25 @@ namespace UnhollowerRuntimeLib
                     {
                         if (parameterType.IsByRef)
                         {
-                            var elemType = UnityVersionHandler.Wrap((Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore.GetNativeClassPointer(parameterType.GetElementType())));
-                            var refType = UnityVersionHandler.NewType();
-                            refType.Data = elemType.Data;
-                            refType.Attrs = elemType.Attrs;
-                            refType.Type = elemType.Type;
-                            refType.ByRef = true;
-                            refType.Pinned = elemType.Pinned;
-                            param.ParameterType = refType.TypePointer;
+                            Type elementType = parameterType.GetElementType();
+                            if (!elementType.IsGenericParameter)
+                            {
+                                var elemType = UnityVersionHandler.Wrap((Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore.GetNativeClassPointer(elementType)));
+                                var refType = UnityVersionHandler.NewType();
+                                refType.Data = elemType.Data;
+                                refType.Attrs = elemType.Attrs;
+                                refType.Type = elemType.Type;
+                                refType.ByRef = true;
+                                refType.Pinned = elemType.Pinned;
+                                param.ParameterType = refType.TypePointer;
+                            }
+                            else
+                            {
+                                var type = UnityVersionHandler.NewType();
+                                type.Type = Il2CppTypeEnum.IL2CPP_TYPE_MVAR;
+                                type.ByRef = true;
+                                param.ParameterType = type.TypePointer;
+                            }
                         }
                         else
                             param.ParameterType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore.GetNativeClassPointer(parameterType));
