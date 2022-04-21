@@ -1,10 +1,13 @@
 ﻿using System;
 using UnhollowerBaseLib;
+using UnhollowerBaseLib.Runtime;
 
 namespace UnhollowerRuntimeLib
 {
     public unsafe class Il2CppReferenceField<TRefObj> where TRefObj : Il2CppObjectBase
     {
+        private static bool? isInjectedType = null;
+
         internal Il2CppReferenceField(Il2CppObjectBase obj, string fieldName)
         {
             _obj = obj;
@@ -15,7 +18,10 @@ namespace UnhollowerRuntimeLib
         {
             IntPtr ptr = *GetPointerToData();
             if (ptr == IntPtr.Zero) return null;
-            return (TRefObj)Activator.CreateInstance(typeof(TRefObj), ptr);
+            if (isInjectedType == null) isInjectedType = RuntimeSpecificsStore.IsInjected(Il2CppClassPointerStore<TRefObj>.NativeClassPtr); 
+            
+            if (isInjectedType.Value && ClassInjectorBase.GetMonoObjectFromIl2CppPointer(ptr) is TRefObj monoObject) return monoObject;
+            return (TRefObj) Activator.CreateInstance(typeof(TRefObj), ptr);
         }
 
         public void Set(TRefObj value) => *GetPointerToData() = value.Pointer;
