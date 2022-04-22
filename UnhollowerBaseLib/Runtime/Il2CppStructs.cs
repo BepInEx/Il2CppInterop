@@ -211,6 +211,13 @@ namespace UnhollowerBaseLib.Runtime
         IntPtr monitor;
     }
 
+    public struct Il2CppImageGlobalMetadata {
+        public int typeStart;
+        public int exportedTypeStart;
+        public int customAttributeStart;
+        public int entryPointIndex;
+        public unsafe Il2CppImage* image;
+    }
 
     [Flags]
     public enum ClassBitfield1 : byte

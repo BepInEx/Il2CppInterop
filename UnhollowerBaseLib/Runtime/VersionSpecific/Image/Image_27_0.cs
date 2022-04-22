@@ -11,6 +11,9 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Image
             IntPtr ptr = Marshal.AllocHGlobal(Size());
             Il2CppImage_27_0* _ = (Il2CppImage_27_0*)ptr;
             *_ = default;
+            Il2CppImageGlobalMetadata* metadata = (Il2CppImageGlobalMetadata*)Marshal.AllocHGlobal(sizeof(Il2CppImageGlobalMetadata));
+            metadata->image = (Il2CppImage*)ptr;
+            *(Il2CppImageGlobalMetadata**)&_->metadataHandle = metadata;
             return new NativeStructWrapper(ptr);
         }
         public INativeImageStruct Wrap(Il2CppImage* ptr)
