@@ -151,7 +151,19 @@ namespace UnhollowerRuntimeLib.Injection
             var imageGetType = XrefScannerLowLevel.JumpTargets(imageGetClassAPI).Single();
             LogSupport.Trace($"Image::GetType: 0x{imageGetType.ToInt64():X2}");
 
-            var getTypeInfoFromTypeDefinitionIndex = XrefScannerLowLevel.JumpTargets(imageGetType).Single();
+            var imageGetTypeXrefs = XrefScannerLowLevel.JumpTargets(imageGetType);
+            var getTypeInfoFromTypeDefinitionIndex = imageGetTypeXrefs.First();
+
+            if (imageGetTypeXrefs.Count() > 1) {
+                // (Kasuromi): metadata v29 introduces handles and adds extra calls, a check for unity versions might be necessary in the future
+
+                // Second call after obtaining handle, if there are any more calls in the future - correctly index into it if issues occur
+                var getTypeInfoFromHandle = imageGetTypeXrefs.Last();
+
+                // Two calls, second one (GetIndexForTypeDefinitionInternal) is inlined
+                getTypeInfoFromTypeDefinitionIndex = XrefScannerLowLevel.JumpTargets(getTypeInfoFromHandle).Single();
+            }
+
             LogSupport.Trace($"MetadataCache::GetTypeInfoFromTypeDefinitionIndex: 0x{getTypeInfoFromTypeDefinitionIndex.ToInt64():X2}");
 
             GetTypeInfoFromTypeDefinitionIndexOriginal = ClassInjector.Detour.Detour<d_GetTypeInfoFromTypeDefinitionIndex>(
