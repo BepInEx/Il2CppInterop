@@ -5,12 +5,12 @@ using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime
 {
-    public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T: Il2CppObjectBase
+    public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObjectBase
     {
         private static ConstructorInfo ourCachedInstanceCtor;
         private static int ourElementTypeSize;
         private static bool ourElementIsValueType;
-        
+
         public Il2CppReferenceArray(IntPtr nativeObject) : base(nativeObject)
         {
         }
@@ -21,7 +21,7 @@ namespace Il2CppInterop.Runtime
 
         public Il2CppReferenceArray(T[] arr) : base(AllocateArray(arr.Length))
         {
-            for (var i = 0; i < arr.Length; i++) 
+            for (var i = 0; i < arr.Length; i++)
                 this[i] = arr[i];
         }
 
@@ -36,14 +36,14 @@ namespace Il2CppInterop.Runtime
                 ourElementIsValueType = true;
                 ourElementTypeSize = IL2CPP.il2cpp_class_value_size(nativeClassPtr, ref align);
             }
-            
+
             StaticCtorBody(typeof(Il2CppReferenceArray<T>));
         }
-        
+
         public static implicit operator Il2CppReferenceArray<T>(T[] arr)
         {
             if (arr == null) return null;
-            
+
             return new Il2CppReferenceArray<T>(arr);
         }
 
@@ -51,7 +51,7 @@ namespace Il2CppInterop.Runtime
         {
             get
             {
-                if(index < 0 || index >= Length)
+                if (index < 0 || index >= Length)
                     throw new ArgumentOutOfRangeException(nameof(index), "Array index may not be negative or above length of the array");
                 var arrayStartPointer = IntPtr.Add(Pointer, 4 * IntPtr.Size);
                 var elementPointer = IntPtr.Add(arrayStartPointer, index * ourElementTypeSize);
@@ -59,7 +59,7 @@ namespace Il2CppInterop.Runtime
             }
             set
             {
-                if(index < 0 || index >= Length)
+                if (index < 0 || index >= Length)
                     throw new ArgumentOutOfRangeException(nameof(index), "Array index may not be negative or above length of the array");
                 var arrayStartPointer = IntPtr.Add(Pointer, 4 * IntPtr.Size);
                 var elementPointer = IntPtr.Add(arrayStartPointer, index * ourElementTypeSize);
@@ -71,34 +71,34 @@ namespace Il2CppInterop.Runtime
         {
             if (ourElementIsValueType)
             {
-                if(valuePointer == IntPtr.Zero)
+                if (valuePointer == IntPtr.Zero)
                     throw new NullReferenceException();
-                
-                var valueRawPointer = (byte*) IL2CPP.il2cpp_object_unbox(valuePointer);
-                var targetRawPointer = (byte*) targetPointer;
-                for (var i = 0; i < ourElementTypeSize; i++) 
+
+                var valueRawPointer = (byte*)IL2CPP.il2cpp_object_unbox(valuePointer);
+                var targetRawPointer = (byte*)targetPointer;
+                for (var i = 0; i < ourElementTypeSize; i++)
                     targetRawPointer[i] = valueRawPointer[i];
             }
             else
             {
-                *(IntPtr*) targetPointer = valuePointer;
+                *(IntPtr*)targetPointer = valuePointer;
             }
         }
 
-        private static unsafe T WrapElement(IntPtr memberPointer)
+        private static unsafe T? WrapElement(IntPtr memberPointer)
         {
             if (ourCachedInstanceCtor == null)
             {
-                ourCachedInstanceCtor = typeof(T).GetConstructor(new[] {typeof(IntPtr)});
+                ourCachedInstanceCtor = typeof(T).GetConstructor(new[] { typeof(IntPtr) });
             }
 
             if (ourElementIsValueType)
-                return (T) ourCachedInstanceCtor.Invoke(new object[]
+                return (T)ourCachedInstanceCtor.Invoke(new object[]
                     {IL2CPP.il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, memberPointer)});
 
-            var referencePointer = *(IntPtr*) memberPointer;
+            var referencePointer = *(IntPtr*)memberPointer;
             if (referencePointer == IntPtr.Zero) return null;
-            
+
             if (typeof(Il2CppObjectBase).IsAssignableFrom(typeof(T)))
             {
                 var typePtr = Il2CppClassPointerStore<T>.NativeClassPtr;
@@ -107,18 +107,18 @@ namespace Il2CppInterop.Runtime
                     return ClassInjectorBase.GetMonoObjectFromIl2CppPointer(referencePointer) as T;
             }
 
-            return (T) ourCachedInstanceCtor.Invoke(new object[] {referencePointer});
+            return (T)ourCachedInstanceCtor.Invoke(new object[] { referencePointer });
         }
 
         private static IntPtr AllocateArray(long size)
         {
-            if(size < 0)
+            if (size < 0)
                 throw new ArgumentOutOfRangeException(nameof(size), "Array size must not be negative");
 
             var elementTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
-            if(elementTypeClassPointer == IntPtr.Zero)
+            if (elementTypeClassPointer == IntPtr.Zero)
                 throw new ArgumentException($"{nameof(Il2CppReferenceArray<T>)} requires an Il2Cpp reference type, which {typeof(T)} isn't");
-            return IL2CPP.il2cpp_array_new(elementTypeClassPointer, (ulong) size);
+            return IL2CPP.il2cpp_array_new(elementTypeClassPointer, (ulong)size);
         }
     }
 }

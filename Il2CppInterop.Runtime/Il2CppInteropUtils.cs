@@ -7,7 +7,7 @@ namespace Il2CppInterop.Runtime
 {
     public static class Il2CppInteropUtils
     {
-        private static FieldInfo GetFieldInfoFromMethod(MethodBase method, string prefix)
+        private static FieldInfo? GetFieldInfoFromMethod(MethodBase method, string prefix)
         {
             var body = method.GetMethodBody();
             if (body == null) throw new ArgumentException("Target method may not be abstract");
@@ -15,7 +15,7 @@ namespace Il2CppInterop.Runtime
             foreach (var (opCode, opArg) in MiniIlParser.Decode(body.GetILAsByteArray()))
             {
                 if (opCode != OpCodes.Ldsfld) continue;
-                var fieldInfo = methodModule.ResolveField((int) opArg);
+                var fieldInfo = methodModule.ResolveField((int)opArg);
                 if (fieldInfo?.FieldType != typeof(IntPtr) || !fieldInfo.Name.StartsWith(prefix)) continue;
                 return fieldInfo;
             }

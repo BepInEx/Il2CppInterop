@@ -9,7 +9,7 @@ namespace Il2CppInterop.Runtime.XrefScans
         {
             var decoder = XrefScanner.DecoderForAddress(codeStart);
             IntPtr lastRcxRead = IntPtr.Zero;
-            
+
             while (true)
             {
                 decoder.Decode(out var instruction);
@@ -27,7 +27,7 @@ namespace Il2CppInterop.Runtime.XrefScans
                 if (instruction.Mnemonic == Mnemonic.Call)
                 {
                     var target = ExtractTargetAddress(instruction);
-                    if ((IntPtr) target == callTarget)
+                    if ((IntPtr)target == callTarget)
                         return lastRcxRead;
                 }
 
@@ -35,21 +35,21 @@ namespace Il2CppInterop.Runtime.XrefScans
                 {
                     if (instruction.Op0Kind == OpKind.Register && instruction.Op0Register == Register.ECX && instruction.Op1Kind == OpKind.Memory && instruction.IsIPRelativeMemoryOperand)
                     {
-                        var movTarget = (IntPtr) instruction.IPRelativeMemoryAddress;
-                        if (instruction.MemorySize != MemorySize.UInt32 && instruction.MemorySize != MemorySize.Int32) 
+                        var movTarget = (IntPtr)instruction.IPRelativeMemoryAddress;
+                        if (instruction.MemorySize != MemorySize.UInt32 && instruction.MemorySize != MemorySize.Int32)
                             continue;
-                        
+
                         lastRcxRead = movTarget;
                     }
                 }
             }
         }
-        
+
         public static IntPtr FindByteWriteTargetRightAfterCallTo(IntPtr codeStart, IntPtr callTarget)
         {
             var decoder = XrefScanner.DecoderForAddress(codeStart);
             var seenCall = false;
-            
+
             while (true)
             {
                 decoder.Decode(out var instruction);
@@ -67,18 +67,18 @@ namespace Il2CppInterop.Runtime.XrefScans
                 if (instruction.Mnemonic == Mnemonic.Call)
                 {
                     var target = ExtractTargetAddress(instruction);
-                    if ((IntPtr) target == callTarget)
+                    if ((IntPtr)target == callTarget)
                         seenCall = true;
                 }
 
                 if (instruction.Mnemonic == Mnemonic.Mov && seenCall)
                 {
                     if (instruction.Op0Kind == OpKind.Memory && (instruction.MemorySize == MemorySize.Int8 || instruction.MemorySize == MemorySize.UInt8))
-                        return (IntPtr) instruction.IPRelativeMemoryAddress;
+                        return (IntPtr)instruction.IPRelativeMemoryAddress;
                 }
             }
         }
-        
+
         private static ulong ExtractTargetAddress(in Instruction instruction)
         {
             switch (instruction.Op0Kind)

@@ -18,7 +18,7 @@ namespace Il2CppInterop.Generator.Passes
                         foreach (var originalConstraint in originalParameter.Constraints)
                         {
                             if (originalConstraint.ConstraintType.FullName == "System.ValueType" || originalConstraint.ConstraintType.Resolve()?.IsInterface == true) continue;
-                            
+
                             newParameter.Constraints.Add(
                                 new GenericParameterConstraint(
                                     assemblyContext.RewriteTypeRef(originalConstraint.ConstraintType)));

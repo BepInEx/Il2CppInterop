@@ -23,8 +23,8 @@ namespace Il2CppInterop.Runtime.XrefScans
 
                 if (instruction.FlowControl == FlowControl.UnconditionalBranch || instruction.FlowControl == FlowControl.Call)
                 {
-                    yield return (IntPtr) ExtractTargetAddress(in instruction);
-                    if(instruction.FlowControl == FlowControl.UnconditionalBranch) yield break;
+                    yield return (IntPtr)ExtractTargetAddress(in instruction);
+                    if (instruction.FlowControl == FlowControl.UnconditionalBranch) yield break;
                 }
             }
         }
@@ -48,7 +48,7 @@ namespace Il2CppInterop.Runtime.XrefScans
                 {
                     var targetAddress = XrefScanner.ExtractTargetAddress(instruction);
                     if (targetAddress != 0)
-                        yield return (IntPtr) targetAddress;
+                        yield return (IntPtr)targetAddress;
                     continue;
                 }
 
@@ -58,7 +58,7 @@ namespace Il2CppInterop.Runtime.XrefScans
                     {
                         var targetAddress = instruction.IPRelativeMemoryAddress;
                         if (targetAddress != 0)
-                            yield return (IntPtr) targetAddress;
+                            yield return (IntPtr)targetAddress;
                     }
                 }
             }

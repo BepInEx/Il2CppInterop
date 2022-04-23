@@ -24,16 +24,16 @@ namespace Il2CppInterop.Generator.Passes
             {
                 newType.IsSealed = newType.IsAbstract = true;
             }
-            
-            if(parentType == null)
+
+            if (parentType == null)
                 assemblyContext.NewAssembly.MainModule.Types.Add(newType);
             else
             {
                 parentType.NestedTypes.Add(newType);
                 newType.DeclaringType = parentType;
             }
-            
-            foreach (var typeNestedType in type.NestedTypes) 
+
+            foreach (var typeNestedType in type.NestedTypes)
                 ProcessType(typeNestedType, assemblyContext, newType);
 
             assemblyContext.RegisterTypeRewrite(new TypeRewriteContext(assemblyContext, type, newType));
@@ -49,7 +49,7 @@ namespace Il2CppInterop.Generator.Passes
                 var newNameBase = assemblyContextGlobalContext.RenamedTypes[type];
                 var genericParametersCount = type.GenericParameters.Count;
                 var renameGroup =
-                    assemblyContextGlobalContext.RenameGroups[((object) type.DeclaringType ?? type.Namespace, newNameBase, genericParametersCount)];
+                    assemblyContextGlobalContext.RenameGroups[((object)type.DeclaringType ?? type.Namespace, newNameBase, genericParametersCount)];
                 var genericSuffix = genericParametersCount == 0 ? "" : "`" + genericParametersCount;
                 var convertedTypeName = newNameBase + (renameGroup.Count == 1 ? "Unique" : renameGroup.IndexOf(type).ToString()) + genericSuffix;
 
@@ -65,7 +65,8 @@ namespace Il2CppInterop.Generator.Passes
                         var ns = newName.Substring(0, lastDotPosition);
                         var name = newName.Substring(lastDotPosition + 1);
                         return (ns, name);
-                    } else 
+                    }
+                    else
                         convertedTypeName = newName;
                 }
 
@@ -82,7 +83,7 @@ namespace Il2CppInterop.Generator.Passes
         {
             typeAttributes |= TypeAttributes.BeforeFieldInit;
             typeAttributes &= ~(TypeAttributes.Abstract | TypeAttributes.Interface);
-            
+
             var visibility = typeAttributes & TypeAttributes.VisibilityMask;
             if (visibility == 0 || visibility == TypeAttributes.Public)
                 return typeAttributes | TypeAttributes.Public;

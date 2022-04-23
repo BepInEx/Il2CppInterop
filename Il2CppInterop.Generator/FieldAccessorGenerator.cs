@@ -11,7 +11,7 @@ namespace Il2CppInterop.Generator
         public static void MakeGetter(FieldDefinition field, FieldRewriteContext fieldContext, PropertyDefinition property, AssemblyKnownImports imports)
         {
             var getter = new MethodDefinition("get_" + property.Name, Field2MethodAttrs(field.Attributes) | MethodAttributes.SpecialName | MethodAttributes.HideBySig, property.PropertyType);
-            
+
             var getterBody = getter.Body.GetILProcessor();
             property.DeclaringType.Methods.Add(getter);
 
@@ -35,7 +35,7 @@ namespace Il2CppInterop.Generator
                     getterBody.Emit(OpCodes.Stloc, local0);
                     localIsPointer = true;
                 }
-                
+
                 getterBody.Emit(OpCodes.Ldsfld, fieldContext.PointerField);
                 if (localIsPointer)
                     getterBody.Emit(OpCodes.Ldloc, local0);
@@ -57,12 +57,12 @@ namespace Il2CppInterop.Generator
             {
                 var local0 = new VariableDefinition(imports.IntPtr);
                 getter.Body.Variables.Add(local0);
-                
+
                 getterBody.EmitObjectToPointer(fieldContext.DeclaringType.OriginalType, fieldContext.DeclaringType.NewType, fieldContext.DeclaringType, 0, false, false, false, out _);
                 getterBody.Emit(OpCodes.Ldsfld, fieldContext.PointerField);
                 getterBody.Emit(OpCodes.Call, imports.FieldGetOffset);
                 getterBody.Emit(OpCodes.Add);
-                
+
                 getterBody.Emit(OpCodes.Stloc_0);
             }
 
@@ -72,7 +72,7 @@ namespace Il2CppInterop.Generator
 
             property.GetMethod = getter;
         }
-        
+
         public static void MakeSetter(FieldDefinition field, FieldRewriteContext fieldContext, PropertyDefinition property, AssemblyKnownImports imports)
         {
             var setter = new MethodDefinition("set_" + property.Name, Field2MethodAttrs(field.Attributes) | MethodAttributes.SpecialName | MethodAttributes.HideBySig, imports.Void);
@@ -95,12 +95,12 @@ namespace Il2CppInterop.Generator
                 setterBody.Emit(OpCodes.Add);
                 setterBody.EmitObjectStore(field.FieldType, property.PropertyType, fieldContext.DeclaringType, 1);
             }
-            
+
             setterBody.Emit(OpCodes.Ret);
 
             property.SetMethod = setter;
         }
-        
+
         private static MethodAttributes Field2MethodAttrs(FieldAttributes fieldAttributes)
         {
             if ((fieldAttributes & FieldAttributes.Static) != 0)

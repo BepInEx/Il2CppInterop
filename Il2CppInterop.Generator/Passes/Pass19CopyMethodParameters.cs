@@ -22,7 +22,7 @@ namespace Il2CppInterop.Generator.Passes
                             var newName = originalMethodParameter.Name.IsObfuscated(context.Options)
                                 ? $"param_{originalMethodParameter.Sequence}"
                                 : originalMethodParameter.Name;
-                            
+
                             var newParameter = new ParameterDefinition(newName,
                                 originalMethodParameter.Attributes & ~ParameterAttributes.HasFieldMarshal,
                                 assemblyContext.RewriteTypeRef(originalMethodParameter.ParameterType));

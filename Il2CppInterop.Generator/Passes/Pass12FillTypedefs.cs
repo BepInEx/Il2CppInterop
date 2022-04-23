@@ -22,18 +22,20 @@ namespace Il2CppInterop.Generator.Passes
                     if (typeContext.OriginalType.IsEnum)
                     {
                         typeContext.NewType.BaseType = assemblyContext.Imports.Enum;
-                    } else if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.BlittableStruct) {
+                    }
+                    else if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.BlittableStruct)
+                    {
                         typeContext.NewType.BaseType = assemblyContext.Imports.ValueType;
                     }
                 }
             }
-            
+
             // Second pass is explicitly done after first to account for rewriting of generic base types - value-typeness is important there
             foreach (var assemblyContext in context.Assemblies)
-            foreach (var typeContext in assemblyContext.Types)
-                if (!typeContext.OriginalType.IsEnum && typeContext.ComputedTypeSpecifics !=
-                    TypeRewriteContext.TypeSpecifics.BlittableStruct)
-                    typeContext.NewType.BaseType = assemblyContext.RewriteTypeRef(typeContext.OriginalType.BaseType);
+                foreach (var typeContext in assemblyContext.Types)
+                    if (!typeContext.OriginalType.IsEnum && typeContext.ComputedTypeSpecifics !=
+                        TypeRewriteContext.TypeSpecifics.BlittableStruct)
+                        typeContext.NewType.BaseType = assemblyContext.RewriteTypeRef(typeContext.OriginalType.BaseType);
         }
     }
 }

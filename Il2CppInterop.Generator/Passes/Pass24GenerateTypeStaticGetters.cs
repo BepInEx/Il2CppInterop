@@ -14,7 +14,7 @@ namespace Il2CppInterop.Generator.Passes
                     .GetAssemblyByName("mscorlib").GetTypeByName("System.Type");
                 var il2CppSystemTypeRef =
                     assemblyContext.NewAssembly.MainModule.ImportReference(il2CppTypeTypeRewriteContext.NewType);
-                
+
                 foreach (var typeContext in assemblyContext.Types)
                 {
                     var typeGetMethod = new MethodDefinition("get_Il2CppType", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static, il2CppSystemTypeRef);
@@ -31,17 +31,17 @@ namespace Il2CppInterop.Generator.Passes
                                 "Use Il2CppType.Of<T>() instead. This will be removed in a future version.")
                         }
                     });
-                    
+
                     var bodyBuilder = typeGetMethod.Body.GetILProcessor();
-                    
+
                     bodyBuilder.Emit(OpCodes.Ldsfld, typeContext.ClassPointerFieldRef);
                     bodyBuilder.Emit(OpCodes.Call, assemblyContext.Imports.GetIl2CppTypeFromClass);
 
                     bodyBuilder.Emit(OpCodes.Call,
                         new MethodReference("internal_from_handle", il2CppSystemTypeRef,
                                 il2CppSystemTypeRef)
-                            {Parameters = {new ParameterDefinition(assemblyContext.Imports.IntPtr)}});
-                    
+                        { Parameters = { new ParameterDefinition(assemblyContext.Imports.IntPtr) } });
+
                     bodyBuilder.Emit(OpCodes.Ret);
                 }
             }

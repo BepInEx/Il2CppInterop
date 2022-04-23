@@ -12,13 +12,13 @@ namespace Il2CppInterop.Generator.Passes
         {
             int fieldsUnstripped = 0;
             int fieldsIgnored = 0;
-            
+
             foreach (var unityAssembly in context.UnityAssemblies.Assemblies)
             {
                 var processedAssembly = context.TryGetAssemblyByName(unityAssembly.Name.Name);
                 if (processedAssembly == null) continue;
                 var imports = processedAssembly.Imports;
-                
+
                 foreach (var unityType in unityAssembly.MainModule.Types)
                 {
                     var processedType = processedAssembly.TryGetTypeByName(unityType.FullName);
@@ -56,7 +56,7 @@ namespace Il2CppInterop.Generator.Passes
                     }
                 }
             }
-            
+
             Logger.Info(""); // finish the progress line
             Logger.Info($"{fieldsUnstripped} fields restored");
             Logger.Info($"{fieldsIgnored} fields failed to restore");

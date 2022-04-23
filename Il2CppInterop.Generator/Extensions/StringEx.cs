@@ -26,7 +26,7 @@ namespace Il2CppInterop.Generator.Extensions
 
             return new string(chars);
         }
-        
+
         public static bool IsInvalidInSource(this string str)
         {
             for (var i = 0; i < str.Length; i++)
@@ -55,7 +55,7 @@ namespace Il2CppInterop.Generator.Extensions
         public static ulong StableHash(this string str)
         {
             ulong hash = 0;
-            for (var i = 0; i < str.Length; i++) 
+            for (var i = 0; i < str.Length; i++)
                 hash = hash * 37 + str[i];
 
             return hash;
@@ -72,11 +72,13 @@ namespace Il2CppInterop.Generator.Extensions
                     builder.Append("_");
                     builder.Append(genericArgument.GetUnmangledName());
                 }
-            } else if (typeRef is ByReferenceType byRef)
+            }
+            else if (typeRef is ByReferenceType byRef)
             {
                 builder.Append("byref_");
                 builder.Append(byRef.ElementType.GetUnmangledName());
-            } else if (typeRef is PointerType pointer)
+            }
+            else if (typeRef is PointerType pointer)
             {
                 builder.Append("ptr_");
                 builder.Append(pointer.ElementType.GetUnmangledName());
@@ -86,7 +88,8 @@ namespace Il2CppInterop.Generator.Extensions
                 if (typeRef.Namespace == nameof(Il2CppInterop.Runtime) && typeRef.Name.StartsWith("Il2Cpp") && typeRef.Name.Contains("Array"))
                 {
                     builder.Append("ArrayOf");
-                } else
+                }
+                else
                     builder.Append(typeRef.Name.Replace('`', '_'));
             }
 

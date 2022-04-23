@@ -11,7 +11,7 @@ namespace Il2CppInterop.Generator.Passes
         public static void DoPass(RewriteGlobalContext context)
         {
             var typesUnstripped = 0;
-            
+
             foreach (var unityAssembly in context.UnityAssemblies.Assemblies)
             {
                 var processedAssembly = context.TryGetAssemblyByName(unityAssembly.Name.Name);
@@ -24,11 +24,11 @@ namespace Il2CppInterop.Generator.Passes
                     processedAssembly = newAssembly;
                 }
                 var imports = processedAssembly.Imports;
-                
+
                 foreach (var unityType in unityAssembly.MainModule.Types)
                     ProcessType(processedAssembly, unityType, null, imports, ref typesUnstripped);
             }
-            
+
             Logger.Trace(""); // end the progress message
             Logger.Trace($"{typesUnstripped} types restored");
         }
@@ -52,7 +52,7 @@ namespace Il2CppInterop.Generator.Passes
                 }
 
                 processedAssembly.RegisterTypeRewrite(new TypeRewriteContext(processedAssembly, null, clonedType));
-                
+
                 return;
             }
 
@@ -118,7 +118,7 @@ namespace Il2CppInterop.Generator.Passes
             var visibility = typeAttributes & TypeAttributes.VisibilityMask;
             if (visibility == 0 || visibility == TypeAttributes.Public)
                 return typeAttributes | TypeAttributes.Public;
-            
+
             return typeAttributes & ~(TypeAttributes.VisibilityMask) | TypeAttributes.NestedPublic;
         }
     }

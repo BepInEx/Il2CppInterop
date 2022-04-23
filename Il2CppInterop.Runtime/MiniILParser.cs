@@ -16,10 +16,10 @@ namespace Il2CppInterop.Runtime
             {
                 if (fieldInfo.FieldType != typeof(OpCode)) continue;
 
-                var fieldValue = (OpCode) fieldInfo.GetValue(null);
+                var fieldValue = (OpCode)fieldInfo.GetValue(null);
                 OpCodesMap[fieldValue.Value] = fieldValue;
-                if ((ushort) fieldValue.Value > byte.MaxValue) 
-                    PrefixCodes.Add((byte) ((ushort) fieldValue.Value >> 8));
+                if ((ushort)fieldValue.Value > byte.MaxValue)
+                    PrefixCodes.Add((byte)((ushort)fieldValue.Value >> 8));
             }
         }
 
@@ -29,14 +29,14 @@ namespace Il2CppInterop.Runtime
             while (index < ilBytes.Length)
             {
                 short currentOp = ilBytes[index++];
-                if (PrefixCodes.Contains(currentOp)) 
-                    currentOp = (short) ((ushort) (currentOp << 8) | ilBytes[index++]);
+                if (PrefixCodes.Contains(currentOp))
+                    currentOp = (short)((ushort)(currentOp << 8) | ilBytes[index++]);
 
                 if (!OpCodesMap.TryGetValue(currentOp, out var opCode))
                     throw new NotSupportedException($"Unknown opcode {currentOp} encountered");
 
                 var argLength = GetOperandSize(opCode);
-                
+
                 switch (argLength)
                 {
                     case 0:
@@ -57,7 +57,7 @@ namespace Il2CppInterop.Runtime
                     default:
                         throw new NotSupportedException($"Unsupported opcode argument length {argLength}");
                 }
-                
+
                 index += argLength;
             }
         }

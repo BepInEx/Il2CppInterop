@@ -20,12 +20,12 @@ namespace Il2CppInterop.Generator.Passes
 
             if (options.NoXrefCache)
                 goto skipDataGather;
-            
+
             foreach (var assemblyRewriteContext in context.Assemblies)
             {
                 if (options.AdditionalAssembliesBlacklist.Contains(assemblyRewriteContext.NewAssembly.Name.Name))
                     continue;
-                
+
                 var imports = assemblyRewriteContext.Imports;
 
                 foreach (var typeRewriteContext in assemblyRewriteContext.Types)
@@ -65,7 +65,7 @@ namespace Il2CppInterop.Generator.Passes
                         }
 
                         var xrefStart = data.Count;
-                        
+
                         foreach (var xrefScanResult in methodRewriteContext.XrefScanResults)
                             data.Add(MethodXrefScanCache.MethodData.FromXrefInstance(xrefScanResult));
 
@@ -73,7 +73,7 @@ namespace Il2CppInterop.Generator.Passes
 
                         var refStart = 0;
                         var refEnd = 0;
-                        
+
                         if (address != 0)
                         {
                             if (Pass16ScanMethodRefs.MapOfCallers.TryGetValue(address, out var callerMap))
@@ -127,20 +127,20 @@ namespace Il2CppInterop.Generator.Passes
                     }
                 }
             }
-            
-            skipDataGather:
-            
+
+        skipDataGather:
+
             var header = new MethodXrefScanCache.FileHeader
             {
                 Magic = MethodXrefScanCache.Magic,
                 Version = MethodXrefScanCache.Version,
                 InitMethodMetadataRva = XrefScanMetadataGenerationUtil.MetadataInitForMethodRva
             };
-            
+
             using var writer = new BinaryWriter(new FileStream(Path.Combine(options.OutputDir, MethodXrefScanCache.FileName), FileMode.Create, FileAccess.Write), Encoding.UTF8, false);
             writer.Write(header);
 
-            foreach (var valueTuple in data) 
+            foreach (var valueTuple in data)
                 writer.Write(valueTuple);
 
             if (options.Verbose)

@@ -16,7 +16,8 @@ namespace Il2CppInterop.Runtime.Runtime
         }
 
         public static unsafe IntPtr GetGcHandlePtrFromIl2CppObject(IntPtr pointer) => GetInjectedData(pointer)->managedGcHandle;
-        internal static unsafe InjectedClassData* GetInjectedData(IntPtr objectPointer) {
+        internal static unsafe InjectedClassData* GetInjectedData(IntPtr objectPointer)
+        {
             Il2CppClass* pObjectClass = (Il2CppClass*)IL2CPP.il2cpp_object_get_class(objectPointer);
             return (InjectedClassData*)(objectPointer + (int)UnityVersionHandler.Wrap(pObjectClass).InstanceSize - sizeof(InjectedClassData)).ToPointer();
         }

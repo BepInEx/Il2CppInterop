@@ -17,7 +17,7 @@ namespace Il2CppInterop.Generator.Extensions
 
             if (rvaField?.Name == null) return 0;
 
-            var addressString = (string) rvaField.Value.Argument.Value;
+            var addressString = (string)rvaField.Value.Argument.Value;
             long.TryParse(addressString.Substring(2), NumberStyles.HexNumber, null, out var address);
             return address;
         }

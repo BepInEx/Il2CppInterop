@@ -8,7 +8,7 @@ namespace Il2CppInterop.Runtime.Attributes
         // Items that this method calls/uses
         public int XrefRangeStart;
         public int XrefRangeEnd;
-        
+
         // Methods that call this method
         public int RefRangeStart;
         public int RefRangeEnd;

@@ -13,14 +13,14 @@ namespace Il2CppInterop.Generator.Passes
                 foreach (var typeContext in assemblyContext.Types)
                 {
                     if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.BlittableStruct || typeContext.OriginalType.IsEnum) continue;
-                    
+
                     var newType = typeContext.NewType;
                     var nativeCtor = new MethodDefinition(".ctor",
                         MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName |
                         MethodAttributes.HideBySig, assemblyContext.Imports.Void);
 
                     nativeCtor.Parameters.Add(new ParameterDefinition("pointer", ParameterAttributes.None, assemblyContext.Imports.IntPtr));
-                    
+
                     var ctorBody = nativeCtor.Body.GetILProcessor();
                     newType.Methods.Add(nativeCtor);
 
@@ -28,7 +28,7 @@ namespace Il2CppInterop.Generator.Passes
                     ctorBody.Emit(OpCodes.Ldarg_1);
                     ctorBody.Emit(OpCodes.Call,
                         new MethodReference(".ctor", assemblyContext.Imports.Void, newType.BaseType)
-                            {Parameters = {new ParameterDefinition(assemblyContext.Imports.IntPtr)}, HasThis = true});
+                        { Parameters = { new ParameterDefinition(assemblyContext.Imports.IntPtr) }, HasThis = true });
                     ctorBody.Emit(OpCodes.Ret);
                 }
             }

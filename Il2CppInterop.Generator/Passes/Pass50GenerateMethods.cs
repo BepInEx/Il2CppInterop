@@ -38,10 +38,10 @@ namespace Il2CppInterop.Generator.Passes
                             {
                                 bodyBuilder.Emit(OpCodes.Ldarg_0);
                                 bodyBuilder.Emit(OpCodes.Ldsfld, typeContext.ClassPointerFieldRef);
-                                bodyBuilder.Emit(OpCodes.Call,imports.Il2CppNewObject);
+                                bodyBuilder.Emit(OpCodes.Call, imports.Il2CppNewObject);
                                 bodyBuilder.Emit(OpCodes.Call,
                                     new MethodReference(".ctor", imports.Void, typeContext.SelfSubstitutedRef)
-                                        {Parameters = {new ParameterDefinition(imports.IntPtr)}, HasThis = true});
+                                    { Parameters = { new ParameterDefinition(imports.IntPtr) }, HasThis = true });
                             }
                             else if (!originalMethod.IsStatic)
                             {
@@ -73,7 +73,8 @@ namespace Il2CppInterop.Generator.Passes
                         for (var i = 0; i < newMethod.Parameters.Count; i++)
                         {
                             bodyBuilder.Emit(OpCodes.Ldloc, argArray);
-                            if (i > 0) {
+                            if (i > 0)
+                            {
                                 bodyBuilder.EmitLdcI4(i);
                                 bodyBuilder.Emit(OpCodes.Conv_U);
                                 bodyBuilder.Emit(OpCodes.Sizeof, imports.IntPtr);
@@ -84,8 +85,8 @@ namespace Il2CppInterop.Generator.Passes
                             var newParam = newMethod.Parameters[i];
                             bodyBuilder.EmitObjectToPointer(originalMethod.Parameters[i].ParameterType, newParam.ParameterType, methodRewriteContext.DeclaringType, argOffset + i, false, true, true, out var refVar);
                             bodyBuilder.Emit(OpCodes.Stind_I);
-                            
-                            if(refVar != null)
+
+                            if (refVar != null)
                                 byRefParams.Add((i, refVar));
                         }
 
@@ -116,7 +117,7 @@ namespace Il2CppInterop.Generator.Passes
 
                         bodyBuilder.Emit(OpCodes.Ldloc, exceptionLocal);
                         bodyBuilder.Emit(OpCodes.Call, imports.RaiseExceptionIfNecessary);
-                        
+
                         foreach (var byRefParam in byRefParams)
                         {
                             var paramIndex = byRefParam.Item1;

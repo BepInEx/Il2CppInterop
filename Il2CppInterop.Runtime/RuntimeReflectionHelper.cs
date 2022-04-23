@@ -15,7 +15,7 @@ namespace Il2CppInterop.Runtime
 #if  !MINI
             var reflectionType = Type.internal_from_handle(IL2CPP.il2cpp_class_get_type(enclosingClass));
             var nestedType = reflectionType.GetNestedType(nestedTypeName, BindingFlags.Public | BindingFlags.NonPublic);
-            
+
             return nestedType != null ? IL2CPP.il2cpp_class_from_system_type(nestedType.Pointer) : IntPtr.Zero;
 #else
             throw new NotImplementedException();

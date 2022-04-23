@@ -18,9 +18,9 @@ namespace Il2CppInterop.Runtime.Runtime
             var byteOffset = bit / 8;
             var bitOffset = bit % 8;
             var p = self.Pointer + startOffset + byteOffset;
-            
+
             var mask = 1 << bitOffset;
-            var val = *(byte*) p.ToPointer();
+            var val = *(byte*)p.ToPointer();
             var masked = val & mask;
             return masked == mask;
         }
@@ -32,7 +32,7 @@ namespace Il2CppInterop.Runtime.Runtime
             var p = self.Pointer + startOffset + byteOffset;
 
             var mask = ~(1 << bitOffset);
-            var ptr = (byte*) p.ToPointer();
+            var ptr = (byte*)p.ToPointer();
             var val = *ptr;
             var newVal = (byte)(val & mask | ((value ? 1 : 0) << bitOffset));
             *ptr = newVal;

@@ -15,13 +15,13 @@ namespace Il2CppInterop.Runtime.Maps
         public const int Magic = 0x4D544D55; // UMTM
         public const int Version = 1;
         public const string FileName = "MethodAddressToToken.db";
-        
+
         private readonly MemoryMappedFile? myMapFile;
         private readonly MemoryMappedViewAccessor? myAccessor;
-        
+
         private unsafe long* myPointers;
         private unsafe int* myValues;
-        
+
         private readonly MethodAddressToTokenMapFileHeader myHeader;
         private readonly List<TAssembly?> myAssemblyList = new();
 
@@ -42,13 +42,13 @@ namespace Il2CppInterop.Runtime.Maps
                 myMapFile.Dispose();
                 throw new FileLoadException($"File magic mismatched for {filePath}; Expected {Magic:X}, got {myHeader.Magic:X}");
             }
-            
+
             if (myHeader.Version != Version)
             {
                 myMapFile.Dispose();
                 throw new FileLoadException($"File version mismatched for {filePath}; Expected {Version}, got {myHeader.Version}");
             }
-            
+
             var offset = Marshal.SizeOf<MethodAddressToTokenMapFileHeader>();
             using var reader = new BinaryReader(myMapFile.CreateViewStream(offset, 0, MemoryMappedFileAccess.Read), Encoding.UTF8, false);
             for (var i = 0; i < myHeader.NumAssemblies; i++)
@@ -63,8 +63,8 @@ namespace Il2CppInterop.Runtime.Maps
 
                 myAccessor.SafeMemoryMappedViewHandle.AcquirePointer(ref pointersPointer);
 
-                myPointers = (long*) (pointersPointer + myHeader.DataOffset);
-                myValues = (int*) (pointersPointer + myHeader.DataOffset + myHeader.NumMethods * 8);
+                myPointers = (long*)(pointersPointer + myHeader.DataOffset);
+                myValues = (int*)(pointersPointer + myHeader.DataOffset + myHeader.NumMethods * 8);
             }
         }
 
@@ -126,7 +126,7 @@ namespace Il2CppInterop.Runtime.Maps
         }
 
         protected abstract TMethod? ResolveMethod(TAssembly? assembly, int token);
-        
+
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         IEnumerator<(long, TMethod?)> IEnumerable<(long, TMethod?)>.GetEnumerator() => GetEnumerator();
 
@@ -149,9 +149,9 @@ namespace Il2CppInterop.Runtime.Maps
                 {
                     var dataToken = myMap.myValues[myOffset * 2];
                     var assemblyIdx = myMap.myValues[myOffset * 2 + 1];
-                    
+
                     Current = (myMap.myPointers[myOffset], myMap.ResolveMethod(myMap.myAssemblyList[assemblyIdx], dataToken));
-                    
+
                     return true;
                 }
 
@@ -172,7 +172,7 @@ namespace Il2CppInterop.Runtime.Maps
             public (long, TMethod?) Current { get; private set; }
         }
     }
-    
+
     [StructLayout(LayoutKind.Sequential)]
     public struct MethodAddressToTokenMapFileHeader
     {
@@ -181,7 +181,7 @@ namespace Il2CppInterop.Runtime.Maps
         public int NumAssemblies;
         public int NumMethods;
         public int DataOffset;
-            
+
         // data is long[NumMethods] pointers, (int, int)[NumMethods] (tokens, assemblyIds)
     }
 }

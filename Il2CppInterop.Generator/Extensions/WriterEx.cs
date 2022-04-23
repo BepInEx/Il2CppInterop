@@ -8,16 +8,16 @@ namespace Il2CppInterop.Generator.Extensions
     {
         [ThreadStatic]
         private static byte[]? ourBuffer;
-        
+
         public static unsafe void Write<T>(this BinaryWriter writer, T value) where T : unmanaged
         {
             var structSize = Marshal.SizeOf<T>();
-            
-            if (ourBuffer == null || ourBuffer.Length < structSize) 
+
+            if (ourBuffer == null || ourBuffer.Length < structSize)
                 ourBuffer = new byte[structSize];
 
-            fixed (byte* bytes = ourBuffer) 
-                *(T*) bytes = value;
+            fixed (byte* bytes = ourBuffer)
+                *(T*)bytes = value;
 
             writer.Write(ourBuffer, 0, structSize);
         }

@@ -14,14 +14,14 @@ namespace Il2CppInterop.Runtime
             _fieldPtr = IL2CPP.GetIl2CppField(obj.ObjectClass, fieldName);
         }
 
-        public TRefObj Get()
+        public TRefObj? Get()
         {
             IntPtr ptr = *GetPointerToData();
             if (ptr == IntPtr.Zero) return null;
-            if (isInjectedType == null) isInjectedType = RuntimeSpecificsStore.IsInjected(Il2CppClassPointerStore<TRefObj>.NativeClassPtr); 
-            
+            if (isInjectedType == null) isInjectedType = RuntimeSpecificsStore.IsInjected(Il2CppClassPointerStore<TRefObj>.NativeClassPtr);
+
             if (isInjectedType.Value && ClassInjectorBase.GetMonoObjectFromIl2CppPointer(ptr) is TRefObj monoObject) return monoObject;
-            return (TRefObj) Activator.CreateInstance(typeof(TRefObj), ptr);
+            return (TRefObj)Activator.CreateInstance(typeof(TRefObj), ptr);
         }
 
         public void Set(TRefObj value) => *GetPointerToData() = value.Pointer;

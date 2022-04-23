@@ -19,16 +19,16 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo
             return res;
         }
 
-        public unsafe INativeParameterInfoStruct Wrap(Il2CppParameterInfo* paramInfoPointer)
+        public unsafe INativeParameterInfoStruct? Wrap(Il2CppParameterInfo* paramInfoPointer)
         {
             if ((IntPtr)paramInfoPointer == IntPtr.Zero) return null;
             else return new NativeParameterInfoStructWrapper((IntPtr)paramInfoPointer);
         }
 
-        public unsafe INativeParameterInfoStruct Wrap(Il2CppParameterInfo* paramInfoListBegin, int index)
+        public unsafe INativeParameterInfoStruct? Wrap(Il2CppParameterInfo* paramInfoListBegin, int index)
         {
             if ((IntPtr)paramInfoListBegin == IntPtr.Zero) return null;
-            else return new NativeParameterInfoStructWrapper((IntPtr) paramInfoListBegin + (Marshal.SizeOf<Il2CppParameterInfo_27_3>() * index));
+            else return new NativeParameterInfoStructWrapper((IntPtr)paramInfoListBegin + (Marshal.SizeOf<Il2CppParameterInfo_27_3>() * index));
         }
 
         public bool HasNamePosToken => false;

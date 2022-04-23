@@ -14,19 +14,19 @@ namespace Il2CppInterop.Runtime.XrefScans
         private static readonly MethodAddressToTokenMap MethodMap;
         private static readonly MethodXrefScanCache XrefScanCache;
         private static readonly long GameAssemblyBase;
-        
+
         private static XrefScanMetadataRuntimeUtil.InitMetadataForMethod ourMetadataInitForMethodDelegate;
 
         static XrefScanMethodDb()
         {
             MethodMap = new MethodAddressToTokenMap(GeneratedDatabasesUtil.GetDatabasePath(MethodAddressToTokenMap.FileName));
             XrefScanCache = new MethodXrefScanCache(GeneratedDatabasesUtil.GetDatabasePath(MethodXrefScanCache.FileName));
-            
+
             foreach (ProcessModule module in Process.GetCurrentProcess().Modules)
             {
                 if (module.ModuleName == "GameAssembly.dll")
                 {
-                    GameAssemblyBase = (long) module.BaseAddress;
+                    GameAssemblyBase = (long)module.BaseAddress;
                     break;
                 }
             }
@@ -34,7 +34,7 @@ namespace Il2CppInterop.Runtime.XrefScans
 
         public static MethodBase TryResolvePointer(IntPtr methodStart)
         {
-            return MethodMap.Lookup((long) methodStart - GameAssemblyBase);
+            return MethodMap.Lookup((long)methodStart - GameAssemblyBase);
         }
 
         internal static IEnumerable<XrefInstance> ListUsers(CachedScanResultsAttribute attribute)
@@ -48,25 +48,25 @@ namespace Il2CppInterop.Runtime.XrefScans
             for (var i = attribute.XrefRangeStart; i < attribute.XrefRangeEnd; i++)
                 yield return XrefScanCache.GetAt(i).AsXrefInstance(GameAssemblyBase);
         }
-        
+
         internal static void CallMetadataInitForMethod(CachedScanResultsAttribute attribute)
         {
             if (attribute.MetadataInitFlagRva == 0 || attribute.MetadataInitTokenRva == 0)
                 return;
 
-            if (Marshal.ReadByte((IntPtr) (GameAssemblyBase + attribute.MetadataInitFlagRva)) != 0)
+            if (Marshal.ReadByte((IntPtr)(GameAssemblyBase + attribute.MetadataInitFlagRva)) != 0)
                 return;
 
             if (ourMetadataInitForMethodDelegate == null)
                 ourMetadataInitForMethodDelegate =
                     Marshal.GetDelegateForFunctionPointer<XrefScanMetadataRuntimeUtil.InitMetadataForMethod>(
-                        (IntPtr) (GameAssemblyBase + XrefScanCache.Header.InitMethodMetadataRva));
+                        (IntPtr)(GameAssemblyBase + XrefScanCache.Header.InitMethodMetadataRva));
 
-            var token = Marshal.ReadInt32((IntPtr) (GameAssemblyBase + attribute.MetadataInitTokenRva));
+            var token = Marshal.ReadInt32((IntPtr)(GameAssemblyBase + attribute.MetadataInitTokenRva));
 
             ourMetadataInitForMethodDelegate(token);
-            
-            Marshal.WriteByte((IntPtr) (GameAssemblyBase + attribute.MetadataInitFlagRva), 1);
+
+            Marshal.WriteByte((IntPtr)(GameAssemblyBase + attribute.MetadataInitFlagRva), 1);
         }
 
         [Obsolete("Type registration is no longer needed")]

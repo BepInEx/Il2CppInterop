@@ -16,7 +16,7 @@ namespace Il2CppInterop.Runtime
     public static unsafe class IL2CPP
     {
         private static Dictionary<string, IntPtr> ourImagesMap = new Dictionary<string, IntPtr>();
-        
+
         static IL2CPP()
         {
             var domain = il2cpp_domain_get();
@@ -53,14 +53,14 @@ namespace Il2CppInterop.Runtime
                 Logger.Error($"Assembly {assemblyName} is not registered in il2cpp");
                 return IntPtr.Zero;
             }
-            
+
             var clazz = il2cpp_class_from_name(image, namespaze, className);
             return clazz;
         }
 
         public static IntPtr GetIl2CppField(IntPtr clazz, string fieldName)
         {
-            if(clazz == IntPtr.Zero) return IntPtr.Zero;
+            if (clazz == IntPtr.Zero) return IntPtr.Zero;
 
             var field = il2cpp_class_get_field_from_name(clazz, fieldName);
             if (field == IntPtr.Zero)
@@ -72,7 +72,7 @@ namespace Il2CppInterop.Runtime
         {
             if (clazz == IntPtr.Zero)
                 return NativeStructUtils.GetMethodInfoForMissingMethod(token.ToString());
-            
+
             IntPtr iter = IntPtr.Zero;
             IntPtr method;
             while ((method = il2cpp_class_get_methods(clazz, ref iter)) != IntPtr.Zero)
@@ -80,16 +80,16 @@ namespace Il2CppInterop.Runtime
                 if (il2cpp_method_get_token(method) == token)
                     return method;
             }
-            
+
             var className = Marshal.PtrToStringAnsi(il2cpp_class_get_name(clazz));
             Logger.Trace($"Unable to find method {className}::{token}");
-            
+
             return NativeStructUtils.GetMethodInfoForMissingMethod(className + "::" + token);
         }
 
         public static IntPtr GetIl2CppMethod(IntPtr clazz, bool isGeneric, string methodName, string returnTypeName, params string[] argTypes)
         {
-            if(clazz == IntPtr.Zero) return NativeStructUtils.GetMethodInfoForMissingMethod(methodName + "(" + string.Join(", ", argTypes) + ")");
+            if (clazz == IntPtr.Zero) return NativeStructUtils.GetMethodInfoForMissingMethod(methodName + "(" + string.Join(", ", argTypes) + ")");
 
             returnTypeName = Regex.Replace(returnTypeName, "\\`\\d+", "").Replace('/', '.').Replace('+', '.');
             for (var index = 0; index < argTypes.Length; index++)
@@ -104,27 +104,27 @@ namespace Il2CppInterop.Runtime
             IntPtr method;
             while ((method = il2cpp_class_get_methods(clazz, ref iter)) != IntPtr.Zero)
             {
-                if(Marshal.PtrToStringAnsi(il2cpp_method_get_name(method)) != methodName)
+                if (Marshal.PtrToStringAnsi(il2cpp_method_get_name(method)) != methodName)
                     continue;
-                
-                if(il2cpp_method_get_param_count(method) != argTypes.Length)
+
+                if (il2cpp_method_get_param_count(method) != argTypes.Length)
                     continue;
-                
-                if(il2cpp_method_is_generic(method) != isGeneric) 
+
+                if (il2cpp_method_is_generic(method) != isGeneric)
                     continue;
 
                 var returnType = il2cpp_method_get_return_type(method);
                 var returnTypeNameActual = Marshal.PtrToStringAnsi(il2cpp_type_get_name(returnType));
                 if (returnTypeNameActual != returnTypeName)
                     continue;
-                
+
                 methodsSeen++;
                 lastMethod = method;
 
                 var badType = false;
                 for (var i = 0; i < argTypes.Length; i++)
                 {
-                    var paramType = il2cpp_method_get_param(method, (uint) i);
+                    var paramType = il2cpp_method_get_param(method, (uint)i);
                     var typeName = Marshal.PtrToStringAnsi(il2cpp_type_get_name(paramType));
                     if (typeName != argTypes[i])
                     {
@@ -132,8 +132,8 @@ namespace Il2CppInterop.Runtime
                         break;
                     }
                 }
-                
-                if(badType) continue;
+
+                if (badType) continue;
 
                 return method;
             }
@@ -147,14 +147,14 @@ namespace Il2CppInterop.Runtime
                 Logger.Trace("Stubby parameter types/targets follow:");
                 for (var i = 0; i < argTypes.Length; i++)
                 {
-                    var paramType = il2cpp_method_get_param(lastMethod, (uint) i);
+                    var paramType = il2cpp_method_get_param(lastMethod, (uint)i);
                     var typeName = Marshal.PtrToStringAnsi(il2cpp_type_get_name(paramType));
                     Logger.Trace($"    {typeName} / {argTypes[i]}");
                 }
-                
+
                 return lastMethod;
             }
-            
+
             Logger.Trace($"Unable to find method {className}::{methodName}; signature follows");
             Logger.Trace($"    return {returnTypeName}");
             foreach (var argType in argTypes) Logger.Trace($"    {argType}");
@@ -162,7 +162,7 @@ namespace Il2CppInterop.Runtime
             iter = IntPtr.Zero;
             while ((method = il2cpp_class_get_methods(clazz, ref iter)) != IntPtr.Zero)
             {
-                if(Marshal.PtrToStringAnsi(il2cpp_method_get_name(method)) != methodName)
+                if (Marshal.PtrToStringAnsi(il2cpp_method_get_name(method)) != methodName)
                     continue;
 
                 var nParams = il2cpp_method_get_param_count(method);
@@ -170,31 +170,31 @@ namespace Il2CppInterop.Runtime
                 Logger.Trace($"     return {Marshal.PtrToStringAnsi(il2cpp_type_get_name(il2cpp_method_get_return_type(method)))}");
                 for (var i = 0; i < nParams; i++)
                 {
-                    var paramType = il2cpp_method_get_param(method, (uint) i);
+                    var paramType = il2cpp_method_get_param(method, (uint)i);
                     var typeName = Marshal.PtrToStringAnsi(il2cpp_type_get_name(paramType));
                     Logger.Trace($"    {typeName}");
                 }
-                
+
                 return method;
             }
 
             return NativeStructUtils.GetMethodInfoForMissingMethod(className + "::" + methodName + "(" + string.Join(", ", argTypes) + ")");
         }
 
-        public static string Il2CppStringToManaged(IntPtr il2CppString)
+        public static string? Il2CppStringToManaged(IntPtr il2CppString)
         {
             if (il2CppString == IntPtr.Zero) return null;
-            
+
             var length = il2cpp_string_length(il2CppString);
             var chars = il2cpp_string_chars(il2CppString);
-            
+
             return new string(chars, 0, length);
         }
 
         public static IntPtr ManagedStringToIl2Cpp(string str)
         {
-            if(str == null) return IntPtr.Zero;
-            
+            if (str == null) return IntPtr.Zero;
+
             fixed (char* chars = str)
                 return il2cpp_string_new_utf16(chars, str.Length);
         }
@@ -203,7 +203,7 @@ namespace Il2CppInterop.Runtime
         {
             return obj?.Pointer ?? IntPtr.Zero;
         }
-        
+
         public static IntPtr Il2CppObjectBaseToPtrNotNull(Il2CppObjectBase obj)
         {
             return obj?.Pointer ?? throw new NullReferenceException();
@@ -211,24 +211,24 @@ namespace Il2CppInterop.Runtime
 
         public static IntPtr GetIl2CppNestedType(IntPtr enclosingType, string nestedTypeName)
         {
-            if(enclosingType == IntPtr.Zero) return IntPtr.Zero;
-            
+            if (enclosingType == IntPtr.Zero) return IntPtr.Zero;
+
             IntPtr iter = IntPtr.Zero;
             IntPtr nestedTypePtr;
             if (il2cpp_class_is_inflated(enclosingType))
             {
                 Logger.Trace("Original class was inflated, falling back to reflection");
-                
+
                 return RuntimeReflectionHelper.GetNestedTypeViaReflection(enclosingType, nestedTypeName);
             }
-            while((nestedTypePtr = il2cpp_class_get_nested_types(enclosingType, ref iter)) != IntPtr.Zero)
+            while ((nestedTypePtr = il2cpp_class_get_nested_types(enclosingType, ref iter)) != IntPtr.Zero)
             {
                 if (Marshal.PtrToStringAnsi(il2cpp_class_get_name(nestedTypePtr)) == nestedTypeName)
                     return nestedTypePtr;
             }
-            
+
             Logger.Error($"Nested type {nestedTypeName} on {Marshal.PtrToStringAnsi(il2cpp_class_get_name(enclosingType))} not found!");
-            
+
             return IntPtr.Zero;
         }
 
@@ -240,7 +240,7 @@ namespace Il2CppInterop.Runtime
 
         public static T ResolveICall<T>(string signature) where T : Delegate
         {
-            
+
             var icallPtr = il2cpp_resolve_icall(signature);
             if (icallPtr == IntPtr.Zero)
             {
@@ -251,45 +251,45 @@ namespace Il2CppInterop.Runtime
             return Marshal.GetDelegateForFunctionPointer<T>(icallPtr);
         }
 
-        private static T GenerateDelegateForMissingICall<T>(string signature) where T: Delegate
+        private static T GenerateDelegateForMissingICall<T>(string signature) where T : Delegate
         {
             var invoke = typeof(T).GetMethod("Invoke")!;
-            
+
             var trampoline = new DynamicMethod("(missing icall delegate) " + typeof(T).FullName, MethodAttributes.Static, CallingConventions.Standard, invoke.ReturnType, invoke.GetParameters().Select(it => it.ParameterType).ToArray(), typeof(IL2CPP), true);
             var bodyBuilder = trampoline.GetILGenerator();
 
             bodyBuilder.Emit(OpCodes.Ldstr, $"ICall with signature {signature} was not resolved");
-            bodyBuilder.Emit(OpCodes.Newobj, typeof(Exception).GetConstructor(new[]{ typeof(string)})!);
+            bodyBuilder.Emit(OpCodes.Newobj, typeof(Exception).GetConstructor(new[] { typeof(string) })!);
             bodyBuilder.Emit(OpCodes.Throw);
 
-            return (T) trampoline.CreateDelegate(typeof(T));
+            return (T)trampoline.CreateDelegate(typeof(T));
         }
 
         private static readonly MethodInfo UnboxMethod = typeof(Il2CppObjectBase).GetMethod(nameof(Il2CppObjectBase.Unbox));
         private static readonly MethodInfo CastMethod = typeof(Il2CppObjectBase).GetMethod(nameof(Il2CppObjectBase.Cast));
-        public static T PointerToValueGeneric<T>(IntPtr objectPointer, bool isFieldPointer, bool valueTypeWouldBeBoxed)
+        public static T? PointerToValueGeneric<T>(IntPtr objectPointer, bool isFieldPointer, bool valueTypeWouldBeBoxed)
         {
             if (isFieldPointer)
             {
                 if (il2cpp_class_is_valuetype(Il2CppClassPointerStore<T>.NativeClassPtr))
                     objectPointer = il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, objectPointer);
                 else
-                    objectPointer = *(IntPtr*) objectPointer;
+                    objectPointer = *(IntPtr*)objectPointer;
             }
-            
+
             if (!valueTypeWouldBeBoxed && il2cpp_class_is_valuetype(Il2CppClassPointerStore<T>.NativeClassPtr))
                 objectPointer = il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, objectPointer);
 
             if (typeof(T) == typeof(string))
-                return (T) (object) Il2CppStringToManaged(objectPointer);
+                return (T)(object)Il2CppStringToManaged(objectPointer);
 
             if (objectPointer == IntPtr.Zero)
                 return default;
-            
+
             var nativeObject = new Il2CppObjectBase(objectPointer);
             if (typeof(T).IsValueType)
-                return (T) UnboxMethod.MakeGenericMethod(typeof(T)).Invoke(nativeObject, new object[0]);
-            return (T) CastMethod.MakeGenericMethod(typeof(T)).Invoke(nativeObject, new object[0]);
+                return (T)UnboxMethod.MakeGenericMethod(typeof(T)).Invoke(nativeObject, new object[0]);
+            return (T)CastMethod.MakeGenericMethod(typeof(T)).Invoke(nativeObject, new object[0]);
         }
 
         public static string RenderTypeName<T>(bool addRefMarker = false)
@@ -309,7 +309,7 @@ namespace Il2CppInterop.Runtime
             {
                 if (t.TypeHasIl2CppArrayBase())
                     return RenderTypeName(t.GetGenericArguments()[0]) + "[]";
-                
+
                 var builder = new StringBuilder();
                 builder.Append(t.GetGenericTypeDefinition().FullNameObfuscated().TrimIl2CppPrefix());
                 builder.Append('<');

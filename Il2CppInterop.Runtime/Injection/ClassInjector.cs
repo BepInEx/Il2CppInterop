@@ -48,8 +48,8 @@ namespace Il2CppInterop.Runtime.Injection
         public static readonly RegisterTypeOptions Default = new();
 
         public bool LogSuccess { get; init; } = true;
-        public Func<Type, Type[]> InterfacesResolver { get; init; } = null;
-        public Il2CppInterfaceCollection Interfaces { get; init; } = null;
+        public Func<Type, Type[]>? InterfacesResolver { get; init; } = null;
+        public Il2CppInterfaceCollection? Interfaces { get; init; } = null;
     }
 
     public unsafe static class ClassInjector
@@ -899,7 +899,7 @@ namespace Il2CppInterop.Runtime.Injection
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate Il2CppMethodInfo* GenericGetMethodDelegate(Il2CppGenericMethod* gmethod, bool copyMethodPtr);
-        private static volatile GenericGetMethodDelegate ourOriginalGenericGetMethod;
+        private static volatile GenericGetMethodDelegate? ourOriginalGenericGetMethod;
 
         private static void HookGenericMethodGetMethod()
         {
@@ -1004,25 +1004,16 @@ namespace Il2CppInterop.Runtime.Injection
             return ourOriginalGenericGetMethod(gmethod, copyMethodPtr);
         }
 
-        public static IManagedDetour Detour = new DoHookDetour();
-        [Obsolete("Set Detour instead")]
-        public static Action<IntPtr, IntPtr> DoHook;
+        public static IManagedDetour Detour = new NotImplementedDetour();
 
         private static readonly ConcurrentDictionary<(Type type, FieldAttributes attrs), IntPtr> _injectedFieldTypes = new();
         private static readonly VoidCtorDelegate FinalizeDelegate = Finalize;
 
-        private class DoHookDetour : IManagedDetour
+        private class NotImplementedDetour : IManagedDetour
         {
-            // In some cases garbage collection of delegates can release their native function pointer too - keep all of them alive to avoid that
-            // ReSharper disable once CollectionNeverQueried.Local
-            private static readonly List<object> PinnedDelegates = new List<object>();
-
             public T Detour<T>(IntPtr @from, T to) where T : Delegate
             {
-                IntPtr* targetVarPointer = &from;
-                PinnedDelegates.Add(to);
-                DoHook((IntPtr)targetVarPointer, Marshal.GetFunctionPointerForDelegate(to));
-                return Marshal.GetDelegateForFunctionPointer<T>(from);
+                throw new NotImplementedException("Provide a detour implementation by setting ClassInjector.Detour.");
             }
         }
     }

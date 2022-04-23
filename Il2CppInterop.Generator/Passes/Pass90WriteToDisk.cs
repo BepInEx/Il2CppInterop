@@ -21,12 +21,13 @@ namespace Il2CppInterop.Generator.Passes
                     foreach (AssemblyNameReference reference in module.AssemblyReferences)
                     {
                         var match = context.Assemblies.FirstOrDefault(f => f.NewAssembly.FullName == reference.FullName);
-                        if (match != null) registerMethod!.Invoke(resolver, new object[] {match.NewAssembly});
+                        if (match != null) registerMethod!.Invoke(resolver, new object[] { match.NewAssembly });
                     }
                 }
             }
-            
-            var tasks = context.Assemblies.Where(it => !options.AdditionalAssembliesBlacklist.Contains(it.NewAssembly.Name.Name)).Select(assemblyContext => Task.Run(() => {
+
+            var tasks = context.Assemblies.Where(it => !options.AdditionalAssembliesBlacklist.Contains(it.NewAssembly.Name.Name)).Select(assemblyContext => Task.Run(() =>
+            {
                 assemblyContext.NewAssembly.Write(options.OutputDir + "/" + assemblyContext.NewAssembly.Name.Name + ".dll");
             })).ToArray();
 

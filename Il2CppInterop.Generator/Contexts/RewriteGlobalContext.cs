@@ -15,10 +15,10 @@ namespace Il2CppInterop.Generator.Contexts
         public IIl2CppMetadataAccess GameAssemblies { get; }
         public IMetadataAccess SystemAssemblies { get; }
         public IMetadataAccess UnityAssemblies { get; }
-        
+
         private readonly Dictionary<string, AssemblyRewriteContext> myAssemblies = new Dictionary<string, AssemblyRewriteContext>();
         private readonly Dictionary<AssemblyDefinition, AssemblyRewriteContext> myAssembliesByOld = new Dictionary<AssemblyDefinition, AssemblyRewriteContext>();
-        
+
         internal readonly Dictionary<(object, string, int), List<TypeDefinition>> RenameGroups = new Dictionary<(object, string, int), List<TypeDefinition>>();
         internal readonly Dictionary<TypeDefinition, string> RenamedTypes = new Dictionary<TypeDefinition, string>();
         internal readonly Dictionary<TypeDefinition, string> PreviousRenamedTypes = new Dictionary<TypeDefinition, string>();
@@ -26,18 +26,18 @@ namespace Il2CppInterop.Generator.Contexts
         internal readonly List<long> MethodStartAddresses = new List<long>();
 
         public IEnumerable<AssemblyRewriteContext> Assemblies => myAssemblies.Values;
-        
+
         internal bool HasGcWbarrierFieldWrite { get; set; }
-        
+
         public RewriteGlobalContext(GeneratorOptions options, IIl2CppMetadataAccess gameAssemblies, IMetadataAccess systemAssemblies, IMetadataAccess unityAssemblies)
         {
             Options = options;
             GameAssemblies = gameAssemblies;
             SystemAssemblies = systemAssemblies;
             UnityAssemblies = unityAssemblies;
-            
+
             TargetTypeSystemHandler.Init(systemAssemblies);
-            
+
             foreach (var sourceAssembly in gameAssemblies.Assemblies)
             {
                 var assemblyName = sourceAssembly.Name.Name;
@@ -73,14 +73,14 @@ namespace Il2CppInterop.Generator.Contexts
             return GetNewAssemblyForOriginal(originalType.Module.Assembly)
                 .GetContextForOriginalType(originalType);
         }
-        
+
         public TypeRewriteContext? TryGetNewTypeForOriginal(TypeDefinition originalType)
         {
             if (!myAssembliesByOld.TryGetValue(originalType.Module.Assembly, out var assembly))
                 return null;
             return assembly.TryGetContextForOriginalType(originalType);
         }
-        
+
         public TypeRewriteContext.TypeSpecifics JudgeSpecificsByOriginalType(TypeReference typeRef)
         {
             if (typeRef.IsPrimitive || typeRef.IsPointer || typeRef.FullName == "System.TypedReference") return TypeRewriteContext.TypeSpecifics.BlittableStruct;
@@ -95,7 +95,7 @@ namespace Il2CppInterop.Generator.Contexts
         {
             return myAssemblies[name];
         }
-        
+
         public AssemblyRewriteContext? TryGetAssemblyByName(string name)
         {
             if (myAssemblies.TryGetValue(name, out var result))
@@ -103,7 +103,7 @@ namespace Il2CppInterop.Generator.Contexts
 
             if (name == "netstandard")
                 return myAssemblies.TryGetValue("mscorlib", out var result2) ? result2 : null;
-            
+
             return null;
         }
 
@@ -111,13 +111,13 @@ namespace Il2CppInterop.Generator.Contexts
         {
             var resolverCacheField = typeof(DefaultAssemblyResolver).
                 GetField("cache", BindingFlags.Instance | BindingFlags.NonPublic);
-            
+
             foreach (var assembly in Assemblies)
             {
                 foreach (var module in assembly.NewAssembly.Modules)
                 {
-                    var resolver = (DefaultAssemblyResolver) module.AssemblyResolver;
-                    var cache = (Dictionary<string, AssemblyDefinition>) resolverCacheField!.GetValue(resolver);
+                    var resolver = (DefaultAssemblyResolver)module.AssemblyResolver;
+                    var cache = (Dictionary<string, AssemblyDefinition>)resolverCacheField!.GetValue(resolver);
                     cache.Clear();
                 }
                 assembly.NewAssembly.Dispose();

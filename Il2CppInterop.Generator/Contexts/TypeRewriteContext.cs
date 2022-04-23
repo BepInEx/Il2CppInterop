@@ -31,11 +31,11 @@ namespace Il2CppInterop.Generator.Contexts
             NewType = newType ?? throw new ArgumentNullException(nameof(newType));
 
             if (OriginalType == null) return;
-            
+
             OriginalNameWasObfuscated = OriginalType.Name != NewType.Name;
             if (OriginalNameWasObfuscated)
                 NewType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.ObfuscatedNameAttributeCtor)
-                    {ConstructorArguments = {new CustomAttributeArgument(assemblyContext.Imports.String, originalType.FullName)}});
+                { ConstructorArguments = { new CustomAttributeArgument(assemblyContext.Imports.String, originalType.FullName) } });
 
             if (!OriginalType.IsValueType)
                 ComputedTypeSpecifics = TypeSpecifics.ReferenceType;
@@ -54,7 +54,7 @@ namespace Il2CppInterop.Generator.Contexts
                     genericInstanceType.GenericArguments.Add(newTypeGenericParameter);
                 SelfSubstitutedRef = NewType.Module.ImportReference(genericInstanceType);
                 var genericTypeRef = new GenericInstanceType(AssemblyContext.Imports.Il2CppClassPointerStore)
-                    {GenericArguments = {SelfSubstitutedRef}};
+                { GenericArguments = { SelfSubstitutedRef } };
                 ClassPointerFieldRef = new FieldReference("NativeClassPtr", AssemblyContext.Imports.IntPtr,
                     NewType.Module.ImportReference(genericTypeRef));
             }
@@ -62,7 +62,7 @@ namespace Il2CppInterop.Generator.Contexts
             {
                 SelfSubstitutedRef = NewType;
                 var genericTypeRef = new GenericInstanceType(AssemblyContext.Imports.Il2CppClassPointerStore);
-                if(OriginalType.IsPrimitive || OriginalType.FullName == "System.String")
+                if (OriginalType.IsPrimitive || OriginalType.FullName == "System.String")
                     genericTypeRef.GenericArguments.Add(NewType.Module.ImportReference(TargetTypeSystemHandler.Type.Module.GetType(OriginalType.FullName)));
                 else
                     genericTypeRef.GenericArguments.Add(SelfSubstitutedRef);
@@ -73,7 +73,7 @@ namespace Il2CppInterop.Generator.Contexts
             if (OriginalType.IsEnum) return;
 
             var renamedFieldCounts = new Dictionary<string, int>();
-            
+
             foreach (var originalTypeField in OriginalType.Fields)
                 myFieldContexts[originalTypeField] = new FieldRewriteContext(this, originalTypeField, renamedFieldCounts);
 
@@ -128,7 +128,7 @@ namespace Il2CppInterop.Generator.Contexts
 
             return null;
         }
-        
+
         public FieldRewriteContext? TryGetFieldByUnityAssemblyField(FieldDefinition field)
         {
             foreach (var fieldRewriteContext in myFieldContexts)
