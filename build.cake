@@ -37,7 +37,7 @@ Task("Pack")
     var versionString = string.IsNullOrEmpty(buildVersion) ? "" : $".{buildVersion}";
     var pathsToIgnore = new HashSet<string> { "NuGet", "zip" };
     foreach (var dir in GetDirectories("./bin/*", new GlobberSettings { Predicate = f => !pathsToIgnore.Contains(f.Path.GetDirectoryName()) })) {
-        ZipCompress(dir, distDir + File($"Il2CppInterop.{dir.GetDirectoryName()}{versionString}.zip"));
+        ZipCompress(dir, distDir + File($"{dir.GetDirectoryName()}{versionString}.zip"));
     }
 });
 
