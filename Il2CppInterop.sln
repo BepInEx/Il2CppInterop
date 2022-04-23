@@ -10,7 +10,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{463B7E3B-94E8-4EEB-B54A-EF15AD9C7C7E}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
-		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
 		README.md = README.md
 		Directory.Build.props = Directory.Build.props
 		build.cake = build.cake
@@ -26,6 +25,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentat
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Il2CppInterop.CLI", "Il2CppInterop.CLI\Il2CppInterop.CLI.csproj", "{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workflows", "Workflows", "{771D8BE3-C373-4754-94EA-4A68B117BAEF}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
+		.github\workflows\format_check.yml = .github\workflows\format_check.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -58,6 +63,7 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{99E71726-78FB-4376-89DA-90E5C08F5CD4} = {463B7E3B-94E8-4EEB-B54A-EF15AD9C7C7E}
+		{771D8BE3-C373-4754-94EA-4A68B117BAEF} = {463B7E3B-94E8-4EEB-B54A-EF15AD9C7C7E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CA7C3EAB-EDE4-4DB0-BEEF-9E74940B2978}
