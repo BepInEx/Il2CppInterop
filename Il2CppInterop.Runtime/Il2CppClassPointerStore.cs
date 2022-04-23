@@ -34,7 +34,7 @@ namespace Il2CppInterop.Runtime
     {
         public static IntPtr NativeClassPtr;
         public static Type CreatedTypeRedirect;
-        
+
         static Il2CppClassPointerStore()
         {
             var targetType = typeof(T);
@@ -45,12 +45,12 @@ namespace Il2CppInterop.Runtime
                     .Single(it => it.GetName().Name == "Il2Cppmscorlib").GetType("Il2Cpp" + targetType.FullName)
                     .TypeHandle);
             }
-            
+
             foreach (var customAttribute in targetType.CustomAttributes)
             {
                 if (customAttribute.AttributeType != typeof(AlsoInitializeAttribute)) continue;
-                
-                var linkedType = (Type) customAttribute.ConstructorArguments[0].Value;
+
+                var linkedType = (Type)customAttribute.ConstructorArguments[0].Value;
                 RuntimeHelpers.RunClassConstructor(linkedType.TypeHandle);
             }
         }

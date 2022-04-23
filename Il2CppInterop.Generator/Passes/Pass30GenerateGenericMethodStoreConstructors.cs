@@ -19,7 +19,7 @@ namespace Il2CppInterop.Generator.Passes
                     foreach (var methodContext in typeContext.Methods)
                     {
                         var oldMethod = methodContext.OriginalMethod;
-                        
+
                         var storeType = methodContext.GenericInstantiationsStore;
                         if (storeType != null)
                         {
@@ -35,7 +35,7 @@ namespace Il2CppInterop.Generator.Passes
                                 .GetAssemblyByName("mscorlib").GetTypeByName("System.Type");
                             var il2CppSystemTypeRef =
                                 assemblyContext.NewAssembly.MainModule.ImportReference(il2CppTypeTypeRewriteContext.NewType);
-                            
+
                             var il2CppMethodInfoTypeRewriteContext = assemblyContext.GlobalContext
                                 .GetAssemblyByName("mscorlib").GetTypeByName("System.Reflection.MethodInfo");
                             var il2CppSystemReflectionMethodInfoRef =
@@ -49,7 +49,7 @@ namespace Il2CppInterop.Generator.Passes
                                     il2CppSystemReflectionMethodInfoRef)
                                 {
                                     HasThis = true,
-                                    Parameters = {new ParameterDefinition(assemblyContext.Imports.IntPtr)}
+                                    Parameters = { new ParameterDefinition(assemblyContext.Imports.IntPtr) }
                                 });
 
                             ctorBuilder.EmitLdcI4(oldMethod.GenericParameters.Count);
@@ -63,7 +63,7 @@ namespace Il2CppInterop.Generator.Passes
 
                                 var param = storeType.GenericParameters[i];
                                 var storeRef = new GenericInstanceType(assemblyContext.Imports.Il2CppClassPointerStore)
-                                    {GenericArguments = {param}};
+                                { GenericArguments = { param } };
                                 var fieldRef = new FieldReference(
                                     nameof(Il2CppClassPointerStore<object>.NativeClassPtr),
                                     assemblyContext.Imports.IntPtr, storeRef);
@@ -74,27 +74,27 @@ namespace Il2CppInterop.Generator.Passes
                                 ctorBuilder.Emit(OpCodes.Call,
                                     new MethodReference("internal_from_handle", il2CppSystemTypeRef,
                                             il2CppSystemTypeRef)
-                                        {Parameters = {new ParameterDefinition(assemblyContext.Imports.IntPtr)}});
+                                    { Parameters = { new ParameterDefinition(assemblyContext.Imports.IntPtr) } });
                                 ctorBuilder.Emit(OpCodes.Stelem_Ref);
                             }
 
                             var il2CppTypeArray = new GenericInstanceType(assemblyContext.Imports.Il2CppReferenceArray)
-                                {GenericArguments = {il2CppSystemTypeRef}};
+                            { GenericArguments = { il2CppSystemTypeRef } };
                             ctorBuilder.Emit(OpCodes.Newobj,
                                 new MethodReference(".ctor", assemblyContext.Imports.Void, il2CppTypeArray)
                                 {
                                     HasThis = true,
-                                    Parameters = {new ParameterDefinition(new ArrayType(assemblyContext.Imports.Il2CppReferenceArray.GenericParameters[0]))}
+                                    Parameters = { new ParameterDefinition(new ArrayType(assemblyContext.Imports.Il2CppReferenceArray.GenericParameters[0])) }
                                 });
                             ctorBuilder.Emit(OpCodes.Call,
                                 new MethodReference(nameof(MethodInfo.MakeGenericMethod), il2CppSystemReflectionMethodInfoRef,
                                         il2CppSystemReflectionMethodInfoRef)
-                                    {HasThis = true, Parameters = {new ParameterDefinition(il2CppTypeArray)}});
+                                { HasThis = true, Parameters = { new ParameterDefinition(il2CppTypeArray) } });
                             ctorBuilder.Emit(OpCodes.Call, assemblyContext.Imports.Il2CppObjectBaseToPointerNotNull);
 
                             ctorBuilder.Emit(OpCodes.Call, assemblyContext.Imports.Il2CppMethodInfoFromReflection);
                             ctorBuilder.Emit(OpCodes.Stsfld, new FieldReference("Pointer", assemblyContext.Imports.IntPtr, methodContext.GenericInstantiationsStoreSelfSubstRef));
-                            
+
                             ctorBuilder.Emit(OpCodes.Ret);
                         }
                     }

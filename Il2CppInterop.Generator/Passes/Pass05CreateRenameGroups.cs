@@ -14,36 +14,36 @@ namespace Il2CppInterop.Generator.Passes
         public static void DoPass(RewriteGlobalContext context)
         {
             foreach (var assemblyContext in context.Assemblies)
-            foreach (var originalType in assemblyContext.OriginalAssembly.MainModule.Types)
-                ProcessType(context, originalType, false);
+                foreach (var originalType in assemblyContext.OriginalAssembly.MainModule.Types)
+                    ProcessType(context, originalType, false);
 
             var typesToRemove = context.RenameGroups.Where(it => it.Value.Count > 1).ToList();
             foreach (var keyValuePair in typesToRemove)
             {
                 context.RenameGroups.Remove(keyValuePair.Key);
-                foreach (var typeDefinition in keyValuePair.Value) 
+                foreach (var typeDefinition in keyValuePair.Value)
                     context.RenamedTypes.Remove(typeDefinition);
             }
-            
+
             foreach (var contextRenamedType in context.RenamedTypes)
                 context.PreviousRenamedTypes[contextRenamedType.Key] = contextRenamedType.Value;
 
             foreach (var assemblyContext in context.Assemblies)
-            foreach (var originalType in assemblyContext.OriginalAssembly.MainModule.Types)
-                ProcessType(context, originalType, true);
+                foreach (var originalType in assemblyContext.OriginalAssembly.MainModule.Types)
+                    ProcessType(context, originalType, true);
         }
 
         private static void ProcessType(RewriteGlobalContext context, TypeDefinition originalType, bool allowExtraHeuristics)
         {
-            foreach (var nestedType in originalType.NestedTypes) 
+            foreach (var nestedType in originalType.NestedTypes)
                 ProcessType(context, nestedType, allowExtraHeuristics);
 
             if (context.RenamedTypes.ContainsKey(originalType)) return;
-            
+
             var unobfuscatedName = GetUnobfuscatedNameBase(context, originalType, allowExtraHeuristics);
             if (unobfuscatedName == null) return;
-                    
-            context.RenameGroups.GetOrCreate(((object) originalType.DeclaringType ?? originalType.Namespace, unobfuscatedName, originalType.GenericParameters.Count), _ => new List<TypeDefinition>()).Add(originalType);
+
+            context.RenameGroups.GetOrCreate(((object)originalType.DeclaringType ?? originalType.Namespace, unobfuscatedName, originalType.GenericParameters.Count), _ => new List<TypeDefinition>()).Add(originalType);
             context.RenamedTypes[originalType] = unobfuscatedName;
         }
 
@@ -62,7 +62,7 @@ namespace Il2CppInterop.Generator.Passes
             }
 
             var unobfuscatedInterfacesList = typeDefinition.Interfaces.Select(it => it.InterfaceType).Where(it => !it.Name.IsObfuscated(context.Options));
-            var accessName = ClassAccessNames[(int) (typeDefinition.Attributes & TypeAttributes.VisibilityMask)];
+            var accessName = ClassAccessNames[(int)(typeDefinition.Attributes & TypeAttributes.VisibilityMask)];
 
             var classifier = typeDefinition.IsInterface ? "Interface" : (typeDefinition.IsValueType ? "Struct" : "Class");
             var compilerGenertaedString = typeDefinition.Name.StartsWith("<") ? "CompilerGenerated" : "";
@@ -79,7 +79,7 @@ namespace Il2CppInterop.Generator.Passes
             nameBuilder.Append(abstractString);
             nameBuilder.Append(sealedString);
             nameBuilder.Append(specialNameString);
-            foreach (var interfaceRef in unobfuscatedInterfacesList) 
+            foreach (var interfaceRef in unobfuscatedInterfacesList)
                 nameBuilder.Append(interfaceRef.GenericNameToStrings(context).ConcatAll());
 
             var uniqContext = new UniquificationContext(options);
@@ -87,13 +87,13 @@ namespace Il2CppInterop.Generator.Passes
             {
                 if (!typeDefinition.IsEnum)
                     uniqContext.Push(fieldDef.FieldType.GenericNameToStrings(context));
-                
+
                 uniqContext.Push(fieldDef.Name);
-                
+
                 if (uniqContext.CheckFull()) break;
             }
 
-            if (typeDefinition.IsEnum) 
+            if (typeDefinition.IsEnum)
                 uniqContext.Push(typeDefinition.Fields.Count + "v");
 
             foreach (var propertyDef in typeDefinition.Properties)
@@ -118,7 +118,7 @@ namespace Il2CppInterop.Generator.Passes
                     }
                 }
             }
-            
+
             if (typeDefinition.IsInterface || allowExtraHeuristics) // method order on non-interface types appears to be unstable
                 foreach (var methodDefinition in typeDefinition.Methods)
                 {
@@ -147,8 +147,8 @@ namespace Il2CppInterop.Generator.Passes
         {
             var resolved = typeRef.Resolve();
             if (resolved != null && context.PreviousRenamedTypes.TryGetValue(resolved, out var rename))
-                return (rename.StableHash() % (ulong) Math.Pow(10, context.Options.TypeDeobfuscationCharsPerUniquifier)).ToString();
-            
+                return (rename.StableHash() % (ulong)Math.Pow(10, context.Options.TypeDeobfuscationCharsPerUniquifier)).ToString();
+
             return typeRef.Name;
         }
 
@@ -165,18 +165,18 @@ namespace Il2CppInterop.Generator.Passes
                     baseTypeName = baseTypeName.Substring(0, indexOfBacktick);
 
                 var entries = new List<string>();
-                
+
                 entries.Add(baseTypeName);
                 entries.Add(genericInstance.GenericArguments.Count.ToString());
-                foreach (var genericArgument in genericInstance.GenericArguments) 
+                foreach (var genericArgument in genericInstance.GenericArguments)
                     entries.AddRange(genericArgument.GenericNameToStrings(context));
                 return entries;
             }
 
             if (typeRef.NameOrRename(context).IsObfuscated(context.Options))
-                return new List<string> {"Obf"};
+                return new List<string> { "Obf" };
 
-            return new List<string> {typeRef.NameOrRename(context)};
+            return new List<string> { typeRef.NameOrRename(context) };
         }
     }
 }

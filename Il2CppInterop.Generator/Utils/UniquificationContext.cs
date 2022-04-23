@@ -24,15 +24,15 @@ namespace Il2CppInterop.Generator.Utils
         public void Push(string str, bool noSubstring = false)
         {
             if (str.IsInvalidInSource()) return;
-            
+
             var stringPrefix = noSubstring ? str : SubstringBounded(str, 0, myGeneratorOptions.TypeDeobfuscationCharsPerUniquifier);
             var currentCount = myUniquifiersCount[stringPrefix] = myUniquifiersCount.GetOrCreate(stringPrefix, _ => 0) + 1;
             myPrefixes.Add((stringPrefix, myUniquifiersCount.Count + currentCount * 2 + myPrefixes.Count / 100f));
         }
-        
+
         public void Push(List<string> strings, bool noSubstring = false)
         {
-            foreach (var str in strings) 
+            foreach (var str in strings)
                 Push(str, noSubstring);
         }
 
@@ -45,7 +45,7 @@ namespace Il2CppInterop.Generator.Utils
         {
             public int Compare((string, float) x, (string, float) y) => x.Item2.CompareTo(y.Item2);
         }
-        
+
         private static string SubstringBounded(string str, int startIndex, int length)
         {
             length = Math.Min(length, str.Length);

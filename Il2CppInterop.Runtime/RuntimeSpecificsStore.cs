@@ -22,7 +22,7 @@ namespace Il2CppInterop.Runtime
                 Lock.ExitReadLock();
             }
         }
-        
+
         public static bool IsInjected(IntPtr nativeClass)
         {
             Lock.EnterReadLock();

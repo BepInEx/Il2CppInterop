@@ -29,9 +29,9 @@ namespace Il2CppInterop.Runtime
         private static Type CreateDelegateType(MethodInfo managedMethodInner, bool addIntPtrForThis, bool addNamingDisambig)
         {
             var newType = ModuleBuilder.DefineType("Il2CppToManagedDelegate_" + ExtractSignature(managedMethodInner) + (addIntPtrForThis ? "HasThis" : "") + (addNamingDisambig ? "FromNative" : ""), TypeAttributes.Sealed | TypeAttributes.Public, typeof(MulticastDelegate));
-            newType.SetCustomAttribute(new CustomAttributeBuilder(typeof(UnmanagedFunctionPointerAttribute).GetConstructor(new []{typeof(CallingConvention)})!, new object[]{CallingConvention.Cdecl}));
+            newType.SetCustomAttribute(new CustomAttributeBuilder(typeof(UnmanagedFunctionPointerAttribute).GetConstructor(new[] { typeof(CallingConvention) })!, new object[] { CallingConvention.Cdecl }));
 
-            var ctor = newType.DefineConstructor(MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.Public, CallingConventions.HasThis, new []{typeof(object), typeof(IntPtr)});
+            var ctor = newType.DefineConstructor(MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.Public, CallingConventions.HasThis, new[] { typeof(object), typeof(IntPtr) });
             ctor.SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
             var parameterOffset = addIntPtrForThis ? 1 : 0;
@@ -40,7 +40,7 @@ namespace Il2CppInterop.Runtime
 
             if (addIntPtrForThis)
                 parameterTypes[0] = typeof(IntPtr);
-            
+
             parameterTypes[parameterTypes.Length - 1] = typeof(Il2CppMethodInfo*);
             for (var i = 0; i < managedParameters.Length; i++)
             {
@@ -58,14 +58,14 @@ namespace Il2CppInterop.Runtime
             newType.DefineMethod("BeginInvoke",
                 MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public,
                 CallingConventions.HasThis, typeof(IAsyncResult),
-                parameterTypes.Concat(new[] {typeof(AsyncCallback), typeof(object)}).ToArray()).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
+                parameterTypes.Concat(new[] { typeof(AsyncCallback), typeof(object) }).ToArray()).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
             newType.DefineMethod("EndInvoke",
                 MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public,
                 CallingConventions.HasThis,
                 managedMethodInner.ReturnType.IsValueType ? managedMethodInner.ReturnType : typeof(IntPtr),
-                new[] {typeof(IAsyncResult)}).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
-            
+                new[] { typeof(IAsyncResult) }).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
+
             return newType.CreateType();
         }
 
@@ -111,7 +111,7 @@ namespace Il2CppInterop.Runtime
                     ? managedParameters[i].ParameterType
                     : typeof(IntPtr);
             }
-            
+
             var trampoline = new DynamicMethod("(il2cpp delegate trampoline) " + ExtractSignature(managedMethod), MethodAttributes.Static, CallingConventions.Standard, returnType, parameterTypes, typeof(DelegateSupport), true);
             var bodyBuilder = trampoline.GetILGenerator();
 
@@ -125,7 +125,7 @@ namespace Il2CppInterop.Runtime
             for (var i = 0; i < managedParameters.Length; i++)
             {
                 var parameterType = managedParameters[i].ParameterType;
-                
+
                 bodyBuilder.Emit(OpCodes.Ldarg, i + 1);
                 if (parameterType == typeof(string))
                 {
@@ -137,14 +137,14 @@ namespace Il2CppInterop.Runtime
                     var labelDone = bodyBuilder.DefineLabel();
                     bodyBuilder.Emit(OpCodes.Brfalse, labelNull);
                     bodyBuilder.Emit(OpCodes.Ldarg, i + 1);
-                    bodyBuilder.Emit(OpCodes.Newobj, parameterType.GetConstructor(new[] {typeof(IntPtr)})!);
+                    bodyBuilder.Emit(OpCodes.Newobj, parameterType.GetConstructor(new[] { typeof(IntPtr) })!);
                     bodyBuilder.Emit(OpCodes.Br, labelDone);
                     bodyBuilder.MarkLabel(labelNull);
                     bodyBuilder.Emit(OpCodes.Ldnull);
                     bodyBuilder.MarkLabel(labelDone);
                 }
             }
-            
+
             bodyBuilder.Emit(OpCodes.Call, managedMethod);
 
             if (returnType == typeof(string))
@@ -177,9 +177,9 @@ namespace Il2CppInterop.Runtime
             bodyBuilder.Emit(OpCodes.Ldstr, "Exception in IL2CPP-to-Managed trampoline, not passing it to il2cpp: ");
             bodyBuilder.Emit(OpCodes.Ldloc, exceptionLocal);
             bodyBuilder.Emit(OpCodes.Callvirt, typeof(object).GetMethod(nameof(ToString))!);
-            bodyBuilder.Emit(OpCodes.Call, typeof(string).GetMethod(nameof(string.Concat), new []{typeof(string), typeof(string)})!);
+            bodyBuilder.Emit(OpCodes.Call, typeof(string).GetMethod(nameof(string.Concat), new[] { typeof(string), typeof(string) })!);
             bodyBuilder.Emit(OpCodes.Call, typeof(Logger).GetMethod(nameof(Logger.Error))!);
-            
+
             bodyBuilder.EndExceptionBlock();
 
             if (returnLocal != null)
@@ -190,15 +190,15 @@ namespace Il2CppInterop.Runtime
         }
 #endif
 
-        public static TIl2Cpp ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppObjectBase
+        public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppObjectBase
         {
 #if !MINI
             if (@delegate == null)
                 return null;
-            
-            if(!typeof(Il2CppSystem.Delegate).IsAssignableFrom(typeof(TIl2Cpp)))
+
+            if (!typeof(Il2CppSystem.Delegate).IsAssignableFrom(typeof(TIl2Cpp)))
                 throw new ArgumentException($"{typeof(TIl2Cpp)} is not a delegate");
-            
+
             var managedInvokeMethod = @delegate.GetType().GetMethod("Invoke")!;
             var parameterInfos = managedInvokeMethod.GetParameters();
             foreach (var parameterInfo in parameterInfos)
@@ -206,7 +206,7 @@ namespace Il2CppInterop.Runtime
                 var parameterType = parameterInfo.ParameterType;
                 if (parameterType.IsGenericParameter)
                     throw new ArgumentException($"Delegate has unsubstituted generic parameter ({parameterType}) which is not supported");
-                
+
                 if (parameterType.BaseType == typeof(ValueType))
                     throw new ArgumentException($"Delegate has parameter of type {parameterType} (non-blittable struct) which is not supported");
             }
@@ -214,7 +214,7 @@ namespace Il2CppInterop.Runtime
             var classTypePtr = Il2CppClassPointerStore<TIl2Cpp>.NativeClassPtr;
             if (classTypePtr == IntPtr.Zero)
                 throw new ArgumentException($"Type {typeof(TIl2Cpp)} has uninitialized class pointer");
-            
+
             if (Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPtr == IntPtr.Zero)
                 ClassInjector.RegisterTypeInIl2Cpp<Il2CppToMonoDelegateReference>();
 
@@ -234,18 +234,18 @@ namespace Il2CppInterop.Runtime
                 {
                     if (nativeType.FullName != managedType.FullName)
                         throw new ArgumentException($"Parameter type mismatch at parameter {i}: {nativeType.FullName} != {managedType.FullName}");
-                    
+
                     continue;
                 }
 
-                var classPointerFromManagedType = (IntPtr) typeof(Il2CppClassPointerStore<>).MakeGenericType(managedType)
+                var classPointerFromManagedType = (IntPtr)typeof(Il2CppClassPointerStore<>).MakeGenericType(managedType)
                     .GetField(nameof(Il2CppClassPointerStore<int>.NativeClassPtr)).GetValue(null);
 
                 var classPointerFromNativeType = IL2CPP.il2cpp_class_from_type(nativeType._impl.value);
-                
+
                 if (classPointerFromManagedType != classPointerFromNativeType)
                     throw new ArgumentException($"Parameter type at {i} has mismatched native type pointers; types: {nativeType.FullName} != {managedType.FullName}");
-                
+
                 if (nativeType.IsByRef || managedType.IsByRef)
                     throw new ArgumentException($"Parameter at {i} is passed by reference, this is not supported");
             }
@@ -256,16 +256,16 @@ namespace Il2CppInterop.Runtime
 
             var methodInfo = UnityVersionHandler.NewMethod();
             methodInfo.MethodPointer = Marshal.GetFunctionPointerForDelegate(managedTrampoline);
-            methodInfo.ParametersCount = (byte) parameterInfos.Length;
+            methodInfo.ParametersCount = (byte)parameterInfos.Length;
             methodInfo.Slot = ushort.MaxValue;
             methodInfo.IsMarshalledFromNative = true;
-            
+
             var delegateReference = new Il2CppToMonoDelegateReference(@delegate, methodInfo.Pointer);
 
             Il2CppSystem.Delegate converted;
             if (UnityVersionHandler.MustUseDelegateConstructor)
             {
-                converted = ((TIl2Cpp) Activator.CreateInstance(typeof(TIl2Cpp), delegateReference.Cast<Object>(), methodInfo.Pointer)).Cast<Il2CppSystem.Delegate>();
+                converted = ((TIl2Cpp)Activator.CreateInstance(typeof(TIl2Cpp), delegateReference.Cast<Object>(), methodInfo.Pointer)).Cast<Il2CppSystem.Delegate>();
             }
             else
             {
@@ -306,7 +306,7 @@ namespace Il2CppInterop.Runtime
                 ConstructedFromNative = true;
             }
 #endif
-            
+
             public MethodSignature(MethodInfo methodInfo, bool hasThis)
             {
                 HasThis = hasThis;
@@ -334,7 +334,7 @@ namespace Il2CppInterop.Runtime
                 if (ReferenceEquals(null, obj)) return false;
                 if (ReferenceEquals(this, obj)) return true;
                 if (obj.GetType() != GetType()) return false;
-                return Equals((MethodSignature) obj);
+                return Equals((MethodSignature)obj);
             }
 
             public override int GetHashCode()
@@ -365,7 +365,7 @@ namespace Il2CppInterop.Runtime
         {
             public Delegate ReferencedDelegate;
             public IntPtr MethodInfo;
-            
+
             public Il2CppToMonoDelegateReference(IntPtr obj0) : base(obj0)
             {
             }
@@ -373,7 +373,7 @@ namespace Il2CppInterop.Runtime
             public Il2CppToMonoDelegateReference(Delegate referencedDelegate, IntPtr methodInfo) : base(ClassInjector.DerivedConstructorPointer<Il2CppToMonoDelegateReference>())
             {
                 ClassInjector.DerivedConstructorBody(this);
-                
+
                 ReferencedDelegate = referencedDelegate;
                 MethodInfo = methodInfo;
             }

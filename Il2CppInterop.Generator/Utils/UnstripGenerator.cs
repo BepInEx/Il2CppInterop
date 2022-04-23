@@ -13,13 +13,13 @@ namespace Il2CppInterop.Generator.Utils
         public static TypeDefinition CreateDelegateTypeForICallMethod(MethodDefinition unityMethod, MethodDefinition convertedMethod, AssemblyKnownImports imports)
         {
             var delegateType = new TypeDefinition("", unityMethod.Name + "Delegate", TypeAttributes.Sealed | TypeAttributes.NestedPrivate, imports.MulticastDelegate);
-            
+
             var constructor = new MethodDefinition(".ctor", MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.Public, imports.Void);
             constructor.Parameters.Add(new ParameterDefinition(imports.Object));
             constructor.Parameters.Add(new ParameterDefinition(imports.IntPtr));
             constructor.ImplAttributes = MethodImplAttributes.CodeTypeMask;
             delegateType.Methods.Add(constructor);
-            
+
             var invokeMethod = new MethodDefinition("Invoke", MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public, imports.Void); // todo
             invokeMethod.ImplAttributes = MethodImplAttributes.CodeTypeMask;
             delegateType.Methods.Add(invokeMethod);
@@ -38,7 +38,7 @@ namespace Il2CppInterop.Generator.Utils
         public static void GenerateInvokerMethodBody(MethodDefinition newMethod, FieldDefinition delegateField, TypeDefinition delegateType, TypeRewriteContext enclosingType, AssemblyKnownImports imports)
         {
             var body = newMethod.Body.GetILProcessor();
-            
+
             body.Emit(OpCodes.Ldsfld, delegateField);
             if (newMethod.HasThis)
             {
@@ -52,7 +52,7 @@ namespace Il2CppInterop.Generator.Utils
             {
                 var param = newMethod.Parameters[i];
                 var paramType = param.ParameterType;
-                if(paramType.IsValueType || paramType.IsByReference && paramType.GetElementType().IsValueType)
+                if (paramType.IsValueType || paramType.IsByReference && paramType.GetElementType().IsValueType)
                     body.Emit(OpCodes.Ldarg, i + argOffset);
                 else
                 {
@@ -78,7 +78,7 @@ namespace Il2CppInterop.Generator.Utils
         {
             var delegateField = new FieldDefinition(delegateType.Name + "Field", FieldAttributes.Static | FieldAttributes.Private | FieldAttributes.InitOnly, delegateType);
             enclosingType.Fields.Add(delegateField);
-            
+
             var staticCtor = enclosingType.Methods.SingleOrDefault(it => it.Name == ".cctor");
             if (staticCtor == null)
             {
@@ -91,14 +91,14 @@ namespace Il2CppInterop.Generator.Utils
             var bodyProcessor = staticCtor.Body.GetILProcessor();
 
             bodyProcessor.Remove(staticCtor.Body.Instructions.Last()); // remove ret
-            
+
             bodyProcessor.Emit(OpCodes.Ldstr, GetICallSignature(unityMethod));
-            
+
             var methodRef = new GenericInstanceMethod(imports.Il2CppResolveICall);
             methodRef.GenericArguments.Add(delegateType);
             bodyProcessor.Emit(OpCodes.Call, enclosingType.Module.ImportReference(methodRef));
             bodyProcessor.Emit(OpCodes.Stsfld, delegateField);
-            
+
             bodyProcessor.Emit(OpCodes.Ret); // restore ret
 
             return delegateField;

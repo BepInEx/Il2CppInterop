@@ -13,23 +13,23 @@ namespace Il2CppInterop.Generator.Passes
         {
             int methodsUnstripped = 0;
             int methodsIgnored = 0;
-            
+
             foreach (var unityAssembly in context.UnityAssemblies.Assemblies)
             {
                 var processedAssembly = context.TryGetAssemblyByName(unityAssembly.Name.Name);
                 if (processedAssembly == null) continue;
                 var imports = processedAssembly.Imports;
-                
+
                 foreach (var unityType in unityAssembly.MainModule.Types)
                 {
                     var processedType = processedAssembly.TryGetTypeByName(unityType.FullName);
                     if (processedType == null) continue;
-                    
+
                     foreach (var unityMethod in unityType.Methods)
                     {
                         if (unityMethod.Name == ".cctor" || unityMethod.Name == ".ctor") continue;
                         if (unityMethod.IsAbstract) continue;
-                        
+
                         var processedMethod = processedType.TryGetMethodByUnityAssemblyMethod(unityMethod);
                         if (processedMethod != null) continue;
 
@@ -40,7 +40,7 @@ namespace Il2CppInterop.Generator.Passes
                             methodsIgnored++;
                             continue;
                         }
-                        
+
                         var newMethod = new MethodDefinition(unityMethod.Name, unityMethod.Attributes & ~MethodAttributes.MemberAccessMask | MethodAttributes.Public, returnType);
                         var hadBadParameter = false;
                         foreach (var unityMethodParameter in unityMethod.Parameters)
@@ -61,7 +61,7 @@ namespace Il2CppInterop.Generator.Passes
                             methodsIgnored++;
                             continue;
                         }
-                        
+
                         foreach (var unityMethodGenericParameter in unityMethod.GenericParameters)
                         {
                             var newParameter = new GenericParameter(unityMethodGenericParameter.Name, newMethod);
@@ -75,7 +75,7 @@ namespace Il2CppInterop.Generator.Passes
                                 if (newType != null)
                                     newParameter.Constraints.Add(new GenericParameterConstraint(newType));
                             }
-                            
+
                             newMethod.GenericParameters.Add(newParameter);
                         }
 
@@ -84,7 +84,7 @@ namespace Il2CppInterop.Generator.Passes
                             var delegateType = UnstripGenerator.CreateDelegateTypeForICallMethod(unityMethod, newMethod, imports);
                             processedType.NewType.NestedTypes.Add(delegateType);
                             delegateType.DeclaringType = processedType.NewType;
-                        
+
                             processedType.NewType.Methods.Add(newMethod);
 
                             var delegateField = UnstripGenerator.GenerateStaticCtorSuffix(processedType.NewType, delegateType, unityMethod, imports);
@@ -98,7 +98,7 @@ namespace Il2CppInterop.Generator.Passes
 
                         if (unityMethod.IsGetter)
                             GetOrCreateProperty(unityMethod, newMethod).GetMethod = newMethod;
-                        else if(unityMethod.IsSetter)
+                        else if (unityMethod.IsSetter)
                             GetOrCreateProperty(unityMethod, newMethod).SetMethod = newMethod;
 
                         var paramsMethod = context.CreateParamsMethod(unityMethod, newMethod, imports, type => ResolveTypeInNewAssemblies(context, type, imports));
@@ -111,7 +111,7 @@ namespace Il2CppInterop.Generator.Passes
                     }
                 }
             }
-            
+
             Logger.Info(""); // finish the progress line
             Logger.Info($"{methodsUnstripped} methods restored");
             Logger.Info($"{methodsIgnored} methods failed to restore");
@@ -128,7 +128,7 @@ namespace Il2CppInterop.Generator.Passes
             }
 
             return newProperty;
-        } 
+        }
 
         internal static TypeReference? ResolveTypeInNewAssemblies(RewriteGlobalContext context, TypeReference unityType,
             AssemblyKnownImports imports)
@@ -158,7 +158,7 @@ namespace Il2CppInterop.Generator.Passes
                 var genericBase = resolvedElementType.IsValueType
                     ? imports.Il2CppStructArray
                     : imports.Il2CppReferenceArray;
-                return new GenericInstanceType(genericBase) { GenericArguments = { resolvedElementType }};
+                return new GenericInstanceType(genericBase) { GenericArguments = { resolvedElementType } };
             }
 
             if (unityType.DeclaringType != null)
@@ -210,7 +210,7 @@ namespace Il2CppInterop.Generator.Passes
 
             var targetAssembly = context.TryGetAssemblyByName(targetAssemblyName);
             var newType = targetAssembly?.TryGetTypeByName(unityType.FullName)?.NewType;
-            
+
             return newType;
         }
     }

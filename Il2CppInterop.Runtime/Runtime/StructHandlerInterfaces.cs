@@ -6,7 +6,7 @@ namespace Il2CppInterop.Runtime.Runtime
     {
         public int Size();
     }
-    
+
     public interface INativeStruct
     {
         IntPtr Pointer { get; }

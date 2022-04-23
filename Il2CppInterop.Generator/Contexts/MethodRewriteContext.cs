@@ -25,14 +25,14 @@ namespace Il2CppInterop.Generator.Contexts
 
         public string UnmangledName { get; private set; }
         public string UnmangledNameWithSignature { get; private set; }
-        
+
         public TypeDefinition? GenericInstantiationsStore { get; private set; }
         public TypeReference? GenericInstantiationsStoreSelfSubstRef { get; private set; }
         public TypeReference? GenericInstantiationsStoreSelfSubstMethodRef { get; private set; }
         public FieldReference NonGenericMethodInfoPointerField { get; private set; }
 
         public readonly List<XrefInstance> XrefScanResults = new List<XrefInstance>();
-        
+
         public bool HasExtensionAttribute { get; }
 
         public MethodRewriteContext(TypeRewriteContext declaringType, MethodDefinition originalMethod)
@@ -84,7 +84,7 @@ namespace Il2CppInterop.Generator.Contexts
 
             NewMethod.Name = UnmangledName;
             NewMethod.ReturnType = DeclaringType.AssemblyContext.RewriteTypeRef(OriginalMethod.ReturnType);
-                
+
             var nonGenericMethodInfoPointerField = new FieldDefinition(
                 "NativeMethodInfoPtr_" + UnmangledNameWithSignature,
                 FieldAttributes.Private | FieldAttributes.Static | FieldAttributes.InitOnly,
@@ -93,7 +93,7 @@ namespace Il2CppInterop.Generator.Contexts
 
             NonGenericMethodInfoPointerField = new FieldReference(nonGenericMethodInfoPointerField.Name,
                 nonGenericMethodInfoPointerField.FieldType, DeclaringType.SelfSubstitutedRef);
-            
+
             if (OriginalMethod.HasGenericParameters)
             {
                 var genericParams = OriginalMethod.GenericParameters;
@@ -101,7 +101,7 @@ namespace Il2CppInterop.Generator.Contexts
                 genericMethodInfoStoreType.DeclaringType = DeclaringType.NewType;
                 DeclaringType.NewType.NestedTypes.Add(genericMethodInfoStoreType);
                 GenericInstantiationsStore = genericMethodInfoStoreType;
-                
+
                 var selfSubstRef = new GenericInstanceType(genericMethodInfoStoreType);
                 var selfSubstMethodRef = new GenericInstanceType(genericMethodInfoStoreType);
 
@@ -113,11 +113,11 @@ namespace Il2CppInterop.Generator.Contexts
                     selfSubstRef.GenericArguments.Add(genericParameter);
                     var newParameter = NewMethod.GenericParameters[index];
                     selfSubstMethodRef.GenericArguments.Add(newParameter);
-                    
+
                     foreach (var oldConstraint in oldParameter.Constraints)
                     {
                         if (oldConstraint.ConstraintType.FullName == "System.ValueType" || oldConstraint.ConstraintType.Resolve()?.IsInterface == true) continue;
-                        
+
                         newParameter.Constraints.Add(new GenericParameterConstraint(
                             DeclaringType.AssemblyContext.RewriteTypeRef(oldConstraint.ConstraintType)));
                     }
@@ -129,7 +129,7 @@ namespace Il2CppInterop.Generator.Contexts
                 GenericInstantiationsStoreSelfSubstRef = DeclaringType.NewType.Module.ImportReference(selfSubstRef);
                 GenericInstantiationsStoreSelfSubstMethodRef = DeclaringType.NewType.Module.ImportReference(selfSubstMethodRef);
             }
-            
+
             DeclaringType.NewType.Methods.Add(NewMethod);
         }
 
@@ -150,17 +150,17 @@ namespace Il2CppInterop.Generator.Contexts
         private string UnmangleMethodName()
         {
             var method = OriginalMethod;
-            
+
             if (method.Name == "GetType" && method.Parameters.Count == 0)
                 return "GetIl2CppType";
-            
+
             if (DeclaringType.AssemblyContext.GlobalContext.Options.PassthroughNames)
                 return method.Name;
-            
+
             if (method.Name == ".ctor")
                 return ".ctor";
-            
-            if(method.Name.IsObfuscated(DeclaringType.AssemblyContext.GlobalContext.Options))
+
+            if (method.Name.IsObfuscated(DeclaringType.AssemblyContext.GlobalContext.Options))
                 return UnmangleMethodNameWithSignature();
 
             if (method.Name.IsInvalidInSource())
@@ -169,7 +169,7 @@ namespace Il2CppInterop.Generator.Contexts
             return method.Name;
         }
 
-        private static readonly string[] MethodAccessTypeLabels = { "CompilerControlled", "Private", "FamAndAssem", "Internal", "Protected", "FamOrAssem", "Public"};
+        private static readonly string[] MethodAccessTypeLabels = { "CompilerControlled", "Private", "FamAndAssem", "Internal", "Protected", "FamOrAssem", "Public" };
         private static readonly (MethodSemanticsAttributes, string)[] SemanticsToCheck =
         {
             (MethodSemanticsAttributes.Setter, "_set"),
@@ -182,7 +182,7 @@ namespace Il2CppInterop.Generator.Contexts
         private string ProduceMethodSignatureBase()
         {
             var method = OriginalMethod;
-            
+
             var name = method.Name;
             if (method.Name.IsObfuscated(DeclaringType.AssemblyContext.GlobalContext.Options))
                 name = "Method";
@@ -196,7 +196,7 @@ namespace Il2CppInterop.Generator.Contexts
             var builder = new StringBuilder();
             builder.Append(name);
             builder.Append('_');
-            builder.Append(MethodAccessTypeLabels[(int) (method.Attributes & MethodAttributes.MemberAccessMask)]);
+            builder.Append(MethodAccessTypeLabels[(int)(method.Attributes & MethodAttributes.MemberAccessMask)]);
             if (method.IsAbstract) builder.Append("_Abstract");
             if (method.IsVirtual) builder.Append("_Virtual");
             if (method.IsStatic) builder.Append("_Static");
@@ -208,20 +208,20 @@ namespace Il2CppInterop.Generator.Contexts
 
             builder.Append('_');
             builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(method.ReturnType).GetUnmangledName());
-            
+
             foreach (var param in method.Parameters)
             {
                 builder.Append('_');
                 builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(param.ParameterType).GetUnmangledName());
             }
-            
+
             var address = Rva;
             if (address != 0 && Pass15GenerateMemberContexts.HasObfuscatedMethods && !Pass16ScanMethodRefs.NonDeadMethods.Contains(address)) builder.Append("_PDM");
 
             return builder.ToString();
         }
 
-        
+
         private string UnmangleMethodNameWithSignature()
         {
             var unmangleMethodNameWithSignature = ProduceMethodSignatureBase() + "_" + DeclaringType.Methods.Where(ParameterSignatureMatchesThis).TakeWhile(it => it != this).Count();
@@ -230,15 +230,15 @@ namespace Il2CppInterop.Generator.Contexts
                 unmangleMethodNameWithSignature = newName;
             return unmangleMethodNameWithSignature;
         }
-        
+
         private bool ParameterSignatureMatchesThis(MethodRewriteContext otherRewriteContext)
         {
             var aM = otherRewriteContext.OriginalMethod;
             var bM = OriginalMethod;
-            
+
             if (!otherRewriteContext.OriginalNameObfuscated)
                 return false;
-            
+
             var comparisonMask = MethodAttributes.MemberAccessMask | MethodAttributes.Static | MethodAttributes.Final |
                                  MethodAttributes.Abstract | MethodAttributes.Virtual | MethodAttributes.NewSlot;
             if ((aM.Attributes & comparisonMask) !=
@@ -253,7 +253,7 @@ namespace Il2CppInterop.Generator.Contexts
 
             var a = aM.Parameters;
             var b = bM.Parameters;
-            
+
             if (a.Count != b.Count)
                 return false;
 

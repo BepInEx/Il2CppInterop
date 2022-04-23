@@ -8,21 +8,21 @@ namespace Il2CppInterop.Generator.Passes
         public static void DoPass(RewriteGlobalContext context)
         {
             foreach (var assemblyContext in context.Assemblies)
-            foreach (var typeContext in assemblyContext.Types)
-            {
-                ComputeSpecifics(typeContext);
-            }
+                foreach (var typeContext in assemblyContext.Types)
+                {
+                    ComputeSpecifics(typeContext);
+                }
         }
 
         private static void ComputeSpecifics(TypeRewriteContext typeContext)
         {
             if (typeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.NotComputed) return;
             typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.Computing;
-            
+
             foreach (var originalField in typeContext.OriginalType.Fields)
             {
-                if(originalField.IsStatic) continue;
-                
+                if (originalField.IsStatic) continue;
+
                 var fieldType = originalField.FieldType;
                 if (fieldType.IsPrimitive || fieldType.IsPointer) continue;
                 if (fieldType.FullName == "System.String" || fieldType.FullName == "System.Object" || fieldType.IsArray || fieldType.IsByReference || fieldType.IsGenericParameter || fieldType.IsGenericInstance)

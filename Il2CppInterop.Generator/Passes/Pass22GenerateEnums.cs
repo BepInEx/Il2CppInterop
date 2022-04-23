@@ -17,7 +17,7 @@ namespace Il2CppInterop.Generator.Passes
 
                     var type = typeContext.OriginalType;
                     var newType = typeContext.NewType;
-                    
+
                     if (type.CustomAttributes.Any(it => it.AttributeType.FullName == "System.FlagsAttribute"))
                         newType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.FlagsAttributeCtor));
 
@@ -26,10 +26,10 @@ namespace Il2CppInterop.Generator.Passes
                         var fieldName = fieldDefinition.Name;
                         if (!context.Options.PassthroughNames && fieldName.IsObfuscated(context.Options))
                             fieldName = GetUnmangledName(fieldDefinition);
-                        
+
                         if (context.Options.RenameMap.TryGetValue(typeContext.NewType.GetNamespacePrefix() + "." + typeContext.NewType.Name + "::" + fieldName, out var newName))
                             fieldName = newName;
-                        
+
                         var newDef = new FieldDefinition(fieldName, fieldDefinition.Attributes | FieldAttributes.HasDefault, assemblyContext.RewriteTypeRef(fieldDefinition.FieldType));
                         newType.Fields.Add(newDef);
 

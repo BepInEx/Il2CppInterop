@@ -21,28 +21,28 @@ namespace Il2CppInterop.Generator
             IIl2CppMetadataAccess inputAssemblies;
             using (new TimingCookie("Reading assemblies"))
                 inputAssemblies = new CecilMetadataAccess(options.Source);
-            
-            using(new TimingCookie("Creating assembly contexts"))
+
+            using (new TimingCookie("Creating assembly contexts"))
                 rewriteContext = new RewriteGlobalContext(options, inputAssemblies, NullMetadataAccess.Instance, NullMetadataAccess.Instance);
 
             for (var chars = 1; chars <= 3; chars++)
-            for (var uniq = 3; uniq <= 15; uniq++)
-            {
-                options.TypeDeobfuscationCharsPerUniquifier = chars;
-                options.TypeDeobfuscationMaxUniquifiers = uniq;
-                
-                rewriteContext.RenamedTypes.Clear();
-                rewriteContext.RenameGroups.Clear();
+                for (var uniq = 3; uniq <= 15; uniq++)
+                {
+                    options.TypeDeobfuscationCharsPerUniquifier = chars;
+                    options.TypeDeobfuscationMaxUniquifiers = uniq;
 
-                Pass05CreateRenameGroups.DoPass(rewriteContext);
+                    rewriteContext.RenamedTypes.Clear();
+                    rewriteContext.RenameGroups.Clear();
 
-                var uniqueTypes = rewriteContext.RenameGroups.Values.Count(it => it.Count == 1);
-                var nonUniqueTypes = rewriteContext.RenameGroups.Values.Count(it => it.Count > 1);
-                
-                Console.WriteLine($"Chars=\t{chars}\tMaxU=\t{uniq}\tUniq=\t{uniqueTypes}\tNonUniq=\t{nonUniqueTypes}");
-            }
+                    Pass05CreateRenameGroups.DoPass(rewriteContext);
+
+                    var uniqueTypes = rewriteContext.RenameGroups.Values.Count(it => it.Count == 1);
+                    var nonUniqueTypes = rewriteContext.RenameGroups.Values.Count(it => it.Count > 1);
+
+                    Console.WriteLine($"Chars=\t{chars}\tMaxU=\t{uniq}\tUniq=\t{uniqueTypes}\tNonUniq=\t{nonUniqueTypes}");
+                }
         }
-        
+
         public static void GenerateDeobfuscationMap(GeneratorOptions options)
         {
             if (options.Source == null || !options.Source.Any())
@@ -50,7 +50,7 @@ namespace Il2CppInterop.Generator
                 Console.WriteLine("No input specified; use -h for help");
                 return;
             }
-            
+
             if (string.IsNullOrEmpty(options.OutputDir))
             {
                 Console.WriteLine("No target dir specified; use -h for help");
@@ -70,30 +70,30 @@ namespace Il2CppInterop.Generator
             IIl2CppMetadataAccess systemAssemblies;
             using (new TimingCookie("Reading assemblies"))
                 inputAssemblies = new CecilMetadataAccess(Directory.EnumerateFiles(options.DeobfuscationNewAssembliesPath, "*.dll"));
-            
+
             using (new TimingCookie("Reading system assemblies"))
             {
-                if (!string.IsNullOrEmpty(options.SystemLibrariesPath)) 
+                if (!string.IsNullOrEmpty(options.SystemLibrariesPath))
                     systemAssemblies = new CecilMetadataAccess(Directory.EnumerateFiles(options.SystemLibrariesPath, "*.dll")
                         .Where(it => Path.GetFileName(it).StartsWith("System.") || Path.GetFileName(it) == "mscorlib.dll" || Path.GetFileName(it) == "netstandard.dll"));
                 else
-                    systemAssemblies = new CecilMetadataAccess(new[] {options.MscorlibPath});
+                    systemAssemblies = new CecilMetadataAccess(new[] { options.MscorlibPath });
 
             }
-            
-            using(new TimingCookie("Creating rewrite assemblies"))
+
+            using (new TimingCookie("Creating rewrite assemblies"))
                 rewriteContext = new RewriteGlobalContext(options, inputAssemblies, systemAssemblies, NullMetadataAccess.Instance);
-            using(new TimingCookie("Computing renames"))
+            using (new TimingCookie("Computing renames"))
                 Pass05CreateRenameGroups.DoPass(rewriteContext);
-            using(new TimingCookie("Creating typedefs"))
+            using (new TimingCookie("Creating typedefs"))
                 Pass10CreateTypedefs.DoPass(rewriteContext);
-            using(new TimingCookie("Computing struct blittability"))
+            using (new TimingCookie("Computing struct blittability"))
                 Pass11ComputeTypeSpecifics.DoPass(rewriteContext);
-            using(new TimingCookie("Filling typedefs"))
+            using (new TimingCookie("Filling typedefs"))
                 Pass12FillTypedefs.DoPass(rewriteContext);
-            using(new TimingCookie("Filling generic constraints"))
+            using (new TimingCookie("Filling generic constraints"))
                 Pass13FillGenericConstraints.DoPass(rewriteContext);
-            using(new TimingCookie("Creating members"))
+            using (new TimingCookie("Creating members"))
                 Pass15GenerateMemberContexts.DoPass(rewriteContext);
 
 
@@ -101,17 +101,17 @@ namespace Il2CppInterop.Generator
             IIl2CppMetadataAccess cleanAssemblies;
             using (new TimingCookie("Reading clean assemblies"))
                 cleanAssemblies = new CecilMetadataAccess(options.Source);
-            
-            using(new TimingCookie("Creating clean rewrite assemblies"))
+
+            using (new TimingCookie("Creating clean rewrite assemblies"))
                 cleanContext = new RewriteGlobalContext(options, cleanAssemblies, systemAssemblies, NullMetadataAccess.Instance);
-            using(new TimingCookie("Computing clean assembly renames"))
+            using (new TimingCookie("Computing clean assembly renames"))
                 Pass05CreateRenameGroups.DoPass(cleanContext);
-            using(new TimingCookie("Creating clean assembly typedefs"))
+            using (new TimingCookie("Creating clean assembly typedefs"))
                 Pass10CreateTypedefs.DoPass(cleanContext);
 
 
             var usedNames = new Dictionary<TypeDefinition, (string OldName, int Penalty, bool ForceNs)>();
-            
+
             using var fileOutput = new FileStream(options.OutputDir + Path.DirectorySeparatorChar + "RenameMap.csv.gz", FileMode.Create, FileAccess.Write);
             using var gzipStream = new GZipStream(fileOutput, CompressionLevel.Optimal, true);
             using var writer = new StreamWriter(gzipStream, Encoding.UTF8, 65536, true);
@@ -122,11 +122,11 @@ namespace Il2CppInterop.Generator
                 {
                     if (!originalTypeField.Name.IsObfuscated(obfuscatedType.AssemblyContext.GlobalContext.Options)) continue;
                     var matchedField = cleanType.OriginalType.Fields[obfuscatedType.OriginalType.Fields.IndexOf(originalTypeField)];
-                    
+
                     writer.WriteLine(obfuscatedType.NewType.GetNamespacePrefix() + "." + obfuscatedType.NewType.Name + "::" + Pass22GenerateEnums.GetUnmangledName(originalTypeField) + ";" + matchedField.Name + ";0");
                 }
             }
-            
+
             foreach (var assemblyContext in rewriteContext.Assemblies)
             {
                 if (options.DeobfuscationGenerationAssemblies.Count > 0 &&
@@ -141,29 +141,30 @@ namespace Il2CppInterop.Generator
 
                     var cleanType = FindBestMatchType(typeContext, cleanAssembly, enclosingType);
                     if (cleanType.Item1 == null) return;
-                    
+
                     if (!usedNames.TryGetValue(cleanType.Item1.NewType, out var existing) || existing.Item2 < cleanType.Item2)
                     {
                         usedNames[cleanType.Item1.NewType] = (typeContext.NewType.GetNamespacePrefix() + "." + typeContext.NewType.Name, cleanType.Item2, typeContext.OriginalType.Namespace != cleanType.Item1.OriginalType.Namespace);
-                    } else 
+                    }
+                    else
                         return;
 
-                    if (typeContext.OriginalType.IsEnum) 
+                    if (typeContext.OriginalType.IsEnum)
                         DoEnum(typeContext, cleanType.Item1);
 
                     foreach (var originalTypeNestedType in typeContext.OriginalType.NestedTypes)
                         DoType(typeContext.AssemblyContext.GetContextForOriginalType(originalTypeNestedType), cleanType.Item1);
                 }
-                
+
                 foreach (var typeContext in assemblyContext.Types)
                 {
-                    if(typeContext.NewType.DeclaringType != null) continue;
-                    
+                    if (typeContext.NewType.DeclaringType != null) continue;
+
                     DoType(typeContext, null);
                 }
             }
-            
-            
+
+
             foreach (var keyValuePair in usedNames)
                 writer.WriteLine(keyValuePair.Value.Item1 + ";" + (keyValuePair.Value.ForceNs ? keyValuePair.Key.Namespace + "." : "") + keyValuePair.Key.Name + ";" + keyValuePair.Value.Item2);
 
@@ -190,46 +191,46 @@ namespace Il2CppInterop.Generator
             TypeRewriteContext? bestMatch = null;
 
             var source = enclosingCleanType?.OriginalType.NestedTypes.Select(it => cleanAssembly.GlobalContext.GetNewTypeForOriginal(it)) ??
-                         cleanAssembly.Types.Where(it => it.NewType.DeclaringType == null); 
-            
+                         cleanAssembly.Types.Where(it => it.NewType.DeclaringType == null);
+
             foreach (var candidateCleanType in source)
             {
-                if(obfType.OriginalType.HasMethods != candidateCleanType.OriginalType.HasMethods)
+                if (obfType.OriginalType.HasMethods != candidateCleanType.OriginalType.HasMethods)
                     continue;
-                
-                if(obfType.OriginalType.HasFields != candidateCleanType.OriginalType.HasFields)
+
+                if (obfType.OriginalType.HasFields != candidateCleanType.OriginalType.HasFields)
                     continue;
-                
+
                 if (obfType.OriginalType.IsEnum)
                     if (obfType.OriginalType.Fields.Count != candidateCleanType.OriginalType.Fields.Count)
                         continue;
-                
+
                 int currentPenalty = 0;
-                
+
                 var tryBase = candidateCleanType.OriginalType.BaseType;
                 var actualBaseDepth = 0;
                 while (tryBase != null)
                 {
                     if (tryBase?.Name == currentBase?.Name && tryBase?.Namespace == currentBase?.Namespace)
                         break;
-                    
+
                     tryBase = tryBase?.Resolve().BaseType;
                     actualBaseDepth++;
                 }
-                
+
                 if (tryBase == null && currentBase != null)
                     continue;
 
                 var baseDepthDifference = Math.Abs(actualBaseDepth - inheritanceDepthOfOriginal);
-                if(baseDepthDifference > 1) continue; // heuristic optimization
+                if (baseDepthDifference > 1) continue; // heuristic optimization
                 currentPenalty -= baseDepthDifference * 50;
 
                 currentPenalty -= Math.Abs(candidateCleanType.OriginalType.Fields.Count - obfType.OriginalType.Fields.Count) * 5;
 
                 currentPenalty -= Math.Abs(obfType.OriginalType.NestedTypes.Count - candidateCleanType.OriginalType.NestedTypes.Count) * 10;
-                
+
                 currentPenalty -= Math.Abs(obfType.OriginalType.Properties.Count - candidateCleanType.OriginalType.Properties.Count) * 5;
-                
+
                 currentPenalty -= Math.Abs(obfType.OriginalType.Interfaces.Count - candidateCleanType.OriginalType.Interfaces.Count) * 35;
 
                 var options = obfType.AssemblyContext.GlobalContext.Options;
@@ -238,25 +239,25 @@ namespace Il2CppInterop.Generator
                 {
                     if (obfuscatedField.Name.IsObfuscated(options))
                     {
-                        
+
                         var bestFieldScore = candidateCleanType.OriginalType.Fields.Max(it => TypeMatchWeight(obfuscatedField.FieldType, it.FieldType, options));
                         currentPenalty += bestFieldScore * (bestFieldScore < 0 ? 10 : 2);
                         continue;
                     }
-                    
+
                     if (candidateCleanType.OriginalType.Fields.Any(it => it.Name == obfuscatedField.Name))
                         currentPenalty += 10;
                 }
-                
+
                 foreach (var obfuscatedMethod in obfType.OriginalType.Methods)
                 {
                     if (obfuscatedMethod.Name.Contains(".ctor")) continue;
-                    
+
                     if (obfuscatedMethod.Name.IsObfuscated(options))
                     {
                         var bestMethodScore = candidateCleanType.OriginalType.Methods.Max(it => MethodSignatureMatchWeight(obfuscatedMethod, it, options));
                         currentPenalty += bestMethodScore * (bestMethodScore < 0 ? 10 : 1);
-                        
+
                         continue;
                     }
 
@@ -267,7 +268,8 @@ namespace Il2CppInterop.Generator
                 if (currentPenalty == bestPenalty)
                 {
                     bestMatch = null;
-                } else if (currentPenalty > bestPenalty)
+                }
+                else if (currentPenalty > bestPenalty)
                 {
                     bestPenalty = currentPenalty;
                     bestMatch = candidateCleanType;
@@ -275,7 +277,7 @@ namespace Il2CppInterop.Generator
             }
 
             // if (bestPenalty < -100)
-                // bestMatch = null;
+            // bestMatch = null;
 
             return (bestMatch, bestPenalty);
         }
@@ -294,7 +296,7 @@ namespace Il2CppInterop.Generator
                 else
                     runningSum += i;
             }
-            
+
             switch (a)
             {
                 case ArrayType arr:
@@ -322,10 +324,10 @@ namespace Il2CppInterop.Generator
                     {
                         if (!b.IsNested)
                             return -1;
-                        
+
                         if (a.Name.IsObfuscated(options))
                             return 0;
-                        
+
                         var declMatch = TypeMatchWeight(a.DeclaringType, b.DeclaringType, options);
                         if (declMatch == -1 || a.Name != b.Name)
                             return -1;
@@ -356,7 +358,7 @@ namespace Il2CppInterop.Generator
                 else
                     runningSum += i;
             }
-            
+
             for (var i = 0; i < a.Parameters.Count; i++)
                 Accumulate(TypeMatchWeight(a.Parameters[i].ParameterType, b.Parameters[i].ParameterType, options));
 

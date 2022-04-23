@@ -7,7 +7,7 @@ namespace Il2CppInterop.Generator.MetadataAccess
     public class NullMetadataAccess : IMetadataAccess
     {
         public static readonly NullMetadataAccess Instance = new();
-        
+
         public void Dispose()
         {
         }

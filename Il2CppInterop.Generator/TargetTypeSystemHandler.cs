@@ -6,27 +6,27 @@ namespace Il2CppInterop.Generator
 {
     public static class TargetTypeSystemHandler
     {
-        public static TypeReference Void { get; private set; }
-        public static TypeReference IntPtr { get; private set; }
-        public static TypeDefinition String { get; private set; }
-        public static TypeDefinition Int { get; private set; }
-        public static TypeDefinition Long { get; private set; }
-        public static TypeDefinition Type { get; private set; }
-        public static TypeReference Object { get; private set; }
-        public static TypeReference Enum { get; private set; }
-        public static TypeReference ValueType { get; private set; }
-        public static TypeReference Delegate { get; private set; }
-        public static TypeReference MulticastDelegate { get; private set; }
-        public static TypeReference DefaultMemberAttribute { get; private set; }
-        public static TypeReference NotSupportedException { get; private set; }
-        public static TypeReference FlagsAttribute { get; private set; }
-        public static TypeReference ObsoleteAttribute { get; private set; }
+        public static TypeReference? Void { get; private set; }
+        public static TypeReference? IntPtr { get; private set; }
+        public static TypeDefinition? String { get; private set; }
+        public static TypeDefinition? Int { get; private set; }
+        public static TypeDefinition? Long { get; private set; }
+        public static TypeDefinition? Type { get; private set; }
+        public static TypeReference? Object { get; private set; }
+        public static TypeReference? Enum { get; private set; }
+        public static TypeReference? ValueType { get; private set; }
+        public static TypeReference? Delegate { get; private set; }
+        public static TypeReference? MulticastDelegate { get; private set; }
+        public static TypeReference? DefaultMemberAttribute { get; private set; }
+        public static TypeReference? NotSupportedException { get; private set; }
+        public static TypeReference? FlagsAttribute { get; private set; }
+        public static TypeReference? ObsoleteAttribute { get; private set; }
 
         public static void Init(IMetadataAccess systemLibraries)
         {
             var mscorlib = systemLibraries.GetAssemblyBySimpleName("mscorlib") ??
                            systemLibraries.GetAssemblyBySimpleName("netstandard") ?? throw new ArgumentException("System libraries metadata access doesn't contain mscorlib or netstandard");
-            
+
             Void = mscorlib.MainModule.TypeSystem.Void;
             IntPtr = mscorlib.MainModule.TypeSystem.IntPtr;
             String = mscorlib.MainModule.GetType("System.String");

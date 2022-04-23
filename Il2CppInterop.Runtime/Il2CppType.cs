@@ -7,7 +7,7 @@ namespace Il2CppInterop.Runtime
 #if !MINI
         public static Il2CppSystem.Type TypeFromPointer(IntPtr classPointer, string typeName = "<unknown type>") => TypeFromPointerInternal(classPointer, typeName, true);
 
-        private static Il2CppSystem.Type TypeFromPointerInternal(IntPtr classPointer, string typeName, bool throwOnFailure)
+        private static Il2CppSystem.Type? TypeFromPointerInternal(IntPtr classPointer, string typeName, bool throwOnFailure)
         {
             if (classPointer == IntPtr.Zero)
             {

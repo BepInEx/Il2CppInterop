@@ -10,7 +10,7 @@ namespace Il2CppInterop.Generator.MetadataAccess
         private readonly List<AssemblyDefinition> myAssemblies = new();
         private readonly Dictionary<string, AssemblyDefinition> myAssembliesByName = new();
         private readonly Dictionary<(string AssemblyName, string TypeName), TypeDefinition> myTypesByName = new();
-        
+
         public CecilMetadataAccess(IEnumerable<string> assemblyPaths)
         {
             var metadataResolver = new MetadataResolver(myAssemblyResolver);
@@ -33,7 +33,7 @@ namespace Il2CppInterop.Generator.MetadataAccess
                 myAssemblies.Add(sourceAssembly);
                 myAssembliesByName[sourceAssembly.Name.Name] = sourceAssembly;
             }
-            
+
             foreach (var sourceAssembly in myAssemblies)
             {
                 var sourceAssemblyName = sourceAssembly.Name.Name;
@@ -47,9 +47,9 @@ namespace Il2CppInterop.Generator.MetadataAccess
 
         public void Dispose()
         {
-            foreach (var assemblyDefinition in myAssemblies) 
+            foreach (var assemblyDefinition in myAssemblies)
                 assemblyDefinition.Dispose();
-            
+
             myAssemblies.Clear();
             myAssembliesByName.Clear();
             myAssemblyResolver.Dispose();
@@ -64,7 +64,7 @@ namespace Il2CppInterop.Generator.MetadataAccess
         public IList<GenericInstanceType>? GetKnownInstantiationsFor(TypeDefinition genericDeclaration) => null;
         public string? GetStringStoredAtAddress(long offsetInMemory) => null;
         public MethodReference? GetMethodRefStoredAt(long offsetInMemory) => null;
-        
+
         private class Resolver : DefaultAssemblyResolver
         {
             public void Register(AssemblyDefinition ass) => RegisterAssembly(ass);

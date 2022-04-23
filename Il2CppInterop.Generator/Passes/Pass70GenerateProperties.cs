@@ -17,7 +17,7 @@ namespace Il2CppInterop.Generator.Passes
                 {
                     var type = typeContext.OriginalType;
                     var propertyCountsByName = new Dictionary<string, int>();
-                    
+
                     foreach (var oldProperty in type.Properties)
                     {
                         var unmangledPropertyName = UnmanglePropertyName(assemblyContext, oldProperty, typeContext.NewType, propertyCountsByName);
@@ -27,7 +27,7 @@ namespace Il2CppInterop.Generator.Passes
                         foreach (var oldParameter in oldProperty.Parameters)
                             property.Parameters.Add(new ParameterDefinition(oldParameter.Name, oldParameter.Attributes,
                                 assemblyContext.RewriteTypeRef(oldParameter.ParameterType)));
-                        
+
                         typeContext.NewType.Properties.Add(property);
 
                         if (oldProperty.GetMethod != null)
@@ -57,7 +57,7 @@ namespace Il2CppInterop.Generator.Passes
                                 assemblyContext.Imports.DefaultMemberAttribute)
                             {
                                 HasThis = true,
-                                Parameters = {new ParameterDefinition(assemblyContext.Imports.String)}
+                                Parameters = { new ParameterDefinition(assemblyContext.Imports.String) }
                             })
                         {
                             ConstructorArguments = { new CustomAttributeArgument(assemblyContext.Imports.String, defaultMemberName) }
@@ -66,7 +66,7 @@ namespace Il2CppInterop.Generator.Passes
                 }
             }
         }
-        
+
         private static string UnmanglePropertyName(AssemblyRewriteContext assemblyContext, PropertyDefinition prop, TypeReference declaringType, Dictionary<string, int> countsByBaseName)
         {
             if (assemblyContext.GlobalContext.Options.PassthroughNames || !prop.Name.IsObfuscated(assemblyContext.GlobalContext.Options)) return prop.Name;
@@ -75,12 +75,12 @@ namespace Il2CppInterop.Generator.Passes
 
             countsByBaseName.TryGetValue(baseName, out var index);
             countsByBaseName[baseName] = index + 1;
-            
+
             var unmanglePropertyName = baseName + "_" + index;
-                        
+
             if (assemblyContext.GlobalContext.Options.RenameMap.TryGetValue(declaringType.GetNamespacePrefix() + "::" + unmanglePropertyName, out var newName))
                 unmanglePropertyName = newName;
-            
+
             return unmanglePropertyName;
         }
     }

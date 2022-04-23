@@ -18,12 +18,12 @@ namespace Il2CppInterop.Generator.Passes
                     var emptyCtor = new MethodDefinition(".ctor",
                         MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName |
                         MethodAttributes.HideBySig, assemblyContext.Imports.Void);
-                    
+
                     typeContext.NewType.Methods.Add(emptyCtor);
 
                     var local0 = new VariableDefinition(assemblyContext.Imports.IntPtr);
                     emptyCtor.Body.Variables.Add(local0);
-                    
+
                     var bodyBuilder = emptyCtor.Body.GetILProcessor();
                     bodyBuilder.Emit(OpCodes.Ldsfld, typeContext.ClassPointerFieldRef);
                     bodyBuilder.Emit(OpCodes.Ldc_I4_0);
@@ -36,7 +36,7 @@ namespace Il2CppInterop.Generator.Passes
                     bodyBuilder.Emit(OpCodes.Ldsfld, typeContext.ClassPointerFieldRef);
                     bodyBuilder.Emit(OpCodes.Ldloc_0);
                     bodyBuilder.Emit(OpCodes.Call, assemblyContext.Imports.ObjectBox);
-                    bodyBuilder.Emit(OpCodes.Call, new MethodReference(".ctor", assemblyContext.Imports.Void, typeContext.NewType.BaseType) { HasThis = true, Parameters = { new ParameterDefinition(assemblyContext.Imports.IntPtr) }});
+                    bodyBuilder.Emit(OpCodes.Call, new MethodReference(".ctor", assemblyContext.Imports.Void, typeContext.NewType.BaseType) { HasThis = true, Parameters = { new ParameterDefinition(assemblyContext.Imports.IntPtr) } });
                     bodyBuilder.Emit(OpCodes.Ret);
                 }
             }

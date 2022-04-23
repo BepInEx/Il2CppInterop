@@ -11,7 +11,7 @@ namespace Il2CppInterop.Generator.Utils
         public static bool TranslateMethod(MethodDefinition original, MethodDefinition target, TypeRewriteContext typeRewriteContext, AssemblyKnownImports imports)
         {
             if (!original.HasBody) return true;
-            
+
             var globalContext = typeRewriteContext.AssemblyContext.GlobalContext;
             foreach (var variableDefinition in original.Body.Variables)
             {
@@ -19,13 +19,13 @@ namespace Il2CppInterop.Generator.Utils
                 if (variableType == null) return false;
                 target.Body.Variables.Add(new VariableDefinition(variableType));
             }
-            
+
             var targetBuilder = target.Body.GetILProcessor();
             foreach (var bodyInstruction in original.Body.Instructions)
             {
                 if (bodyInstruction.OpCode.OperandType == OperandType.InlineField)
                 {
-                    var fieldArg = (FieldReference) bodyInstruction.Operand;
+                    var fieldArg = (FieldReference)bodyInstruction.Operand;
                     var fieldDeclarer = Pass80UnstripMethods.ResolveTypeInNewAssembliesRaw(globalContext, fieldArg.DeclaringType, imports);
                     if (fieldDeclarer == null) return false;
                     var newField = fieldDeclarer.Resolve().Fields.SingleOrDefault(it => it.Name == fieldArg.Name);
@@ -41,7 +41,8 @@ namespace Il2CppInterop.Generator.Utils
                             if (getterMethod == null) return false;
 
                             targetBuilder.Emit(OpCodes.Call, imports.Module.ImportReference(getterMethod));
-                        } else if (bodyInstruction.OpCode == OpCodes.Stfld || bodyInstruction.OpCode == OpCodes.Stsfld)
+                        }
+                        else if (bodyInstruction.OpCode == OpCodes.Stfld || bodyInstruction.OpCode == OpCodes.Stsfld)
                         {
                             var setterMethod = fieldDeclarer.Resolve().Properties.SingleOrDefault(it => it.Name == fieldArg.Name)?.SetMethod;
                             if (setterMethod == null) return false;
@@ -51,30 +52,32 @@ namespace Il2CppInterop.Generator.Utils
                         else
                             return false;
                     }
-                } else if (bodyInstruction.OpCode.OperandType == OperandType.InlineMethod)
+                }
+                else if (bodyInstruction.OpCode.OperandType == OperandType.InlineMethod)
                 {
-                    var methodArg = (MethodReference) bodyInstruction.Operand;
+                    var methodArg = (MethodReference)bodyInstruction.Operand;
                     var methodDeclarer = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArg.DeclaringType, imports);
                     if (methodDeclarer == null) return false; // todo: generic methods
 
                     var newReturnType = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArg.ReturnType, imports);
                     if (newReturnType == null) return false;
-                    
+
                     var newMethod = new MethodReference(methodArg.Name, newReturnType, methodDeclarer);
                     newMethod.HasThis = methodArg.HasThis;
                     foreach (var methodArgParameter in methodArg.Parameters)
                     {
                         var newParamType = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArgParameter.ParameterType, imports);
                         if (newParamType == null) return false;
-                        
+
                         var newParam = new ParameterDefinition(methodArgParameter.Name, methodArgParameter.Attributes, newParamType);
                         newMethod.Parameters.Add(newParam);
                     }
-                    
+
                     targetBuilder.Emit(bodyInstruction.OpCode, imports.Module.ImportReference(newMethod));
-                } else if (bodyInstruction.OpCode.OperandType == OperandType.InlineType)
+                }
+                else if (bodyInstruction.OpCode.OperandType == OperandType.InlineType)
                 {
-                    var targetType = (TypeReference) bodyInstruction.Operand;
+                    var targetType = (TypeReference)bodyInstruction.Operand;
                     if (targetType is GenericParameter genericParam)
                     {
                         if (genericParam.Owner is TypeReference paramOwner)
@@ -82,7 +85,8 @@ namespace Il2CppInterop.Generator.Utils
                             var newTypeOwner = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, paramOwner, imports);
                             if (newTypeOwner == null) return false;
                             targetType = newTypeOwner.GenericParameters.Single(it => it.Name == targetType.Name);
-                        } else
+                        }
+                        else
                             targetType = target.GenericParameters.Single(it => it.Name == targetType.Name);
                     }
                     else
@@ -93,20 +97,24 @@ namespace Il2CppInterop.Generator.Utils
 
                     if (bodyInstruction.OpCode == OpCodes.Castclass && !targetType.IsValueType)
                     {
-                        targetBuilder.Emit(OpCodes.Call, imports.Module.ImportReference(new GenericInstanceMethod(imports.Il2CppObjectCast) { GenericArguments = { targetType }}));
-                    } else if (bodyInstruction.OpCode == OpCodes.Isinst && !targetType.IsValueType)
+                        targetBuilder.Emit(OpCodes.Call, imports.Module.ImportReference(new GenericInstanceMethod(imports.Il2CppObjectCast) { GenericArguments = { targetType } }));
+                    }
+                    else if (bodyInstruction.OpCode == OpCodes.Isinst && !targetType.IsValueType)
                     {
-                        targetBuilder.Emit(OpCodes.Call, imports.Module.ImportReference(new GenericInstanceMethod(imports.Il2CppObjectTryCast) { GenericArguments = { targetType }}));
-                    } else
+                        targetBuilder.Emit(OpCodes.Call, imports.Module.ImportReference(new GenericInstanceMethod(imports.Il2CppObjectTryCast) { GenericArguments = { targetType } }));
+                    }
+                    else
                         targetBuilder.Emit(bodyInstruction.OpCode, targetType);
-                } else if (bodyInstruction.OpCode.OperandType == OperandType.InlineSig)
+                }
+                else if (bodyInstruction.OpCode.OperandType == OperandType.InlineSig)
                 {
                     // todo: rewrite sig if this ever happens in unity types
                     return false;
-                } else if (bodyInstruction.OpCode.OperandType == OperandType.InlineTok)
+                }
+                else if (bodyInstruction.OpCode.OperandType == OperandType.InlineTok)
                 {
                     var targetTok = bodyInstruction.Operand as TypeReference;
-                    if (targetTok == null) 
+                    if (targetTok == null)
                         return false;
                     if (targetTok is GenericParameter genericParam)
                     {
@@ -115,7 +123,8 @@ namespace Il2CppInterop.Generator.Utils
                             var newTypeOwner = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, paramOwner, imports);
                             if (newTypeOwner == null) return false;
                             targetTok = newTypeOwner.GenericParameters.Single(it => it.Name == targetTok.Name);
-                        } else
+                        }
+                        else
                             targetTok = target.GenericParameters.Single(it => it.Name == targetTok.Name);
                     }
                     else
@@ -123,8 +132,8 @@ namespace Il2CppInterop.Generator.Utils
                         targetTok = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, targetTok, imports);
                         if (targetTok == null) return false;
                     }
-                    
-                    targetBuilder.Emit(OpCodes.Call, imports.Module.ImportReference(new GenericInstanceMethod(imports.LdTokUnstrippedImpl) { GenericArguments = { targetTok }}));
+
+                    targetBuilder.Emit(OpCodes.Call, imports.Module.ImportReference(new GenericInstanceMethod(imports.LdTokUnstrippedImpl) { GenericArguments = { targetTok } }));
                 }
                 else
                 {
@@ -140,7 +149,7 @@ namespace Il2CppInterop.Generator.Utils
             newMethod.Body.Variables.Clear();
             newMethod.Body.Instructions.Clear();
             var processor = newMethod.Body.GetILProcessor();
-            
+
             processor.Emit(OpCodes.Ldstr, "Method unstripping failed");
             processor.Emit(OpCodes.Newobj, imports.NotSupportedExceptionCtor);
             processor.Emit(OpCodes.Throw);

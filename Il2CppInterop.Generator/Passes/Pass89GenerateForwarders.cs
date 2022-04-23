@@ -16,7 +16,7 @@ namespace Il2CppInterop.Generator.Passes
             }
 
             var targetModule = targetAssembly.NewAssembly.MainModule;
-            
+
             foreach (var assemblyRewriteContext in context.Assemblies)
             {
                 if (!assemblyRewriteContext.NewAssembly.Name.Name.StartsWith("UnityEngine.")) continue;
@@ -35,13 +35,13 @@ namespace Il2CppInterop.Generator.Passes
         {
             foreach (var nested in mainModuleType.NestedTypes)
             {
-                if((nested.Attributes & TypeAttributes.VisibilityMask) != TypeAttributes.NestedPublic) continue;
-                
+                if ((nested.Attributes & TypeAttributes.VisibilityMask) != TypeAttributes.NestedPublic) continue;
+
                 var nestedImport = targetModule.ImportReference(nested);
                 var nestedExport = new ExportedType(nestedImport.Namespace, nestedImport.Name, nestedImport.Module, nestedImport.Scope) { Attributes = TypeAttributes.Forwarder };
-                nestedExport.DeclaringType = importedType; 
+                nestedExport.DeclaringType = importedType;
                 targetModule.ExportedTypes.Add(nestedExport);
-                
+
                 AddNestedTypes(nested, nestedExport, targetModule);
             }
         }

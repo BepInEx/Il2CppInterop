@@ -23,12 +23,12 @@ namespace Il2CppInterop.Generator.Utils
             {
                 var assembly = context.Assemblies.FirstOrDefault(it => it.OriginalAssembly.Name.Name == metadataInitCandidate.Assembly);
                 var unityObjectCctor = assembly?.TryGetTypeByName(metadataInitCandidate.Type)?.OriginalType.Methods.FirstOrDefault(it => it.Name == metadataInitCandidate.Method);
-                
-                if(unityObjectCctor == null) continue;
-                
+
+                if (unityObjectCctor == null) continue;
+
                 MetadataInitForMethodFileOffset =
-                    (IntPtr) ((long) XrefScannerLowLevel.JumpTargets((IntPtr) (gameAssemblyBase + unityObjectCctor.ExtractOffset())).First());
-                MetadataInitForMethodRva = (long) MetadataInitForMethodFileOffset - gameAssemblyBase - unityObjectCctor.ExtractOffset() + unityObjectCctor.ExtractRva();
+                    (IntPtr)((long)XrefScannerLowLevel.JumpTargets((IntPtr)(gameAssemblyBase + unityObjectCctor.ExtractOffset())).First());
+                MetadataInitForMethodRva = (long)MetadataInitForMethodFileOffset - gameAssemblyBase - unityObjectCctor.ExtractOffset() + unityObjectCctor.ExtractRva();
 
                 return;
             }
@@ -40,8 +40,8 @@ namespace Il2CppInterop.Generator.Utils
         {
             if (MetadataInitForMethodRva == 0)
                 FindMetadataInitForMethod(method.DeclaringType.AssemblyContext.GlobalContext, gameAssemblyBase);
-            
-            var codeStart = (IntPtr) (gameAssemblyBase + method.FileOffset);
+
+            var codeStart = (IntPtr)(gameAssemblyBase + method.FileOffset);
             var firstCall = XrefScannerLowLevel.JumpTargets(codeStart).FirstOrDefault();
             if (firstCall != MetadataInitForMethodFileOffset || firstCall == IntPtr.Zero) return (0, 0);
 
@@ -50,7 +50,7 @@ namespace Il2CppInterop.Generator.Utils
 
             if (tokenPointer == IntPtr.Zero || initFlagPointer == IntPtr.Zero) return (0, 0);
 
-            return ((long) initFlagPointer - gameAssemblyBase - method.FileOffset + method.Rva, (long) tokenPointer - gameAssemblyBase - method.FileOffset + method.Rva);
-        } 
+            return ((long)initFlagPointer - gameAssemblyBase - method.FileOffset + method.Rva, (long)tokenPointer - gameAssemblyBase - method.FileOffset + method.Rva);
+        }
     }
 }

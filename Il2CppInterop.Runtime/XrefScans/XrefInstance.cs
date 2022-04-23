@@ -19,18 +19,18 @@ namespace Il2CppInterop.Runtime.XrefScans
 
         internal XrefInstance RelativeToBase(long baseAddress)
         {
-            return new XrefInstance(Type, (IntPtr) ((long) Pointer - baseAddress), (IntPtr) ((long) FoundAt - baseAddress));
+            return new XrefInstance(Type, (IntPtr)((long)Pointer - baseAddress), (IntPtr)((long)FoundAt - baseAddress));
         }
 
 #if !MINI
-        public Il2CppSystem.Object ReadAsObject()
+        public Il2CppSystem.Object? ReadAsObject()
         {
             if (Type != XrefType.Global) throw new InvalidOperationException("Can't read non-global xref as object");
 
             var valueAtPointer = Marshal.ReadIntPtr(Pointer);
             if (valueAtPointer == IntPtr.Zero)
                 return null;
-            
+
             return new Il2CppSystem.Object(valueAtPointer);
         }
 #endif

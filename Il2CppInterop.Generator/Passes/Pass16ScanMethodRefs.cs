@@ -25,7 +25,7 @@ namespace Il2CppInterop.Generator.Passes
                 Pass15GenerateMemberContexts.HasObfuscatedMethods = false;
                 return;
             }
-            
+
             using var mappedFile = MemoryMappedFile.CreateFromFile(options.GameAssemblyPath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
             using var accessor = mappedFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
 
@@ -35,16 +35,16 @@ namespace Il2CppInterop.Generator.Passes
             {
                 byte* fileStartPtr = null;
                 accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref fileStartPtr);
-                gameAssemblyPtr = (IntPtr) fileStartPtr;
+                gameAssemblyPtr = (IntPtr)fileStartPtr;
             }
-            
+
             context.HasGcWbarrierFieldWrite = FindByteSequence(gameAssemblyPtr, accessor.Capacity, nameof(IL2CPP.il2cpp_gc_wbarrier_set_field));
-            
+
             if (!Pass15GenerateMemberContexts.HasObfuscatedMethods) return;
 
             var methodToCallersMap = new ConcurrentDictionary<long, List<XrefInstance>>();
             var methodToCalleesMap = new ConcurrentDictionary<long, List<long>>();
-            
+
             context.MethodStartAddresses.Sort();
 
             // Scan xrefs
@@ -56,7 +56,7 @@ namespace Il2CppInterop.Generator.Passes
 
                     if (!options.NoXrefCache)
                     {
-                        var pair = XrefScanMetadataGenerationUtil.FindMetadataInitForMethod(originalTypeMethod, (long) gameAssemblyPtr);
+                        var pair = XrefScanMetadataGenerationUtil.FindMetadataInitForMethod(originalTypeMethod, (long)gameAssemblyPtr);
                         originalTypeMethod.MetadataInitFlagRva = pair.FlagRva;
                         originalTypeMethod.MetadataInitTokenRva = pair.TokenRva;
                     }
@@ -64,13 +64,13 @@ namespace Il2CppInterop.Generator.Passes
                     var nextMethodStart = context.MethodStartAddresses.BinarySearch(address + 1);
                     if (nextMethodStart < 0) nextMethodStart = ~nextMethodStart;
                     var length = nextMethodStart >= context.MethodStartAddresses.Count ? 1024 * 1024 : (context.MethodStartAddresses[nextMethodStart] - address);
-                    foreach (var callTargetGlobal in XrefScanner.XrefScanImpl(XrefScanner.DecoderForAddress(IntPtr.Add(gameAssemblyPtr, (int) address), (int) length), true))
+                    foreach (var callTargetGlobal in XrefScanner.XrefScanImpl(XrefScanner.DecoderForAddress(IntPtr.Add(gameAssemblyPtr, (int)address), (int)length), true))
                     {
-                        var callTarget = callTargetGlobal.RelativeToBase((long) gameAssemblyPtr + originalTypeMethod.FileOffset - originalTypeMethod.Rva);
+                        var callTarget = callTargetGlobal.RelativeToBase((long)gameAssemblyPtr + originalTypeMethod.FileOffset - originalTypeMethod.Rva);
                         if (callTarget.Type == XrefType.Method)
                         {
-                            var targetRelative = (long) callTarget.Pointer;
-                            methodToCallersMap.GetOrAdd(targetRelative, _ => new List<XrefInstance>()).AddLocked(new XrefInstance(XrefType.Method, (IntPtr) originalTypeMethod.Rva, callTarget.FoundAt));
+                            var targetRelative = (long)callTarget.Pointer;
+                            methodToCallersMap.GetOrAdd(targetRelative, _ => new List<XrefInstance>()).AddLocked(new XrefInstance(XrefType.Method, (IntPtr)originalTypeMethod.Rva, callTarget.FoundAt));
                             methodToCalleesMap.GetOrAdd(originalTypeMethod.Rva, _ => new List<long>()).AddLocked(targetRelative);
                         }
 
@@ -85,22 +85,22 @@ namespace Il2CppInterop.Generator.Passes
             {
                 if (!NonDeadMethods.Add(address)) return;
                 if (!methodToCalleesMap.TryGetValue(address, out var calleeList)) return;
-                
-                foreach (var callee in calleeList) 
+
+                foreach (var callee in calleeList)
                     MarkMethodAlive(callee);
             }
-            
+
             // Now decided which of them are possible dead code
             foreach (var assemblyRewriteContext in context.Assemblies)
-            foreach (var typeRewriteContext in assemblyRewriteContext.Types)
-            foreach (var methodRewriteContext in typeRewriteContext.Methods)
-            {
-                if (methodRewriteContext.FileOffset == 0) continue;
-                
-                var originalMethod = methodRewriteContext.OriginalMethod;
-                if (!originalMethod.Name.IsObfuscated(options) || originalMethod.IsVirtual)
-                    MarkMethodAlive(methodRewriteContext.Rva);
-            }
+                foreach (var typeRewriteContext in assemblyRewriteContext.Types)
+                    foreach (var methodRewriteContext in typeRewriteContext.Methods)
+                    {
+                        if (methodRewriteContext.FileOffset == 0) continue;
+
+                        var originalMethod = methodRewriteContext.OriginalMethod;
+                        if (!originalMethod.Name.IsObfuscated(options) || originalMethod.IsVirtual)
+                            MarkMethodAlive(methodRewriteContext.Rva);
+                    }
         }
 
         private unsafe static bool FindByteSequence(IntPtr basePtr, long length, string str)
@@ -116,8 +116,8 @@ namespace Il2CppInterop.Generator.Passes
                 }
 
                 return true;
-                
-                next: ;
+
+            next:;
             }
 
             return false;

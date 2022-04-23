@@ -11,10 +11,10 @@ namespace Il2CppInterop.Runtime.Maps
         public const int Magic = 0x43584D55; // UMXC
         public const int Version = 1;
         public const string FileName = "MethodXrefScanCache.db";
-        
+
         private readonly MemoryMappedFile myMapFile;
         private readonly MemoryMappedViewAccessor myAccessor;
-        
+
         private unsafe MethodData* myData;
 
         public readonly FileHeader Header;
@@ -33,13 +33,13 @@ namespace Il2CppInterop.Runtime.Maps
                 myMapFile.Dispose();
                 throw new FileLoadException($"File magic mismatched for {filePath}; Expected {Magic:X}, got {Header.Magic:X}");
             }
-            
+
             if (Header.Version != Version)
             {
                 myMapFile.Dispose();
                 throw new FileLoadException($"File version mismatched for {filePath}; Expected {Version}, got {Header.Version}");
             }
-            
+
             var offset = Marshal.SizeOf<FileHeader>();
 
             unsafe
@@ -48,7 +48,7 @@ namespace Il2CppInterop.Runtime.Maps
 
                 myAccessor.SafeMemoryMappedViewHandle.AcquirePointer(ref pointersPointer);
 
-                myData = (MethodData*) (pointersPointer + offset);
+                myData = (MethodData*)(pointersPointer + offset);
             }
         }
 
@@ -106,15 +106,15 @@ namespace Il2CppInterop.Runtime.Maps
 
             public XrefInstance AsXrefInstance(long baseAddress)
             {
-                return new XrefInstance(Type, (IntPtr) (baseAddress + Address), (IntPtr) (baseAddress + FoundAt));
+                return new XrefInstance(Type, (IntPtr)(baseAddress + Address), (IntPtr)(baseAddress + FoundAt));
             }
 
             public static MethodData FromXrefInstance(XrefInstance instance)
             {
                 return new MethodData
                 {
-                    Address = (long) instance.Pointer,
-                    FoundAt = (long) instance.FoundAt,
+                    Address = (long)instance.Pointer,
+                    FoundAt = (long)instance.FoundAt,
                     Type = instance.Type
                 };
             }

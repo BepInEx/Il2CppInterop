@@ -18,18 +18,18 @@ namespace Il2CppInterop.Runtime.XrefScans
         {
             var fieldValue = Il2CppInteropUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(methodBase)?.GetValue(null);
             if (fieldValue == null) return Enumerable.Empty<XrefInstance>();
-            
+
             var cachedAttribute = methodBase.GetCustomAttribute<CachedScanResultsAttribute>(false);
             if (cachedAttribute == null)
             {
                 XrefScanMetadataRuntimeUtil.CallMetadataInitForMethod(methodBase);
-                
-                return XrefScanImpl(DecoderForAddress(*(IntPtr*) (IntPtr) fieldValue));
+
+                return XrefScanImpl(DecoderForAddress(*(IntPtr*)(IntPtr)fieldValue));
             }
 
             if (cachedAttribute.XrefRangeStart == cachedAttribute.XrefRangeEnd)
                 return Enumerable.Empty<XrefInstance>();
-            
+
             XrefScanMethodDb.CallMetadataInitForMethod(cachedAttribute);
 
             return XrefScanMethodDb.CachedXrefScan(cachedAttribute).Where(it => it.Type == XrefType.Method || XrefGlobalClassFilter(it.Pointer));
@@ -47,11 +47,11 @@ namespace Il2CppInterop.Runtime.XrefScans
         internal static unsafe Decoder DecoderForAddress(IntPtr codeStart, int lengthLimit = 1000)
         {
             if (codeStart == IntPtr.Zero) throw new NullReferenceException(nameof(codeStart));
-            
-            var stream = new UnmanagedMemoryStream((byte*) codeStart, lengthLimit, lengthLimit, FileAccess.Read);
+
+            var stream = new UnmanagedMemoryStream((byte*)codeStart, lengthLimit, lengthLimit, FileAccess.Read);
             var codeReader = new StreamCodeReader(stream);
             var decoder = Decoder.Create(IntPtr.Size * 8, codeReader);
-            decoder.IP = (ulong) codeStart;
+            decoder.IP = (ulong)codeStart;
 
             return decoder;
         }
@@ -73,10 +73,10 @@ namespace Il2CppInterop.Runtime.XrefScans
                 {
                     var targetAddress = ExtractTargetAddress(instruction);
                     if (targetAddress != 0)
-                        yield return new XrefInstance(XrefType.Method, (IntPtr) targetAddress, (IntPtr) instruction.IP);
+                        yield return new XrefInstance(XrefType.Method, (IntPtr)targetAddress, (IntPtr)instruction.IP);
                     continue;
                 }
-                
+
                 if (instruction.FlowControl == FlowControl.UnconditionalBranch)
                     continue;
 
@@ -87,12 +87,12 @@ namespace Il2CppInterop.Runtime.XrefScans
                     {
                         if (instruction.Op1Kind == OpKind.Memory && instruction.IsIPRelativeMemoryOperand)
                         {
-                            var movTarget = (IntPtr) instruction.IPRelativeMemoryAddress;
-                            if (instruction.MemorySize != MemorySize.UInt64) 
+                            var movTarget = (IntPtr)instruction.IPRelativeMemoryAddress;
+                            if (instruction.MemorySize != MemorySize.UInt64)
                                 continue;
-                            
+
                             if (skipClassCheck || XrefGlobalClassFilter(movTarget))
-                                result = new XrefInstance(XrefType.Global, movTarget, (IntPtr) instruction.IP);
+                                result = new XrefInstance(XrefType.Global, movTarget, (IntPtr)instruction.IP);
                         }
                     }
                     catch (Exception ex)
@@ -108,10 +108,10 @@ namespace Il2CppInterop.Runtime.XrefScans
 
         internal static bool XrefGlobalClassFilter(IntPtr movTarget)
         {
-            var valueAtMov = (IntPtr) Marshal.ReadInt64(movTarget);
+            var valueAtMov = (IntPtr)Marshal.ReadInt64(movTarget);
             if (valueAtMov != IntPtr.Zero)
             {
-                var targetClass = (IntPtr) Marshal.ReadInt64(valueAtMov);
+                var targetClass = (IntPtr)Marshal.ReadInt64(valueAtMov);
                 return targetClass == Il2CppClassPointerStore<string>.NativeClassPtr ||
                        targetClass == Il2CppClassPointerStore<Type>.NativeClassPtr;
             }

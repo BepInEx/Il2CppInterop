@@ -6,7 +6,7 @@ namespace Il2CppInterop.Runtime.Attributes
     public class ObfuscatedNameAttribute : Attribute
     {
         public readonly string ObfuscatedName;
-        
+
         public ObfuscatedNameAttribute(string obfuscatedName)
         {
             ObfuscatedName = obfuscatedName;

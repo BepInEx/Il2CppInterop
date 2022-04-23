@@ -11,12 +11,12 @@ namespace Il2CppInterop.Generator.Passes
         private static readonly
             List<(MethodDefinition unityMethod, MethodDefinition newMethod, TypeRewriteContext processedType, AssemblyKnownImports imports)> StuffToProcess =
                 new List<(MethodDefinition unityMethod, MethodDefinition newMethod, TypeRewriteContext processedType, AssemblyKnownImports imports)>();
-        
+
         public static void DoPass(RewriteGlobalContext context)
         {
             int methodsSucceeded = 0;
             int methodsFailed = 0;
-            
+
             foreach (var (unityMethod, newMethod, processedType, imports) in StuffToProcess)
             {
                 var success = UnstripTranslator.TranslateMethod(unityMethod, newMethod, processedType, imports);
@@ -28,7 +28,7 @@ namespace Il2CppInterop.Generator.Passes
                 else
                     methodsSucceeded++;
             }
-            
+
             Logger.Info(""); // finish progress line
             Logger.Info($"IL unstrip statistics: {methodsSucceeded} successful, {methodsFailed} failed");
         }

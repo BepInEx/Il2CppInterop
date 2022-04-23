@@ -54,7 +54,7 @@ public static class InteropAssemblyGenerator
                         Path.GetFileName(it).StartsWith("System.") || Path.GetFileName(it) == "mscorlib.dll" ||
                         Path.GetFileName(it) == "netstandard.dll"));
             else
-                systemAssemblies = new CecilMetadataAccess(new[] {options.MscorlibPath});
+                systemAssemblies = new CecilMetadataAccess(new[] { options.MscorlibPath });
         }
 
         if (!string.IsNullOrEmpty(options.UnityBaseLibsDir))
