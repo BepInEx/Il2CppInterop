@@ -1,32 +1,24 @@
-# Il2CppAssemblyUnhollower
+# Il2CppInterop
 
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/BepInEx/Il2CppAssemblyUnhollower/.NET)](https://github.com/BepInEx/Il2CppAssemblyUnhollower/actions/workflows/dotnet.yml)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/BepInEx/Il2CppAssemblyUnhollower)](https://github.com/BepInEx/Il2CppAssemblyUnhollower/releases)
-[![BepInEx NuGet (Tool)](https://img.shields.io/badge/NuGet-Tool-brightgreen)](https://nuget.bepinex.dev/packages/Il2CppAssemblyUnhollower.Tool)
-[![BepInEx NuGet (RuntimeLib)](https://img.shields.io/badge/NuGet-RuntimeLib-brightgreen)](https://nuget.bepinex.dev/packages/Il2CppAssemblyUnhollower.BaseLib)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/BepInEx/Il2CppInterop/.NET)](https://github.com/BepInEx/Il2CppInterop/actions/workflows/dotnet.yml)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/BepInEx/Il2CppInterop)](https://github.com/BepInEx/Il2CppInterop/releases)
+[![BepInEx NuGet (Tool)](https://img.shields.io/badge/NuGet-Tool-brightgreen)](https://nuget.bepinex.dev/packages/Il2CppInterop.Tool)
+[![BepInEx NuGet (RuntimeLib)](https://img.shields.io/badge/NuGet-RuntimeLib-brightgreen)](https://nuget.bepinex.dev/packages/Il2CppInterop.BaseLib)
 
-A tool to generate Managed->IL2CPP proxy assemblies from
- [Il2CppDumper](https://github.com/Perfare/Il2CppDumper)'s or [Cpp2IL](https://github.com/SamboyCoding/Cpp2IL)'s output.
+A tool to generate Managed->IL2CPP proxy assemblies from [Cpp2IL](https://github.com/SamboyCoding/Cpp2IL)'s output.
 
 This allows the use of IL2CPP domain and objects in it from a managed domain. 
 This includes generic types and methods, arrays, and new object creation. Some things may be horribly broken. 
  
-This project is a fork of [knah/Il2CppAssemblyUnhollower](https://github.com/knah/Il2CppAssemblyUnhollower) with some additional features and modifications by BepInEx users.
-The main changes and features are:
-
-* Optimizations for running Unhollower as a library instead of CLI
-  * CLI is now a separate tool from the main library 
-* Support for inheriting abstract classes
-* Cleaned up `RegisterTypeInIl2Cpp` API
-* Fast release schedule: CI builds on GitHub, releases on NuGet
+This project started out as fork of [knah/Il2CppAssemblyUnhollower](https://github.com/knah/Il2CppAssemblyUnhollower) but has been since forked as a separate project.
 
 ## Usage
   0. Obtain a release using one of the following methods
-     * Download latest AssemblyUnhollower release from [GitHub releases](https://github.com/BepInEx/Il2CppAssemblyUnhollower/releases)
-     * Reference tool and libraries in your projects via BepInEx NuGet: [Il2CppAssemblyUnhollower.Tool](https://nuget.bepinex.dev/packages/Il2CppAssemblyUnhollower.Tool); [Il2CppAssemblyUnhollower.BaseLib](https://nuget.bepinex.dev/packages/Il2CppAssemblyUnhollower.BaseLib)
+     * Download latest Il2CppInterop release from [GitHub releases](https://github.com/BepInEx/Il2CppInterop/releases)
+     * Reference tool and libraries in your projects via BepInEx NuGet: [Il2CppInterop.Tool](https://nuget.bepinex.dev/packages/Il2CppInterop.Tool); [Il2CppInterop.BaseLib](https://nuget.bepinex.dev/packages/Il2CppInterop.BaseLib)
      * Clone this repository and build from source
   2. Obtain dummy assemblies using [Il2CppDumper](https://github.com/Perfare/Il2CppDumper) or [Cpp2IL](https://github.com/SamboyCoding/Cpp2IL)
-  3. Run `AssemblyUnhollower --input=<path to Il2CppDumper's or Cpp2IL's dummy dll dir> --output=<output directory> --mscorlib=<path to target mscorlib>`    
+  3. Run `Il2CppInterop --input=<path to Il2CppDumper's or Cpp2IL's dummy dll dir> --output=<output directory> --mscorlib=<path to target mscorlib>`    
        
  Resulting assemblies may be used with your favorite loader that offers a Mono domain in the IL2CPP game process, such as [MelonLoader](https://github.com/LavaGang/MelonLoader), [BepInEx](https://github.com/BepInEx/BepInEx) and any other IL2CPP modding tools.
 Generated assemblies appear to be invalid according to .NET Core/.NET Framework, but run fine on Mono.
@@ -37,7 +29,7 @@ Description:
   Generate Managed<->IL2CPP proxy assemblies from Il2CppDumper's or Cpp2IL's output.
 
 Usage:
-  AssemblyUnhollower.CLI [options]
+  Il2CppInterop.CLI [options]
 
 Options:
   --verbose                                  Produce more verbose output

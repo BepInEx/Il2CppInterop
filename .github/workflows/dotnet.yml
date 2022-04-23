@@ -37,7 +37,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         path: ./bin/zip/*.zip
-        name: Il2CppAssemblyUnhollower.${{ steps.get_version.outputs.version }}
+        name: Il2CppInterop.${{ steps.get_version.outputs.version }}
 
     - name: Push to NuGet
       if: startsWith(github.ref, 'refs/tags/')

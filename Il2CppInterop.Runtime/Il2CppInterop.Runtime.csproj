@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <PackageId>Il2CppInterop.Runtime</PackageId>
+        <Authors>knah et al.</Authors>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <TargetFrameworks>netstandard2.1;net472</TargetFrameworks>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <RootNamespace>Il2CppInterop.Runtime</RootNamespace>
+        <Configurations>Debug;Release;Mini</Configurations>
+        <Platforms>AnyCPU</Platforms>
+    </PropertyGroup>
+
+    <ItemGroup Condition=" '$(Configuration)' != 'Mini' ">
+        <Reference Include="Il2Cppmscorlib">
+            <Private>false</Private>
+            <HintPath>Libs\Il2Cppmscorlib.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Libs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Iced" Version="1.15.0" />
+        <PackageReference Include="IsExternalInit" Version="1.0.0">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+</Project>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <PackageId>Il2CppInterop.Generator</PackageId>
+        <Authors>knah et al.</Authors>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <TargetFrameworks>netstandard2.1;net472</TargetFrameworks>
+        <RootNamespace>Il2CppInterop.Generator</RootNamespace>
+        <Configurations>Debug;Release;Mini</Configurations>
+        <Platforms>AnyCPU</Platforms>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Mono.Cecil" Version="0.11.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Il2CppInterop.Runtime\Il2CppInterop.Runtime.csproj" />
+    </ItemGroup>
+</Project>

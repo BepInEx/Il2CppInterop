@@ -3,7 +3,7 @@
  ## Basic Usage
   0. Build or get a release
   1. Obtain dummy assemblies using [Il2CppDumper](https://github.com/Perfare/Il2CppDumper)
-  2. Run `AssemblyUnhollower --input=<path to Il2CppDumper's dummy dll dir> --output=<output directory> --mscorlib=<path to target mscorlib>`    
+  2. Run `Il2CppInterop --input=<path to Il2CppDumper's dummy dll dir> --output=<output directory> --mscorlib=<path to target mscorlib>`    
        
  Resulting assemblies may be used with your favorite loader that offers a Mono domain in the IL2CPP game process, such as [MelonLoader](https://github.com/HerpDerpinstine/MelonLoader).    
  This appears to be working reasonably well for Unity 2018.4.x games, but more extensive testing is required.  
