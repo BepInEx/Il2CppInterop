@@ -20,11 +20,11 @@ namespace UnhollowerBaseLib
             fixed (byte* message = ourMessageBytes)
                 IL2CPP.il2cpp_format_exception(exception, message, ourMessageBytes.Length);
             string builtMessage = Encoding.UTF8.GetString(ourMessageBytes, 0, Array.IndexOf(ourMessageBytes, (byte) 0));
-            fixed (byte* message = ourMessageBytes)
-                IL2CPP.il2cpp_format_stack_trace(exception, message, ourMessageBytes.Length);
-            builtMessage +=
-                "\n" + Encoding.UTF8.GetString(ourMessageBytes, 0, Array.IndexOf(ourMessageBytes, (byte) 0));
-            return builtMessage;
+            Il2CppSystem.Exception il2cppException = new(exception);
+            return builtMessage + "\n" +
+                $"--- BEGIN IL2CPP STACK TRACE ---\n" +
+                $"{il2cppException.StackTrace}\n" +
+                $"--- END IL2CPP STACK TRACE ---\n";
         }
 
         public static void RaiseExceptionIfNecessary(IntPtr returnedException)
