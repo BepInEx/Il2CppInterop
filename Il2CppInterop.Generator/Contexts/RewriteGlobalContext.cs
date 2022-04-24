@@ -13,7 +13,6 @@ namespace Il2CppInterop.Generator.Contexts
     {
         public GeneratorOptions Options { get; }
         public IIl2CppMetadataAccess GameAssemblies { get; }
-        public IMetadataAccess SystemAssemblies { get; }
         public IMetadataAccess UnityAssemblies { get; }
 
         private readonly Dictionary<string, AssemblyRewriteContext> myAssemblies = new Dictionary<string, AssemblyRewriteContext>();
@@ -29,14 +28,11 @@ namespace Il2CppInterop.Generator.Contexts
 
         internal bool HasGcWbarrierFieldWrite { get; set; }
 
-        public RewriteGlobalContext(GeneratorOptions options, IIl2CppMetadataAccess gameAssemblies, IMetadataAccess systemAssemblies, IMetadataAccess unityAssemblies)
+        public RewriteGlobalContext(GeneratorOptions options, IIl2CppMetadataAccess gameAssemblies, IMetadataAccess unityAssemblies)
         {
             Options = options;
             GameAssemblies = gameAssemblies;
-            SystemAssemblies = systemAssemblies;
             UnityAssemblies = unityAssemblies;
-
-            TargetTypeSystemHandler.Init(systemAssemblies);
 
             foreach (var sourceAssembly in gameAssemblies.Assemblies)
             {
@@ -124,7 +120,6 @@ namespace Il2CppInterop.Generator.Contexts
                 assembly.OriginalAssembly.Dispose();
             }
 
-            SystemAssemblies.Dispose();
             UnityAssemblies.Dispose();
         }
 
@@ -166,7 +161,7 @@ namespace Il2CppInterop.Generator.Contexts
 
                     if (isParams)
                     {
-                        parameter.CustomAttributes.Add(new CustomAttribute(imports.ParamArrayAttributeCtor));
+                        parameter.CustomAttributes.Add(new CustomAttribute(newMethod.Module.ParamArrayAttributeCtor()));
                     }
 
                     paramsMethod.Parameters.Add(parameter);

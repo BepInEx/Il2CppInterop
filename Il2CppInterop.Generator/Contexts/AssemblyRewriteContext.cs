@@ -95,19 +95,19 @@ namespace Il2CppInterop.Generator.Contexts
             }
 
             if (typeRef.IsPrimitive || typeRef.FullName == "System.TypedReference")
-                return sourceModule.ImportReference(TargetTypeSystemHandler.Object.Module.GetType(typeRef.Namespace, typeRef.Name));
+                return sourceModule.ImportCorlibReference(typeRef.Namespace, typeRef.Name);
 
             if (typeRef.FullName == "System.Void")
-                return Imports.Void;
+                return Imports.Module.Void();
 
             if (typeRef.FullName == "System.String")
-                return Imports.String;
+                return Imports.Module.String();
 
             if (typeRef.FullName == "System.Object")
-                return sourceModule.ImportReference(GlobalContext.GetAssemblyByName("mscorlib").GetTypeByName("System.Object").NewType);
+                return Imports.Module.Object();
 
             if (typeRef.FullName == "System.Attribute")
-                return sourceModule.ImportReference(GlobalContext.GetAssemblyByName("mscorlib").GetTypeByName("System.Attribute").NewType);
+                return Imports.Module.Attribute();
 
             var originalTypeDef = typeRef.Resolve();
             var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.Module.Assembly);

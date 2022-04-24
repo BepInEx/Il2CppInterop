@@ -46,14 +46,14 @@ namespace Il2CppInterop.Generator.Contexts
                                      (OriginalMethod?.Name?.IsObfuscated(declaringType.AssemblyContext.GlobalContext
                                          .Options) ?? false);
 
-            var newMethod = new MethodDefinition("", AdjustAttributes(originalMethod.Attributes, originalMethod.Name == "Finalize"), declaringType.AssemblyContext.Imports.Void);
+            var newMethod = new MethodDefinition("", AdjustAttributes(originalMethod.Attributes, originalMethod.Name == "Finalize"), declaringType.AssemblyContext.Imports.Module.Void());
             NewMethod = newMethod;
 
             HasExtensionAttribute = originalMethod.CustomAttributes.Any(x => x.AttributeType.FullName == typeof(ExtensionAttribute).FullName);
 
             if (HasExtensionAttribute)
             {
-                newMethod.CustomAttributes.Add(new CustomAttribute(declaringType.AssemblyContext.Imports.ExtensionAttributeCtor));
+                newMethod.CustomAttributes.Add(new CustomAttribute(declaringType.AssemblyContext.Imports.Module.ExtensionAttributeCtor()));
             }
 
             if (originalMethod.HasGenericParameters)
@@ -88,7 +88,7 @@ namespace Il2CppInterop.Generator.Contexts
             var nonGenericMethodInfoPointerField = new FieldDefinition(
                 "NativeMethodInfoPtr_" + UnmangledNameWithSignature,
                 FieldAttributes.Private | FieldAttributes.Static | FieldAttributes.InitOnly,
-                DeclaringType.AssemblyContext.Imports.IntPtr);
+                DeclaringType.AssemblyContext.Imports.Module.IntPtr());
             DeclaringType.NewType.Fields.Add(nonGenericMethodInfoPointerField);
 
             NonGenericMethodInfoPointerField = new FieldReference(nonGenericMethodInfoPointerField.Name,
@@ -97,7 +97,7 @@ namespace Il2CppInterop.Generator.Contexts
             if (OriginalMethod.HasGenericParameters)
             {
                 var genericParams = OriginalMethod.GenericParameters;
-                var genericMethodInfoStoreType = new TypeDefinition("", "MethodInfoStoreGeneric_" + UnmangledNameWithSignature + "`" + genericParams.Count, TypeAttributes.NestedPrivate | TypeAttributes.Sealed | TypeAttributes.BeforeFieldInit, DeclaringType.AssemblyContext.Imports.Object);
+                var genericMethodInfoStoreType = new TypeDefinition("", "MethodInfoStoreGeneric_" + UnmangledNameWithSignature + "`" + genericParams.Count, TypeAttributes.NestedPrivate | TypeAttributes.Sealed | TypeAttributes.BeforeFieldInit, DeclaringType.AssemblyContext.Imports.Module.Object());
                 genericMethodInfoStoreType.DeclaringType = DeclaringType.NewType;
                 DeclaringType.NewType.NestedTypes.Add(genericMethodInfoStoreType);
                 GenericInstantiationsStore = genericMethodInfoStoreType;
@@ -123,7 +123,7 @@ namespace Il2CppInterop.Generator.Contexts
                     }
                 }
 
-                var pointerField = new FieldDefinition("Pointer", FieldAttributes.Assembly | FieldAttributes.Static, DeclaringType.AssemblyContext.Imports.IntPtr);
+                var pointerField = new FieldDefinition("Pointer", FieldAttributes.Assembly | FieldAttributes.Static, DeclaringType.AssemblyContext.Imports.Module.IntPtr());
                 genericMethodInfoStoreType.Fields.Add(pointerField);
 
                 GenericInstantiationsStoreSelfSubstRef = DeclaringType.NewType.Module.ImportReference(selfSubstRef);

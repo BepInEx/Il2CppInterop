@@ -26,35 +26,16 @@ public static class InteropAssemblyGenerator
             return;
         }
 
-        if (string.IsNullOrEmpty(options.MscorlibPath) && string.IsNullOrEmpty(options.SystemLibrariesPath))
-        {
-            Console.WriteLine("No mscorlib or system libraries specified; use -h for help");
-            return;
-        }
-
         if (!Directory.Exists(options.OutputDir))
             Directory.CreateDirectory(options.OutputDir);
 
         RewriteGlobalContext rewriteContext;
         IIl2CppMetadataAccess gameAssemblies;
-        IMetadataAccess systemAssemblies;
         IMetadataAccess unityAssemblies;
 
         using (new TimingCookie("Reading assemblies"))
         {
             gameAssemblies = new CecilMetadataAccess(options.Source);
-        }
-
-        using (new TimingCookie("Reading system assemblies"))
-        {
-            if (!string.IsNullOrEmpty(options.SystemLibrariesPath))
-                systemAssemblies = new CecilMetadataAccess(Directory
-                    .EnumerateFiles(options.SystemLibrariesPath, "*.dll")
-                    .Where(it =>
-                        Path.GetFileName(it).StartsWith("System.") || Path.GetFileName(it) == "mscorlib.dll" ||
-                        Path.GetFileName(it) == "netstandard.dll"));
-            else
-                systemAssemblies = new CecilMetadataAccess(new[] { options.MscorlibPath });
         }
 
         if (!string.IsNullOrEmpty(options.UnityBaseLibsDir))
@@ -67,7 +48,7 @@ public static class InteropAssemblyGenerator
 
         using (new TimingCookie("Creating rewrite assemblies"))
         {
-            rewriteContext = new RewriteGlobalContext(options, gameAssemblies, systemAssemblies, unityAssemblies);
+            rewriteContext = new RewriteGlobalContext(options, gameAssemblies, unityAssemblies);
         }
 
         using (new TimingCookie("Computing renames"))

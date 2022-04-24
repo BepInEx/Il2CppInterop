@@ -31,7 +31,7 @@ namespace Il2CppInterop.Generator.Passes
                                 new CustomAttribute(assemblyContext.Imports.CallerCountAttributeCtor)
                                 {
                                     ConstructorArguments =
-                                        { new CustomAttributeArgument(assemblyContext.Imports.Int, callerCount) }
+                                        { new CustomAttributeArgument(assemblyContext.Imports.Module.Int(), callerCount) }
                                 });
 
                             if (!Pass15GenerateMemberContexts.HasObfuscatedMethods) continue;

@@ -19,7 +19,7 @@ namespace Il2CppInterop.Generator.Contexts
             OriginalField = originalField;
 
             UnmangledName = UnmangleFieldName(originalField, declaringType.AssemblyContext.GlobalContext.Options, renamedFieldCounts);
-            var pointerField = new FieldDefinition("NativeFieldInfoPtr_" + UnmangledName, FieldAttributes.Private | FieldAttributes.Static | FieldAttributes.InitOnly, declaringType.AssemblyContext.Imports.IntPtr);
+            var pointerField = new FieldDefinition("NativeFieldInfoPtr_" + UnmangledName, FieldAttributes.Private | FieldAttributes.Static | FieldAttributes.InitOnly, declaringType.AssemblyContext.Imports.Module.IntPtr());
 
             declaringType.NewType.Fields.Add(pointerField);
 

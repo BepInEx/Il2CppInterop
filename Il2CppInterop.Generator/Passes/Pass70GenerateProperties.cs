@@ -53,14 +53,14 @@ namespace Il2CppInterop.Generator.Passes
                     if (defaultMemberName != null)
                     {
                         typeContext.NewType.CustomAttributes.Add(new CustomAttribute(
-                            new MethodReference(".ctor", assemblyContext.Imports.Void,
-                                assemblyContext.Imports.DefaultMemberAttribute)
+                            new MethodReference(".ctor", assemblyContext.Imports.Module.Void(),
+                                assemblyContext.Imports.Module.DefaultMemberAttribute())
                             {
                                 HasThis = true,
-                                Parameters = { new ParameterDefinition(assemblyContext.Imports.String) }
+                                Parameters = { new ParameterDefinition(assemblyContext.Imports.Module.String()) }
                             })
                         {
-                            ConstructorArguments = { new CustomAttributeArgument(assemblyContext.Imports.String, defaultMemberName) }
+                            ConstructorArguments = { new CustomAttributeArgument(assemblyContext.Imports.Module.String(), defaultMemberName) }
                         });
                     }
                 }

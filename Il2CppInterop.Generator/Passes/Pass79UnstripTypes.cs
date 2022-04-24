@@ -77,10 +77,10 @@ namespace Il2CppInterop.Generator.Passes
 
         private static TypeDefinition CloneEnum(TypeDefinition sourceEnum, AssemblyKnownImports imports)
         {
-            var newType = new TypeDefinition(sourceEnum.Namespace, sourceEnum.Name, ForcePublic(sourceEnum.Attributes), imports.Enum);
+            var newType = new TypeDefinition(sourceEnum.Namespace, sourceEnum.Name, ForcePublic(sourceEnum.Attributes), imports.Module.Enum());
             foreach (var sourceEnumField in sourceEnum.Fields)
             {
-                var newField = new FieldDefinition(sourceEnumField.Name, sourceEnumField.Attributes, sourceEnumField.Name == "value__" ? TargetTypeSystemHandler.String.Module.GetType(sourceEnumField.FieldType.FullName) : newType);
+                var newField = new FieldDefinition(sourceEnumField.Name, sourceEnumField.Attributes, sourceEnumField.Name == "value__" ? imports.Module.ImportCorlibReference(sourceEnumField.FieldType.Namespace, sourceEnumField.FieldType.Name) : newType);
                 newField.Constant = sourceEnumField.Constant;
                 newType.Fields.Add(newField);
             }
@@ -109,7 +109,7 @@ namespace Il2CppInterop.Generator.Passes
         private static TypeDefinition CloneStatic(TypeDefinition sourceEnum, AssemblyKnownImports imports)
         {
             var newType = new TypeDefinition(sourceEnum.Namespace, sourceEnum.Name, ForcePublic(sourceEnum.Attributes),
-                sourceEnum.BaseType?.FullName == "System.ValueType" ? imports.ValueType : imports.Object);
+                sourceEnum.BaseType?.FullName == "System.ValueType" ? imports.Module.ValueType() : imports.Module.Object());
             return newType;
         }
 

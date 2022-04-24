@@ -15,7 +15,7 @@ namespace Il2CppInterop.Generator.Passes
             var objectTypeContext = assemblyContext.GetTypeByName("System.Object");
 
             var methodFromMonoString = new MethodDefinition("op_Implicit", MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, typeContext.NewType);
-            methodFromMonoString.Parameters.Add(new ParameterDefinition(assemblyContext.Imports.String));
+            methodFromMonoString.Parameters.Add(new ParameterDefinition(assemblyContext.Imports.Module.String()));
             typeContext.NewType.Methods.Add(methodFromMonoString);
             var fromBuilder = methodFromMonoString.Body.GetILProcessor();
 
@@ -29,22 +29,22 @@ namespace Il2CppInterop.Generator.Passes
             fromBuilder.Append(createIl2CppStringNop);
             fromBuilder.Emit(OpCodes.Call, assemblyContext.Imports.StringToNative);
             fromBuilder.Emit(OpCodes.Newobj,
-                new MethodReference(".ctor", assemblyContext.Imports.Void, typeContext.NewType)
+                new MethodReference(".ctor", assemblyContext.Imports.Module.Void(), typeContext.NewType)
                 {
                     HasThis = true,
-                    Parameters = { new ParameterDefinition(assemblyContext.Imports.IntPtr) }
+                    Parameters = { new ParameterDefinition(assemblyContext.Imports.Module.IntPtr()) }
                 });
             fromBuilder.Emit(OpCodes.Ret);
 
             var methodToObject = new MethodDefinition("op_Implicit", MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, objectTypeContext.NewType);
-            methodToObject.Parameters.Add(new ParameterDefinition(assemblyContext.Imports.String));
+            methodToObject.Parameters.Add(new ParameterDefinition(assemblyContext.Imports.Module.String()));
             objectTypeContext.NewType.Methods.Add(methodToObject);
             var toObjectBuilder = methodToObject.Body.GetILProcessor();
             toObjectBuilder.Emit(OpCodes.Ldarg_0);
             toObjectBuilder.Emit(OpCodes.Call, methodFromMonoString);
             toObjectBuilder.Emit(OpCodes.Ret);
 
-            var methodToMonoString = new MethodDefinition("op_Implicit", MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, assemblyContext.Imports.String);
+            var methodToMonoString = new MethodDefinition("op_Implicit", MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, assemblyContext.Imports.Module.String());
             methodToMonoString.Parameters.Add(new ParameterDefinition(typeContext.NewType));
             typeContext.NewType.Methods.Add(methodToMonoString);
             var toBuilder = methodToMonoString.Body.GetILProcessor();
@@ -90,27 +90,22 @@ namespace Il2CppInterop.Generator.Passes
                     TypeReference monoDelegateType;
                     if (!hasReturn && !hasParameters)
                         monoDelegateType =
-                            typeContext.NewType.Module.ImportReference(
-                                assemblyContext.Imports.Type.Module.GetType("System.Action"));
+                            typeContext.NewType.Module.Action();
                     else if (!hasReturn)
                     {
                         monoDelegateType =
-                            typeContext.NewType.Module.ImportReference(
-                                assemblyContext.Imports.Type.Module.GetType(
-                                    "System.Action`" + invokeMethod.Parameters.Count));
+                            typeContext.NewType.Module.Action(invokeMethod.Parameters.Count);
                     }
                     else
                         monoDelegateType =
-                            typeContext.NewType.Module.ImportReference(
-                                assemblyContext.Imports.Type.Module.GetType(
-                                    "System.Func`" + (invokeMethod.Parameters.Count + 1)));
+                            typeContext.NewType.Module.Func(invokeMethod.Parameters.Count);
 
                     GenericInstanceType? genericInstanceType = null;
                     if (hasParameters)
                     {
                         genericInstanceType = new GenericInstanceType(monoDelegateType);
-                        for (var i = 0; i < invokeMethod.Parameters.Count; i++)
-                            genericInstanceType.GenericArguments.Add(invokeMethod.Parameters[i].ParameterType);
+                        foreach (var t in invokeMethod.Parameters)
+                            genericInstanceType.GenericArguments.Add(t.ParameterType);
                     }
 
                     if (hasReturn)
@@ -127,7 +122,7 @@ namespace Il2CppInterop.Generator.Passes
 
                     bodyBuilder.Emit(OpCodes.Ldarg_0);
                     var delegateSupportTypeRef = typeContext.NewType.Module.ImportReference(typeof(DelegateSupport));
-                    var genericConvertRef = new MethodReference(nameof(DelegateSupport.ConvertDelegate), assemblyContext.Imports.Void, delegateSupportTypeRef) { HasThis = false, Parameters = { new ParameterDefinition(assemblyContext.Imports.Delegate) } };
+                    var genericConvertRef = new MethodReference(nameof(DelegateSupport.ConvertDelegate), assemblyContext.Imports.Module.Void(), delegateSupportTypeRef) { HasThis = false, Parameters = { new ParameterDefinition(assemblyContext.Imports.Module.Delegate()) } };
                     genericConvertRef.GenericParameters.Add(new GenericParameter(genericConvertRef));
                     genericConvertRef.ReturnType = genericConvertRef.GenericParameters[0];
                     var convertMethodRef = new GenericInstanceMethod(genericConvertRef) { GenericArguments = { typeContext.SelfSubstitutedRef } };
