@@ -108,8 +108,8 @@ namespace UnhollowerRuntimeLib.Injection
             if (classPtr == null)
             {
                 string namespaze = Marshal.PtrToStringAnsi(_namespace);
-                string klass = Marshal.PtrToStringAnsi(name);
-                s_ClassNameLookup.TryGetValue((namespaze, klass, name), out IntPtr injectedClass);
+                string className = Marshal.PtrToStringAnsi(name);
+                s_ClassNameLookup.TryGetValue((namespaze, className, (IntPtr)image), out IntPtr injectedClass);
                 classPtr = (Il2CppClass*)injectedClass;
             }
 
