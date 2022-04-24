@@ -11,8 +11,6 @@ namespace Il2CppInterop.Generator
     {
         public List<AssemblyDefinition>? Source { get; set; }
         public string? OutputDir { get; set; }
-        public string? MscorlibPath { get; set; }
-        public string? SystemLibrariesPath { get; set; }
 
         public string? UnityBaseLibsDir { get; set; }
         public List<string> AdditionalAssembliesBlacklist { get; } = new List<string>();

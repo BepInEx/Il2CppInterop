@@ -12,11 +12,6 @@ var command = new RootCommand
     new Option<DirectoryInfo>("--input", "Directory with Il2CppDumper's dummy assemblies") {IsRequired = true}
         .ExistingOnly(),
     new Option<DirectoryInfo>("--output", "Directory to write generated assemblies to") {IsRequired = true},
-    new Option<DirectoryInfo>("--system-libs",
-            "Directory with system libraries of target runtime system (typically loader's)")
-        {IsRequired = true}.ExistingOnly(),
-    new Option<FileInfo>("--mscorlib", "Deprecated. mscorlib.dll of target runtime system (typically loader's)")
-        .ExistingOnly(),
     new Option<DirectoryInfo>("--unity", "Directory with original Unity assemblies for unstripping").ExistingOnly(),
     new Option<FileInfo>("--gameassembly", "Path to GameAssembly.dll. Used for certain analyses").ExistingOnly(),
     new Option<int>("--deobf-uniq-chars", "How many characters per unique token to use during deobfuscation"),
@@ -77,8 +72,6 @@ internal record CmdOptions(
     bool Verbose,
     DirectoryInfo Input,
     DirectoryInfo Output,
-    DirectoryInfo SystemLibs,
-    FileInfo? Mscorlib,
     DirectoryInfo? Unity,
     FileInfo? GameAssembly,
     int DeobfUniqChars,
@@ -114,8 +107,6 @@ internal record CmdOptions(
             NoCopyRuntimeLibs = NoCopyRuntimeLibs,
             Source = inputAssemblies,
             OutputDir = Output.FullName,
-            SystemLibrariesPath = SystemLibs.FullName,
-            MscorlibPath = Mscorlib?.FullName ?? "",
             UnityBaseLibsDir = Unity?.FullName,
             GameAssemblyPath = GameAssembly?.FullName ?? "",
             TypeDeobfuscationCharsPerUniquifier = DeobfUniqChars,

@@ -17,7 +17,7 @@ namespace Il2CppInterop.Generator
 
             if (field.IsStatic)
             {
-                var local0 = new VariableDefinition(property.PropertyType.IsValueType ? property.PropertyType : imports.IntPtr);
+                var local0 = new VariableDefinition(property.PropertyType.IsValueType ? property.PropertyType : imports.Module.IntPtr());
                 getter.Body.Variables.Add(local0);
 
                 bool localIsPointer = false;
@@ -26,7 +26,7 @@ namespace Il2CppInterop.Generator
                     var pointerStore = new GenericInstanceType(imports.Il2CppClassPointerStore);
                     pointerStore.GenericArguments.Add(property.PropertyType);
                     var pointerStoreType = property.DeclaringType.Module.ImportReference(pointerStore);
-                    getterBody.Emit(OpCodes.Ldsfld, new FieldReference(nameof(Il2CppClassPointerStore<int>.NativeClassPtr), imports.IntPtr, pointerStoreType));
+                    getterBody.Emit(OpCodes.Ldsfld, new FieldReference(nameof(Il2CppClassPointerStore<int>.NativeClassPtr), imports.Module.IntPtr(), pointerStoreType));
                     getterBody.Emit(OpCodes.Ldc_I4, 0);
                     getterBody.Emit(OpCodes.Conv_U);
                     getterBody.Emit(OpCodes.Call, imports.ValueSizeGet);
@@ -55,7 +55,7 @@ namespace Il2CppInterop.Generator
             }
             else
             {
-                var local0 = new VariableDefinition(imports.IntPtr);
+                var local0 = new VariableDefinition(imports.Module.IntPtr());
                 getter.Body.Variables.Add(local0);
 
                 getterBody.EmitObjectToPointer(fieldContext.DeclaringType.OriginalType, fieldContext.DeclaringType.NewType, fieldContext.DeclaringType, 0, false, false, false, out _);
@@ -75,7 +75,7 @@ namespace Il2CppInterop.Generator
 
         public static void MakeSetter(FieldDefinition field, FieldRewriteContext fieldContext, PropertyDefinition property, AssemblyKnownImports imports)
         {
-            var setter = new MethodDefinition("set_" + property.Name, Field2MethodAttrs(field.Attributes) | MethodAttributes.SpecialName | MethodAttributes.HideBySig, imports.Void);
+            var setter = new MethodDefinition("set_" + property.Name, Field2MethodAttrs(field.Attributes) | MethodAttributes.SpecialName | MethodAttributes.HideBySig, imports.Module.Void());
             setter.Parameters.Add(new ParameterDefinition(property.PropertyType));
             property.DeclaringType.Methods.Add(setter);
             var setterBody = setter.Body.GetILProcessor();

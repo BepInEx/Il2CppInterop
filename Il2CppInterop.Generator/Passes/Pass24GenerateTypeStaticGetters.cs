@@ -23,11 +23,11 @@ namespace Il2CppInterop.Generator.Passes
                     typeProperty.GetMethod = typeGetMethod;
                     typeContext.NewType.Properties.Add(typeProperty);
 
-                    typeProperty.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.ObsoleteAttributeCtor)
+                    typeProperty.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.Module.ObsoleteAttributeCtor())
                     {
                         ConstructorArguments =
                         {
-                            new CustomAttributeArgument(assemblyContext.Imports.String,
+                            new CustomAttributeArgument(assemblyContext.Imports.Module.String(),
                                 "Use Il2CppType.Of<T>() instead. This will be removed in a future version.")
                         }
                     });
@@ -40,7 +40,7 @@ namespace Il2CppInterop.Generator.Passes
                     bodyBuilder.Emit(OpCodes.Call,
                         new MethodReference("internal_from_handle", il2CppSystemTypeRef,
                                 il2CppSystemTypeRef)
-                        { Parameters = { new ParameterDefinition(assemblyContext.Imports.IntPtr) } });
+                        { Parameters = { new ParameterDefinition(assemblyContext.Imports.Module.IntPtr()) } });
 
                     bodyBuilder.Emit(OpCodes.Ret);
                 }

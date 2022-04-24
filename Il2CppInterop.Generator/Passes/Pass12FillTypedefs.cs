@@ -21,11 +21,11 @@ namespace Il2CppInterop.Generator.Passes
 
                     if (typeContext.OriginalType.IsEnum)
                     {
-                        typeContext.NewType.BaseType = assemblyContext.Imports.Enum;
+                        typeContext.NewType.BaseType = assemblyContext.Imports.Module.Enum();
                     }
                     else if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.BlittableStruct)
                     {
-                        typeContext.NewType.BaseType = assemblyContext.Imports.ValueType;
+                        typeContext.NewType.BaseType = assemblyContext.Imports.Module.ValueType();
                     }
                 }
             }

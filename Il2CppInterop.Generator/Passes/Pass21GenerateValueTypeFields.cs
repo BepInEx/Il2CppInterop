@@ -32,7 +32,7 @@ namespace Il2CppInterop.Generator.Passes
 
                         var newField = new FieldDefinition(fieldContext.UnmangledName, field.Attributes.ForcePublic(),
                             !field.FieldType.IsValueType
-                                ? assemblyContext.Imports.IntPtr
+                                ? assemblyContext.Imports.Module.IntPtr()
                                 : assemblyContext.RewriteTypeRef(field.FieldType));
 
                         newField.Offset = Convert.ToInt32(

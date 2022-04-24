@@ -65,7 +65,7 @@ namespace Il2CppInterop.Generator.Extensions
                     body.Emit(OpCodes.Call, imports.Il2CppObjectBaseToPointer);
                     body.Emit(OpCodes.Call, imports.ObjectUnbox);
                     var classPointerTypeRef = new GenericInstanceType(imports.Il2CppClassPointerStore) { GenericArguments = { newType } };
-                    var classPointerFieldRef = new FieldReference(nameof(Il2CppClassPointerStore<int>.NativeClassPtr), imports.IntPtr, classPointerTypeRef);
+                    var classPointerFieldRef = new FieldReference(nameof(Il2CppClassPointerStore<int>.NativeClassPtr), imports.Module.IntPtr(), classPointerTypeRef);
                     body.Emit(OpCodes.Ldsfld, enclosingType.NewType.Module.ImportReference(classPointerFieldRef));
                     body.Emit(OpCodes.Ldc_I4_0);
                     body.Emit(OpCodes.Conv_U);
@@ -90,9 +90,9 @@ namespace Il2CppInterop.Generator.Extensions
             var imports = enclosingType.AssemblyContext.Imports;
 
             body.Emit(OpCodes.Ldtoken, newType);
-            body.Emit(OpCodes.Call, enclosingType.NewType.Module.ImportReference(imports.Type.Methods.Single(it => it.Name == nameof(Type.GetTypeFromHandle))));
+            body.Emit(OpCodes.Call, enclosingType.NewType.Module.TypeGetTypeFromHandle());
             body.Emit(OpCodes.Dup);
-            body.Emit(OpCodes.Callvirt, enclosingType.NewType.Module.ImportReference(imports.Type.Methods.Single(it => it.Name == typeof(Type).GetProperty(nameof(Type.IsValueType))!.GetMethod!.Name)));
+            body.Emit(OpCodes.Callvirt, enclosingType.NewType.Module.TypeGetIsValueType());
 
             var finalNop = body.Create(OpCodes.Nop);
             var stringNop = body.Create(OpCodes.Nop);
@@ -101,9 +101,9 @@ namespace Il2CppInterop.Generator.Extensions
 
             body.Emit(OpCodes.Brtrue, valueTypeNop);
 
-            body.Emit(OpCodes.Callvirt, enclosingType.NewType.Module.ImportReference(imports.Type.Methods.Single(it => it.Name == typeof(Type).GetProperty(nameof(Type.FullName))!.GetMethod!.Name)));
+            body.Emit(OpCodes.Callvirt, enclosingType.NewType.Module.TypeGetFullName());
             body.Emit(OpCodes.Ldstr, "System.String");
-            body.Emit(OpCodes.Call, enclosingType.NewType.Module.ImportReference(TargetTypeSystemHandler.String.Methods.Single(it => it.Name == nameof(String.Equals) && it.IsStatic && it.Parameters.Count == 2)));
+            body.Emit(OpCodes.Call, enclosingType.NewType.Module.StringEquals());
             body.Emit(OpCodes.Brtrue_S, stringNop);
 
             body.Emit(OpCodes.Ldarg, argumentIndex);
@@ -119,7 +119,7 @@ namespace Il2CppInterop.Generator.Extensions
             body.Emit(OpCodes.Brfalse_S, storePointerNop);
 
             body.Emit(OpCodes.Dup);
-            var tempLocal = new VariableDefinition(imports.IntPtr);
+            var tempLocal = new VariableDefinition(imports.Module.IntPtr());
             body.Body.Variables.Add(tempLocal);
             body.Emit(OpCodes.Stloc, tempLocal);
             body.Emit(OpCodes.Call, imports.ObjectUnbox);
@@ -139,7 +139,7 @@ namespace Il2CppInterop.Generator.Extensions
             body.Append(stringNop);
             body.Emit(OpCodes.Ldarg, argumentIndex);
             body.Emit(OpCodes.Box, newType);
-            body.Emit(OpCodes.Isinst, imports.String);
+            body.Emit(OpCodes.Isinst, imports.Module.String());
             body.Emit(OpCodes.Call, imports.StringToNative);
             body.Emit(OpCodes.Call, imports.WriteFieldWBarrier);
             body.Emit(OpCodes.Br_S, finalNop);
@@ -181,7 +181,7 @@ namespace Il2CppInterop.Generator.Extensions
                 }
                 else
                 {
-                    var pointerVar = new VariableDefinition(imports.IntPtr);
+                    var pointerVar = new VariableDefinition(imports.Module.IntPtr());
                     refVariable = pointerVar;
                     body.Body.Variables.Add(pointerVar);
                     body.Emit(OpCodes.Ldarg, argumentIndex);
@@ -231,8 +231,8 @@ namespace Il2CppInterop.Generator.Extensions
             var imports = enclosingType.AssemblyContext.Imports;
 
             body.Emit(OpCodes.Ldtoken, newType);
-            body.Emit(OpCodes.Call, enclosingType.NewType.Module.ImportReference(imports.Type.Methods.Single(it => it.Name == nameof(Type.GetTypeFromHandle))));
-            body.Emit(OpCodes.Callvirt, enclosingType.NewType.Module.ImportReference(imports.Type.Methods.Single(it => it.Name == typeof(Type).GetProperty(nameof(Type.IsValueType))!.GetMethod!.Name)));
+            body.Emit(OpCodes.Call, enclosingType.NewType.Module.TypeGetTypeFromHandle());
+            body.Emit(OpCodes.Callvirt, enclosingType.NewType.Module.TypeGetIsValueType());
 
             var finalNop = body.Create(OpCodes.Nop);
             var valueTypeNop = body.Create(OpCodes.Nop);
@@ -243,7 +243,7 @@ namespace Il2CppInterop.Generator.Extensions
             body.Emit(OpCodes.Ldarg, argumentIndex);
             body.Emit(OpCodes.Box, newType);
             body.Emit(OpCodes.Dup);
-            body.Emit(OpCodes.Isinst, imports.String);
+            body.Emit(OpCodes.Isinst, imports.Module.String());
             body.Emit(OpCodes.Brtrue_S, stringNop);
 
             body.Emit(OpCodes.Isinst, imports.Il2CppObjectBase);
@@ -262,7 +262,7 @@ namespace Il2CppInterop.Generator.Extensions
             body.Emit(OpCodes.Br, finalNop);
 
             body.Append(stringNop);
-            body.Emit(OpCodes.Isinst, imports.String);
+            body.Emit(OpCodes.Isinst, imports.Module.String());
             body.Emit(OpCodes.Call, imports.StringToNative);
             body.Emit(OpCodes.Br_S, finalNop);
 
@@ -303,7 +303,7 @@ namespace Il2CppInterop.Generator.Extensions
                         var classPointerTypeRef = new GenericInstanceType(imports.Il2CppClassPointerStore)
                         { GenericArguments = { convertedReturnType } };
                         var classPointerFieldRef =
-                            new FieldReference(nameof(Il2CppClassPointerStore<int>.NativeClassPtr), imports.IntPtr,
+                            new FieldReference(nameof(Il2CppClassPointerStore<int>.NativeClassPtr), imports.Module.IntPtr(),
                                 classPointerTypeRef);
                         body.Emit(OpCodes.Ldsfld, enclosingType.NewType.Module.ImportReference(classPointerFieldRef));
                         body.Append(loadPointer);
@@ -315,8 +315,8 @@ namespace Il2CppInterop.Generator.Extensions
                     }
 
                     body.Emit(OpCodes.Newobj,
-                        new MethodReference(".ctor", imports.Void, convertedReturnType)
-                        { Parameters = { new ParameterDefinition(imports.IntPtr) }, HasThis = true });
+                        new MethodReference(".ctor", imports.Module.Void(), convertedReturnType)
+                        { Parameters = { new ParameterDefinition(imports.Module.IntPtr()) }, HasThis = true });
                 }
             }
             else if (originalReturnType.FullName == "System.String")
@@ -332,14 +332,14 @@ namespace Il2CppInterop.Generator.Extensions
                 var methodRef = new MethodReference(nameof(Il2CppArrayBase<int>.WrapNativeGenericArrayPointer),
                     actualReturnType,
                     convertedReturnType)
-                { HasThis = false, Parameters = { new ParameterDefinition(imports.IntPtr) } };
+                { HasThis = false, Parameters = { new ParameterDefinition(imports.Module.IntPtr()) } };
                 body.Emit(OpCodes.Call, methodRef);
             }
             else
             {
                 var createRealObject = body.Create(OpCodes.Newobj,
-                    new MethodReference(".ctor", imports.Void, convertedReturnType)
-                    { Parameters = { new ParameterDefinition(imports.IntPtr) }, HasThis = true });
+                    new MethodReference(".ctor", imports.Module.Void(), convertedReturnType)
+                    { Parameters = { new ParameterDefinition(imports.Module.IntPtr()) }, HasThis = true });
                 var endNop = body.Create(OpCodes.Nop);
 
                 body.Append(loadPointer);
@@ -379,7 +379,7 @@ namespace Il2CppInterop.Generator.Extensions
             methodBody.Emit(OpCodes.Ldarg_0);
             methodBody.Emit(OpCodes.Call, targetType.Module.ImportReference(typeof(IL2CPP).GetMethod("il2cpp_value_box")));
 
-            methodBody.Emit(OpCodes.Newobj, new MethodReference(".ctor", targetType.Module.ImportReference(TargetTypeSystemHandler.Void), il2CppObjectTypeDef) { Parameters = { new ParameterDefinition(targetType.Module.ImportReference(TargetTypeSystemHandler.IntPtr)) }, HasThis = true });
+            methodBody.Emit(OpCodes.Newobj, new MethodReference(".ctor", targetType.Module.Void(), il2CppObjectTypeDef) { Parameters = { new ParameterDefinition(targetType.Module.IntPtr()) }, HasThis = true });
 
             methodBody.Emit(OpCodes.Ret);
         }
@@ -398,8 +398,8 @@ namespace Il2CppInterop.Generator.Extensions
                 body.Emit(OpCodes.Brfalse_S, nullbr);
 
                 body.Emit(OpCodes.Newobj,
-                    new MethodReference(".ctor", imports.Void, newMethodParameter.ParameterType.GetElementType())
-                    { HasThis = true, Parameters = { new ParameterDefinition(imports.IntPtr) } });
+                    new MethodReference(".ctor", imports.Module.Void(), newMethodParameter.ParameterType.GetElementType())
+                    { HasThis = true, Parameters = { new ParameterDefinition(imports.Module.IntPtr()) } });
                 body.Emit(OpCodes.Br_S, stnop);
 
                 body.Append(nullbr);

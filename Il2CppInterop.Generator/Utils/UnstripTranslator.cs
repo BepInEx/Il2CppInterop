@@ -151,7 +151,7 @@ namespace Il2CppInterop.Generator.Utils
             var processor = newMethod.Body.GetILProcessor();
 
             processor.Emit(OpCodes.Ldstr, "Method unstripping failed");
-            processor.Emit(OpCodes.Newobj, imports.NotSupportedExceptionCtor);
+            processor.Emit(OpCodes.Newobj, imports.Module.NotSupportedExceptionCtor());
             processor.Emit(OpCodes.Throw);
             processor.Emit(OpCodes.Ret);
         }

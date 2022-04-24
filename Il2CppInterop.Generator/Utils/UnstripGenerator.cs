@@ -12,25 +12,25 @@ namespace Il2CppInterop.Generator.Utils
     {
         public static TypeDefinition CreateDelegateTypeForICallMethod(MethodDefinition unityMethod, MethodDefinition convertedMethod, AssemblyKnownImports imports)
         {
-            var delegateType = new TypeDefinition("", unityMethod.Name + "Delegate", TypeAttributes.Sealed | TypeAttributes.NestedPrivate, imports.MulticastDelegate);
+            var delegateType = new TypeDefinition("", unityMethod.Name + "Delegate", TypeAttributes.Sealed | TypeAttributes.NestedPrivate, imports.Module.MulticastDelegate());
 
-            var constructor = new MethodDefinition(".ctor", MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.Public, imports.Void);
-            constructor.Parameters.Add(new ParameterDefinition(imports.Object));
-            constructor.Parameters.Add(new ParameterDefinition(imports.IntPtr));
+            var constructor = new MethodDefinition(".ctor", MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.Public, imports.Module.Void());
+            constructor.Parameters.Add(new ParameterDefinition(imports.Module.Object()));
+            constructor.Parameters.Add(new ParameterDefinition(imports.Module.IntPtr()));
             constructor.ImplAttributes = MethodImplAttributes.CodeTypeMask;
             delegateType.Methods.Add(constructor);
 
-            var invokeMethod = new MethodDefinition("Invoke", MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public, imports.Void); // todo
+            var invokeMethod = new MethodDefinition("Invoke", MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public, imports.Module.Void()); // todo
             invokeMethod.ImplAttributes = MethodImplAttributes.CodeTypeMask;
             delegateType.Methods.Add(invokeMethod);
 
-            invokeMethod.ReturnType = convertedMethod.ReturnType.IsValueType ? convertedMethod.ReturnType : imports.IntPtr;
+            invokeMethod.ReturnType = convertedMethod.ReturnType.IsValueType ? convertedMethod.ReturnType : imports.Module.IntPtr();
             if (convertedMethod.HasThis)
-                invokeMethod.Parameters.Add(new ParameterDefinition("@this", ParameterAttributes.None, imports.IntPtr));
+                invokeMethod.Parameters.Add(new ParameterDefinition("@this", ParameterAttributes.None, imports.Module.IntPtr()));
             foreach (var convertedParameter in convertedMethod.Parameters)
                 invokeMethod.Parameters.Add(new ParameterDefinition(convertedParameter.Name,
                     convertedParameter.Attributes & ~ParameterAttributes.Optional,
-                    convertedParameter.ParameterType.IsValueType ? convertedParameter.ParameterType : imports.IntPtr));
+                    convertedParameter.ParameterType.IsValueType ? convertedParameter.ParameterType : imports.Module.IntPtr()));
 
             return delegateType;
         }
@@ -65,7 +65,7 @@ namespace Il2CppInterop.Generator.Utils
             body.Emit(OpCodes.Call, delegateType.Methods.Single(it => it.Name == "Invoke"));
             if (!newMethod.ReturnType.IsValueType)
             {
-                var pointerVar = new VariableDefinition(imports.IntPtr);
+                var pointerVar = new VariableDefinition(imports.Module.IntPtr());
                 newMethod.Body.Variables.Add(pointerVar);
                 body.Emit(OpCodes.Stloc, pointerVar);
                 var loadInstr = body.Create(OpCodes.Ldloc, pointerVar);
@@ -84,7 +84,7 @@ namespace Il2CppInterop.Generator.Utils
             {
                 staticCtor = new MethodDefinition(".cctor",
                     MethodAttributes.Static | MethodAttributes.Private | MethodAttributes.SpecialName |
-                    MethodAttributes.HideBySig | MethodAttributes.RTSpecialName, imports.Void);
+                    MethodAttributes.HideBySig | MethodAttributes.RTSpecialName, imports.Module.Void());
                 staticCtor.Body.GetILProcessor().Emit(OpCodes.Ret);
                 enclosingType.Methods.Add(staticCtor);
             }

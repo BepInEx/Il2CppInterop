@@ -19,7 +19,7 @@ namespace Il2CppInterop.Generator.Passes
                     var newType = typeContext.NewType;
 
                     if (type.CustomAttributes.Any(it => it.AttributeType.FullName == "System.FlagsAttribute"))
-                        newType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.FlagsAttributeCtor));
+                        newType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.Module.FlagsAttributeCtor()));
 
                     foreach (var fieldDefinition in type.Fields)
                     {

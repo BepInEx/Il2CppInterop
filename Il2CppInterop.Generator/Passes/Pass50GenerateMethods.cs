@@ -21,9 +21,9 @@ namespace Il2CppInterop.Generator.Passes
                         var imports = assemblyContext.Imports;
 
                         var bodyBuilder = newMethod.Body.GetILProcessor();
-                        var exceptionLocal = new VariableDefinition(imports.IntPtr);
-                        var argArray = new VariableDefinition(new PointerType(imports.IntPtr));
-                        var resultVar = new VariableDefinition(imports.IntPtr);
+                        var exceptionLocal = new VariableDefinition(imports.Module.IntPtr());
+                        var argArray = new VariableDefinition(new PointerType(imports.Module.IntPtr()));
+                        var resultVar = new VariableDefinition(imports.Module.IntPtr());
                         var valueTypeLocal = new VariableDefinition(newMethod.ReturnType);
                         newMethod.Body.Variables.Add(exceptionLocal);
                         newMethod.Body.Variables.Add(argArray);
@@ -40,8 +40,8 @@ namespace Il2CppInterop.Generator.Passes
                                 bodyBuilder.Emit(OpCodes.Ldsfld, typeContext.ClassPointerFieldRef);
                                 bodyBuilder.Emit(OpCodes.Call, imports.Il2CppNewObject);
                                 bodyBuilder.Emit(OpCodes.Call,
-                                    new MethodReference(".ctor", imports.Void, typeContext.SelfSubstitutedRef)
-                                    { Parameters = { new ParameterDefinition(imports.IntPtr) }, HasThis = true });
+                                    new MethodReference(".ctor", imports.Module.Void(), typeContext.SelfSubstitutedRef)
+                                    { Parameters = { new ParameterDefinition(imports.Module.IntPtr()) }, HasThis = true });
                             }
                             else if (!originalMethod.IsStatic)
                             {
@@ -60,7 +60,7 @@ namespace Il2CppInterop.Generator.Passes
                         {
                             bodyBuilder.EmitLdcI4(originalMethod.Parameters.Count);
                             bodyBuilder.Emit(OpCodes.Conv_U);
-                            bodyBuilder.Emit(OpCodes.Sizeof, imports.IntPtr);
+                            bodyBuilder.Emit(OpCodes.Sizeof, imports.Module.IntPtr());
                             bodyBuilder.Emit(OpCodes.Mul_Ovf_Un);
                             bodyBuilder.Emit(OpCodes.Localloc);
                         }
@@ -77,7 +77,7 @@ namespace Il2CppInterop.Generator.Passes
                             {
                                 bodyBuilder.EmitLdcI4(i);
                                 bodyBuilder.Emit(OpCodes.Conv_U);
-                                bodyBuilder.Emit(OpCodes.Sizeof, imports.IntPtr);
+                                bodyBuilder.Emit(OpCodes.Sizeof, imports.Module.IntPtr());
                                 bodyBuilder.Emit(OpCodes.Mul_Ovf_Un);
                                 bodyBuilder.Emit(OpCodes.Add);
                             }
@@ -95,13 +95,13 @@ namespace Il2CppInterop.Generator.Passes
                             bodyBuilder.Emit(OpCodes.Ldarg_0);
                             bodyBuilder.Emit(OpCodes.Call, imports.Il2CppObjectBaseToPointer);
                             if (methodRewriteContext.GenericInstantiationsStoreSelfSubstRef != null)
-                                bodyBuilder.Emit(OpCodes.Ldsfld, new FieldReference("Pointer", imports.IntPtr, methodRewriteContext.GenericInstantiationsStoreSelfSubstMethodRef));
+                                bodyBuilder.Emit(OpCodes.Ldsfld, new FieldReference("Pointer", imports.Module.IntPtr(), methodRewriteContext.GenericInstantiationsStoreSelfSubstMethodRef));
                             else
                                 bodyBuilder.Emit(OpCodes.Ldsfld, methodRewriteContext.NonGenericMethodInfoPointerField);
                             bodyBuilder.Emit(OpCodes.Call, imports.GetVirtualMethod);
                         }
                         else if (methodRewriteContext.GenericInstantiationsStoreSelfSubstRef != null)
-                            bodyBuilder.Emit(OpCodes.Ldsfld, new FieldReference("Pointer", imports.IntPtr, methodRewriteContext.GenericInstantiationsStoreSelfSubstMethodRef));
+                            bodyBuilder.Emit(OpCodes.Ldsfld, new FieldReference("Pointer", imports.Module.IntPtr(), methodRewriteContext.GenericInstantiationsStoreSelfSubstMethodRef));
                         else
                             bodyBuilder.Emit(OpCodes.Ldsfld, methodRewriteContext.NonGenericMethodInfoPointerField);
 

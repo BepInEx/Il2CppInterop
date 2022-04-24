@@ -23,17 +23,6 @@ namespace Il2CppInterop.Generator
         public readonly ModuleDefinition Module;
         private readonly RewriteGlobalContext myContext;
 
-        private readonly Lazy<TypeReference> myVoidReference;
-        private readonly Lazy<TypeReference> myIntPtrReference;
-        private readonly Lazy<TypeReference> myStringReference;
-        private readonly Lazy<TypeReference> myIntReference;
-        private readonly Lazy<TypeReference> myLongReference;
-        private readonly Lazy<TypeDefinition> myTypeReference;
-        private readonly Lazy<TypeReference> myEnumReference;
-        private readonly Lazy<TypeReference> myDelegateReference;
-        private readonly Lazy<TypeReference> myMulticastDelegateReference;
-        private readonly Lazy<TypeReference> myValueTypeReference;
-        private readonly Lazy<TypeReference> myObjectReference;
         private readonly Lazy<TypeReference> myIl2CppClassPointerStoreReference;
         private readonly Lazy<TypeReference> myIl2CppObjectBaseReference;
         private readonly Lazy<TypeReference> myIl2CppReferenceArray;
@@ -46,19 +35,7 @@ namespace Il2CppInterop.Generator
         private readonly Lazy<MethodReference> myIl2CppStringArrayCtor;
         private readonly Lazy<TypeReference> myIl2CppArrayBase;
         private readonly Lazy<TypeReference> myIl2CppArrayBaseSetlfSubst;
-        private readonly Lazy<TypeReference> myDefaultMemberAttribute;
 
-        public TypeReference Void => myVoidReference.Value;
-        public TypeReference IntPtr => myIntPtrReference.Value;
-        public TypeReference String => myStringReference.Value;
-        public TypeReference Int => myIntReference.Value;
-        public TypeReference Long => myLongReference.Value;
-        public TypeDefinition Type => myTypeReference.Value;
-        public TypeReference Enum => myEnumReference.Value;
-        public TypeReference Delegate => myDelegateReference.Value;
-        public TypeReference MulticastDelegate => myMulticastDelegateReference.Value;
-        public TypeReference ValueType => myValueTypeReference.Value;
-        public TypeReference Object => myObjectReference.Value;
         public TypeReference Il2CppClassPointerStore => myIl2CppClassPointerStoreReference.Value;
         public TypeReference Il2CppObjectBase => myIl2CppObjectBaseReference.Value;
         public TypeReference Il2CppReferenceArray => myIl2CppReferenceArray.Value;
@@ -69,7 +46,6 @@ namespace Il2CppInterop.Generator
         public MethodReference Il2CppStringArrayCtor => myIl2CppStringArrayCtor.Value;
         public TypeReference Il2CppArrayBase => myIl2CppArrayBase.Value;
         public TypeReference Il2CppArrayBaseSelfSubst => myIl2CppArrayBaseSetlfSubst.Value;
-        public TypeReference DefaultMemberAttribute => myDefaultMemberAttribute.Value;
 
         public MethodReference Il2CppObjectBaseToPointer => myIl2CppObjectToPointer.Value;
         public MethodReference Il2CppObjectBaseToPointerNotNull => myIl2CppObjectToPointerNotNull.Value;
@@ -120,14 +96,9 @@ namespace Il2CppInterop.Generator
 
         private readonly Lazy<MethodReference> myLdTokUnstrippedImpl;
 
-        private readonly Lazy<MethodReference> myFlagsAttributeCtor;
-        private readonly Lazy<MethodReference> myObsoleteAttributeCtor;
-        private readonly Lazy<MethodReference> myNotSupportedExceptionCtor;
         private readonly Lazy<MethodReference> myObfuscatedNameAttributeCtor;
         private readonly Lazy<MethodReference> myCallerCountAttributeCtor;
         private readonly Lazy<MethodReference> myCachedScanResultsAttributeCtor;
-        private readonly Lazy<MethodReference> myExtensionAttributeCtor;
-        private readonly Lazy<MethodReference> myParamArrayAttributeCtor;
 
         public MethodReference FieldGetOffset => myFieldGetOffset.Value;
         public MethodReference FieldStaticGet => myFieldStaticGet.Value;
@@ -160,14 +131,9 @@ namespace Il2CppInterop.Generator
 
         public MethodReference LdTokUnstrippedImpl => myLdTokUnstrippedImpl.Value;
 
-        public MethodReference FlagsAttributeCtor => myFlagsAttributeCtor.Value;
-        public MethodReference ObsoleteAttributeCtor => myObsoleteAttributeCtor.Value;
-        public MethodReference NotSupportedExceptionCtor => myNotSupportedExceptionCtor.Value;
         public MethodReference ObfuscatedNameAttributeCtor => myObfuscatedNameAttributeCtor.Value;
         public MethodReference CallerCountAttributeCtor => myCallerCountAttributeCtor.Value;
         public MethodReference CachedScanResultsAttributeCtor => myCachedScanResultsAttributeCtor.Value;
-        public MethodReference ExtensionAttributeCtor => myExtensionAttributeCtor.Value;
-        public MethodReference ParamArrayAttributeCtor => myParamArrayAttributeCtor.Value;
 
 
         public AssemblyKnownImports(ModuleDefinition module, RewriteGlobalContext context)
@@ -175,17 +141,6 @@ namespace Il2CppInterop.Generator
             Module = module;
             myContext = context;
 
-            myVoidReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.Void));
-            myIntPtrReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.IntPtr));
-            myStringReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.String));
-            myIntReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.Int));
-            myLongReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.Long));
-            myTypeReference = new Lazy<TypeDefinition>(() => TargetTypeSystemHandler.Type);
-            myEnumReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.Enum));
-            myDelegateReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.Delegate));
-            myMulticastDelegateReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.MulticastDelegate));
-            myValueTypeReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.ValueType));
-            myObjectReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.Object));
             myIl2CppClassPointerStoreReference = new Lazy<TypeReference>(() => Module.ImportReference(typeof(Il2CppClassPointerStore<>)));
 
             myIl2CppReferenceArray = new Lazy<TypeReference>(() => Module.ImportReference(typeof(Il2CppReferenceArray<>)));
@@ -208,8 +163,6 @@ namespace Il2CppInterop.Generator
             myIl2CppArrayBase = new Lazy<TypeReference>(() => Module.ImportReference(typeof(Il2CppArrayBase<>)));
             myIl2CppArrayBaseSetlfSubst = new Lazy<TypeReference>(() => Module.ImportReference(new GenericInstanceType(Il2CppArrayBase) { GenericArguments = { Il2CppArrayBase.GenericParameters[0] } }));
             myIl2CppObjectBaseReference = new Lazy<TypeReference>(() => Module.ImportReference(typeof(Il2CppObjectBase)));
-            myDefaultMemberAttribute = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.DefaultMemberAttribute));
-            // myIl2CppObjectReference = new Lazy<TypeReference>(() => Module.ImportReference(TargetTypeSystemHandler.Object));// todo!
 
             myIl2CppObjectToPointer = new Lazy<MethodReference>(() => Module.ImportReference(typeof(IL2CPP).GetMethod("Il2CppObjectBaseToPtr")));
             myIl2CppObjectToPointerNotNull = new Lazy<MethodReference>(() => Module.ImportReference(typeof(IL2CPP).GetMethod("Il2CppObjectBaseToPtrNotNull")));
@@ -263,34 +216,17 @@ namespace Il2CppInterop.Generator
                 return Module.ImportReference(methodReference);
             });
 
-            myFlagsAttributeCtor = new Lazy<MethodReference>(() => new MethodReference(".ctor", Void, Module.ImportReference(TargetTypeSystemHandler.FlagsAttribute)) { HasThis = true });
-            myObsoleteAttributeCtor = new Lazy<MethodReference>(() =>
-                new MethodReference(".ctor", Void, Module.ImportReference(TargetTypeSystemHandler.ObsoleteAttribute))
-                { HasThis = true, Parameters = { new ParameterDefinition(String) } });
-
-            myNotSupportedExceptionCtor = new Lazy<MethodReference>(() =>
-                new MethodReference(".ctor", Void, Module.ImportReference(TargetTypeSystemHandler.NotSupportedException))
-                { HasThis = true, Parameters = { new ParameterDefinition(String) } });
-
             myObfuscatedNameAttributeCtor = new Lazy<MethodReference>(() =>
-                new MethodReference(".ctor", Void, Module.ImportReference(typeof(ObfuscatedNameAttribute)))
-                { HasThis = true, Parameters = { new ParameterDefinition(String) } });
+                new MethodReference(".ctor", Module.Void(), Module.ImportReference(typeof(ObfuscatedNameAttribute)))
+                { HasThis = true, Parameters = { new ParameterDefinition(Module.String()) } });
 
             myCallerCountAttributeCtor = new Lazy<MethodReference>(() =>
-                new MethodReference(".ctor", Void, Module.ImportReference(typeof(CallerCountAttribute)))
-                { HasThis = true, Parameters = { new ParameterDefinition(Int) } });
+                new MethodReference(".ctor", Module.Void(), Module.ImportReference(typeof(CallerCountAttribute)))
+                { HasThis = true, Parameters = { new ParameterDefinition(Module.Int()) } });
 
             myCachedScanResultsAttributeCtor = new Lazy<MethodReference>(() =>
-                new MethodReference(".ctor", Void, Module.ImportReference(typeof(CachedScanResultsAttribute)))
+                new MethodReference(".ctor", Module.Void(), Module.ImportReference(typeof(CachedScanResultsAttribute)))
                 { HasThis = true, Parameters = { } });
-
-            myExtensionAttributeCtor = new Lazy<MethodReference>(() =>
-                new MethodReference(".ctor", Void, Module.ImportReference(typeof(ExtensionAttribute))) { HasThis = true }
-            );
-
-            myParamArrayAttributeCtor = new Lazy<MethodReference>(() =>
-                new MethodReference(".ctor", Void, Module.ImportReference(typeof(ParamArrayAttribute))) { HasThis = true }
-            );
         }
     }
 }

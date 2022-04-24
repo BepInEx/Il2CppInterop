@@ -35,7 +35,7 @@ namespace Il2CppInterop.Generator.Contexts
             OriginalNameWasObfuscated = OriginalType.Name != NewType.Name;
             if (OriginalNameWasObfuscated)
                 NewType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.ObfuscatedNameAttributeCtor)
-                { ConstructorArguments = { new CustomAttributeArgument(assemblyContext.Imports.String, originalType.FullName) } });
+                { ConstructorArguments = { new CustomAttributeArgument(assemblyContext.Imports.Module.String(), originalType.FullName) } });
 
             if (!OriginalType.IsValueType)
                 ComputedTypeSpecifics = TypeSpecifics.ReferenceType;
@@ -55,7 +55,7 @@ namespace Il2CppInterop.Generator.Contexts
                 SelfSubstitutedRef = NewType.Module.ImportReference(genericInstanceType);
                 var genericTypeRef = new GenericInstanceType(AssemblyContext.Imports.Il2CppClassPointerStore)
                 { GenericArguments = { SelfSubstitutedRef } };
-                ClassPointerFieldRef = new FieldReference("NativeClassPtr", AssemblyContext.Imports.IntPtr,
+                ClassPointerFieldRef = new FieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
                     NewType.Module.ImportReference(genericTypeRef));
             }
             else
@@ -63,10 +63,10 @@ namespace Il2CppInterop.Generator.Contexts
                 SelfSubstitutedRef = NewType;
                 var genericTypeRef = new GenericInstanceType(AssemblyContext.Imports.Il2CppClassPointerStore);
                 if (OriginalType.IsPrimitive || OriginalType.FullName == "System.String")
-                    genericTypeRef.GenericArguments.Add(NewType.Module.ImportReference(TargetTypeSystemHandler.Type.Module.GetType(OriginalType.FullName)));
+                    genericTypeRef.GenericArguments.Add(NewType.Module.ImportCorlibReference(OriginalType.Namespace, OriginalType.Name));
                 else
                     genericTypeRef.GenericArguments.Add(SelfSubstitutedRef);
-                ClassPointerFieldRef = new FieldReference("NativeClassPtr", AssemblyContext.Imports.IntPtr,
+                ClassPointerFieldRef = new FieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
                     NewType.Module.ImportReference(genericTypeRef));
             }
 
@@ -97,7 +97,7 @@ namespace Il2CppInterop.Generator.Contexts
 
             if (hasExtensionMethods)
             {
-                NewType.CustomAttributes.Add(new CustomAttribute(AssemblyContext.Imports.ExtensionAttributeCtor));
+                NewType.CustomAttributes.Add(new CustomAttribute(AssemblyContext.Imports.Module.ExtensionAttributeCtor()));
             }
         }
 

@@ -43,22 +43,22 @@ namespace Il2CppInterop.Generator.Passes
                                     {
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.RefRangeStart),
-                                            new CustomAttributeArgument(imports.Int, attribute.RefRangeStart)),
+                                            new CustomAttributeArgument(imports.Module.Int(), attribute.RefRangeStart)),
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.RefRangeEnd),
-                                            new CustomAttributeArgument(imports.Int, attribute.RefRangeEnd)),
+                                            new CustomAttributeArgument(imports.Module.Int(), attribute.RefRangeEnd)),
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.XrefRangeStart),
-                                            new CustomAttributeArgument(imports.Int, attribute.RefRangeStart)),
+                                            new CustomAttributeArgument(imports.Module.Int(), attribute.RefRangeStart)),
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.XrefRangeEnd),
-                                            new CustomAttributeArgument(imports.Int, attribute.RefRangeEnd)),
+                                            new CustomAttributeArgument(imports.Module.Int(), attribute.RefRangeEnd)),
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.MetadataInitTokenRva),
-                                            new CustomAttributeArgument(imports.Int, attribute.MetadataInitTokenRva)),
+                                            new CustomAttributeArgument(imports.Module.Int(), attribute.MetadataInitTokenRva)),
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.MetadataInitFlagRva),
-                                            new CustomAttributeArgument(imports.Int, attribute.MetadataInitFlagRva)),
+                                            new CustomAttributeArgument(imports.Module.Int(), attribute.MetadataInitFlagRva)),
                                     }
                                 });
                             continue;
@@ -95,22 +95,22 @@ namespace Il2CppInterop.Generator.Passes
                                     {
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.RefRangeStart),
-                                            new CustomAttributeArgument(imports.Int, refStart)),
+                                            new CustomAttributeArgument(imports.Module.Int(), refStart)),
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.RefRangeEnd),
-                                            new CustomAttributeArgument(imports.Int, refEnd)),
+                                            new CustomAttributeArgument(imports.Module.Int(), refEnd)),
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.XrefRangeStart),
-                                            new CustomAttributeArgument(imports.Int, xrefStart)),
+                                            new CustomAttributeArgument(imports.Module.Int(), xrefStart)),
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.XrefRangeEnd),
-                                            new CustomAttributeArgument(imports.Int, xrefEnd)),
+                                            new CustomAttributeArgument(imports.Module.Int(), xrefEnd)),
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.MetadataInitTokenRva),
-                                            new CustomAttributeArgument(imports.Long, methodRewriteContext.MetadataInitTokenRva)),
+                                            new CustomAttributeArgument(imports.Module.Long(), methodRewriteContext.MetadataInitTokenRva)),
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.MetadataInitFlagRva),
-                                            new CustomAttributeArgument(imports.Long, methodRewriteContext.MetadataInitFlagRva)),
+                                            new CustomAttributeArgument(imports.Module.Long(), methodRewriteContext.MetadataInitFlagRva)),
                                     }
                                 });
 

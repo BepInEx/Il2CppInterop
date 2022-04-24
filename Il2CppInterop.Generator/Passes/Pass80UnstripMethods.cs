@@ -194,8 +194,10 @@ namespace Il2CppInterop.Generator.Passes
             var targetAssemblyName = unityType.Scope.Name;
             if (targetAssemblyName.EndsWith(".dll"))
                 targetAssemblyName = targetAssemblyName.Substring(0, targetAssemblyName.Length - 4);
-            if ((targetAssemblyName == "mscorlib" || targetAssemblyName == "netstandard") && (unityType.IsValueType || unityType.FullName == "System.String" || unityType.FullName == "System.Void") && unityType.FullName != "System.RuntimeTypeHandle")
-                return TargetTypeSystemHandler.Type.Module.GetType(unityType.FullName);
+            if ((targetAssemblyName == "mscorlib" || targetAssemblyName == "netstandard") &&
+                (unityType.IsValueType || unityType.FullName == "System.String" ||
+                 unityType.FullName == "System.Void") && unityType.FullName != "System.RuntimeTypeHandle")
+                return imports.Module.ImportCorlibReference(unityType.Namespace, unityType.Name);
 
             if (targetAssemblyName == "UnityEngine")
                 foreach (var assemblyRewriteContext in context.Assemblies)
