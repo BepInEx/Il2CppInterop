@@ -24,6 +24,7 @@ TODOs (in no particular order):
 
 * [x] Rename and retarget all projects
 * [x] Remove obsolete projects (BaseLib and PdbGen)
+* [ ] Add support for CoreCLR-compatible wrapper generation
 * [ ] Remove Generator's dependency on Runtime library and the BCL
 * [ ] Remove all obsoleted functions and classes
 * [ ] Clean up CLI (add subcommands for each output type, clean up argument names)
