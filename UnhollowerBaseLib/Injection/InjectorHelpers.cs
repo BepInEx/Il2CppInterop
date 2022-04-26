@@ -152,7 +152,14 @@ namespace UnhollowerRuntimeLib.Injection
             LogSupport.Trace($"Image::GetType: 0x{imageGetType.ToInt64():X2}");
 
             var imageGetTypeXrefs = XrefScannerLowLevel.JumpTargets(imageGetType);
-            var getTypeInfoFromTypeDefinitionIndex = imageGetTypeXrefs.First();
+            var getTypeInfoFromTypeDefinitionIndex = imageGetTypeXrefs.FirstOrDefault();
+
+            if(imageGetTypeXrefs.Count() == 0)
+            {
+                // (Kasuromi): Image::GetType appears to be inlined in il2cpp_image_get_class on some occasions,
+                // if the unconditional xrefs are 0 then we are in the correct method (seen on unity 2019.3.15)
+                getTypeInfoFromTypeDefinitionIndex = imageGetType;
+            }
 
             if (imageGetTypeXrefs.Count() > 1) {
                 // (Kasuromi): metadata v29 introduces handles and adds extra calls, a check for unity versions might be necessary in the future
