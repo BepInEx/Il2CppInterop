@@ -33,8 +33,10 @@ namespace UnhollowerBaseLib.Runtime
         private static readonly Dictionary<Type, object> Handlers = new();
 
         private static Version UnityVersion = new(2018, 4, 20);
+
+        public static bool IsMetadataV29OrHigher => UnityVersion >= new Version(2021, 2, 0);
         // Version since which extra_arg is set to invoke_multicast, necessitating constructor calls
-        private static readonly Version DelegatesGotComplexVersion = new Version(2021, 2, 0);
+        public static bool MustUseDelegateConstructor => IsMetadataV29OrHigher;
 
         internal static INativeAssemblyStructHandler assemblyStructHandler;
         internal static INativeClassStructHandler classStructHandler;
@@ -70,8 +72,6 @@ namespace UnhollowerBaseLib.Runtime
             RecalculateHandlers();
         }
 
-        public static bool MustUseDelegateConstructor { get; private set; }
-
         private static void RecalculateHandlers()
         {
             Handlers.Clear();
@@ -95,8 +95,6 @@ namespace UnhollowerBaseLib.Runtime
             parameterInfoStructHandler = GetHandler<INativeParameterInfoStructHandler>();
             propertyInfoStructHandler = GetHandler<INativePropertyInfoStructHandler>();
             typeStructHandler = GetHandler<INativeTypeStructHandler>();
-
-            MustUseDelegateConstructor = UnityVersion >= DelegatesGotComplexVersion;
         }
 
         private static T GetHandler<T>()
