@@ -32,7 +32,7 @@ namespace UnhollowerBaseLib.Runtime
         private static readonly Dictionary<Type, List<(Version Version, object Handler)>> VersionedHandlers = new();
         private static readonly Dictionary<Type, object> Handlers = new();
 
-        private static Version UnityVersion = new(2018, 4, 20);
+        internal static Version UnityVersion = new(2018, 4, 20);
 
         public static bool IsMetadataV29OrHigher => UnityVersion >= new Version(2021, 2, 0);
         // Version since which extra_arg is set to invoke_multicast, necessitating constructor calls

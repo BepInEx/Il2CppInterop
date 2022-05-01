@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -12,6 +13,7 @@ using UnhollowerBaseLib.Runtime.VersionSpecific.Assembly;
 using UnhollowerBaseLib.Runtime.VersionSpecific.Class;
 using UnhollowerBaseLib.Runtime.VersionSpecific.FieldInfo;
 using UnhollowerBaseLib.Runtime.VersionSpecific.Image;
+using UnhollowerBaseLib.Runtime.VersionSpecific.MethodInfo;
 using UnhollowerRuntimeLib.XrefScans;
 
 namespace UnhollowerRuntimeLib.Injection
@@ -92,6 +94,22 @@ namespace UnhollowerRuntimeLib.Injection
             return addr;
         }
 
+        internal static IntPtr GetIl2CppMethodPointer(MethodBase proxyMethod)
+        {
+            if (proxyMethod == null) return IntPtr.Zero;
+
+            FieldInfo methodInfoPointerField = UnhollowerUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(proxyMethod);
+            if (methodInfoPointerField == null)
+                throw new ArgumentException($"Couldn't find the generated method info pointer for {proxyMethod.Name}");
+
+            IntPtr methodInfoPointer = (IntPtr)methodInfoPointerField.GetValue(null);
+            // Maybe call static constructor for type?
+            if (methodInfoPointer == IntPtr.Zero)
+                throw new ArgumentException($"Generated method info pointer for {proxyMethod.Name} doesn't point to any il2cpp method info");
+            INativeMethodInfoStruct methodInfo = UnityVersionHandler.Wrap((Il2CppMethodInfo*)methodInfoPointer);
+            return methodInfo.MethodPointer;
+        }
+
         private static long s_LastInjectedToken = -2;
         private static readonly ConcurrentDictionary<long, IntPtr> s_InjectedClasses = new();
         /// <summary> (namespace, class, image) : class </summary>
@@ -145,31 +163,61 @@ namespace UnhollowerRuntimeLib.Injection
         internal static d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndexOriginal;
         private static d_GetTypeInfoFromTypeDefinitionIndex FindGetTypeInfoFromTypeDefinitionIndex()
         {
-            var imageGetClassAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_image_get_class));
-            LogSupport.Trace($"il2cpp_image_get_class: 0x{imageGetClassAPI.ToInt64():X2}");
-
-            var imageGetType = XrefScannerLowLevel.JumpTargets(imageGetClassAPI).Single();
-            LogSupport.Trace($"Image::GetType: 0x{imageGetType.ToInt64():X2}");
-
-            var imageGetTypeXrefs = XrefScannerLowLevel.JumpTargets(imageGetType).ToArray();
             IntPtr getTypeInfoFromTypeDefinitionIndex = IntPtr.Zero;
 
-            if (imageGetTypeXrefs.Length == 0)
+            // il2cpp_image_get_class is added in 2018.3.0f1
+            if (UnityVersionHandler.UnityVersion < new Version(2018, 3, 0))
             {
-                // (Kasuromi): Image::GetType appears to be inlined in il2cpp_image_get_class on some occasions,
-                // if the unconditional xrefs are 0 then we are in the correct method (seen on unity 2019.3.15)
-                getTypeInfoFromTypeDefinitionIndex = imageGetType;
+                // (Kasuromi): RuntimeHelpers.InitializeArray calls an il2cpp icall which also appears in the proxy assemblies, unsure if that one is correct
+                // https://github.com/Unity-Technologies/mono/blob/unity-2018.2/mcs/class/corlib/System.Runtime.CompilerServices/RuntimeHelpers.cs#L53-L54
+                IntPtr runtimeHelpersInitializeArray = GetIl2CppMethodPointer(
+                    typeof(Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers)
+                        .GetMethod("InitializeArray", new Type[] { typeof(Il2CppSystem.Array), typeof(Il2CppSystem.RuntimeTypeHandle) })
+                );
+                LogSupport.Trace($"Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers::InitializeArray: 0x{runtimeHelpersInitializeArray.ToInt64():X2}");
+
+                var runtimeHelpersInitializeArrayICall = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArray).Last();
+                if (XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).Count() == 1)
+                {
+                    LogSupport.Trace($"RuntimeHelpers::thunk_InitializeArray: 0x{runtimeHelpersInitializeArrayICall.ToInt64():X2}");
+                    // is a thunk function
+                    runtimeHelpersInitializeArrayICall = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).Single();
+                }
+
+                LogSupport.Trace($"RuntimeHelpers::InitializeArray: 0x{runtimeHelpersInitializeArrayICall.ToInt64():X2}");
+
+                var typeGetUnderlyingType = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).ElementAt(1);
+                LogSupport.Trace($"Type::GetUnderlyingType: 0x{typeGetUnderlyingType.ToInt64():X2}");
+
+                getTypeInfoFromTypeDefinitionIndex = XrefScannerLowLevel.JumpTargets(typeGetUnderlyingType).First();
             }
-            else getTypeInfoFromTypeDefinitionIndex = imageGetTypeXrefs[0];
-            if (imageGetTypeXrefs.Count() > 1 && UnityVersionHandler.IsMetadataV29OrHigher)
+            else
             {
-                // (Kasuromi): metadata v29 introduces handles and adds extra calls, a check for unity versions might be necessary in the future
+                var imageGetClassAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_image_get_class));
+                LogSupport.Trace($"il2cpp_image_get_class: 0x{imageGetClassAPI.ToInt64():X2}");
 
-                // Second call after obtaining handle, if there are any more calls in the future - correctly index into it if issues occur
-                var getTypeInfoFromHandle = imageGetTypeXrefs.Last();
+                var imageGetType = XrefScannerLowLevel.JumpTargets(imageGetClassAPI).Single();
+                LogSupport.Trace($"Image::GetType: 0x{imageGetType.ToInt64():X2}");
 
-                // Two calls, second one (GetIndexForTypeDefinitionInternal) is inlined
-                getTypeInfoFromTypeDefinitionIndex = XrefScannerLowLevel.JumpTargets(getTypeInfoFromHandle).Single();
+                var imageGetTypeXrefs = XrefScannerLowLevel.JumpTargets(imageGetType).ToArray();
+
+                if (imageGetTypeXrefs.Length == 0)
+                {
+                    // (Kasuromi): Image::GetType appears to be inlined in il2cpp_image_get_class on some occasions,
+                    // if the unconditional xrefs are 0 then we are in the correct method (seen on unity 2019.3.15)
+                    getTypeInfoFromTypeDefinitionIndex = imageGetType;
+                }
+                else getTypeInfoFromTypeDefinitionIndex = imageGetTypeXrefs[0];
+                if (imageGetTypeXrefs.Count() > 1 && UnityVersionHandler.IsMetadataV29OrHigher)
+                {
+                    // (Kasuromi): metadata v29 introduces handles and adds extra calls, a check for unity versions might be necessary in the future
+
+                    // Second call after obtaining handle, if there are any more calls in the future - correctly index into it if issues occur
+                    var getTypeInfoFromHandle = imageGetTypeXrefs.Last();
+
+                    // Two calls, second one (GetIndexForTypeDefinitionInternal) is inlined
+                    getTypeInfoFromTypeDefinitionIndex = XrefScannerLowLevel.JumpTargets(getTypeInfoFromHandle).Single();
+                }
             }
 
             LogSupport.Trace($"MetadataCache::GetTypeInfoFromTypeDefinitionIndex: 0x{getTypeInfoFromTypeDefinitionIndex.ToInt64():X2}");
