@@ -102,8 +102,10 @@ namespace UnhollowerRuntimeLib.Injection
             if (methodInfoPointerField == null)
                 throw new ArgumentException($"Couldn't find the generated method info pointer for {proxyMethod.Name}");
 
+            // Il2CppClassPointerStore calls the static constructor for the type
+            Il2CppClassPointerStore.GetNativeClassPointer(proxyMethod.DeclaringType);
+
             IntPtr methodInfoPointer = (IntPtr)methodInfoPointerField.GetValue(null);
-            // Maybe call static constructor for type?
             if (methodInfoPointer == IntPtr.Zero)
                 throw new ArgumentException($"Generated method info pointer for {proxyMethod.Name} doesn't point to any il2cpp method info");
             INativeMethodInfoStruct methodInfo = UnityVersionHandler.Wrap((Il2CppMethodInfo*)methodInfoPointer);
@@ -168,19 +170,19 @@ namespace UnhollowerRuntimeLib.Injection
             // il2cpp_image_get_class is added in 2018.3.0f1
             if (UnityVersionHandler.UnityVersion < new Version(2018, 3, 0))
             {
-                // (Kasuromi): RuntimeHelpers.InitializeArray calls an il2cpp icall which also appears in the proxy assemblies, unsure if that one is correct
+                // (Kasuromi): RuntimeHelpers.InitializeArray calls an il2cpp icall, proxy function does some magic before it invokes it
                 // https://github.com/Unity-Technologies/mono/blob/unity-2018.2/mcs/class/corlib/System.Runtime.CompilerServices/RuntimeHelpers.cs#L53-L54
                 IntPtr runtimeHelpersInitializeArray = GetIl2CppMethodPointer(
                     typeof(Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers)
-                        .GetMethod("InitializeArray", new Type[] { typeof(Il2CppSystem.Array), typeof(Il2CppSystem.RuntimeTypeHandle) })
+                        .GetMethod("InitializeArray", new Type[] { typeof(Il2CppSystem.Array), typeof(IntPtr) })
                 );
                 LogSupport.Trace($"Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers::InitializeArray: 0x{runtimeHelpersInitializeArray.ToInt64():X2}");
 
                 var runtimeHelpersInitializeArrayICall = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArray).Last();
                 if (XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).Count() == 1)
                 {
-                    LogSupport.Trace($"RuntimeHelpers::thunk_InitializeArray: 0x{runtimeHelpersInitializeArrayICall.ToInt64():X2}");
                     // is a thunk function
+                    LogSupport.Trace($"RuntimeHelpers::thunk_InitializeArray: 0x{runtimeHelpersInitializeArrayICall.ToInt64():X2}");
                     runtimeHelpersInitializeArrayICall = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).Single();
                 }
 
