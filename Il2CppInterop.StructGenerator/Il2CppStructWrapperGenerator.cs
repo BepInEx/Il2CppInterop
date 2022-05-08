@@ -2,14 +2,23 @@
 using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
 using Il2CppInterop.StructGenerator.Resources;
+using Il2CppInterop.StructGenerator.Utilities;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.StructGenerator;
 
-public static class Program
+public record Il2CppStructWrapperGeneratorOptions(
+    string HeadersDirectory,
+    string OutputDirectory,
+    ILogger? Logger
+);
+
+public static class Il2CppStructWrapperGenerator
 {
     private static readonly Dictionary<int, List<VersionSpecificGenerator>> SGenerators = new();
+    internal static ILogger? Logger { get; set; }
 
-    public static int GetMetadataVersion(string libil2CppPath)
+    private static int GetMetadataVersion(string libil2CppPath)
     {
         var metadataVersion = -1;
         foreach (var versionContainer in Config.MetadataVersionContainers)
@@ -31,7 +40,7 @@ public static class Program
         return metadataVersion;
     }
 
-    internal static VersionSpecificGenerator? VisitClass(CppClass @class, int metadataVersion,
+    private static VersionSpecificGenerator? VisitClass(CppClass @class, int metadataVersion,
         UnityVersion unityVersion, CppClass[] classes)
     {
         if (Config.ClassForcedIgnores.Contains(@class.Name)) return null;
@@ -83,24 +92,24 @@ public static class Program
         return generator;
     }
 
-    public static void Main(string[] args)
+    public static void Generate(Il2CppStructWrapperGeneratorOptions options)
     {
-        if (Directory.Exists("generated"))
-            Directory.Delete("generated", true);
-        Directory.CreateDirectory("generated");
-        const string libil2CppInstalls = @"E:\unity\libil2cpp";
-        foreach (var (libil2CppDir, version) in Directory.GetDirectories(libil2CppInstalls)
+        Logger = options.Logger;
+        if (Directory.Exists(options.OutputDirectory))
+            Directory.Delete(options.OutputDirectory, true);
+        Directory.CreateDirectory(options.OutputDirectory);
+        foreach (var (libil2CppDir, version) in Directory.GetDirectories(options.HeadersDirectory)
                      .Select(x => (x, new UnityVersion(Path.GetFileName(x)))).OrderBy(x => x.Item2))
         {
             var classInternalsPath = Path.Combine(libil2CppDir, "il2cpp-class-internals.h");
             if (!File.Exists(classInternalsPath))
             {
-                Console.WriteLine(
-                    $"{version} doesn't have il2cpp-class-internals.h - falling back to class-internals.h");
+                Logger?.LogWarning(
+                    "{} doesn't have il2cpp-class-internals.h - falling back to class-internals.h", version);
                 classInternalsPath = Path.Combine(libil2CppDir, "class-internals.h");
                 if (!File.Exists(classInternalsPath))
                 {
-                    Console.WriteLine($"{version} doesn't have class-internals.h");
+                    Logger?.LogWarning("{} doesn't have class-internals.h", version);
                     continue;
                 }
             }
@@ -108,12 +117,12 @@ public static class Program
             var objectInternalsPath = Path.Combine(libil2CppDir, "il2cpp-object-internals.h");
             if (!File.Exists(objectInternalsPath))
             {
-                Console.WriteLine(
-                    $"{version} doesn't have il2cpp-object-internals.h - falling back to object-internals.h");
+                Logger?.LogWarning(
+                    "{} doesn't have il2cpp-object-internals.h - falling back to object-internals.h", version);
                 objectInternalsPath = Path.Combine(libil2CppDir, "object-internals.h");
                 if (!File.Exists(objectInternalsPath))
                 {
-                    Console.WriteLine($"{version} doesn't have object-internals.h");
+                    Logger?.LogWarning("{} doesn't have object-internals.h", version);
                     continue;
                 }
             }
@@ -121,7 +130,7 @@ public static class Program
             var metadataVersion = GetMetadataVersion(libil2CppDir);
             if (metadataVersion == -1)
             {
-                Console.WriteLine($"{version} has an invalid metadata version");
+                Logger?.LogWarning("{} has an invalid metadata version", version);
                 continue;
             }
 
@@ -148,7 +157,7 @@ public static class Program
                     AutoSquashTypedef = false,
                     ParseMacros = true
                 });
-            Console.WriteLine($"Parsing {version}");
+            Logger?.LogInformation("Parsing {}", version);
             var classes = compilation.Classes.ToArray();
             foreach (var @class in classes) VisitClass(@class, metadataVersion, version, classes);
             if (classInternalsIsTmp)
@@ -158,7 +167,7 @@ public static class Program
             }
         }
 
-        Console.WriteLine("Building version specific classes");
+        Logger?.LogInformation("Building version specific classes");
         // In the eyes of god - I am a disappointment
         Dictionary<Type, Dictionary<UnityVersion, VersionSpecificGenerator>> versionToGeneratorLookup = new();
         foreach (var generator in SGenerators.Values.SelectMany(x => x))
@@ -174,18 +183,18 @@ public static class Program
         foreach (var kvp in versionToGeneratorLookup)
         {
             VersionSpecificGenerator? last = null;
-            foreach (var kvp2 in kvp.Value)
-                if (last is null || last != kvp2.Value)
-                {
-                    kvp2.Value.HandlerGenerator.HandlerClass.Attributes.Add(
-                        $"ApplicableToUnityVersionsSince(\"{kvp2.Key.ToStringShort()}\")");
-                    last = kvp2.Value;
-                }
+            foreach (var kvp2 in kvp.Value.Where(kvp2 => last is null || last != kvp2.Value))
+            {
+                kvp2.Value.HandlerGenerator.HandlerClass.Attributes.Add(
+                    $"ApplicableToUnityVersionsSince(\"{kvp2.Key.ToStringShort()}\")");
+                last = kvp2.Value;
+            }
         }
 
         foreach (var generator in SGenerators.Values.SelectMany(x => x))
         {
-            var generatorOutputDir = Path.Combine("generated", generator.NativeStructGenerator.CppClass.Name);
+            var generatorOutputDir =
+                Path.Combine(options.OutputDirectory, generator.NativeStructGenerator.CppClass.Name);
             if (!Directory.Exists(generatorOutputDir))
                 Directory.CreateDirectory(generatorOutputDir);
             CodeGenFile file = new()
@@ -207,5 +216,7 @@ public static class Program
             file.WriteTo(Path.Combine(generatorOutputDir,
                 $"{generator.NativeStructGenerator.NativeStruct.Name.Replace("Il2Cpp", string.Empty)}.cs"));
         }
+
+        Logger = null;
     }
 }

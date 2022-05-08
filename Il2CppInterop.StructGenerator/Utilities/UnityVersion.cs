@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Il2CppInterop.StructGenerator;
+namespace Il2CppInterop.StructGenerator.Utilities;
 
 internal struct UnityVersion : IComparable, IComparable<UnityVersion>
 {
