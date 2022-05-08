@@ -1,66 +1,44 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
-
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.FieldInfo
 {
-    [ApplicableToUnityVersionsSince("5.3.0")]
+    [ApplicableToUnityVersionsSince("5.2.2")]
     public unsafe class NativeFieldInfoStructHandler_16_0 : INativeFieldInfoStructHandler
     {
-        public unsafe int Size() => sizeof(Il2CppFieldInfo_16_0);
-        public INativeFieldInfoStruct CreateNewFieldInfoStruct()
+        public int Size() => sizeof(Il2CppFieldInfo_16_0);
+        public INativeFieldInfoStruct CreateNewStruct()
         {
-            var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppFieldInfo_16_0>());
-
-            *(Il2CppFieldInfo_16_0*)pointer = default;
-
-            return new NativeFieldInfoStruct(pointer);
+            IntPtr ptr = Marshal.AllocHGlobal(Size());
+            Il2CppFieldInfo_16_0* _ = (Il2CppFieldInfo_16_0*)ptr;
+            *_ = default;
+            return new NativeStructWrapper(ptr);
         }
-
-        public INativeFieldInfoStruct Wrap(Il2CppFieldInfo* fieldInfoPointer)
+        public INativeFieldInfoStruct Wrap(Il2CppFieldInfo* ptr)
         {
-            if ((IntPtr)fieldInfoPointer == IntPtr.Zero) return null;
-            else return new NativeFieldInfoStruct((IntPtr)fieldInfoPointer);
+            if (ptr == null) return null;
+            return new NativeStructWrapper((IntPtr)ptr);
         }
-
-        public IntPtr il2cpp_field_get_name(IntPtr field) => ((Il2CppFieldInfo_16_0*)field)->name;
-        public uint il2cpp_field_get_offset(IntPtr field) => (uint)((Il2CppFieldInfo_16_0*)field)->offset;
-        public IntPtr il2cpp_field_get_parent(IntPtr field) => (IntPtr)((Il2CppFieldInfo_16_0*)field)->parent;
-        public IntPtr il2cpp_field_get_type(IntPtr field) => (IntPtr)((Il2CppFieldInfo_16_0*)field)->type;
-
-#if DEBUG
-        public string GetName() => "NativeFieldInfoStructHandler_16_0";
-#endif
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct Il2CppFieldInfo_16_0
+        internal unsafe struct Il2CppFieldInfo_16_0
         {
-            public IntPtr name; // const char*
-            public Il2CppTypeStruct* type; // const
-            public Il2CppClass* parent; // non-const?
-            public int offset; // If offset is -1, then it's thread static
+            public byte* name;
+            public Il2CppTypeStruct* type;
+            public Il2CppClass* parent;
+            public int offset;
             public int customAttributeIndex;
         }
 
-        internal class NativeFieldInfoStruct : INativeFieldInfoStruct
+        internal class NativeStructWrapper : INativeFieldInfoStruct
         {
-            public NativeFieldInfoStruct(IntPtr pointer)
-            {
-                Pointer = pointer;
-            }
-
+            public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
             public IntPtr Pointer { get; }
-
+            private Il2CppFieldInfo_16_0* _ => (Il2CppFieldInfo_16_0*)Pointer;
             public Il2CppFieldInfo* FieldInfoPointer => (Il2CppFieldInfo*)Pointer;
-
-            private Il2CppFieldInfo_16_0* NativeField => (Il2CppFieldInfo_16_0*)Pointer;
-
-            public ref IntPtr Name => ref NativeField->name;
-
-            public ref Il2CppTypeStruct* Type => ref NativeField->type;
-
-            public ref Il2CppClass* Parent => ref NativeField->parent;
-
-            public ref int Offset => ref NativeField->offset;
+            public ref IntPtr Name => ref *(IntPtr*)&_->name;
+            public ref Il2CppTypeStruct* Type => ref _->type;
+            public ref Il2CppClass* Parent => ref _->parent;
+            public ref int Offset => ref _->offset;
         }
+
     }
+
 }

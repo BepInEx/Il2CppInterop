@@ -976,7 +976,7 @@ namespace UnhollowerRuntimeLib
             fullName.Append(Marshal.PtrToStringAnsi(klass.Name));
 
             fullName.Append(", ");
-            fullName.Append(Marshal.PtrToStringAnsi(assembly.Name));
+            fullName.Append(Marshal.PtrToStringAnsi(assembly.Name.Name));
 
             var type = Type.GetType(fullName.ToString()) ?? throw new NullReferenceException($"Couldn't find System.Type for Il2Cpp type: {fullName}");
             return RewriteType(type);

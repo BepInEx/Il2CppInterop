@@ -1,156 +1,87 @@
 using System;
 using System.Runtime.InteropServices;
-
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.MethodInfo
 {
     [ApplicableToUnityVersionsSince("2018.3.0")]
     public unsafe class NativeMethodInfoStructHandler_24_1 : INativeMethodInfoStructHandler
     {
-        public unsafe int Size() => sizeof(Il2CppMethodInfo_24_1);
-        public INativeMethodInfoStruct CreateNewMethodStruct()
+        public int Size() => sizeof(Il2CppMethodInfo_24_1);
+        public INativeMethodInfoStruct CreateNewStruct()
         {
-            var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppMethodInfo_24_1>());
-            *(Il2CppMethodInfo_24_1*)pointer = default;
-
-            return new NativeMethodInfoStructWrapper(pointer);
+            IntPtr ptr = Marshal.AllocHGlobal(Size());
+            Il2CppMethodInfo_24_1* _ = (Il2CppMethodInfo_24_1*)ptr;
+            *_ = default;
+            return new NativeStructWrapper(ptr);
         }
-
-        public INativeMethodInfoStruct Wrap(Il2CppMethodInfo* methodPointer)
+        public INativeMethodInfoStruct Wrap(Il2CppMethodInfo* ptr)
         {
-            if ((IntPtr)methodPointer == IntPtr.Zero) return null;
-            else return new NativeMethodInfoStructWrapper((IntPtr)methodPointer);
+            if (ptr == null) return null;
+            return new NativeStructWrapper((IntPtr)ptr);
         }
-
-        [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        private static extern IntPtr il2cpp_method_get_from_reflection(IntPtr method);
-
-        public IntPtr GetMethodFromReflection(IntPtr method)
+        internal unsafe struct Il2CppMethodInfo_24_1
         {
-            return il2cpp_method_get_from_reflection(method);
-        }
-
-        public IntPtr CopyMethodInfoStruct(IntPtr origMethodInfo)
-        {
-            int sizeOfMethodInfo = Marshal.SizeOf<Il2CppMethodInfo_24_1>();
-            IntPtr copiedMethodInfo = Marshal.AllocHGlobal(sizeOfMethodInfo);
-
-            object temp = Marshal.PtrToStructure<Il2CppMethodInfo_24_1>(origMethodInfo);
-            Marshal.StructureToPtr(temp, copiedMethodInfo, false);
-
-            return copiedMethodInfo;
-        }
-
-        public IntPtr il2cpp_method_get_class(IntPtr method) => (IntPtr)((Il2CppMethodInfo_24_1*)method)->klass;
-        public IntPtr il2cpp_method_get_name(IntPtr method) => ((Il2CppMethodInfo_24_1*)method)->name;
-        public uint il2cpp_method_get_param_count(IntPtr method) => ((Il2CppMethodInfo_24_1*)method)->parameters_count;
-        public IntPtr il2cpp_method_get_return_type(IntPtr method) => (IntPtr)((Il2CppMethodInfo_24_1*)method)->return_type;
-        public uint il2cpp_method_get_token(IntPtr method) => ((Il2CppMethodInfo_24_1*)method)->token;
-
-#if DEBUG
-        public string GetName() => "NativeMethodInfoStructHandler_24_1";
-#endif
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct Il2CppMethodInfo_24_1
-        {
-            public IntPtr methodPointer;
-            public IntPtr invoker_method;
-            public IntPtr name; // const char*
+            public void* methodPointer;
+            public void* invoker_method;
+            public byte* name;
             public Il2CppClass* klass;
             public Il2CppTypeStruct* return_type;
             public Il2CppParameterInfo* parameters;
-
-            public IntPtr someRtData;
-            /*union
-            {
-                const Il2CppRGCTXData* rgctx_data; /* is_inflated is true and is_generic is false, i.e. a generic instance method #1#
-                const Il2CppMethodDefinition* methodDefinition;
-            };*/
-
-            public IntPtr someGenericData;
-            /*/* note, when is_generic == true and is_inflated == true the method represents an uninflated generic method on an inflated type. #1#
-            union
-            {
-                const Il2CppGenericMethod* genericMethod; /* is_inflated is true #1#
-                const Il2CppGenericContainer* genericContainer; /* is_inflated is false and is_generic is true #1#
-            };*/
-
+            public void* runtime_data;
+            public void* generic_data;
             public uint token;
-            public Il2CppMethodFlags flags;
-            public Il2CppMethodImplFlags iflags;
+            public ushort flags;
+            public ushort iflags;
             public ushort slot;
             public byte parameters_count;
-
-            public MethodInfoExtraFlags extra_flags;
-            /*uint8_t is_generic : 1; /* true if method is a generic method definition #1#
-            uint8_t is_inflated : 1; /* true if declaring_type is a generic instance or if method is a generic instance#1#
-            uint8_t wrapper_type : 1; /* always zero (MONO_WRAPPER_NONE) needed for the debugger #1#
-            uint8_t is_marshaled_from_native : 1*/
-        }
-
-
-        internal class NativeMethodInfoStructWrapper : INativeMethodInfoStruct
-        {
-            public NativeMethodInfoStructWrapper(IntPtr pointer)
+            public Bitfield0 _bitfield0;
+            internal enum Bitfield0 : byte
             {
-                Pointer = pointer;
+                BIT_is_generic = 0,
+                is_generic = (1 << BIT_is_generic),
+                BIT_is_inflated = 1,
+                is_inflated = (1 << BIT_is_inflated),
+                BIT_wrapper_type = 2,
+                wrapper_type = (1 << BIT_wrapper_type),
+                BIT_is_marshaled_from_native = 3,
+                is_marshaled_from_native = (1 << BIT_is_marshaled_from_native),
             }
 
-            public int StructSize => Marshal.SizeOf<Il2CppMethodInfo_24_1>();
+        }
 
+        internal class NativeStructWrapper : INativeMethodInfoStruct
+        {
+            public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
+            private static int _bitfield0offset = Marshal.OffsetOf<Il2CppMethodInfo_24_1>(nameof(Il2CppMethodInfo_24_1._bitfield0)).ToInt32();
             public IntPtr Pointer { get; }
-
+            private Il2CppMethodInfo_24_1* _ => (Il2CppMethodInfo_24_1*)Pointer;
             public Il2CppMethodInfo* MethodInfoPointer => (Il2CppMethodInfo*)Pointer;
-
-            private Il2CppMethodInfo_24_1* NativeMethod => (Il2CppMethodInfo_24_1*)Pointer;
-
-            public ref IntPtr Name => ref NativeMethod->name;
-
-            public ref ushort Slot => ref NativeMethod->slot;
-
-            public ref IntPtr MethodPointer => ref NativeMethod->methodPointer;
-
-            public ref Il2CppClass* Class => ref NativeMethod->klass;
-
-            public ref IntPtr InvokerMethod => ref NativeMethod->invoker_method;
-
-            public ref Il2CppTypeStruct* ReturnType => ref NativeMethod->return_type;
-
-            public ref Il2CppMethodFlags Flags => ref NativeMethod->flags;
-
-            public ref byte ParametersCount => ref NativeMethod->parameters_count;
-
-            public ref Il2CppParameterInfo* Parameters => ref NativeMethod->parameters;
-
+            public ref IntPtr Name => ref *(IntPtr*)&_->name;
+            public ref ushort Slot => ref _->slot;
+            public ref IntPtr MethodPointer => ref *(IntPtr*)&_->methodPointer;
+            public ref Il2CppClass* Class => ref _->klass;
+            public ref IntPtr InvokerMethod => ref *(IntPtr*)&_->invoker_method;
+            public ref Il2CppTypeStruct* ReturnType => ref _->return_type;
+            public ref Il2CppMethodFlags Flags => ref *(Il2CppMethodFlags*)&_->flags;
+            public ref byte ParametersCount => ref _->parameters_count;
+            public ref Il2CppParameterInfo* Parameters => ref _->parameters;
+            public ref uint Token => ref _->token;
             public bool IsGeneric
             {
-                get => (NativeMethod->extra_flags & MethodInfoExtraFlags.is_generic) != 0;
-                set
-                {
-                    if (value) NativeMethod->extra_flags |= MethodInfoExtraFlags.is_generic;
-                    else NativeMethod->extra_flags &= ~MethodInfoExtraFlags.is_generic;
-                }
+                get => this.CheckBit(_bitfield0offset, (int)Il2CppMethodInfo_24_1.Bitfield0.BIT_is_generic);
+                set => this.SetBit(_bitfield0offset, (int)Il2CppMethodInfo_24_1.Bitfield0.BIT_is_generic, value);
             }
-
             public bool IsInflated
             {
-                get => (NativeMethod->extra_flags & MethodInfoExtraFlags.is_inflated) != 0;
-                set
-                {
-                    if (value) NativeMethod->extra_flags |= MethodInfoExtraFlags.is_inflated;
-                    else NativeMethod->extra_flags &= ~MethodInfoExtraFlags.is_inflated;
-                }
+                get => this.CheckBit(_bitfield0offset, (int)Il2CppMethodInfo_24_1.Bitfield0.BIT_is_inflated);
+                set => this.SetBit(_bitfield0offset, (int)Il2CppMethodInfo_24_1.Bitfield0.BIT_is_inflated, value);
             }
-
             public bool IsMarshalledFromNative
             {
-                get => (NativeMethod->extra_flags & MethodInfoExtraFlags.is_marshalled_from_native) != 0;
-                set
-                {
-                    if (value) NativeMethod->extra_flags |= MethodInfoExtraFlags.is_marshalled_from_native;
-                    else NativeMethod->extra_flags &= ~MethodInfoExtraFlags.is_marshalled_from_native;
-                }
+                get => this.CheckBit(_bitfield0offset, (int)Il2CppMethodInfo_24_1.Bitfield0.BIT_is_marshaled_from_native);
+                set => this.SetBit(_bitfield0offset, (int)Il2CppMethodInfo_24_1.Bitfield0.BIT_is_marshaled_from_native, value);
             }
         }
+
     }
+
 }
