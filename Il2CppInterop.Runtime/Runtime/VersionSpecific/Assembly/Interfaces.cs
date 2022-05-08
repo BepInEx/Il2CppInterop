@@ -1,5 +1,5 @@
 ﻿using System;
-using UnhollowerBaseLib.Runtime.VersionSpecific.AssemblyName;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName;
 
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly
 {

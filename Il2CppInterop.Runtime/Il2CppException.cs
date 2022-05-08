@@ -15,16 +15,20 @@ namespace Il2CppInterop.Runtime
 
         private static unsafe string BuildMessage(IntPtr exception)
         {
+#if !MINI
             if (ParseMessageHook != null) return ParseMessageHook(exception);
             ourMessageBytes ??= new byte[65536];
             fixed (byte* message = ourMessageBytes)
                 IL2CPP.il2cpp_format_exception(exception, message, ourMessageBytes.Length);
-            string builtMessage = Encoding.UTF8.GetString(ourMessageBytes, 0, Array.IndexOf(ourMessageBytes, (byte) 0));
+            string builtMessage = Encoding.UTF8.GetString(ourMessageBytes, 0, Array.IndexOf(ourMessageBytes, (byte)0));
             Il2CppSystem.Exception il2cppException = new(exception);
             return builtMessage + "\n" +
                 $"--- BEGIN IL2CPP STACK TRACE ---\n" +
                 $"{il2cppException.StackTrace}\n" +
                 $"--- END IL2CPP STACK TRACE ---\n";
+#else
+            return "";
+#endif
         }
 
         public static void RaiseExceptionIfNecessary(IntPtr returnedException)

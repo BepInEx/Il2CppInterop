@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-namespace UnhollowerBaseLib.Runtime.VersionSpecific.EventInfo
+namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.EventInfo
 {
     [ApplicableToUnityVersionsSince("5.3.2")]
     public unsafe class NativeEventInfoStructHandler_19_0 : INativeEventInfoStructHandler

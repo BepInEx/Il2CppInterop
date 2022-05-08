@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-namespace UnhollowerBaseLib.Runtime.VersionSpecific.MethodInfo
+namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
 {
     [ApplicableToUnityVersionsSince("2022.1.0")]
     public unsafe class NativeMethodInfoStructHandler_29_1 : INativeMethodInfoStructHandler

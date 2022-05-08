@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-namespace UnhollowerBaseLib.Runtime.VersionSpecific.PropertyInfo
+namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.PropertyInfo
 {
     [ApplicableToUnityVersionsSince("2018.3.0")]
     public unsafe class NativePropertyInfoStructHandler_24_0 : INativePropertyInfoStructHandler

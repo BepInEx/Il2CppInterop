@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-namespace UnhollowerBaseLib.Runtime.VersionSpecific.Exception
+namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Exception
 {
     [ApplicableToUnityVersionsSince("2021.2.0")]
     public unsafe class NativeExceptionStructHandler_29_0 : INativeExceptionStructHandler

@@ -1,15 +1,15 @@
 using System;
 using System.Runtime.InteropServices;
-namespace UnhollowerBaseLib.Runtime.VersionSpecific.AssemblyName
+namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName
 {
-    [ApplicableToUnityVersionsSince("2018.1.0")]
-    public unsafe class NativeAssemblyNameStructHandler_24_0 : INativeAssemblyNameStructHandler
+    [ApplicableToUnityVersionsSince("2018.4.34")]
+    public unsafe class NativeAssemblyNameStructHandler_24_1 : INativeAssemblyNameStructHandler
     {
-        public int Size() => sizeof(Il2CppAssemblyName_24_0);
+        public int Size() => sizeof(Il2CppAssemblyName_24_1);
         public INativeAssemblyNameStruct CreateNewStruct()
         {
             IntPtr ptr = Marshal.AllocHGlobal(Size());
-            Il2CppAssemblyName_24_0* _ = (Il2CppAssemblyName_24_0*)ptr;
+            Il2CppAssemblyName_24_1* _ = (Il2CppAssemblyName_24_1*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
         }
@@ -18,11 +18,10 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.AssemblyName
             if (ptr == null) return null;
             return new NativeStructWrapper((IntPtr)ptr);
         }
-        internal unsafe struct Il2CppAssemblyName_24_0
+        internal unsafe struct Il2CppAssemblyName_24_1
         {
             public byte* name;
             public byte* culture;
-            public byte* hash_value;
             public byte* public_key;
             public uint hash_alg;
             public int hash_len;
@@ -38,7 +37,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.AssemblyName
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
             public IntPtr Pointer { get; }
-            private Il2CppAssemblyName_24_0* _ => (Il2CppAssemblyName_24_0*)Pointer;
+            private Il2CppAssemblyName_24_1* _ => (Il2CppAssemblyName_24_1*)Pointer;
             public Il2CppAssemblyName* AssemblyNamePointer => (Il2CppAssemblyName*)Pointer;
             public ref IntPtr Name => ref *(IntPtr*)&_->name;
             public ref IntPtr Culture => ref *(IntPtr*)&_->culture;

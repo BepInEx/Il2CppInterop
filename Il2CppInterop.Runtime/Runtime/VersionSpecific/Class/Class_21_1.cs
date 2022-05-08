@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
-using UnhollowerBaseLib.Runtime.VersionSpecific.Type;
-namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
+namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
 {
     [ApplicableToUnityVersionsSince("5.4.4")]
     public unsafe class NativeClassStructHandler_21_1 : INativeClassStructHandler

@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
-using UnhollowerBaseLib.Runtime.VersionSpecific.AssemblyName;
-namespace UnhollowerBaseLib.Runtime.VersionSpecific.Assembly
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName;
+namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly
 {
     [ApplicableToUnityVersionsSince("2018.3.0")]
     public unsafe class NativeAssemblyStructHandler_24_1 : INativeAssemblyStructHandler

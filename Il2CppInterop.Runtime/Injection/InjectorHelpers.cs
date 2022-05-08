@@ -7,16 +7,15 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Threading;
-using UnhollowerBaseLib;
-using UnhollowerBaseLib.Runtime;
-using UnhollowerBaseLib.Runtime.VersionSpecific.Assembly;
-using UnhollowerBaseLib.Runtime.VersionSpecific.Class;
-using UnhollowerBaseLib.Runtime.VersionSpecific.FieldInfo;
-using UnhollowerBaseLib.Runtime.VersionSpecific.Image;
-using UnhollowerBaseLib.Runtime.VersionSpecific.MethodInfo;
-using UnhollowerRuntimeLib.XrefScans;
+using Il2CppInterop.Runtime.Runtime;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.Image;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
+using Il2CppInterop.Runtime.XrefScans;
 
-namespace UnhollowerRuntimeLib.Injection
+namespace Il2CppInterop.Runtime.Injection
 {
     internal static unsafe class InjectorHelpers
     {
@@ -78,7 +77,7 @@ namespace UnhollowerRuntimeLib.Injection
             string klass = type.Name;
             if (klass == null) return;
             string namespaze = type.Namespace ?? string.Empty;
-            var attribute = Attribute.GetCustomAttribute(type, typeof(UnhollowerBaseLib.Attributes.ClassInjectionAssemblyTargetAttribute)) as UnhollowerBaseLib.Attributes.ClassInjectionAssemblyTargetAttribute;
+            var attribute = Attribute.GetCustomAttribute(type, typeof(Il2CppInterop.Runtime.Attributes.ClassInjectionAssemblyTargetAttribute)) as Il2CppInterop.Runtime.Attributes.ClassInjectionAssemblyTargetAttribute;
 
             foreach (IntPtr image in (attribute is null) ? IL2CPP.GetIl2CppImages() : attribute.GetImagePointers())
             {
@@ -98,7 +97,7 @@ namespace UnhollowerRuntimeLib.Injection
         {
             if (proxyMethod == null) return IntPtr.Zero;
 
-            FieldInfo methodInfoPointerField = UnhollowerUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(proxyMethod);
+            FieldInfo methodInfoPointerField = Il2CppInteropUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(proxyMethod);
             if (methodInfoPointerField == null)
                 throw new ArgumentException($"Couldn't find the generated method info pointer for {proxyMethod.Name}");
 
@@ -139,14 +138,18 @@ namespace UnhollowerRuntimeLib.Injection
         internal static d_ClassFromName ClassFromNameOriginal;
         private static d_ClassFromName FindClassFromName()
         {
+#if !MINI
             var classFromNameAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_class_from_name));
-            LogSupport.Trace($"il2cpp_class_from_name: 0x{classFromNameAPI.ToInt64():X2}");
+            Logger.Trace($"il2cpp_class_from_name: 0x{classFromNameAPI.ToInt64():X2}");
 
             var classFromName = XrefScannerLowLevel.JumpTargets(classFromNameAPI).Single();
-            LogSupport.Trace($"Class::FromName: 0x{classFromName.ToInt64():X2}");
+            Logger.Trace($"Class::FromName: 0x{classFromName.ToInt64():X2}");
 
             ClassFromNameOriginal = ClassInjector.Detour.Detour(classFromName, new d_ClassFromName(hkClassFromName));
             return Marshal.GetDelegateForFunctionPointer<d_ClassFromName>(classFromName);
+#else
+            return null;
+#endif
         }
         #endregion
 
@@ -165,6 +168,7 @@ namespace UnhollowerRuntimeLib.Injection
         internal static d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndexOriginal;
         private static d_GetTypeInfoFromTypeDefinitionIndex FindGetTypeInfoFromTypeDefinitionIndex()
         {
+#if !MINI
             IntPtr getTypeInfoFromTypeDefinitionIndex = IntPtr.Zero;
 
             // il2cpp_image_get_class is added in 2018.3.0f1
@@ -176,30 +180,30 @@ namespace UnhollowerRuntimeLib.Injection
                     typeof(Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers)
                         .GetMethod("InitializeArray", new Type[] { typeof(Il2CppSystem.Array), typeof(IntPtr) })
                 );
-                LogSupport.Trace($"Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers::InitializeArray: 0x{runtimeHelpersInitializeArray.ToInt64():X2}");
+                Logger.Trace($"Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers::InitializeArray: 0x{runtimeHelpersInitializeArray.ToInt64():X2}");
 
                 var runtimeHelpersInitializeArrayICall = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArray).Last();
                 if (XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).Count() == 1)
                 {
                     // is a thunk function
-                    LogSupport.Trace($"RuntimeHelpers::thunk_InitializeArray: 0x{runtimeHelpersInitializeArrayICall.ToInt64():X2}");
+                    Logger.Trace($"RuntimeHelpers::thunk_InitializeArray: 0x{runtimeHelpersInitializeArrayICall.ToInt64():X2}");
                     runtimeHelpersInitializeArrayICall = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).Single();
                 }
 
-                LogSupport.Trace($"RuntimeHelpers::InitializeArray: 0x{runtimeHelpersInitializeArrayICall.ToInt64():X2}");
+                Logger.Trace($"RuntimeHelpers::InitializeArray: 0x{runtimeHelpersInitializeArrayICall.ToInt64():X2}");
 
                 var typeGetUnderlyingType = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).ElementAt(1);
-                LogSupport.Trace($"Type::GetUnderlyingType: 0x{typeGetUnderlyingType.ToInt64():X2}");
+                Logger.Trace($"Type::GetUnderlyingType: 0x{typeGetUnderlyingType.ToInt64():X2}");
 
                 getTypeInfoFromTypeDefinitionIndex = XrefScannerLowLevel.JumpTargets(typeGetUnderlyingType).First();
             }
             else
             {
                 var imageGetClassAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_image_get_class));
-                LogSupport.Trace($"il2cpp_image_get_class: 0x{imageGetClassAPI.ToInt64():X2}");
+                Logger.Trace($"il2cpp_image_get_class: 0x{imageGetClassAPI.ToInt64():X2}");
 
                 var imageGetType = XrefScannerLowLevel.JumpTargets(imageGetClassAPI).Single();
-                LogSupport.Trace($"Image::GetType: 0x{imageGetType.ToInt64():X2}");
+                Logger.Trace($"Image::GetType: 0x{imageGetType.ToInt64():X2}");
 
                 var imageGetTypeXrefs = XrefScannerLowLevel.JumpTargets(imageGetType).ToArray();
 
@@ -222,13 +226,16 @@ namespace UnhollowerRuntimeLib.Injection
                 }
             }
 
-            LogSupport.Trace($"MetadataCache::GetTypeInfoFromTypeDefinitionIndex: 0x{getTypeInfoFromTypeDefinitionIndex.ToInt64():X2}");
+            Logger.Trace($"MetadataCache::GetTypeInfoFromTypeDefinitionIndex: 0x{getTypeInfoFromTypeDefinitionIndex.ToInt64():X2}");
 
             GetTypeInfoFromTypeDefinitionIndexOriginal = ClassInjector.Detour.Detour<d_GetTypeInfoFromTypeDefinitionIndex>(
                 getTypeInfoFromTypeDefinitionIndex,
                 hkGetTypeInfoFromTypeDefinitionIndex
             );
             return Marshal.GetDelegateForFunctionPointer<d_GetTypeInfoFromTypeDefinitionIndex>(getTypeInfoFromTypeDefinitionIndex);
+#else
+            return null;
+#endif
         }
         #endregion
 
@@ -251,14 +258,18 @@ namespace UnhollowerRuntimeLib.Injection
         internal static d_ClassFromIl2CppType ClassFromIl2CppTypeOriginal;
         private static d_ClassFromIl2CppType FindClassFromIl2CppType()
         {
+#if !MINI
             var classFromTypeAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_class_from_il2cpp_type));
-            LogSupport.Trace($"il2cpp_class_from_il2cpp_type: 0x{classFromTypeAPI.ToInt64():X2}");
+            Logger.Trace($"il2cpp_class_from_il2cpp_type: 0x{classFromTypeAPI.ToInt64():X2}");
 
             var classFromType = XrefScannerLowLevel.JumpTargets(classFromTypeAPI).Single();
-            LogSupport.Trace($"Class::FromIl2CppType: 0x{classFromType.ToInt64():X2}");
+            Logger.Trace($"Class::FromIl2CppType: 0x{classFromType.ToInt64():X2}");
 
             ClassFromIl2CppTypeOriginal = ClassInjector.Detour.Detour(classFromType, new d_ClassFromIl2CppType(hkClassFromIl2CppType));
             return Marshal.GetDelegateForFunctionPointer<d_ClassFromIl2CppType>(classFromType);
+#else
+            return null;
+#endif
         }
         #endregion
 
@@ -267,6 +278,7 @@ namespace UnhollowerRuntimeLib.Injection
         internal delegate byte* d_ClassGetFieldDefaultValue(Il2CppFieldInfo* field, out Il2CppTypeStruct* type);
         private static byte* hkClassGetFieldDefaultValue(Il2CppFieldInfo* field, out Il2CppTypeStruct* type)
         {
+#if !MINI
             if (EnumInjector.GetDefaultValueOverride(field, out IntPtr newDefaultPtr))
             {
                 INativeFieldInfoStruct wrappedField = UnityVersionHandler.Wrap(field);
@@ -277,27 +289,35 @@ namespace UnhollowerRuntimeLib.Injection
             }
             while (ClassGetFieldDefaultValueOriginal == null) Thread.Sleep(1);
             return ClassGetFieldDefaultValueOriginal(field, out type);
+#else
+            type = null;
+            return null;
+#endif
         }
         internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValue;
         internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueOriginal;
         private static d_ClassGetFieldDefaultValue FindClassGetFieldDefaultValue()
         {
+#if !MINI
             var getStaticFieldValueAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_field_static_get_value));
-            LogSupport.Trace($"il2cpp_field_static_get_value: 0x{getStaticFieldValueAPI.ToInt64():X2}");
+            Logger.Trace($"il2cpp_field_static_get_value: 0x{getStaticFieldValueAPI.ToInt64():X2}");
 
             var getStaticFieldValue = XrefScannerLowLevel.JumpTargets(getStaticFieldValueAPI).Single();
-            LogSupport.Trace($"Field::StaticGetValue: 0x{getStaticFieldValue.ToInt64():X2}");
+            Logger.Trace($"Field::StaticGetValue: 0x{getStaticFieldValue.ToInt64():X2}");
 
             var getStaticFieldValueInternal = XrefScannerLowLevel.JumpTargets(getStaticFieldValue).Last();
-            LogSupport.Trace($"Field::StaticGetValueInternal: 0x{getStaticFieldValueInternal.ToInt64():X2}");
+            Logger.Trace($"Field::StaticGetValueInternal: 0x{getStaticFieldValueInternal.ToInt64():X2}");
 
             // (Kasuromi): The invocation is Field::GetDefaultFieldValue, but this appears to get inlined in all the il2cpp assemblies I've looked at
             // TODO: Add support for non-inlined method invocation
             var classGetDefaultFieldValue = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).First();
-            LogSupport.Trace($"Class::GetDefaultFieldValue: 0x{classGetDefaultFieldValue.ToInt64():X2}");
+            Logger.Trace($"Class::GetDefaultFieldValue: 0x{classGetDefaultFieldValue.ToInt64():X2}");
 
             ClassGetFieldDefaultValueOriginal = ClassInjector.Detour.Detour(classGetDefaultFieldValue, new d_ClassGetFieldDefaultValue(hkClassGetFieldDefaultValue));
             return Marshal.GetDelegateForFunctionPointer<d_ClassGetFieldDefaultValue>(classGetDefaultFieldValue);
+#else
+            return null;
+#endif
         }
         #endregion
 
@@ -331,16 +351,16 @@ namespace UnhollowerRuntimeLib.Injection
             if (pClassInit == 0)
             {
                 // WARN: There might be a race condition with il2cpp_class_has_references
-                LogSupport.Warning("Class::Init signatures have been exhausted, using il2cpp_class_has_references as a substitute!");
+                Logger.Warning("Class::Init signatures have been exhausted, using il2cpp_class_has_references as a substitute!");
                 pClassInit = GetIl2CppExport(nameof(IL2CPP.il2cpp_class_has_references));
                 if (pClassInit == 0)
                 {
-                    LogSupport.Trace($"GameAssembly.dll: 0x{(long)Il2CppModule.BaseAddress}");
+                    Logger.Trace($"GameAssembly.dll: 0x{(long)Il2CppModule.BaseAddress}");
                     throw new NotSupportedException("Failed to use signature for Class::Init and il2cpp_class_has_references cannot be found, please create an issue and report your unity version & game");
                 }
             }
 
-            LogSupport.Trace($"Class::Init: 0x{(long)pClassInit:X2}");
+            Logger.Trace($"Class::Init: 0x{(long)pClassInit:X2}");
 
             return Marshal.GetDelegateForFunctionPointer<d_ClassInit>(pClassInit);
         }

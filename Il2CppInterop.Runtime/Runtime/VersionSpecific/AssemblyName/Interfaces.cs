@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace UnhollowerBaseLib.Runtime.VersionSpecific.AssemblyName
+namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName
 {
     public interface INativeAssemblyNameStructHandler : INativeStructHandler
     {
