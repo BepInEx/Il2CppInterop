@@ -13,6 +13,7 @@ public record Il2CppStructWrapperGeneratorOptions(
     ILogger? Logger
 );
 
+// TODO: Instead expose as source generator (might not be viable since clang is platform-dependent)
 public static class Il2CppStructWrapperGenerator
 {
     private static readonly Dictionary<int, List<VersionSpecificGenerator>> SGenerators = new();
