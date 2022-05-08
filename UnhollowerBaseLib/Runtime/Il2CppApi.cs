@@ -65,7 +65,7 @@ namespace UnhollowerBaseLib.Runtime
 
         public static IntPtr il2cpp_assembly_get_image(IntPtr assembly) => IL2CPP.il2cpp_assembly_get_image(assembly);
 
-        public static IntPtr il2cpp_assembly_get_name(IntPtr assembly) => UnityVersionHandler.assemblyStructHandler.il2cpp_assembly_get_name(assembly);
+        public static IntPtr il2cpp_assembly_get_name(IntPtr assembly) => UnityVersionHandler.Wrap((Il2CppAssembly*)assembly).Name.Name;
 
         #endregion
 
@@ -217,13 +217,13 @@ namespace UnhollowerBaseLib.Runtime
 
         public static int il2cpp_field_get_flags(IntPtr field) => IL2CPP.il2cpp_field_get_flags(field);
 
-        public static IntPtr il2cpp_field_get_name(IntPtr field) => UnityVersionHandler.fieldInfoStructHandler.il2cpp_field_get_name(field);
+        public static IntPtr il2cpp_field_get_name(IntPtr field) => UnityVersionHandler.Wrap((Il2CppFieldInfo*)field).Name;
 
-        public static IntPtr il2cpp_field_get_parent(IntPtr field) => UnityVersionHandler.fieldInfoStructHandler.il2cpp_field_get_parent(field);
+        public static IntPtr il2cpp_field_get_parent(IntPtr field) => (IntPtr)UnityVersionHandler.Wrap((Il2CppFieldInfo*)field).Parent;
 
-        public static uint il2cpp_field_get_offset(IntPtr field) => UnityVersionHandler.fieldInfoStructHandler.il2cpp_field_get_offset(field);
+        public static uint il2cpp_field_get_offset(IntPtr field) => (uint)UnityVersionHandler.Wrap((Il2CppFieldInfo*)field).Offset;
 
-        public static IntPtr il2cpp_field_get_type(IntPtr field) => UnityVersionHandler.fieldInfoStructHandler.il2cpp_field_get_type(field);
+        public static IntPtr il2cpp_field_get_type(IntPtr field) => (IntPtr)UnityVersionHandler.Wrap((Il2CppFieldInfo*)field).Type;
 
         public static void il2cpp_field_get_value(IntPtr obj, IntPtr field, void* value) => IL2CPP.il2cpp_field_get_value(obj, field, value);
 
@@ -299,11 +299,11 @@ namespace UnhollowerBaseLib.Runtime
 
         #region Methods
 
-        public static IntPtr il2cpp_method_get_return_type(IntPtr method) => UnityVersionHandler.methodInfoStructHandler.il2cpp_method_get_return_type(method);
+        public static IntPtr il2cpp_method_get_return_type(IntPtr method) => (IntPtr)UnityVersionHandler.Wrap((Il2CppMethodInfo*)method).ReturnType;
 
         public static IntPtr il2cpp_method_get_declaring_type(IntPtr method) => IL2CPP.il2cpp_method_get_declaring_type(method);
 
-        public static IntPtr il2cpp_method_get_name(IntPtr method) => UnityVersionHandler.methodInfoStructHandler.il2cpp_method_get_name(method);
+        public static IntPtr il2cpp_method_get_name(IntPtr method) => UnityVersionHandler.Wrap((Il2CppMethodInfo*)method).Name;
 
         public static IntPtr il2cpp_method_get_from_reflection(IntPtr method) => IL2CPP.il2cpp_method_get_from_reflection(method);
 
@@ -315,17 +315,17 @@ namespace UnhollowerBaseLib.Runtime
 
         public static bool il2cpp_method_is_instance(IntPtr method) => IL2CPP.il2cpp_method_is_instance(method);
 
-        public static uint il2cpp_method_get_param_count(IntPtr method) => UnityVersionHandler.methodInfoStructHandler.il2cpp_method_get_param_count(method);
+        public static uint il2cpp_method_get_param_count(IntPtr method) => UnityVersionHandler.Wrap((Il2CppMethodInfo*)method).ParametersCount;
 
         public static IntPtr il2cpp_method_get_param(IntPtr method, uint index) => IL2CPP.il2cpp_method_get_param(method, index);
 
-        public static IntPtr il2cpp_method_get_class(IntPtr method) => UnityVersionHandler.methodInfoStructHandler.il2cpp_method_get_class(method);
+        public static IntPtr il2cpp_method_get_class(IntPtr method) => (IntPtr)UnityVersionHandler.Wrap((Il2CppMethodInfo*)method).Class;
 
         public static bool il2cpp_method_has_attribute(IntPtr method, IntPtr attr_class) => IL2CPP.il2cpp_method_has_attribute(method, attr_class);
 
         public static uint il2cpp_method_get_flags(IntPtr method, ref uint iflags) => IL2CPP.il2cpp_method_get_flags(method, ref iflags);
 
-        public static uint il2cpp_method_get_token(IntPtr method) => UnityVersionHandler.methodInfoStructHandler.il2cpp_method_get_token(method);
+        public static uint il2cpp_method_get_token(IntPtr method) => UnityVersionHandler.Wrap((Il2CppMethodInfo*)method).Token;
 
         public static IntPtr il2cpp_method_get_param_name(IntPtr method, uint index) => IL2CPP.il2cpp_method_get_param_name(method, index);
 
@@ -387,13 +387,13 @@ namespace UnhollowerBaseLib.Runtime
 
         public static uint il2cpp_property_get_flags(IntPtr prop) => IL2CPP.il2cpp_property_get_flags(prop);
 
-        public static IntPtr il2cpp_property_get_get_method(IntPtr prop) => UnityVersionHandler.propertyInfoStructHandler.il2cpp_property_get_get_method(prop);
+        public static IntPtr il2cpp_property_get_get_method(IntPtr prop) => (IntPtr)UnityVersionHandler.Wrap((Il2CppPropertyInfo*)prop).Get;
 
-        public static IntPtr il2cpp_property_get_set_method(IntPtr prop) => UnityVersionHandler.propertyInfoStructHandler.il2cpp_property_get_set_method(prop);
+        public static IntPtr il2cpp_property_get_set_method(IntPtr prop) => (IntPtr)UnityVersionHandler.Wrap((Il2CppPropertyInfo*)prop).Set;
 
-        public static IntPtr il2cpp_property_get_name(IntPtr prop) => UnityVersionHandler.propertyInfoStructHandler.il2cpp_property_get_name(prop);
+        public static IntPtr il2cpp_property_get_name(IntPtr prop) => UnityVersionHandler.Wrap((Il2CppPropertyInfo*)prop).Name;
 
-        public static IntPtr il2cpp_property_get_parent(IntPtr prop) => UnityVersionHandler.propertyInfoStructHandler.il2cpp_property_get_parent(prop);
+        public static IntPtr il2cpp_property_get_parent(IntPtr prop) => (IntPtr)UnityVersionHandler.Wrap((Il2CppPropertyInfo*)prop).Parent;
 
         #endregion
 

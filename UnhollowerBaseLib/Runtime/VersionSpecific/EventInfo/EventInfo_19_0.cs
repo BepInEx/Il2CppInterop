@@ -1,68 +1,49 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
-
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.EventInfo
 {
     [ApplicableToUnityVersionsSince("5.3.2")]
     public unsafe class NativeEventInfoStructHandler_19_0 : INativeEventInfoStructHandler
     {
-        public unsafe int Size() => sizeof(Il2CppEventInfo_19_0);
-        public INativeEventInfoStruct CreateNewEventInfoStruct()
+        public int Size() => sizeof(Il2CppEventInfo_19_0);
+        public INativeEventInfoStruct CreateNewStruct()
         {
-            var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppEventInfo_19_0>());
-
-            *(Il2CppEventInfo_19_0*)pointer = default;
-
-            return new NativeEventInfoStruct(pointer);
+            IntPtr ptr = Marshal.AllocHGlobal(Size());
+            Il2CppEventInfo_19_0* _ = (Il2CppEventInfo_19_0*)ptr;
+            *_ = default;
+            return new NativeStructWrapper(ptr);
         }
-
-        public INativeEventInfoStruct Wrap(Il2CppEventInfo* eventInfoPointer)
+        public INativeEventInfoStruct Wrap(Il2CppEventInfo* ptr)
         {
-            if ((IntPtr)eventInfoPointer == IntPtr.Zero) return null;
-            else return new NativeEventInfoStruct((IntPtr)eventInfoPointer);
+            if (ptr == null) return null;
+            return new NativeStructWrapper((IntPtr)ptr);
         }
-
-#if DEBUG
-        public string GetName() => "NativeEventInfoStructHandler_19_0";
-#endif
-
-        [StructLayout(LayoutKind.Sequential)]
-       internal struct Il2CppEventInfo_19_0
+        internal unsafe struct Il2CppEventInfo_19_0
         {
-            public IntPtr name; // const char*
-            public Il2CppTypeStruct* eventType; // const
-            public Il2CppClass* parent; // non const
-            public Il2CppMethodInfo* add; // const
-            public Il2CppMethodInfo* remove; // const
-            public Il2CppMethodInfo* raise; // const
+            public byte* name;
+            public Il2CppTypeStruct* eventType;
+            public Il2CppClass* parent;
+            public Il2CppMethodInfo* add;
+            public Il2CppMethodInfo* remove;
+            public Il2CppMethodInfo* raise;
             public int customAttributeIndex;
             public uint token;
         }
 
-        internal class NativeEventInfoStruct : INativeEventInfoStruct
+        internal class NativeStructWrapper : INativeEventInfoStruct
         {
-            public NativeEventInfoStruct(IntPtr pointer)
-            {
-                Pointer = pointer;
-            }
-
+            public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
             public IntPtr Pointer { get; }
-
+            private Il2CppEventInfo_19_0* _ => (Il2CppEventInfo_19_0*)Pointer;
             public Il2CppEventInfo* EventInfoPointer => (Il2CppEventInfo*)Pointer;
-
-            private Il2CppEventInfo_19_0* NativeEvent => (Il2CppEventInfo_19_0*)Pointer;
-
-            public ref IntPtr Name => ref NativeEvent->name;
-
-            public ref Il2CppTypeStruct* EventType => ref NativeEvent->eventType;
-
-            public ref Il2CppClass* Parent => ref NativeEvent->parent;
-
-            public ref Il2CppMethodInfo* Add => ref NativeEvent->add;
-
-            public ref Il2CppMethodInfo* Remove => ref NativeEvent->remove;
-
-            public ref Il2CppMethodInfo* Raise => ref NativeEvent->raise;
+            public ref IntPtr Name => ref *(IntPtr*)&_->name;
+            public ref Il2CppTypeStruct* EventType => ref _->eventType;
+            public ref Il2CppClass* Parent => ref _->parent;
+            public ref Il2CppMethodInfo* Add => ref _->add;
+            public ref Il2CppMethodInfo* Remove => ref _->remove;
+            public ref Il2CppMethodInfo* Raise => ref _->raise;
         }
+
     }
+
 }

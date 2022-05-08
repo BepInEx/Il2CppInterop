@@ -22,7 +22,7 @@ namespace UnhollowerRuntimeLib.XrefScans
             var unityObjectCctor = AppDomain.CurrentDomain.GetAssemblies()
                 .Single(it => it.GetSimpleName() == "UnityEngine.CoreModule").GetType("UnityEngine.Object")
                 .GetConstructors(BindingFlags.Static | BindingFlags.NonPublic).Single();
-            var nativeMethodInfo = UnityVersionHandler.GetMethodFromReflection(unityObjectCctor.Pointer);
+            var nativeMethodInfo = IL2CPP.il2cpp_method_get_from_reflection(unityObjectCctor.Pointer);
             ourMetadataInitForMethodPointer = XrefScannerLowLevel.JumpTargets(*(IntPtr*) nativeMethodInfo).First();
             ourMetadataInitForMethodDelegate = Marshal.GetDelegateForFunctionPointer<InitMetadataForMethod>(ourMetadataInitForMethodPointer);
         }

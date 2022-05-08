@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnhollowerBaseLib.Runtime.VersionSpecific.Assembly;
+using UnhollowerBaseLib.Runtime.VersionSpecific.AssemblyName;
 using UnhollowerBaseLib.Runtime.VersionSpecific.Class;
 using UnhollowerBaseLib.Runtime.VersionSpecific.EventInfo;
 using UnhollowerBaseLib.Runtime.VersionSpecific.Exception;
@@ -39,6 +40,7 @@ namespace UnhollowerBaseLib.Runtime
         public static bool MustUseDelegateConstructor => IsMetadataV29OrHigher;
 
         internal static INativeAssemblyStructHandler assemblyStructHandler;
+        internal static INativeAssemblyNameStructHandler assemblyNameStructHandler;
         internal static INativeClassStructHandler classStructHandler;
         internal static INativeEventInfoStructHandler eventInfoStructHandler;
         internal static INativeExceptionStructHandler exceptionStructHandler;
@@ -86,6 +88,7 @@ namespace UnhollowerBaseLib.Runtime
                 }
             }
             assemblyStructHandler = GetHandler<INativeAssemblyStructHandler>();
+            assemblyNameStructHandler = GetHandler<INativeAssemblyNameStructHandler>();
             classStructHandler = GetHandler<INativeClassStructHandler>();
             eventInfoStructHandler = GetHandler<INativeEventInfoStructHandler>();
             exceptionStructHandler = GetHandler<INativeExceptionStructHandler>();
@@ -105,11 +108,6 @@ namespace UnhollowerBaseLib.Runtime
             LogSupport.Error($"No direct for {typeof(T).FullName} found for Unity {UnityVersion}; this likely indicates a severe error somewhere");
 
             throw new ApplicationException("No handler");
-        }
-
-        public static IntPtr CopyMethodInfoStruct(IntPtr origMethodInfo)
-        {
-            return GetHandler<INativeMethodInfoStructHandler>().CopyMethodInfoStruct(origMethodInfo);
         }
 
         private static Type[] GetAllTypesSafe()
@@ -138,16 +136,25 @@ namespace UnhollowerBaseLib.Runtime
 
         //Assemblies
         public static INativeAssemblyStruct NewAssembly() =>
-            assemblyStructHandler.CreateNewAssemblyStruct();
+            assemblyStructHandler.CreateNewStruct();
 
         public static unsafe INativeAssemblyStruct Wrap(Il2CppAssembly* assemblyPointer) =>
             assemblyStructHandler.Wrap(assemblyPointer);
 
         public static unsafe int AssemblySize() => assemblyStructHandler.Size();
 
+        //Assembly Names
+        public static INativeAssemblyNameStruct NewAssemblyName() =>
+            assemblyNameStructHandler.CreateNewStruct();
+
+        public static unsafe INativeAssemblyNameStruct Wrap(Il2CppAssemblyName* assemblyNamePointer) =>
+            assemblyNameStructHandler.Wrap(assemblyNamePointer);
+
+        public static unsafe int AssemblyNameSize() => assemblyNameStructHandler.Size();
+
         //Classes
         public static INativeClassStruct NewClass(int vTableSlots) =>
-            classStructHandler.CreateNewClassStruct(vTableSlots);
+            classStructHandler.CreateNewStruct(vTableSlots);
 
         public static unsafe INativeClassStruct Wrap(Il2CppClass* classPointer) =>
             classStructHandler.Wrap(classPointer);
@@ -156,7 +163,7 @@ namespace UnhollowerBaseLib.Runtime
 
         //Events
         public static INativeEventInfoStruct NewEvent() =>
-            eventInfoStructHandler.CreateNewEventInfoStruct();
+            eventInfoStructHandler.CreateNewStruct();
 
         public static unsafe INativeEventInfoStruct Wrap(Il2CppEventInfo* eventInfoPointer) =>
             eventInfoStructHandler.Wrap(eventInfoPointer);
@@ -165,7 +172,7 @@ namespace UnhollowerBaseLib.Runtime
 
         //Exceptions
         public static INativeExceptionStruct NewException() =>
-            exceptionStructHandler.CreateNewExceptionStruct();
+            exceptionStructHandler.CreateNewStruct();
 
         public static unsafe INativeExceptionStruct Wrap(Il2CppException* exceptionPointer) =>
             exceptionStructHandler.Wrap(exceptionPointer);
@@ -174,7 +181,7 @@ namespace UnhollowerBaseLib.Runtime
 
         //Fields
         public static INativeFieldInfoStruct NewField() =>
-            fieldInfoStructHandler.CreateNewFieldInfoStruct();
+            fieldInfoStructHandler.CreateNewStruct();
 
         public static unsafe INativeFieldInfoStruct Wrap(Il2CppFieldInfo* fieldInfoPointer) =>
             fieldInfoStructHandler.Wrap(fieldInfoPointer);
@@ -184,7 +191,7 @@ namespace UnhollowerBaseLib.Runtime
 
         //Images
         public static INativeImageStruct NewImage() =>
-            imageStructHandler.CreateNewImageStruct();
+            imageStructHandler.CreateNewStruct();
         
         public static unsafe INativeImageStruct Wrap(Il2CppImage* imagePointer) =>
             imageStructHandler.Wrap(imagePointer);
@@ -193,15 +200,12 @@ namespace UnhollowerBaseLib.Runtime
 
         //Methods
         public static INativeMethodInfoStruct NewMethod() =>
-            methodInfoStructHandler.CreateNewMethodStruct();
+            methodInfoStructHandler.CreateNewStruct();
 
         public static unsafe INativeMethodInfoStruct Wrap(Il2CppMethodInfo* methodPointer) =>
             methodInfoStructHandler.Wrap(methodPointer);
 
         public static unsafe int MethodSize() => methodInfoStructHandler.Size();
-        public static IntPtr GetMethodFromReflection(IntPtr method) =>
-            methodInfoStructHandler.GetMethodFromReflection(method);
-
 
         //Parameters
         public static unsafe Il2CppParameterInfo*[] NewMethodParameterArray(int count) =>
@@ -219,7 +223,7 @@ namespace UnhollowerBaseLib.Runtime
 
         //Properties
         public static INativePropertyInfoStruct NewProperty() =>
-            propertyInfoStructHandler.CreateNewPropertyInfoStruct();
+            propertyInfoStructHandler.CreateNewStruct();
 
         public static unsafe INativePropertyInfoStruct Wrap(Il2CppPropertyInfo* propertyInfoPointer) =>
             propertyInfoStructHandler.Wrap(propertyInfoPointer);
@@ -228,7 +232,7 @@ namespace UnhollowerBaseLib.Runtime
 
         //Types
         public static INativeTypeStruct NewType() =>
-            typeStructHandler.CreateNewTypeStruct();
+            typeStructHandler.CreateNewStruct();
 
         public static unsafe INativeTypeStruct Wrap(Il2CppTypeStruct* typePointer) =>
             typeStructHandler.Wrap(typePointer);

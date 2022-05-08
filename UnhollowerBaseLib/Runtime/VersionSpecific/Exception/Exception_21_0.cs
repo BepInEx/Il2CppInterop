@@ -1,82 +1,53 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
-
 namespace UnhollowerBaseLib.Runtime.VersionSpecific.Exception
 {
     [ApplicableToUnityVersionsSince("5.3.5")]
     public unsafe class NativeExceptionStructHandler_21_0 : INativeExceptionStructHandler
     {
-        public unsafe int Size() => sizeof(Il2CppException_21_0);
-        public INativeExceptionStruct CreateNewExceptionStruct()
+        public int Size() => sizeof(Il2CppException_21_0);
+        public INativeExceptionStruct CreateNewStruct()
         {
-            var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppException_21_0>());
-
-            *(Il2CppException_21_0*)pointer = default;
-
-            return new NativeExceptionStruct(pointer);
+            IntPtr ptr = Marshal.AllocHGlobal(Size());
+            Il2CppException_21_0* _ = (Il2CppException_21_0*)ptr;
+            *_ = default;
+            return new NativeStructWrapper(ptr);
         }
-
-        public INativeExceptionStruct Wrap(Il2CppException* exceptionPointer)
+        public INativeExceptionStruct Wrap(Il2CppException* ptr)
         {
-            if ((IntPtr)exceptionPointer == IntPtr.Zero) return null;
-            else return new NativeExceptionStruct((IntPtr)exceptionPointer);
+            if (ptr == null) return null;
+            return new NativeStructWrapper((IntPtr)ptr);
         }
-
-#if DEBUG
-        public string GetName() => "NativeExceptionStructHandler_21_0";
-#endif
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct Il2CppException_21_0
+        internal unsafe struct Il2CppException_21_0
         {
-            public Il2CppObject @object;
-            public IntPtr /* Il2CppArray* */ trace_ips;
+            public Il2CppObject _object;
+            public void* trace_ips;
             public Il2CppException* inner_ex;
-            public IntPtr /* Il2CppString* */ message;
-            public IntPtr /* Il2CppString* */ help_link;
-            public IntPtr /* Il2CppString* */ class_name;
-            public IntPtr /* Il2CppString* */ stack_trace;
-            public IntPtr /* Il2CppString* */ remote_stack_trace;
+            public Il2CppString* message;
+            public Il2CppString* help_link;
+            public Il2CppString* class_name;
+            public Il2CppString* stack_trace;
+            public Il2CppString* remote_stack_trace;
             public int remote_stack_index;
-            public int hresult;
-            public IntPtr /* Il2CppString* */ source;
-            public IntPtr /* Il2CppObject* */ _data;
+            public il2cpp_hresult_t hresult;
+            public Il2CppString* source;
+            public Il2CppObject* _data;
         }
 
-        internal class NativeExceptionStruct : INativeExceptionStruct
+        internal class NativeStructWrapper : INativeExceptionStruct
         {
-            public NativeExceptionStruct(IntPtr pointer)
-            {
-                Pointer = pointer;
-            }
-
+            public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
             public IntPtr Pointer { get; }
-
+            private Il2CppException_21_0* _ => (Il2CppException_21_0*)Pointer;
             public Il2CppException* ExceptionPointer => (Il2CppException*)Pointer;
-
-            private Il2CppException_21_0* NativeException => (Il2CppException_21_0*)Pointer;
-
-            public ref Il2CppException* InnerException => ref NativeException->inner_ex;
-
-            public INativeExceptionStruct InnerExceptionWrapped
-            {
-                get
-                {
-                    IntPtr ptr = (IntPtr)NativeException->inner_ex;
-                    if (ptr == IntPtr.Zero) return null;
-                    else return new NativeExceptionStruct(ptr);
-                }
-            }
-
-            public ref IntPtr Message => ref NativeException->message;
-
-            public ref IntPtr HelpLink => ref NativeException->help_link;
-
-            public ref IntPtr ClassName => ref NativeException->class_name;
-
-            public ref IntPtr StackTrace => ref NativeException->stack_trace;
-
-            public ref IntPtr RemoteStackTrace => ref NativeException->remote_stack_trace;
+            public ref Il2CppException* InnerException => ref _->inner_ex;
+            public ref Il2CppString* Message => ref _->message;
+            public ref Il2CppString* HelpLink => ref _->help_link;
+            public ref Il2CppString* ClassName => ref _->class_name;
+            public ref Il2CppString* StackTrace => ref _->stack_trace;
+            public ref Il2CppString* RemoteStackTrace => ref _->remote_stack_trace;
         }
+
     }
+
 }
