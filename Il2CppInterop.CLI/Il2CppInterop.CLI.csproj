@@ -17,6 +17,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Il2CppInterop.Generator\Il2CppInterop.Generator.csproj" />
+      <ProjectReference Include="..\Il2CppInterop.StructGenerator\Il2CppInterop.StructGenerator.csproj" />
     </ItemGroup>
 
     <ItemGroup>

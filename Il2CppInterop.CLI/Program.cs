@@ -2,6 +2,7 @@
 using System.CommandLine.NamingConventionBinder;
 using System.Text.RegularExpressions;
 using Il2CppInterop.Generator;
+using Il2CppInterop.StructGenerator;
 using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 using Logger = Il2CppInterop.Runtime.Logger;
@@ -55,10 +56,22 @@ var deobfGenerateCommand = new Command("generate")
 deobfGenerateCommand.Description = "Generate a deobfuscation map from original unobfuscated assemblies. Will not generate assemblies.";
 // TODO: Command implementation
 
+var wrapperCommand = new Command("wrapper-gen")
+{
+    new Option<DirectoryInfo>("--headers", "Directory that contains libil2cpp headers. Directory must contains subdirectories named after libil2cpp version.") {IsRequired = true}.ExistingOnly(),
+    new Option<DirectoryInfo>("--output", "Directory to write managed struct wrapper sources to") {IsRequired = true}.ExistingOnly(),
+};
+wrapperCommand.Description = "Tools for generating Il2Cpp struct wrappers from libi2lcpp source";
+wrapperCommand.Handler = CommandHandler.Create((WrapperCommandOptions opts) =>
+{
+    Il2CppStructWrapperGenerator.Generate(opts.Build());
+});
+
 deobfCommand.Add(deobfAnalyzeCommand);
 deobfCommand.Add(deobfGenerateCommand);
 command.Add(deobfCommand);
 command.Add(generateCommand);
+command.Add(wrapperCommand);
 
 return command.Invoke(args);
 
@@ -83,6 +96,21 @@ record BaseCmdOptions(bool Verbose)
         {
             Verbose = Verbose
         };
+    }
+}
+
+record WrapperCommandOptions(DirectoryInfo Headers, DirectoryInfo Output, bool Verbose)
+{
+    public virtual Il2CppStructWrapperGeneratorOptions Build()
+    {
+        var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder
+                .AddFilter("Il2CppInterop", Verbose ? LogLevel.Trace : LogLevel.Information)
+                .AddSimpleConsole(opt => { opt.SingleLine = true; });
+        });
+        var logger = loggerFactory.CreateLogger("Il2CppInterop");
+        return new Il2CppStructWrapperGeneratorOptions(Headers.FullName, Output.FullName, logger);
     }
 }
 
