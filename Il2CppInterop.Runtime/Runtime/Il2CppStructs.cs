@@ -35,7 +35,8 @@ namespace Il2CppInterop.Runtime.Runtime
     {
         private unsafe readonly void* dummy;
     }
-    public struct il2cpp_hresult_t {
+    public struct il2cpp_hresult_t
+    {
         private unsafe readonly int dummy;
     }
 
@@ -211,7 +212,8 @@ namespace Il2CppInterop.Runtime.Runtime
         IntPtr monitor;
     }
 
-    public struct Il2CppImageGlobalMetadata {
+    public struct Il2CppImageGlobalMetadata
+    {
         public int typeStart;
         public int exportedTypeStart;
         public int customAttributeStart;
