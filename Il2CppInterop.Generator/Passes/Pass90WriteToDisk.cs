@@ -20,6 +20,13 @@ namespace Il2CppInterop.Generator.Passes
                 {
                     foreach (AssemblyNameReference reference in module.AssemblyReferences)
                     {
+                        // TODO: Instead of a hack, set correctly initially via source generator
+                        if (reference.Name == "System.Private.CoreLib")
+                        {
+                            CorlibReferences.RewriteReferenceToMscorlib(reference);
+                            continue;
+                        }
+
                         var match = context.Assemblies.FirstOrDefault(f => f.NewAssembly.FullName == reference.FullName);
                         if (match != null) registerMethod!.Invoke(resolver, new object[] { match.NewAssembly });
                     }
