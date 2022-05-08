@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-namespace UnhollowerBaseLib.Runtime.VersionSpecific.AssemblyName
+namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName
 {
     [ApplicableToUnityVersionsSince("5.2.2")]
     public unsafe class NativeAssemblyNameStructHandler_16_0 : INativeAssemblyNameStructHandler

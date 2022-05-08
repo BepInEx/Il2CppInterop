@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-namespace UnhollowerBaseLib.Runtime.VersionSpecific.FieldInfo
+namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo
 {
     [ApplicableToUnityVersionsSince("5.2.2")]
     public unsafe class NativeFieldInfoStructHandler_16_0 : INativeFieldInfoStructHandler

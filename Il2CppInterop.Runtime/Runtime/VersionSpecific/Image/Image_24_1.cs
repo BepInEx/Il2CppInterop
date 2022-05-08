@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-namespace UnhollowerBaseLib.Runtime.VersionSpecific.Image
+namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
 {
     [ApplicableToUnityVersionsSince("2017.1.3")]
     public unsafe class NativeImageStructHandler_24_1 : INativeImageStructHandler

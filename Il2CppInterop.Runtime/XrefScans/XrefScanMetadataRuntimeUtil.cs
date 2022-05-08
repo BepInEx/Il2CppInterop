@@ -2,12 +2,11 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using UnhollowerBaseLib;
-using UnhollowerBaseLib.Runtime;
+#if !MINI
 using AppDomain = Il2CppSystem.AppDomain;
-using BindingFlags = Il2CppSystem.Reflection.BindingFlags;
+#endif
 
-namespace UnhollowerRuntimeLib.XrefScans
+namespace Il2CppInterop.Runtime.XrefScans
 {
     internal static class XrefScanMetadataRuntimeUtil
     {
@@ -16,15 +15,24 @@ namespace UnhollowerRuntimeLib.XrefScans
 
         private static InitMetadataForMethod ourMetadataInitForMethodDelegate;
         private static IntPtr ourMetadataInitForMethodPointer;
-
+#if !MINI
+        private static Func<AppDomain, Il2CppReferenceArray<Il2CppSystem.Reflection.Assembly>>? getAssemblies;
+#endif
         private static unsafe void FindMetadataInitForMethod()
         {
-            var unityObjectCctor = AppDomain.CurrentDomain.GetAssemblies()
+#if !MINI
+            getAssemblies ??=
+                typeof(AppDomain).GetMethod("GetAssemblies", BindingFlags.Public | BindingFlags.Static)
+                        ?.CreateDelegate(typeof(Func<AppDomain, Il2CppReferenceArray<Il2CppSystem.Reflection.Assembly>>)) as
+                    Func<AppDomain, Il2CppReferenceArray<Il2CppSystem.Reflection.Assembly>>;
+
+            var unityObjectCctor = getAssemblies(AppDomain.CurrentDomain)
                 .Single(it => it.GetSimpleName() == "UnityEngine.CoreModule").GetType("UnityEngine.Object")
-                .GetConstructors(BindingFlags.Static | BindingFlags.NonPublic).Single();
+                .GetConstructors(Il2CppSystem.Reflection.BindingFlags.Static | Il2CppSystem.Reflection.BindingFlags.NonPublic).Single();
             var nativeMethodInfo = IL2CPP.il2cpp_method_get_from_reflection(unityObjectCctor.Pointer);
-            ourMetadataInitForMethodPointer = XrefScannerLowLevel.JumpTargets(*(IntPtr*) nativeMethodInfo).First();
+            ourMetadataInitForMethodPointer = XrefScannerLowLevel.JumpTargets(*(IntPtr*)nativeMethodInfo).First();
             ourMetadataInitForMethodDelegate = Marshal.GetDelegateForFunctionPointer<InitMetadataForMethod>(ourMetadataInitForMethodPointer);
+#endif
         }
 
         internal static unsafe bool CallMetadataInitForMethod(MethodBase method)
@@ -32,10 +40,10 @@ namespace UnhollowerRuntimeLib.XrefScans
             if (ourMetadataInitForMethodPointer == IntPtr.Zero)
                 FindMetadataInitForMethod();
 
-            var nativeMethodInfoObject = UnhollowerUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(method)?.GetValue(null);
+            var nativeMethodInfoObject = Il2CppInteropUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(method)?.GetValue(null);
             if (nativeMethodInfoObject == null) return false;
-            var nativeMethodInfo = (IntPtr) nativeMethodInfoObject;
-            var codeStart = *(IntPtr*) nativeMethodInfo;
+            var nativeMethodInfo = (IntPtr)nativeMethodInfoObject;
+            var codeStart = *(IntPtr*)nativeMethodInfo;
             var firstCall = XrefScannerLowLevel.JumpTargets(codeStart).FirstOrDefault();
             if (firstCall != ourMetadataInitForMethodPointer || firstCall == IntPtr.Zero) return false;
 
@@ -51,6 +59,6 @@ namespace UnhollowerRuntimeLib.XrefScans
             }
 
             return true;
-        } 
+        }
     }
 }

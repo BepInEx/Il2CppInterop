@@ -2,19 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using UnhollowerBaseLib.Runtime.VersionSpecific.Assembly;
-using UnhollowerBaseLib.Runtime.VersionSpecific.AssemblyName;
-using UnhollowerBaseLib.Runtime.VersionSpecific.Class;
-using UnhollowerBaseLib.Runtime.VersionSpecific.EventInfo;
-using UnhollowerBaseLib.Runtime.VersionSpecific.Exception;
-using UnhollowerBaseLib.Runtime.VersionSpecific.FieldInfo;
-using UnhollowerBaseLib.Runtime.VersionSpecific.Image;
-using UnhollowerBaseLib.Runtime.VersionSpecific.MethodInfo;
-using UnhollowerBaseLib.Runtime.VersionSpecific.ParameterInfo;
-using UnhollowerBaseLib.Runtime.VersionSpecific.PropertyInfo;
-using UnhollowerBaseLib.Runtime.VersionSpecific.Type;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.EventInfo;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.Exception;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.Image;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.PropertyInfo;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
 
-namespace UnhollowerBaseLib.Runtime
+namespace Il2CppInterop.Runtime.Runtime
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
     internal class ApplicableToUnityVersionsSinceAttribute : Attribute
@@ -103,9 +103,9 @@ namespace UnhollowerBaseLib.Runtime
         private static T GetHandler<T>()
         {
             if (Handlers.TryGetValue(typeof(T), out var result))
-                return (T) result;
+                return (T)result;
 
-            LogSupport.Error($"No direct for {typeof(T).FullName} found for Unity {UnityVersion}; this likely indicates a severe error somewhere");
+            Logger.Error($"No direct for {typeof(T).FullName} found for Unity {UnityVersion}; this likely indicates a severe error somewhere");
 
             throw new ApplicationException("No handler");
         }
@@ -192,7 +192,7 @@ namespace UnhollowerBaseLib.Runtime
         //Images
         public static INativeImageStruct NewImage() =>
             imageStructHandler.CreateNewStruct();
-        
+
         public static unsafe INativeImageStruct Wrap(Il2CppImage* imagePointer) =>
             imageStructHandler.Wrap(imagePointer);
 
