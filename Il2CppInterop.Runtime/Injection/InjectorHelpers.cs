@@ -57,6 +57,13 @@ namespace Il2CppInterop.Runtime.Injection
         internal static void Setup()
         {
             if (InjectedAssembly == null) CreateInjectedAssembly();
+            if (GenericMethodGetMethod == null)
+            {
+                GenericMethodGetMethod = FindGenericMethodGetMethod();
+#if NET6_0
+                _delegateCache.Add(GenericMethodGetMethod);
+#endif
+            }
             if (GetTypeInfoFromTypeDefinitionIndex == null)
             {
                 GetTypeInfoFromTypeDefinitionIndex = FindGetTypeInfoFromTypeDefinitionIndex();
@@ -149,6 +156,35 @@ namespace Il2CppInterop.Runtime.Injection
         // (Kasuromi): This is required for CoreCLR to prevent delegates from getting garbage collected (GCHandles didn't seem to work)
         private static readonly List<object> _delegateCache = new();
 #endif
+        #region GenericMethod::GetMethod
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        internal delegate Il2CppMethodInfo* d_GenericMethodGetMethod(Il2CppGenericMethod* gmethod, bool copyMethodPtr);
+        private static readonly d_GenericMethodGetMethod GenericMethodGetMethodDetour = new(ClassInjector.hkGenericMethodGetMethod);
+        internal static d_GenericMethodGetMethod GenericMethodGetMethod;
+        internal static d_GenericMethodGetMethod GenericMethodGetMethodOriginal;
+        private static d_GenericMethodGetMethod FindGenericMethodGetMethod()
+        {
+            var getVirtualMethodAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_object_get_virtual_method));
+            Logger.Trace($"il2cpp_object_get_virtual_method: 0x{getVirtualMethodAPI.ToInt64():X2}");
+
+            var getVirtualMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethodAPI).Single();
+            Logger.Trace($"Object::GetVirtualMethod: 0x{getVirtualMethod.ToInt64():X2}");
+
+            var genericMethodGetMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethod).Last();
+            Logger.Trace($"GenericMethod::GetMethod: 0x{genericMethodGetMethod.ToInt64():X2}");
+
+            var targetTargets = XrefScannerLowLevel.JumpTargets(genericMethodGetMethod).Take(2).ToList();
+            if (targetTargets.Count == 1) // U2021.2.0+, there's additional shim that takes 3 parameters
+                genericMethodGetMethod = targetTargets[0];
+
+            GenericMethodGetMethodOriginal = ClassInjector.Detour.Detour(genericMethodGetMethod, GenericMethodGetMethodDetour);
+#if NET6_0
+            _delegateCache.Add(GenericMethodGetMethodDetour);
+            _delegateCache.Add(GenericMethodGetMethodOriginal);
+#endif
+            return Marshal.GetDelegateForFunctionPointer<d_GenericMethodGetMethod>(genericMethodGetMethod);
+        }
+        #endregion
         #region Class::FromName
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate Il2CppClass* d_ClassFromName(Il2CppImage* image, IntPtr _namespace, IntPtr name);
@@ -167,6 +203,7 @@ namespace Il2CppInterop.Runtime.Injection
 
             return classPtr;
         }
+        private static readonly d_ClassFromName ClassFromNameDetour = new(hkClassFromName);
         internal static d_ClassFromName ClassFromName;
         internal static d_ClassFromName ClassFromNameOriginal;
         private static d_ClassFromName FindClassFromName()
@@ -178,8 +215,9 @@ namespace Il2CppInterop.Runtime.Injection
             var classFromName = XrefScannerLowLevel.JumpTargets(classFromNameAPI).Single();
             Logger.Trace($"Class::FromName: 0x{classFromName.ToInt64():X2}");
 
-            ClassFromNameOriginal = ClassInjector.Detour.Detour(classFromName, new d_ClassFromName(hkClassFromName));
+            ClassFromNameOriginal = ClassInjector.Detour.Detour(classFromName, ClassFromNameDetour);
 #if NET6_0
+            _delegateCache.Add(ClassFromNameDetour);
             _delegateCache.Add(ClassFromNameOriginal);
 #endif
             return Marshal.GetDelegateForFunctionPointer<d_ClassFromName>(classFromName);
@@ -200,6 +238,7 @@ namespace Il2CppInterop.Runtime.Injection
             while (GetTypeInfoFromTypeDefinitionIndexOriginal == null) Thread.Sleep(1);
             return GetTypeInfoFromTypeDefinitionIndexOriginal(index);
         }
+        private static readonly d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndexDetour = new(hkGetTypeInfoFromTypeDefinitionIndex);
         internal static d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndex;
         internal static d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndexOriginal;
         private static d_GetTypeInfoFromTypeDefinitionIndex FindGetTypeInfoFromTypeDefinitionIndex()
@@ -264,11 +303,12 @@ namespace Il2CppInterop.Runtime.Injection
 
             Logger.Trace($"MetadataCache::GetTypeInfoFromTypeDefinitionIndex: 0x{getTypeInfoFromTypeDefinitionIndex.ToInt64():X2}");
 
-            GetTypeInfoFromTypeDefinitionIndexOriginal = ClassInjector.Detour.Detour<d_GetTypeInfoFromTypeDefinitionIndex>(
+            GetTypeInfoFromTypeDefinitionIndexOriginal = ClassInjector.Detour.Detour(
                 getTypeInfoFromTypeDefinitionIndex,
-                hkGetTypeInfoFromTypeDefinitionIndex
+                GetTypeInfoFromTypeDefinitionIndexDetour
             );
 #if NET6_0
+            _delegateCache.Add(GetTypeInfoFromTypeDefinitionIndexDetour);
             _delegateCache.Add(GetTypeInfoFromTypeDefinitionIndexOriginal);
 #endif
             return Marshal.GetDelegateForFunctionPointer<d_GetTypeInfoFromTypeDefinitionIndex>(getTypeInfoFromTypeDefinitionIndex);
@@ -293,6 +333,7 @@ namespace Il2CppInterop.Runtime.Injection
             while (ClassFromIl2CppTypeOriginal == null) Thread.Sleep(1);
             return ClassFromIl2CppTypeOriginal(type);
         }
+        private static d_ClassFromIl2CppType ClassFromIl2CppTypeDetour = new(hkClassFromIl2CppType);
         internal static d_ClassFromIl2CppType ClassFromIl2CppType;
         internal static d_ClassFromIl2CppType ClassFromIl2CppTypeOriginal;
         private static d_ClassFromIl2CppType FindClassFromIl2CppType()
@@ -304,8 +345,9 @@ namespace Il2CppInterop.Runtime.Injection
             var classFromType = XrefScannerLowLevel.JumpTargets(classFromTypeAPI).Single();
             Logger.Trace($"Class::FromIl2CppType: 0x{classFromType.ToInt64():X2}");
 
-            ClassFromIl2CppTypeOriginal = ClassInjector.Detour.Detour(classFromType, new d_ClassFromIl2CppType(hkClassFromIl2CppType));
+            ClassFromIl2CppTypeOriginal = ClassInjector.Detour.Detour(classFromType, ClassFromIl2CppTypeDetour);
 #if NET6_0
+            _delegateCache.Add(ClassFromIl2CppTypeDetour);
             _delegateCache.Add(ClassFromIl2CppTypeOriginal);
 #endif
             return Marshal.GetDelegateForFunctionPointer<d_ClassFromIl2CppType>(classFromType);
@@ -336,6 +378,7 @@ namespace Il2CppInterop.Runtime.Injection
             return null;
 #endif
         }
+        private static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueDetour = new(hkClassGetFieldDefaultValue);
         internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValue;
         internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueOriginal;
         private static d_ClassGetFieldDefaultValue FindClassGetFieldDefaultValue()
@@ -355,8 +398,9 @@ namespace Il2CppInterop.Runtime.Injection
             var classGetDefaultFieldValue = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).First();
             Logger.Trace($"Class::GetDefaultFieldValue: 0x{classGetDefaultFieldValue.ToInt64():X2}");
 
-            ClassGetFieldDefaultValueOriginal = ClassInjector.Detour.Detour(classGetDefaultFieldValue, new d_ClassGetFieldDefaultValue(hkClassGetFieldDefaultValue));
+            ClassGetFieldDefaultValueOriginal = ClassInjector.Detour.Detour(classGetDefaultFieldValue, ClassGetFieldDefaultValueDetour);
 #if NET6_0
+            _delegateCache.Add(ClassGetFieldDefaultValueDetour);
             _delegateCache.Add(ClassGetFieldDefaultValueOriginal);
 #endif
             return Marshal.GetDelegateForFunctionPointer<d_ClassGetFieldDefaultValue>(classGetDefaultFieldValue);

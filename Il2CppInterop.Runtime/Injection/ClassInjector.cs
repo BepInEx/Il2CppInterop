@@ -183,8 +183,6 @@ namespace Il2CppInterop.Runtime.Injection
                 if (!InjectedTypes.Add(type.FullName))
                     throw new ArgumentException($"Type with FullName {type.FullName} is already injected. Don't inject the same type twice, or use a different namespace");
 
-            if (ourOriginalGenericGetMethod == null) HookGenericMethodGetMethod();
-
             var interfaceFunctionCount = interfaces.Sum(i => i.MethodCount);
             var classPointer = UnityVersionHandler.NewClass(baseClassPointer.VtableCount + interfaceFunctionCount);
 
@@ -870,33 +868,6 @@ namespace Il2CppInterop.Runtime.Injection
             return type.IsValueType ? type : typeof(IntPtr);
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate Il2CppMethodInfo* GenericGetMethodDelegate(Il2CppGenericMethod* gmethod, bool copyMethodPtr);
-        private static volatile GenericGetMethodDelegate? ourOriginalGenericGetMethod;
-
-        private static void HookGenericMethodGetMethod()
-        {
-            var getVirtualMethodEntryPoint = InjectorHelpers.GetIl2CppExport(nameof(IL2CPP.il2cpp_object_get_virtual_method));
-            Logger.Trace($"il2cpp_object_get_virtual_method entry address: {getVirtualMethodEntryPoint}");
-
-            var getVirtualMethodMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethodEntryPoint).Single();
-            Logger.Trace($"Xref scan target 1: {getVirtualMethodMethod}");
-
-            var targetMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethodMethod).Last();
-            Logger.Trace($"Xref scan target 2: {targetMethod}");
-
-            if (targetMethod == IntPtr.Zero)
-                return;
-
-            var targetTargets = XrefScannerLowLevel.JumpTargets(targetMethod).Take(2).ToList();
-            if (targetTargets.Count == 1) // U2021.2.0+, there's additional shim that takes 3 parameters
-                targetMethod = targetTargets[0];
-
-            ourOriginalGenericGetMethod = Detour.Detour(targetMethod, new GenericGetMethodDelegate(GenericGetMethodPatch));
-            GCHandle.Alloc(ourOriginalGenericGetMethod, GCHandleType.Normal);
-            Logger.Trace("il2cpp_class_from_il2cpp_type patched");
-        }
-
         private static System.Type RewriteType(Type type)
         {
             if (type.IsValueType && !type.IsEnum)
@@ -957,7 +928,7 @@ namespace Il2CppInterop.Runtime.Injection
             return RewriteType(type);
         }
 
-        private static Il2CppMethodInfo* GenericGetMethodPatch(Il2CppGenericMethod* gmethod, bool copyMethodPtr)
+        internal static Il2CppMethodInfo* hkGenericMethodGetMethod(Il2CppGenericMethod* gmethod, bool copyMethodPtr)
         {
             if (InflatedMethodFromContextDictionary.TryGetValue((IntPtr)gmethod->methodDefinition, out var methods))
             {
@@ -975,7 +946,7 @@ namespace Il2CppInterop.Runtime.Injection
 
                 return (Il2CppMethodInfo*)inflatedMethodPointer;
             }
-            return ourOriginalGenericGetMethod(gmethod, copyMethodPtr);
+            return InjectorHelpers.GenericMethodGetMethodOriginal(gmethod, copyMethodPtr);
         }
 
         public static IManagedDetour Detour = new NotImplementedDetour();
