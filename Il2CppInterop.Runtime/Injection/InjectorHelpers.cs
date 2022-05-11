@@ -57,11 +57,41 @@ namespace Il2CppInterop.Runtime.Injection
         internal static void Setup()
         {
             if (InjectedAssembly == null) CreateInjectedAssembly();
-            GetTypeInfoFromTypeDefinitionIndex ??= FindGetTypeInfoFromTypeDefinitionIndex();
-            ClassGetFieldDefaultValue ??= FindClassGetFieldDefaultValue();
-            ClassInit ??= FindClassInit();
-            ClassFromIl2CppType ??= FindClassFromIl2CppType();
-            ClassFromName ??= FindClassFromName();
+            if (GetTypeInfoFromTypeDefinitionIndex == null)
+            {
+                GetTypeInfoFromTypeDefinitionIndex = FindGetTypeInfoFromTypeDefinitionIndex();
+#if NET6_0
+                _delegateCache.Add(GetTypeInfoFromTypeDefinitionIndex);
+#endif
+            }
+            if (ClassGetFieldDefaultValue == null)
+            {
+                ClassGetFieldDefaultValue = FindClassGetFieldDefaultValue();
+#if NET6_0
+                _delegateCache.Add(ClassGetFieldDefaultValue);
+#endif
+            }
+            if (ClassInit == null)
+            {
+                ClassInit = FindClassInit();
+#if NET6_0
+                _delegateCache.Add(ClassInit);
+#endif
+            }
+            if (ClassFromIl2CppType == null)
+            {
+                ClassFromIl2CppType = FindClassFromIl2CppType();
+#if NET6_0
+                _delegateCache.Add(ClassFromIl2CppType);
+#endif
+            }
+            if (ClassFromName == null)
+            {
+                ClassFromName = FindClassFromName();
+#if NET6_0
+                _delegateCache.Add(ClassFromName);
+#endif
+            }
         }
 
         internal static long CreateClassToken(IntPtr classPointer)
@@ -115,7 +145,10 @@ namespace Il2CppInterop.Runtime.Injection
         private static readonly ConcurrentDictionary<long, IntPtr> s_InjectedClasses = new();
         /// <summary> (namespace, class, image) : class </summary>
         private static readonly Dictionary<(string _namespace, string _class, IntPtr imagePtr), IntPtr> s_ClassNameLookup = new();
-
+#if NET6_0
+        // (Kasuromi): This is required for CoreCLR to prevent delegates from getting garbage collected (GCHandles didn't seem to work)
+        private static readonly List<object> _delegateCache = new();
+#endif
         #region Class::FromName
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate Il2CppClass* d_ClassFromName(Il2CppImage* image, IntPtr _namespace, IntPtr name);
@@ -146,6 +179,9 @@ namespace Il2CppInterop.Runtime.Injection
             Logger.Trace($"Class::FromName: 0x{classFromName.ToInt64():X2}");
 
             ClassFromNameOriginal = ClassInjector.Detour.Detour(classFromName, new d_ClassFromName(hkClassFromName));
+#if NET6_0
+            _delegateCache.Add(ClassFromNameOriginal);
+#endif
             return Marshal.GetDelegateForFunctionPointer<d_ClassFromName>(classFromName);
 #else
             return null;
@@ -232,6 +268,9 @@ namespace Il2CppInterop.Runtime.Injection
                 getTypeInfoFromTypeDefinitionIndex,
                 hkGetTypeInfoFromTypeDefinitionIndex
             );
+#if NET6_0
+            _delegateCache.Add(GetTypeInfoFromTypeDefinitionIndexOriginal);
+#endif
             return Marshal.GetDelegateForFunctionPointer<d_GetTypeInfoFromTypeDefinitionIndex>(getTypeInfoFromTypeDefinitionIndex);
 #else
             return null;
@@ -266,6 +305,9 @@ namespace Il2CppInterop.Runtime.Injection
             Logger.Trace($"Class::FromIl2CppType: 0x{classFromType.ToInt64():X2}");
 
             ClassFromIl2CppTypeOriginal = ClassInjector.Detour.Detour(classFromType, new d_ClassFromIl2CppType(hkClassFromIl2CppType));
+#if NET6_0
+            _delegateCache.Add(ClassFromIl2CppTypeOriginal);
+#endif
             return Marshal.GetDelegateForFunctionPointer<d_ClassFromIl2CppType>(classFromType);
 #else
             return null;
@@ -314,6 +356,9 @@ namespace Il2CppInterop.Runtime.Injection
             Logger.Trace($"Class::GetDefaultFieldValue: 0x{classGetDefaultFieldValue.ToInt64():X2}");
 
             ClassGetFieldDefaultValueOriginal = ClassInjector.Detour.Detour(classGetDefaultFieldValue, new d_ClassGetFieldDefaultValue(hkClassGetFieldDefaultValue));
+#if NET6_0
+            _delegateCache.Add(ClassGetFieldDefaultValueOriginal);
+#endif
             return Marshal.GetDelegateForFunctionPointer<d_ClassGetFieldDefaultValue>(classGetDefaultFieldValue);
 #else
             return null;

@@ -22,6 +22,9 @@ namespace Il2CppInterop.Generator.Passes
                 if (!assemblyRewriteContext.NewAssembly.Name.Name.StartsWith("UnityEngine.")) continue;
                 foreach (var mainModuleType in assemblyRewriteContext.NewAssembly.MainModule.Types)
                 {
+                    if (mainModuleType.Name == "<Module>")
+                        continue;
+
                     var importedType = targetModule.ImportReference(mainModuleType);
                     var exportedType = new ExportedType(mainModuleType.Namespace, mainModuleType.Name, importedType.Module, importedType.Scope) { Attributes = TypeAttributes.Forwarder };
                     targetModule.ExportedTypes.Add(exportedType);

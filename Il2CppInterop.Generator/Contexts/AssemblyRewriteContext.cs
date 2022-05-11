@@ -104,10 +104,10 @@ namespace Il2CppInterop.Generator.Contexts
                 return Imports.Module.String();
 
             if (typeRef.FullName == "System.Object")
-                return Imports.Module.Object();
+                return sourceModule.ImportReference(GlobalContext.GetAssemblyByName("mscorlib").GetTypeByName("System.Object").NewType);
 
             if (typeRef.FullName == "System.Attribute")
-                return Imports.Module.Attribute();
+                return sourceModule.ImportReference(GlobalContext.GetAssemblyByName("mscorlib").GetTypeByName("System.Attribute").NewType);
 
             var originalTypeDef = typeRef.Resolve();
             var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.Module.Assembly);

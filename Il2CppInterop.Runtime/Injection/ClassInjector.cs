@@ -493,7 +493,10 @@ namespace Il2CppInterop.Runtime.Injection
             converted.Name = Marshal.StringToHGlobalAnsi(methodName);
             converted.Class = declaringClass.ClassPointer;
 
-            converted.InvokerMethod = Marshal.GetFunctionPointerForDelegate(new InvokerDelegate(StaticVoidIntPtrInvoker));
+            var invoker = new InvokerDelegate(StaticVoidIntPtrInvoker);
+            GCHandle.Alloc(invoker);
+            converted.InvokerMethod = Marshal.GetFunctionPointerForDelegate(invoker);
+
             converted.MethodPointer = Marshal.GetFunctionPointerForDelegate(voidCtor);
             converted.Slot = ushort.MaxValue;
             converted.ReturnType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore<Void>.NativeClassPtr);
@@ -708,7 +711,11 @@ namespace Il2CppInterop.Runtime.Injection
 
             body.Emit(OpCodes.Ret);
 
-            return (InvokerDelegate)method.CreateDelegate(typeof(InvokerDelegate));
+            GCHandle.Alloc(method);
+
+            InvokerDelegate @delegate = (InvokerDelegate)method.CreateDelegate(typeof(InvokerDelegate));
+            GCHandle.Alloc(@delegate);
+            return @delegate;
         }
 
         private static IntPtr StaticVoidIntPtrInvoker(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj, IntPtr* args)
@@ -816,19 +823,7 @@ namespace Il2CppInterop.Runtime.Injection
                     body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectBaseToPtr))!);
                 body.Emit(InjectorHelpers.StIndOpcodes.TryGetValue(directType, out OpCode stindOpCodde) ? stindOpCodde : OpCodes.Stind_I);
             }
-            if (managedReturnVariable != null)
-            {
-                body.Emit(OpCodes.Ldloc, managedReturnVariable);
-                if (monoMethod.ReturnType == typeof(string))
-                {
-                    body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!);
-                }
-                else if (!monoMethod.ReturnType.IsValueType)
-                {
-                    body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectBaseToPtr))!);
-                }
-            }
-            body.Emit(OpCodes.Ret);
+            // body.Emit(OpCodes.Ret); // breaks coreclr
 
             var exceptionLocal = body.DeclareLocal(typeof(Exception));
             body.BeginCatchBlock(typeof(Exception));
@@ -841,38 +836,16 @@ namespace Il2CppInterop.Runtime.Injection
 
             body.EndExceptionBlock();
 
-            if (monoMethod.ReturnType != typeof(void))
+            if (managedReturnVariable != null)
             {
-                if (monoMethod.ReturnType.IsValueType)
+                body.Emit(OpCodes.Ldloc, managedReturnVariable);
+                if (monoMethod.ReturnType == typeof(string))
                 {
-                    if (monoMethod.ReturnType.IsPrimitive)
-                    {
-                        if (monoMethod.ReturnType == typeof(float))
-                            body.Emit(OpCodes.Ldc_R4, 0);
-                        else if (monoMethod.ReturnType == typeof(double))
-                            body.Emit(OpCodes.Ldc_R8, 0);
-                        else
-                        {
-                            body.Emit(OpCodes.Ldc_I4_0);
-                            if (monoMethod.ReturnType == typeof(long) || monoMethod.ReturnType == typeof(ulong))
-                            {
-                                body.Emit(OpCodes.Conv_I8);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var local = body.DeclareLocal(monoMethod.ReturnType);
-
-                        body.Emit(OpCodes.Ldloca_S, local);
-                        body.Emit(OpCodes.Initobj, monoMethod.ReturnType);
-                        body.Emit(OpCodes.Ldloc_S, local);
-                    }
+                    body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!);
                 }
-                else
+                else if (!monoMethod.ReturnType.IsValueType)
                 {
-                    body.Emit(OpCodes.Ldc_I4_0);
-                    body.Emit(OpCodes.Conv_I);
+                    body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectBaseToPtr))!);
                 }
             }
             body.Emit(OpCodes.Ret);
@@ -892,7 +865,7 @@ namespace Il2CppInterop.Runtime.Injection
             return builder.ToString();
         }
 
-        private static Type NativeType(this Type type)
+        internal static Type NativeType(this Type type)
         {
             return type.IsValueType ? type : typeof(IntPtr);
         }
@@ -920,6 +893,7 @@ namespace Il2CppInterop.Runtime.Injection
                 targetMethod = targetTargets[0];
 
             ourOriginalGenericGetMethod = Detour.Detour(targetMethod, new GenericGetMethodDelegate(GenericGetMethodPatch));
+            GCHandle.Alloc(ourOriginalGenericGetMethod, GCHandleType.Normal);
             Logger.Trace("il2cpp_class_from_il2cpp_type patched");
         }
 

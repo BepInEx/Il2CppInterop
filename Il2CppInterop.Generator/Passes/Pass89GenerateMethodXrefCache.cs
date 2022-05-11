@@ -55,10 +55,10 @@ namespace Il2CppInterop.Generator.Passes
                                             new CustomAttributeArgument(imports.Module.Int(), attribute.RefRangeEnd)),
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.MetadataInitTokenRva),
-                                            new CustomAttributeArgument(imports.Module.Int(), attribute.MetadataInitTokenRva)),
+                                            new CustomAttributeArgument(imports.Module.Long(), attribute.MetadataInitTokenRva)),
                                         new CustomAttributeNamedArgument(
                                             nameof(CachedScanResultsAttribute.MetadataInitFlagRva),
-                                            new CustomAttributeArgument(imports.Module.Int(), attribute.MetadataInitFlagRva)),
+                                            new CustomAttributeArgument(imports.Module.Long(), attribute.MetadataInitFlagRva)),
                                     }
                                 });
                             continue;
