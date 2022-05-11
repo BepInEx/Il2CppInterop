@@ -11,7 +11,7 @@ namespace Il2CppInterop.Generator.Extensions
 
         public static GenericParameterAttributes StripValueTypeConstraint(this GenericParameterAttributes parameterAttributes)
         {
-            return parameterAttributes & ~GenericParameterAttributes.NotNullableValueTypeConstraint;
+            return parameterAttributes & ~(GenericParameterAttributes.NotNullableValueTypeConstraint | GenericParameterAttributes.VarianceMask);
         }
     }
 }

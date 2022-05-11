@@ -27,8 +27,10 @@ namespace Il2CppInterop.Generator.Passes
 
                     foreach (var unityMethod in unityType.Methods)
                     {
+                        var isICall = (unityMethod.ImplAttributes & MethodImplAttributes.InternalCall) != 0;
                         if (unityMethod.Name == ".cctor" || unityMethod.Name == ".ctor") continue;
                         if (unityMethod.IsAbstract) continue;
+                        if (!unityMethod.HasBody && !isICall) continue; // CoreCLR chokes on no-body methods
 
                         var processedMethod = processedType.TryGetMethodByUnityAssemblyMethod(unityMethod);
                         if (processedMethod != null) continue;
@@ -79,7 +81,7 @@ namespace Il2CppInterop.Generator.Passes
                             newMethod.GenericParameters.Add(newParameter);
                         }
 
-                        if ((unityMethod.ImplAttributes & MethodImplAttributes.InternalCall) != 0)
+                        if (isICall)
                         {
                             var delegateType = UnstripGenerator.CreateDelegateTypeForICallMethod(unityMethod, newMethod, imports);
                             processedType.NewType.NestedTypes.Add(delegateType);

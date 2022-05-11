@@ -19,7 +19,16 @@ namespace Il2CppInterop.Runtime.XrefScans
             var fieldValue = Il2CppInteropUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(methodBase)?.GetValue(null);
             if (fieldValue == null) return Enumerable.Empty<XrefInstance>();
 
-            var cachedAttribute = methodBase.GetCustomAttribute<CachedScanResultsAttribute>(false);
+            CachedScanResultsAttribute? cachedAttribute = null;
+            try
+            {
+                cachedAttribute = methodBase.GetCustomAttribute<CachedScanResultsAttribute>(false);
+            }
+            catch (Exception e)
+            {
+                Logger.Warning($"Failed to get custom attribute for {methodBase.DeclaringType!.FullName}.{methodBase.Name}: {e.Message}. Falling back to scanning.");
+            }
+
             if (cachedAttribute == null)
             {
                 XrefScanMetadataRuntimeUtil.CallMetadataInitForMethod(methodBase);

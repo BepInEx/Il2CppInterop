@@ -52,7 +52,7 @@ namespace Il2CppInterop.Runtime
             newType.DefineMethod("Invoke",
                 MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public,
                 CallingConventions.HasThis,
-                managedMethodInner.ReturnType.IsValueType ? managedMethodInner.ReturnType : typeof(IntPtr),
+                managedMethodInner.ReturnType.NativeType(),
                 parameterTypes).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
             newType.DefineMethod("BeginInvoke",
@@ -63,7 +63,7 @@ namespace Il2CppInterop.Runtime
             newType.DefineMethod("EndInvoke",
                 MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public,
                 CallingConventions.HasThis,
-                managedMethodInner.ReturnType.IsValueType ? managedMethodInner.ReturnType : typeof(IntPtr),
+                managedMethodInner.ReturnType.NativeType(),
                 new[] { typeof(IAsyncResult) }).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
             return newType.CreateType();
@@ -112,7 +112,7 @@ namespace Il2CppInterop.Runtime
                     : typeof(IntPtr);
             }
 
-            var trampoline = new DynamicMethod("(il2cpp delegate trampoline) " + ExtractSignature(managedMethod), MethodAttributes.Static, CallingConventions.Standard, returnType, parameterTypes, typeof(DelegateSupport), true);
+            var trampoline = new DynamicMethod("(il2cpp delegate trampoline) " + ExtractSignature(managedMethod), MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, returnType, parameterTypes, typeof(DelegateSupport), true);
             var bodyBuilder = trampoline.GetILGenerator();
 
             var tryLabel = bodyBuilder.BeginExceptionBlock();
@@ -211,7 +211,7 @@ namespace Il2CppInterop.Runtime
                     throw new ArgumentException($"Delegate has parameter of type {parameterType} (non-blittable struct) which is not supported");
             }
 
-            var classTypePtr = Il2CppClassPointerStore<TIl2Cpp>.NativeClassPtr;
+            var classTypePtr = Il2CppClassPointerStore.GetNativeClassPointer(typeof(TIl2Cpp));
             if (classTypePtr == IntPtr.Zero)
                 throw new ArgumentException($"Type {typeof(TIl2Cpp)} has uninitialized class pointer");
 

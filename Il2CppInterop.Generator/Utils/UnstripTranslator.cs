@@ -103,6 +103,17 @@ namespace Il2CppInterop.Generator.Utils
                     {
                         targetBuilder.Emit(OpCodes.Call, imports.Module.ImportReference(new GenericInstanceMethod(imports.Il2CppObjectTryCast) { GenericArguments = { targetType } }));
                     }
+                    else if (bodyInstruction.OpCode == OpCodes.Newarr && !targetType.IsValueType)
+                    {
+                        targetBuilder.Emit(OpCodes.Conv_I8);
+
+                        var il2cppTypeArray = new GenericInstanceType(imports.Il2CppReferenceArray) { GenericArguments = { targetType } };
+                        targetBuilder.Emit(OpCodes.Newobj, imports.Module.ImportReference(new MethodReference(".ctor", imports.Module.Void(), il2cppTypeArray)
+                        {
+                            HasThis = true,
+                            Parameters = { new ParameterDefinition(imports.Module.Long()) }
+                        }));
+                    }
                     else
                         targetBuilder.Emit(bodyInstruction.OpCode, targetType);
                 }

@@ -38,7 +38,19 @@ namespace Il2CppInterop.Runtime
         static Il2CppClassPointerStore()
         {
             var targetType = typeof(T);
-            RuntimeHelpers.RunClassConstructor(targetType.TypeHandle);
+            if (!targetType.IsEnum)
+            {
+                RuntimeHelpers.RunClassConstructor(targetType.TypeHandle);
+            }
+            else
+            {
+                if (targetType.IsNested)
+                {
+                    NativeClassPtr = IL2CPP.GetIl2CppNestedType(Il2CppClassPointerStore.GetNativeClassPointer(targetType.DeclaringType), targetType.Name);
+                }
+                else
+                    NativeClassPtr = IL2CPP.GetIl2CppClass(targetType.Module.Name, targetType.Namespace ?? "", targetType.Name);
+            }
             if (targetType.IsPrimitive || targetType == typeof(string))
             {
                 RuntimeHelpers.RunClassConstructor(AppDomain.CurrentDomain.GetAssemblies()

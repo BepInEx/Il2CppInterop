@@ -19,28 +19,35 @@ namespace Il2CppInterop.Generator.Passes
                 {
                     if (typeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.BlittableStruct || typeContext.OriginalType.IsEnum) continue;
 
-                    var newType = typeContext.NewType;
-                    newType.Attributes = newType.Attributes & ~(TypeAttributes.LayoutMask) |
-                                         TypeAttributes.ExplicitLayout;
-
-                    ILGeneratorEx.GenerateBoxMethod(newType, typeContext.ClassPointerFieldRef, il2CppSystemTypeRef);
-
-                    foreach (var fieldContext in typeContext.Fields)
+                    try
                     {
-                        var field = fieldContext.OriginalField;
-                        if (field.IsStatic) continue;
+                        var newType = typeContext.NewType;
+                        newType.Attributes = newType.Attributes & ~(TypeAttributes.LayoutMask) |
+                                             TypeAttributes.ExplicitLayout;
 
-                        var newField = new FieldDefinition(fieldContext.UnmangledName, field.Attributes.ForcePublic(),
-                            !field.FieldType.IsValueType
-                                ? assemblyContext.Imports.Module.IntPtr()
-                                : assemblyContext.RewriteTypeRef(field.FieldType));
+                        ILGeneratorEx.GenerateBoxMethod(newType, typeContext.ClassPointerFieldRef, il2CppSystemTypeRef);
 
-                        newField.Offset = Convert.ToInt32(
-                            (string)field.CustomAttributes
-                                .Single(it => it.AttributeType.Name == "FieldOffsetAttribute")
-                                .Fields.Single().Argument.Value, 16);
+                        foreach (var fieldContext in typeContext.Fields)
+                        {
+                            var field = fieldContext.OriginalField;
+                            if (field.IsStatic) continue;
 
-                        newType.Fields.Add(newField);
+                            var newField = new FieldDefinition(fieldContext.UnmangledName, field.Attributes.ForcePublic(),
+                                !field.FieldType.IsValueType
+                                    ? assemblyContext.Imports.Module.IntPtr()
+                                    : assemblyContext.RewriteTypeRef(field.FieldType));
+
+                            newField.Offset = Convert.ToInt32(
+                                (string)field.CustomAttributes
+                                    .Single(it => it.AttributeType.Name == "FieldOffsetAttribute")
+                                    .Fields.Single().Argument.Value, 16);
+
+                            newType.Fields.Add(newField);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"Failed to generate value type fields for type {typeContext.OriginalType.FullName} in assembly {typeContext.AssemblyContext.OriginalAssembly.Name}", ex);
                     }
                 }
             }

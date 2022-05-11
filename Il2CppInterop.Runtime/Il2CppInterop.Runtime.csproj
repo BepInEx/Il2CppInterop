@@ -4,7 +4,8 @@
         <PackageId>Il2CppInterop.Runtime</PackageId>
         <Authors>knah et al.</Authors>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <TargetFrameworks>netstandard2.1;net472</TargetFrameworks>
+        <TargetFrameworks>netstandard2.1;net472;net6</TargetFrameworks>
+		<DebugType>embedded</DebugType>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>Il2CppInterop.Runtime</RootNamespace>
         <Configurations>Debug;Release;Mini</Configurations>

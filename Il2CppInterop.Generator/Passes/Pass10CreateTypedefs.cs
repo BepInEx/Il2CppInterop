@@ -1,6 +1,8 @@
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
+using Il2CppInterop.Runtime;
 using Mono.Cecil;
+using System.Linq;
 
 namespace Il2CppInterop.Generator.Passes
 {
@@ -11,7 +13,10 @@ namespace Il2CppInterop.Generator.Passes
             foreach (var assemblyContext in context.Assemblies)
             {
                 foreach (var type in assemblyContext.OriginalAssembly.MainModule.Types)
-                    ProcessType(type, assemblyContext, null);
+                {
+                    if (type.Namespace != "Cpp2ILInjected" && type.Name != "<Module>")
+                        ProcessType(type, assemblyContext, null);
+                }
             }
         }
 
@@ -19,6 +24,7 @@ namespace Il2CppInterop.Generator.Passes
         {
             var convertedTypeName = GetConvertedTypeName(assemblyContext.GlobalContext, type, parentType);
             var newType = new TypeDefinition(convertedTypeName.Namespace ?? type.Namespace.UnSystemify(assemblyContext.GlobalContext.Options), convertedTypeName.Name, AdjustAttributes(type.Attributes));
+            newType.IsSequentialLayout = false;
 
             if (type.IsSealed && type.IsAbstract) // is static
             {
@@ -59,6 +65,11 @@ namespace Il2CppInterop.Generator.Passes
 
                 if (assemblyContextGlobalContext.Options.RenameMap.TryGetValue(fullName + "." + convertedTypeName, out var newName))
                 {
+                    if (type.Module.Types.Any(t => t.FullName == newName))
+                    {
+                        Logger.Warning($"[Rename map issue] {newName} already exists in {type.Module.Name} (mapped from {fullName}.{convertedTypeName})");
+                        newName += "_Duplicate";
+                    }
                     var lastDotPosition = newName.LastIndexOf(".");
                     if (lastDotPosition >= 0)
                     {
