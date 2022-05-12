@@ -68,15 +68,5 @@ namespace Il2CppInterop.Runtime.XrefScans
 
             Marshal.WriteByte((IntPtr)(GameAssemblyBase + attribute.MetadataInitFlagRva), 1);
         }
-
-        [Obsolete("Type registration is no longer needed")]
-        public static void RegisterType(Type type)
-        {
-        }
-
-        [Obsolete("Type registration is no longer needed")]
-        public static void RegisterType<T>()
-        {
-        }
     }
 }

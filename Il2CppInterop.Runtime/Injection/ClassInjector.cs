@@ -112,19 +112,6 @@ namespace Il2CppInterop.Runtime.Injection
             return false;
         }
 
-        [Obsolete("Use RegisterTypeInIl2Cpp<T>(RegisterTypeOptions)", true)]
-        public static void RegisterTypeInIl2Cpp<T>(bool logSuccess) where T : class => RegisterTypeInIl2Cpp(typeof(T), new RegisterTypeOptions { LogSuccess = logSuccess });
-        [Obsolete("Use RegisterTypeInIl2Cpp(Type, RegisterTypeOptions)", true)]
-        public static void RegisterTypeInIl2Cpp(Type type, bool logSuccess) => RegisterTypeInIl2Cpp(type, new RegisterTypeOptions { LogSuccess = logSuccess });
-        [Obsolete("Use RegisterTypeInIl2Cpp(Type, RegisterTypeOptions) or [Il2CppImplementsAttribute]", true)]
-        public static void RegisterTypeInIl2CppWithInterfaces<T>(params Type[] interfaces) where T : class => RegisterTypeInIl2CppWithInterfaces(typeof(T), true, interfaces);
-        [Obsolete("Use RegisterTypeInIl2Cpp(Type, RegisterTypeOptions) or [Il2CppImplementsAttribute]", true)]
-        public static void RegisterTypeInIl2CppWithInterfaces<T>(bool logSuccess, params Type[] interfaces) where T : class => RegisterTypeInIl2CppWithInterfaces(typeof(T), logSuccess, interfaces);
-        [Obsolete("Use RegisterTypeInIl2Cpp(Type, RegisterTypeOptions) or [Il2CppImplementsAttribute]", true)]
-        public static void RegisterTypeInIl2CppWithInterfaces(Type type, bool logSuccess, params Type[] interfaces) => RegisterTypeInIl2Cpp(type, new RegisterTypeOptions() { LogSuccess = logSuccess, Interfaces = interfaces });
-        [Obsolete("Use RegisterTypeInIl2Cpp(Type, RegisterTypeOptions)", true)]
-        public static void RegisterTypeInIl2Cpp(Type type, bool logSuccess, params INativeClassStruct[] interfaces) => RegisterTypeInIl2Cpp(type, new RegisterTypeOptions { LogSuccess = logSuccess, Interfaces = interfaces });
-
         public static void RegisterTypeInIl2Cpp<T>() where T : class => RegisterTypeInIl2Cpp(typeof(T));
         public static void RegisterTypeInIl2Cpp(Type type) => RegisterTypeInIl2Cpp(type, RegisterTypeOptions.Default);
         public static void RegisterTypeInIl2Cpp<T>(RegisterTypeOptions options) where T : class => RegisterTypeInIl2Cpp(typeof(T), options);
