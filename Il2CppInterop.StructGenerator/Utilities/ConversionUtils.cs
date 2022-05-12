@@ -64,7 +64,7 @@ internal static class ConversionUtils
         ["uint32_t"] = "uint",
         ["unsigned int"] = "uint",
         ["uint64_t"] = "ulong",
-        ["size_t"] = "ulong"
+        ["size_t"] = "IntPtr"
     };
 
     private static readonly string[] SInvalidNames =

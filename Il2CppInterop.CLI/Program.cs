@@ -59,7 +59,7 @@ deobfGenerateCommand.Description = "Generate a deobfuscation map from original u
 var wrapperCommand = new Command("wrapper-gen")
 {
     new Option<DirectoryInfo>("--headers", "Directory that contains libil2cpp headers. Directory must contains subdirectories named after libil2cpp version.") {IsRequired = true}.ExistingOnly(),
-    new Option<DirectoryInfo>("--output", "Directory to write managed struct wrapper sources to") {IsRequired = true}.ExistingOnly(),
+    new Option<DirectoryInfo>("--output", "Directory to write managed struct wrapper sources to") {IsRequired = true},
 };
 wrapperCommand.Description = "Tools for generating Il2Cpp struct wrappers from libi2lcpp source";
 wrapperCommand.Handler = CommandHandler.Create((WrapperCommandOptions opts) =>
