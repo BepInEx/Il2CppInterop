@@ -1,17 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Il2CppInterop.Runtime
-{
-    [Obsolete("Il2CppInterop.Runtime.ClassInjectionAssemblyTargetAttribute is obsolete. Use Il2CppInterop.Runtime.Attributes.ClassInjectionAssemblyTargetAttribute instead.")]
-    [AttributeUsage(AttributeTargets.Class)]
-    public class ClassInjectionAssemblyTargetAttribute : Il2CppInterop.Runtime.Attributes.ClassInjectionAssemblyTargetAttribute
-    {
-        public ClassInjectionAssemblyTargetAttribute(string assembly) : base(assembly) { }
-        public ClassInjectionAssemblyTargetAttribute(string[] assemblies) : base(assemblies) { }
-    }
-}
-
 namespace Il2CppInterop.Runtime.Attributes
 {
     [AttributeUsage(AttributeTargets.Class)]
