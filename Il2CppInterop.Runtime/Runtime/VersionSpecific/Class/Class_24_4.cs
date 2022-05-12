@@ -49,7 +49,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             public uint initializationExceptionGCHandle;
             public uint cctor_started;
             public uint cctor_finished;
-            public ulong cctor_thread;
+            public IntPtr cctor_thread;
             public int genericContainerIndex;
             public uint instance_size;
             public uint actualSize;

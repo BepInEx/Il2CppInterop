@@ -195,7 +195,7 @@ public static class Il2CppStructWrapperGenerator
         foreach (var generator in SGenerators.Values.SelectMany(x => x))
         {
             var generatorOutputDir =
-                Path.Combine(options.OutputDirectory, generator.NativeStructGenerator.CppClass.Name);
+                Path.Combine(options.OutputDirectory, generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", string.Empty));
             if (!Directory.Exists(generatorOutputDir))
                 Directory.CreateDirectory(generatorOutputDir);
             CodeGenFile file = new()
