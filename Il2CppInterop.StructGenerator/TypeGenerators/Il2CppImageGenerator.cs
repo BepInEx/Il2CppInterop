@@ -39,7 +39,7 @@ internal class Il2CppImageGenerator : VersionSpecificGenerator
 
     protected override Action<StringBuilder>? CreateNewExtraBody => builder =>
     {
-        if(GetNativeField("metadataHandle") is not null)
+        if (GetNativeField("metadataHandle") is not null)
         {
             builder.AppendLine($"Il2CppImageGlobalMetadata* metadata = (Il2CppImageGlobalMetadata*)Marshal.AllocHGlobal(sizeof(Il2CppImageGlobalMetadata));");
             builder.AppendLine($"metadata->image = (Il2CppImage*)_;");
