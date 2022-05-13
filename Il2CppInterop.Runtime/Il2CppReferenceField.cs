@@ -6,7 +6,7 @@ namespace Il2CppInterop.Runtime
 {
     public unsafe class Il2CppReferenceField<TRefObj> where TRefObj : Il2CppObjectBase
     {
-        private static bool? isInjectedType = null;
+        public TRefObj Value { get => Get(); set => Set(value); }
 
         internal Il2CppReferenceField(Il2CppObjectBase obj, string fieldName)
         {
@@ -33,5 +33,6 @@ namespace Il2CppInterop.Runtime
 
         private readonly Il2CppObjectBase _obj;
         private readonly IntPtr _fieldPtr;
+        private static bool? isInjectedType = null;
     }
 }

@@ -5,6 +5,8 @@ namespace Il2CppInterop.Runtime
 {
     public unsafe class Il2CppValueField<T> where T : unmanaged
     {
+        public T Value { get => Get(); set => Set(value); }
+
         internal Il2CppValueField(Il2CppObjectBase obj, string fieldName)
         {
             _obj = obj;
