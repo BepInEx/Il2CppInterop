@@ -328,6 +328,7 @@ namespace Il2CppInterop.Generator.Extensions
             else if (originalReturnType.IsArray && originalReturnType.GetElementType().IsGenericParameter)
             {
                 body.Append(loadPointer);
+                if (extraDerefForNonValueTypes) body.Emit(OpCodes.Ldind_I);
                 var actualReturnType = imports.Il2CppArrayBaseSelfSubst;
                 var methodRef = new MethodReference(nameof(Il2CppArrayBase<int>.WrapNativeGenericArrayPointer),
                     actualReturnType,
