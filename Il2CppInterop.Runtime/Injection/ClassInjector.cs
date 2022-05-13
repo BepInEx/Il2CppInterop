@@ -208,7 +208,8 @@ namespace Il2CppInterop.Runtime.Injection
                 fieldInfo.Parent = classPointer.ClassPointer;
                 fieldInfo.Offset = fieldOffset;
 
-                Type fieldType = fieldsToInject[i].FieldType.GenericTypeArguments[0];
+                Type fieldType = fieldsToInject[i].FieldType == typeof(Il2CppStringField) ?
+                    typeof(string) : fieldsToInject[i].FieldType.GenericTypeArguments[0];
                 FieldAttributes fieldAttributes = fieldsToInject[i].Attributes;
                 IntPtr fieldInfoClass = Il2CppClassPointerStore.GetNativeClassPointer(fieldType);
                 if (!_injectedFieldTypes.TryGetValue((fieldType, fieldAttributes), out IntPtr fieldTypePtr))
@@ -421,7 +422,7 @@ namespace Il2CppInterop.Runtime.Injection
 
         private static bool IsFieldEligible(FieldInfo field)
         {
-            if (!field.FieldType.IsGenericType) return false;
+            if (!field.FieldType.IsGenericType) return field.FieldType == typeof(Il2CppStringField);
             Type genericTypeDef = field.FieldType.GetGenericTypeDefinition();
             if (genericTypeDef != typeof(Il2CppReferenceField<>) && genericTypeDef != typeof(Il2CppValueField<>)) return false;
 
