@@ -401,7 +401,7 @@ namespace Il2CppInterop.Runtime.Injection
 
             classPointer.ByValArg.Data = classPointer.ThisArg.Data = (IntPtr)InjectorHelpers.CreateClassToken(classPointer.Pointer);
 
-            RuntimeSpecificsStore.SetClassInfo(classPointer.Pointer, true, true);
+            RuntimeSpecificsStore.SetClassInfo(classPointer.Pointer, true);
             Il2CppClassPointerStore.SetNativeClassPointer(type, classPointer.Pointer);
 
             InjectorHelpers.AddTypeToLookup(type, classPointer.Pointer);
