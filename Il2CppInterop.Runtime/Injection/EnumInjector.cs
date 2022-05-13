@@ -249,7 +249,7 @@ namespace Il2CppInterop.Runtime.Injection
                 il2cppEnum.TypeHierarchy[i] = baseEnum.TypeHierarchy[i];
             il2cppEnum.TypeHierarchy[il2cppEnum.TypeHierarchyDepth - 1] = il2cppEnum.ClassPointer;
 
-            RuntimeSpecificsStore.SetClassInfo(il2cppEnum.Pointer, true, true);
+            RuntimeSpecificsStore.SetClassInfo(il2cppEnum.Pointer, true);
             Il2CppClassPointerStore.SetNativeClassPointer(type, il2cppEnum.Pointer);
 
             InjectorHelpers.AddTypeToLookup(type, il2cppEnum.Pointer);

@@ -41,9 +41,7 @@ namespace Il2CppInterop.Runtime
             if (isWrapped)
                 return;
 
-            myGcHandle = RuntimeSpecificsStore.ShouldUseWeakRefs(IL2CPP.il2cpp_object_get_class(objHdl))
-                ? IL2CPP.il2cpp_gchandle_new_weakref(objHdl, false)
-                : IL2CPP.il2cpp_gchandle_new(objHdl, false);
+            myGcHandle = IL2CPP.il2cpp_gchandle_new(objHdl, false);
         }
 
         public Il2CppObjectBase(IntPtr pointer)
