@@ -266,7 +266,6 @@ namespace Il2CppInterop.Runtime
             return (T)trampoline.CreateDelegate(typeof(T));
         }
 
-        private static readonly MethodInfo UnboxMethod = typeof(Il2CppObjectBase).GetMethod(nameof(Il2CppObjectBase.Unbox));
         private static readonly MethodInfo CastMethod = typeof(Il2CppObjectBase).GetMethod(nameof(Il2CppObjectBase.Cast));
         public static T? PointerToValueGeneric<T>(IntPtr objectPointer, bool isFieldPointer, bool valueTypeWouldBeBoxed)
         {
@@ -289,7 +288,7 @@ namespace Il2CppInterop.Runtime
 
             var nativeObject = new Il2CppObjectBase(objectPointer);
             if (typeof(T).IsValueType)
-                return (T)UnboxMethod.MakeGenericMethod(typeof(T)).Invoke(nativeObject, new object[0]);
+                return nativeObject.UnboxUnsafe<T>();
             return (T)CastMethod.MakeGenericMethod(typeof(T)).Invoke(nativeObject, new object[0]);
         }
 
