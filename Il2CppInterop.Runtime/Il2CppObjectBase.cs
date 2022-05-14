@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using Il2CppInterop.Runtime.Runtime;
@@ -54,8 +55,9 @@ namespace Il2CppInterop.Runtime
             return TryCast<T>() ?? throw new InvalidCastException($"Can't cast object of type {Marshal.PtrToStringAnsi(IL2CPP.il2cpp_class_get_name(IL2CPP.il2cpp_object_get_class(Pointer)))} to type {typeof(T)}");
         }
 
-        public T Unbox<T>() where T : unmanaged
+        internal unsafe T UnboxUnsafe<T>()
         {
+#if NET6_0
             var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
             if (nestedTypeClassPointer == IntPtr.Zero)
                 throw new ArgumentException($"{typeof(T)} is not an Il2Cpp reference type");
@@ -64,7 +66,29 @@ namespace Il2CppInterop.Runtime
             if (!IL2CPP.il2cpp_class_is_assignable_from(nestedTypeClassPointer, ownClass))
                 throw new InvalidCastException($"Can't cast object of type {Marshal.PtrToStringAnsi(IL2CPP.il2cpp_class_get_name(IL2CPP.il2cpp_object_get_class(Pointer)))} to type {typeof(T)}");
 
-            return Marshal.PtrToStructure<T>(IL2CPP.il2cpp_object_unbox(Pointer));
+            return Unsafe.AsRef<T>(IL2CPP.il2cpp_object_unbox(Pointer).ToPointer());
+#else
+            return (T)_unboxMethod.MakeGenericMethod(typeof(T)).Invoke(this, new object[0]);
+#endif
+        }
+
+        private static readonly MethodInfo _unboxMethod = typeof(Il2CppObjectBase).GetMethod(nameof(Il2CppObjectBase.Unbox));
+
+        public unsafe T Unbox<T>() where T : unmanaged
+        {
+            var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
+            if (nestedTypeClassPointer == IntPtr.Zero)
+                throw new ArgumentException($"{typeof(T)} is not an Il2Cpp reference type");
+
+            var ownClass = IL2CPP.il2cpp_object_get_class(Pointer);
+            if (!IL2CPP.il2cpp_class_is_assignable_from(nestedTypeClassPointer, ownClass))
+                throw new InvalidCastException($"Can't cast object of type {Marshal.PtrToStringAnsi(IL2CPP.il2cpp_class_get_name(IL2CPP.il2cpp_object_get_class(Pointer)))} to type {typeof(T)}");
+            IntPtr unboxedPtr = IL2CPP.il2cpp_object_unbox(Pointer);
+#if NET6_0
+            return Unsafe.AsRef<T>(unboxedPtr.ToPointer());
+#else
+            return Marshal.PtrToStructure<T>(unboxedPtr);
+#endif
         }
 
         public T? TryCast<T>() where T : Il2CppObjectBase
