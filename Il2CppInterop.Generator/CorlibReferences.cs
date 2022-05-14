@@ -17,7 +17,12 @@ internal static class CorlibReferences
     {
         assemblyNameReference.Name = "mscorlib";
         // (Kas): Bumped to 6.0.0.0 for the sake of testing, revert when publish
+        // TODO: Parameterize this
+#if NET_6
         assemblyNameReference.Version = new Version(6, 0, 0, 0);
+#else
+        assemblyNameReference.Version = new Version(4, 0, 0, 0);
+#endif
         assemblyNameReference.PublicKeyToken = new byte[] { 183, 122, 92, 86, 25, 52, 224, 137 };
         assemblyNameReference.Culture = "";
     }

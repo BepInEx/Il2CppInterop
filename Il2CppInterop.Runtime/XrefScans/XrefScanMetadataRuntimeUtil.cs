@@ -27,7 +27,7 @@ namespace Il2CppInterop.Runtime.XrefScans
                     Func<AppDomain, Il2CppReferenceArray<Il2CppSystem.Reflection.Assembly>>;
 
             var unityObjectCctor = getAssemblies(AppDomain.CurrentDomain)
-                .Single(it => it.GetSimpleName() == "UnityEngine.CoreModule").GetType("UnityEngine.Object")
+                .Single(it => it.GetName().Name == "UnityEngine.CoreModule").GetType("UnityEngine.Object")
                 .GetConstructors(Il2CppSystem.Reflection.BindingFlags.Static | Il2CppSystem.Reflection.BindingFlags.NonPublic).Single();
             var nativeMethodInfo = IL2CPP.il2cpp_method_get_from_reflection(unityObjectCctor.Pointer);
             ourMetadataInitForMethodPointer = XrefScannerLowLevel.JumpTargets(*(IntPtr*)nativeMethodInfo).First();
