@@ -159,7 +159,9 @@ namespace Il2CppInterop.Runtime.Injection
         #region GenericMethod::GetMethod
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate Il2CppMethodInfo* d_GenericMethodGetMethod(Il2CppGenericMethod* gmethod, bool copyMethodPtr);
+#if !MINI
         private static readonly d_GenericMethodGetMethod GenericMethodGetMethodDetour = new(ClassInjector.hkGenericMethodGetMethod);
+#endif
         internal static d_GenericMethodGetMethod GenericMethodGetMethod;
         internal static d_GenericMethodGetMethod GenericMethodGetMethodOriginal;
         private static d_GenericMethodGetMethod FindGenericMethodGetMethod()
@@ -176,8 +178,9 @@ namespace Il2CppInterop.Runtime.Injection
             var targetTargets = XrefScannerLowLevel.JumpTargets(genericMethodGetMethod).Take(2).ToList();
             if (targetTargets.Count == 1) // U2021.2.0+, there's additional shim that takes 3 parameters
                 genericMethodGetMethod = targetTargets[0];
-
+#if !MINI
             GenericMethodGetMethodOriginal = ClassInjector.Detour.Detour(genericMethodGetMethod, GenericMethodGetMethodDetour);
+#endif
 #if NET6_0
             _delegateCache.Add(GenericMethodGetMethodDetour);
             _delegateCache.Add(GenericMethodGetMethodOriginal);

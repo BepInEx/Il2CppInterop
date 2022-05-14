@@ -28,6 +28,7 @@ namespace Il2CppInterop.Runtime
 
         private static Type CreateDelegateType(MethodInfo managedMethodInner, bool addIntPtrForThis, bool addNamingDisambig)
         {
+#if !MINI
             var newType = ModuleBuilder.DefineType("Il2CppToManagedDelegate_" + ExtractSignature(managedMethodInner) + (addIntPtrForThis ? "HasThis" : "") + (addNamingDisambig ? "FromNative" : ""), TypeAttributes.Sealed | TypeAttributes.Public, typeof(MulticastDelegate));
             newType.SetCustomAttribute(new CustomAttributeBuilder(typeof(UnmanagedFunctionPointerAttribute).GetConstructor(new[] { typeof(CallingConvention) })!, new object[] { CallingConvention.Cdecl }));
 
@@ -67,6 +68,9 @@ namespace Il2CppInterop.Runtime
                 new[] { typeof(IAsyncResult) }).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
             return newType.CreateType();
+#else
+            return null;
+#endif
         }
 
         private static string ExtractSignature(MethodInfo methodInfo)
