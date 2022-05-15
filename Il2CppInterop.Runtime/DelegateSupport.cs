@@ -6,6 +6,7 @@ using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Text;
 using Il2CppInterop.Runtime.Runtime;
+using Il2CppInterop.Runtime.InteropTypes;
 #if !MINI
 using Il2CppInterop.Runtime.Injection;
 using Object = Il2CppSystem.Object;

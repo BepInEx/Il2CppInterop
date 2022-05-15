@@ -166,6 +166,7 @@ namespace Il2CppInterop.Runtime.Injection
         internal static d_GenericMethodGetMethod GenericMethodGetMethodOriginal;
         private static d_GenericMethodGetMethod FindGenericMethodGetMethod()
         {
+#if !MINI
             var getVirtualMethodAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_object_get_virtual_method));
             Logger.Trace($"il2cpp_object_get_virtual_method: 0x{getVirtualMethodAPI.ToInt64():X2}");
 
@@ -178,14 +179,15 @@ namespace Il2CppInterop.Runtime.Injection
             var targetTargets = XrefScannerLowLevel.JumpTargets(genericMethodGetMethod).Take(2).ToList();
             if (targetTargets.Count == 1) // U2021.2.0+, there's additional shim that takes 3 parameters
                 genericMethodGetMethod = targetTargets[0];
-#if !MINI
             GenericMethodGetMethodOriginal = ClassInjector.Detour.Detour(genericMethodGetMethod, GenericMethodGetMethodDetour);
-#endif
 #if NET6_0
             _delegateCache.Add(GenericMethodGetMethodDetour);
             _delegateCache.Add(GenericMethodGetMethodOriginal);
 #endif
             return Marshal.GetDelegateForFunctionPointer<d_GenericMethodGetMethod>(genericMethodGetMethod);
+#else
+            return null;
+#endif
         }
         #endregion
         #region Class::FromName

@@ -1,6 +1,6 @@
 using System;
 
-namespace Il2CppInterop.Runtime
+namespace Il2CppInterop.Runtime.InteropTypes.Arrays
 {
     public class Il2CppStringArray : Il2CppArrayBase<string>
     {

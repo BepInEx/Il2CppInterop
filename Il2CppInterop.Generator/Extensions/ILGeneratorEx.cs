@@ -4,6 +4,7 @@ using Il2CppInterop.Generator.Contexts;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 
 namespace Il2CppInterop.Generator.Extensions
 {

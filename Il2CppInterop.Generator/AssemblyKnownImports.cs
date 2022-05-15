@@ -7,6 +7,8 @@ using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Attributes;
+using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Mono.Cecil;
 
 namespace Il2CppInterop.Generator
