@@ -1,9 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Il2CppInterop.Runtime;
 
-namespace Il2CppInterop.Runtime
+namespace Il2CppInterop.Runtime.InteropTypes.Arrays
 {
     public abstract class Il2CppArrayBase<T> : Il2CppObjectBase, IList<T>
     {

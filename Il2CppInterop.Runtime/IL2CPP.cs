@@ -9,8 +9,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Il2CppInterop.Runtime.Attributes;
 using Il2CppInterop.Runtime.Runtime;
-using Il2CppInterop.Runtime;
-using Il2CppInterop.Runtime.Injection;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Il2CppInterop.Runtime.InteropTypes;
 
 namespace Il2CppInterop.Runtime
 {

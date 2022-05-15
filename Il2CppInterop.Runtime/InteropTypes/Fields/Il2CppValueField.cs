@@ -1,7 +1,6 @@
 ﻿using System;
-using Il2CppInterop.Runtime;
 
-namespace Il2CppInterop.Runtime
+namespace Il2CppInterop.Runtime.InteropTypes.Fields
 {
     public unsafe class Il2CppValueField<T> where T : unmanaged
     {

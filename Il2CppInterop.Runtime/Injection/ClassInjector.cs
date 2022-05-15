@@ -9,11 +9,13 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Text;
 using Il2CppInterop.Runtime.Attributes;
+using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Il2CppInterop.Runtime.InteropTypes.Fields;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
-using Il2CppInterop.Runtime.XrefScans;
 using Void = Il2CppSystem.Void;
 #endif
 

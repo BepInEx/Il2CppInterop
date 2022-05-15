@@ -1,3 +1,4 @@
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using System;
 using System.Linq;
 using System.Reflection;

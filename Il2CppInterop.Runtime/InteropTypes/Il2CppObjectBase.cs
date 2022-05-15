@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using Il2CppInterop.Runtime.Runtime;
 
-namespace Il2CppInterop.Runtime
+namespace Il2CppInterop.Runtime.InteropTypes
 {
     public class Il2CppObjectBase
     {
