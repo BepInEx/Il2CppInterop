@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
-		<DebugType>embedded</DebugType>
+        <DebugType>embedded</DebugType>
         <ImplicitUsings>enable</ImplicitUsings>
         <OutputType>Exe</OutputType>
         <PackAsTool>true</PackAsTool>
@@ -11,20 +11,20 @@
         <PackageId>Il2CppInterop.CLI</PackageId>
         <Authors>BepInEx</Authors>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Configurations>Debug;Release;Mini</Configurations>
+        <Configurations>Debug;Release</Configurations>
         <Platforms>AnyCPU</Platforms>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Il2CppInterop.Generator\Il2CppInterop.Generator.csproj" />
-      <ProjectReference Include="..\Il2CppInterop.StructGenerator\Il2CppInterop.StructGenerator.csproj" />
+        <ProjectReference Include="..\Il2CppInterop.Generator\Il2CppInterop.Generator.csproj"/>
+        <ProjectReference Include="..\Il2CppInterop.StructGenerator\Il2CppInterop.StructGenerator.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
-      <PackageReference Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta3.22114.1" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0"/>
+        <PackageReference Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta3.22114.1"/>
     </ItemGroup>
 
 </Project>

@@ -1,7 +1,7 @@
-﻿using CppAst;
+﻿using System.Text;
+using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
 using Il2CppInterop.StructGenerator.CodeGen.Enums;
-using System.Text;
 
 namespace Il2CppInterop.StructGenerator.TypeGenerators;
 
@@ -41,9 +41,10 @@ internal class Il2CppImageGenerator : VersionSpecificGenerator
     {
         if (GetNativeField("metadataHandle") is not null)
         {
-            builder.AppendLine($"Il2CppImageGlobalMetadata* metadata = (Il2CppImageGlobalMetadata*)Marshal.AllocHGlobal(sizeof(Il2CppImageGlobalMetadata));");
-            builder.AppendLine($"metadata->image = (Il2CppImage*)_;");
-            builder.AppendLine($"*(Il2CppImageGlobalMetadata**)&_->metadataHandle = metadata;");
+            builder.AppendLine(
+                "Il2CppImageGlobalMetadata* metadata = (Il2CppImageGlobalMetadata*)Marshal.AllocHGlobal(sizeof(Il2CppImageGlobalMetadata));");
+            builder.AppendLine("metadata->image = (Il2CppImage*)_;");
+            builder.AppendLine("*(Il2CppImageGlobalMetadata**)&_->metadataHandle = metadata;");
         }
     };
 }

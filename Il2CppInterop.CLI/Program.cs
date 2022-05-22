@@ -1,33 +1,38 @@
 ﻿using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
 using System.Text.RegularExpressions;
+using Il2CppInterop.Common;
 using Il2CppInterop.Generator;
 using Il2CppInterop.StructGenerator;
 using Microsoft.Extensions.Logging;
 using Mono.Cecil;
-using Logger = Il2CppInterop.Runtime.Logger;
 
 var command = new RootCommand
 {
-    new Option<bool>("--verbose", "Produce more verbose output"),
+    new Option<bool>("--verbose", "Produce more verbose output")
 };
 command.Description = "Generate Managed<->IL2CPP interop assemblies from Cpp2IL's output.";
 
 var generateCommand = new Command("generate")
 {
-    new Option<DirectoryInfo>("--input", "Directory with Il2CppDumper's dummy assemblies") {IsRequired = true}.ExistingOnly(),
+    new Option<DirectoryInfo>("--input", "Directory with Il2CppDumper's dummy assemblies") {IsRequired = true}
+        .ExistingOnly(),
     new Option<DirectoryInfo>("--output", "Directory to write generated assemblies to") {IsRequired = true},
     new Option<DirectoryInfo>("--unity", "Directory with original Unity assemblies for unstripping").ExistingOnly(),
     new Option<FileInfo>("--game-assembly", "Path to GameAssembly.dll. Used for certain analyses").ExistingOnly(),
     new Option<bool>("--no-xref-cache", "Don't generate xref scanning cache. All scanning will be done at runtime."),
     new Option<bool>("--no-copy-runtime-libs", "Don't copy runtime libraries to output directory."),
-    new Option<string[]>("--add-prefix-to", "Assemblies and namespaces starting with these will get an Il2Cpp prefix in generated assemblies. Allows multiple values."),
-    new Option<FileInfo>("--deobf-map", "Specifies a file specifying deobfuscation map for obfuscated types and members.").ExistingOnly(),
+    new Option<string[]>("--add-prefix-to",
+        "Assemblies and namespaces starting with these will get an Il2Cpp prefix in generated assemblies. Allows multiple values."),
+    new Option<FileInfo>("--deobf-map",
+        "Specifies a file specifying deobfuscation map for obfuscated types and members.").ExistingOnly(),
     new Option<int>("--deobf-uniq-chars", "How many characters per unique token to use during deobfuscation"),
     new Option<int>("--deobf-uniq-max", "How many maximum unique tokens per type are allowed during deobfuscation"),
     new Option<string[]>("--blacklist-assembly", "Don't write specified assembly to output. Allows multiple values."),
-    new Option<Regex>("--obf-regex", "Specifies a regex for obfuscated names. All types and members matching will be renamed."),
-    new Option<bool>("--passthrough-names", "If specified, names will be copied from input assemblies as-is without renaming or deobfuscation."),
+    new Option<Regex>("--obf-regex",
+        "Specifies a regex for obfuscated names. All types and members matching will be renamed."),
+    new Option<bool>("--passthrough-names",
+        "If specified, names will be copied from input assemblies as-is without renaming or deobfuscation.")
 };
 generateCommand.Description = "Generate wrapper assemblies that can be used to interop with Il2Cpp";
 generateCommand.Handler = CommandHandler.Create((GenerateCommandOptions opts) =>
@@ -39,27 +44,34 @@ var deobfCommand = new Command("deobf");
 deobfCommand.Description = "Tools for deobfuscating assemblies";
 var deobfAnalyzeCommand = new Command("analyze")
 {
-    new Option<DirectoryInfo>("--input", "Directory of assemblies to deobfuscate") {IsRequired = true}.ExistingOnly(),
+    new Option<DirectoryInfo>("--input", "Directory of assemblies to deobfuscate") {IsRequired = true}.ExistingOnly()
 };
-deobfAnalyzeCommand.Description = "Analyze deobfuscation performance with different parameter values. Will not generate assemblies.";
+deobfAnalyzeCommand.Description =
+    "Analyze deobfuscation performance with different parameter values. Will not generate assemblies.";
 // TODO: Command implementation
 
 var deobfGenerateCommand = new Command("generate")
 {
-    new Option<DirectoryInfo>("--old-assemblies", "Directory with old unobfuscated assemblies") {IsRequired = true}.ExistingOnly(),
-    new Option<DirectoryInfo>("--new-assemblies", "Directory to write obfuscation maps to") {IsRequired = true}.ExistingOnly(),
+    new Option<DirectoryInfo>("--old-assemblies", "Directory with old unobfuscated assemblies") {IsRequired = true}
+        .ExistingOnly(),
+    new Option<DirectoryInfo>("--new-assemblies", "Directory to write obfuscation maps to") {IsRequired = true}
+        .ExistingOnly(),
     new Option<DirectoryInfo>("--output", "Directory to write obfuscation maps to") {IsRequired = true},
-    new Option<string[]>("--include", "Include these assemblies for deobfuscation map generation. If none are specified, all assemblies will be included."),
+    new Option<string[]>("--include",
+        "Include these assemblies for deobfuscation map generation. If none are specified, all assemblies will be included."),
     new Option<int>("--deobf-uniq-chars", "How many characters per unique token to use during deobfuscation"),
-    new Option<int>("--deobf-uniq-max", "How many maximum unique tokens per type are allowed during deobfuscation"),
+    new Option<int>("--deobf-uniq-max", "How many maximum unique tokens per type are allowed during deobfuscation")
 };
-deobfGenerateCommand.Description = "Generate a deobfuscation map from original unobfuscated assemblies. Will not generate assemblies.";
+deobfGenerateCommand.Description =
+    "Generate a deobfuscation map from original unobfuscated assemblies. Will not generate assemblies.";
 // TODO: Command implementation
 
 var wrapperCommand = new Command("wrapper-gen")
 {
-    new Option<DirectoryInfo>("--headers", "Directory that contains libil2cpp headers. Directory must contains subdirectories named after libil2cpp version.") {IsRequired = true}.ExistingOnly(),
-    new Option<DirectoryInfo>("--output", "Directory to write managed struct wrapper sources to") {IsRequired = true},
+    new Option<DirectoryInfo>("--headers",
+            "Directory that contains libil2cpp headers. Directory must contains subdirectories named after libil2cpp version.")
+        {IsRequired = true}.ExistingOnly(),
+    new Option<DirectoryInfo>("--output", "Directory to write managed struct wrapper sources to") {IsRequired = true}
 };
 wrapperCommand.Description = "Tools for generating Il2Cpp struct wrappers from libi2lcpp source";
 wrapperCommand.Handler = CommandHandler.Create((WrapperCommandOptions opts) =>
@@ -75,7 +87,7 @@ command.Add(wrapperCommand);
 
 return command.Invoke(args);
 
-record BaseCmdOptions(bool Verbose)
+internal record BaseCmdOptions(bool Verbose)
 {
     public virtual GeneratorOptions Build()
     {
@@ -99,7 +111,7 @@ record BaseCmdOptions(bool Verbose)
     }
 }
 
-record WrapperCommandOptions(DirectoryInfo Headers, DirectoryInfo Output, bool Verbose)
+internal record WrapperCommandOptions(DirectoryInfo Headers, DirectoryInfo Output, bool Verbose)
 {
     public virtual Il2CppStructWrapperGeneratorOptions Build()
     {
@@ -114,7 +126,7 @@ record WrapperCommandOptions(DirectoryInfo Headers, DirectoryInfo Output, bool V
     }
 }
 
-record GenerateCommandOptions(
+internal record GenerateCommandOptions(
     bool Verbose,
     DirectoryInfo Input,
     DirectoryInfo Output,
@@ -129,7 +141,7 @@ record GenerateCommandOptions(
     string[]? BlacklistAssembly,
     Regex? ObfRegex,
     bool PassthroughNames
-    ) : BaseCmdOptions(Verbose)
+) : BaseCmdOptions(Verbose)
 {
     public override GeneratorOptions Build()
     {
@@ -137,7 +149,7 @@ record GenerateCommandOptions(
 
         var resolver = new BasicResolver();
         var inputAssemblies = Input.EnumerateFiles("*.dll").Select(f => AssemblyDefinition.ReadAssembly(f.FullName,
-            new()
+            new ReaderParameters
             {
                 AssemblyResolver = resolver
             })).ToList();
@@ -192,7 +204,7 @@ internal record CmdOptions(
     {
         var resolver = new BasicResolver();
         var inputAssemblies = Input.EnumerateFiles("*.dll").Select(f => AssemblyDefinition.ReadAssembly(f.FullName,
-            new()
+            new ReaderParameters
             {
                 AssemblyResolver = resolver
             })).ToList();
@@ -225,7 +237,10 @@ internal record CmdOptions(
     }
 }
 
-class BasicResolver : DefaultAssemblyResolver
+internal class BasicResolver : DefaultAssemblyResolver
 {
-    public void Register(AssemblyDefinition ad) => RegisterAssembly(ad);
+    public void Register(AssemblyDefinition ad)
+    {
+        RegisterAssembly(ad);
+    }
 }

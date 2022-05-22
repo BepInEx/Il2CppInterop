@@ -15,4 +15,5 @@ at Il2CppInterop.Program.Main(UnhollowerOptions options)
 at Il2CppInterop.Program.Main(String[] args)
 ```
 
-This is because `--mscorlib` should point at the mod loader's mscorlib (or at the very least GAC mscorlib). It should not point to the dummy dll mscorlib.
+This is because `--mscorlib` should point at the mod loader's mscorlib (or at the very least GAC mscorlib). It should
+not point to the dummy dll mscorlib.

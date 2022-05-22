@@ -3,45 +3,45 @@ using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
 using Mono.Cecil;
 
-namespace Il2CppInterop.Generator.Passes
+namespace Il2CppInterop.Generator.Passes;
+
+public static class Pass22GenerateEnums
 {
-    public static class Pass22GenerateEnums
+    public static void DoPass(RewriteGlobalContext context)
     {
-        public static void DoPass(RewriteGlobalContext context)
-        {
-            foreach (var assemblyContext in context.Assemblies)
+        foreach (var assemblyContext in context.Assemblies)
+            foreach (var typeContext in assemblyContext.Types)
             {
-                foreach (var typeContext in assemblyContext.Types)
+                if (!typeContext.OriginalType.IsEnum) continue;
+
+                var type = typeContext.OriginalType;
+                var newType = typeContext.NewType;
+
+                if (type.CustomAttributes.Any(it => it.AttributeType.FullName == "System.FlagsAttribute"))
+                    newType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.Module.FlagsAttributeCtor()));
+
+                foreach (var fieldDefinition in type.Fields)
                 {
-                    if (!typeContext.OriginalType.IsEnum) continue;
+                    var fieldName = fieldDefinition.Name;
+                    if (!context.Options.PassthroughNames && fieldName.IsObfuscated(context.Options))
+                        fieldName = GetUnmangledName(fieldDefinition);
 
-                    var type = typeContext.OriginalType;
-                    var newType = typeContext.NewType;
+                    if (context.Options.RenameMap.TryGetValue(
+                            typeContext.NewType.GetNamespacePrefix() + "." + typeContext.NewType.Name + "::" + fieldName,
+                            out var newName))
+                        fieldName = newName;
 
-                    if (type.CustomAttributes.Any(it => it.AttributeType.FullName == "System.FlagsAttribute"))
-                        newType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.Module.FlagsAttributeCtor()));
+                    var newDef = new FieldDefinition(fieldName, fieldDefinition.Attributes | FieldAttributes.HasDefault,
+                        assemblyContext.RewriteTypeRef(fieldDefinition.FieldType));
+                    newType.Fields.Add(newDef);
 
-                    foreach (var fieldDefinition in type.Fields)
-                    {
-                        var fieldName = fieldDefinition.Name;
-                        if (!context.Options.PassthroughNames && fieldName.IsObfuscated(context.Options))
-                            fieldName = GetUnmangledName(fieldDefinition);
-
-                        if (context.Options.RenameMap.TryGetValue(typeContext.NewType.GetNamespacePrefix() + "." + typeContext.NewType.Name + "::" + fieldName, out var newName))
-                            fieldName = newName;
-
-                        var newDef = new FieldDefinition(fieldName, fieldDefinition.Attributes | FieldAttributes.HasDefault, assemblyContext.RewriteTypeRef(fieldDefinition.FieldType));
-                        newType.Fields.Add(newDef);
-
-                        newDef.Constant = fieldDefinition.Constant;
-                    }
+                    newDef.Constant = fieldDefinition.Constant;
                 }
             }
-        }
+    }
 
-        public static string GetUnmangledName(FieldDefinition field)
-        {
-            return "EnumValue" + field.Constant;
-        }
+    public static string GetUnmangledName(FieldDefinition field)
+    {
+        return "EnumValue" + field.Constant;
     }
 }

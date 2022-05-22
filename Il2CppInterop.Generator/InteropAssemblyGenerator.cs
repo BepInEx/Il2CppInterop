@@ -1,12 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using Iced.Intel;
+using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.MetadataAccess;
 using Il2CppInterop.Generator.Passes;
-using Il2CppInterop.Runtime;
-using Il2CppInterop.Runtime;
 
 namespace Il2CppInterop.Generator;
 
@@ -197,10 +195,10 @@ public static class InteropAssemblyGenerator
 
         if (!options.NoCopyRuntimeLibs)
         {
-            File.Copy(typeof(IL2CPP).Assembly.Location,
-                Path.Combine(options.OutputDir, typeof(IL2CPP).Assembly.GetName().Name + ".dll"), true);
-            File.Copy(typeof(Decoder).Assembly.Location,
-                Path.Combine(options.OutputDir, typeof(Decoder).Assembly.GetName().Name + ".dll"), true);
+            // File.Copy(typeof(IL2CPP).Assembly.Location,
+            //     Path.Combine(options.OutputDir, typeof(IL2CPP).Assembly.GetName().Name + ".dll"), true);
+            // File.Copy(typeof(Decoder).Assembly.Location,
+            //     Path.Combine(options.OutputDir, typeof(Decoder).Assembly.GetName().Name + ".dll"), true);
         }
 
         Logger.Info("Done!");
