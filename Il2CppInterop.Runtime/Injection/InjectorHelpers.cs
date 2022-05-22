@@ -246,13 +246,13 @@ namespace Il2CppInterop.Runtime.Injection
         private static readonly d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndexDetour = new(hkGetTypeInfoFromTypeDefinitionIndex);
         internal static d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndex;
         internal static d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndexOriginal;
-        private static d_GetTypeInfoFromTypeDefinitionIndex FindGetTypeInfoFromTypeDefinitionIndex()
+        private static d_GetTypeInfoFromTypeDefinitionIndex FindGetTypeInfoFromTypeDefinitionIndex(bool forceICallMethod = false)
         {
 #if !MINI
             IntPtr getTypeInfoFromTypeDefinitionIndex = IntPtr.Zero;
 
             // il2cpp_image_get_class is added in 2018.3.0f1
-            if (UnityVersionHandler.UnityVersion < new Version(2018, 3, 0))
+            if (UnityVersionHandler.UnityVersion < new Version(2018, 3, 0) || forceICallMethod)
             {
                 // (Kasuromi): RuntimeHelpers.InitializeArray calls an il2cpp icall, proxy function does some magic before it invokes it
                 // https://github.com/Unity-Technologies/mono/blob/unity-2018.2/mcs/class/corlib/System.Runtime.CompilerServices/RuntimeHelpers.cs#L53-L54
@@ -294,6 +294,11 @@ namespace Il2CppInterop.Runtime.Injection
                     getTypeInfoFromTypeDefinitionIndex = imageGetType;
                 }
                 else getTypeInfoFromTypeDefinitionIndex = imageGetTypeXrefs[0];
+                if ((getTypeInfoFromTypeDefinitionIndex.ToInt64() & 0xF) != 0)
+                {
+                    Logger.Trace($"Image::GetType xref wasn't aligned, attempting to resolve from icall");
+                    return FindGetTypeInfoFromTypeDefinitionIndex(true);
+                }
                 if (imageGetTypeXrefs.Count() > 1 && UnityVersionHandler.IsMetadataV29OrHigher)
                 {
                     // (Kasuromi): metadata v29 introduces handles and adds extra calls, a check for unity versions might be necessary in the future
