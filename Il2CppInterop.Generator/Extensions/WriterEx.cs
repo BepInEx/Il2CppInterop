@@ -2,24 +2,24 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace Il2CppInterop.Generator.Extensions
+namespace Il2CppInterop.Generator.Extensions;
+
+public static class WriterEx
 {
-    public static class WriterEx
+    [ThreadStatic] private static byte[]? ourBuffer;
+
+    public static unsafe void Write<T>(this BinaryWriter writer, T value) where T : unmanaged
     {
-        [ThreadStatic]
-        private static byte[]? ourBuffer;
+        var structSize = Marshal.SizeOf<T>();
 
-        public static unsafe void Write<T>(this BinaryWriter writer, T value) where T : unmanaged
+        if (ourBuffer == null || ourBuffer.Length < structSize)
+            ourBuffer = new byte[structSize];
+
+        fixed (byte* bytes = ourBuffer)
         {
-            var structSize = Marshal.SizeOf<T>();
-
-            if (ourBuffer == null || ourBuffer.Length < structSize)
-                ourBuffer = new byte[structSize];
-
-            fixed (byte* bytes = ourBuffer)
-                *(T*)bytes = value;
-
-            writer.Write(ourBuffer, 0, structSize);
+            *(T*)bytes = value;
         }
+
+        writer.Write(ourBuffer, 0, structSize);
     }
 }

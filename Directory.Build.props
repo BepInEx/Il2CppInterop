@@ -10,8 +10,4 @@
         <LangVersion>latest</LangVersion>
         <PackageVersion>1.0.0-pre.3</PackageVersion>
     </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Mini' ">
-        <DefineConstants>TRACE;MINI</DefineConstants>
-    </PropertyGroup>
 </Project>
