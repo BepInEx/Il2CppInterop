@@ -7,6 +7,8 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Il2CppInterop.Common;
+using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
