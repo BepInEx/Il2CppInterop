@@ -20,11 +20,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Libs"/>
+        <Folder Include="Libs" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Iced" Version="1.17.0"/>
+        <PackageReference Include="Iced" Version="1.17.0" />
         <PackageReference Include="IsExternalInit" Version="1.0.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -32,6 +32,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj"/>
+        <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj" />
     </ItemGroup>
 </Project>
