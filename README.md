@@ -11,10 +11,11 @@ A framework for interoperation with Il2Cpp runtime in CoreCLR and mono. The fram
 * A runtime library to work with Il2Cpp
 * Libraries to integrate other tools with Il2Cpp
 
-The framework allows the use of IL2CPP domain and objects in it from a managed .NET domain. 
-This includes generic types and methods, arrays, and new object creation. 
- 
-This project started out as fork of [knah/Il2CppAssemblyUnhollower](https://github.com/knah/Il2CppAssemblyUnhollower) but has been since forked as a separate project.
+The framework allows the use of IL2CPP domain and objects in it from a managed .NET domain.
+This includes generic types and methods, arrays, and new object creation.
+
+This project started out as fork of [knah/Il2CppAssemblyUnhollower](https://github.com/knah/Il2CppAssemblyUnhollower)
+but has been since forked as a separate project.
 
 ## WIP
 
@@ -32,8 +33,12 @@ TODOs (in no particular order):
 * [ ] Update documentation and READMEs
 
 ## Used libraries
+
 Bundled into output files:
- * [iced](https://github.com/0xd4d/iced) by 0xd4d, an x86 disassembler used for xref scanning and possibly more in the future
+
+* [iced](https://github.com/0xd4d/iced) by 0xd4d, an x86 disassembler used for xref scanning and possibly more in the
+  future
 
 Used by generator itself:
- * [Mono.Cecil](https://github.com/jbevain/cecil) by jbevain, the main tool to produce assemblies
+
+* [Mono.Cecil](https://github.com/jbevain/cecil) by jbevain, the main tool to produce assemblies

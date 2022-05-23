@@ -2,156 +2,170 @@ using System;
 using System.Collections.Generic;
 using Mono.Cecil;
 
-namespace Il2CppInterop.Generator.Contexts
+namespace Il2CppInterop.Generator.Contexts;
+
+public class TypeRewriteContext
 {
-    public class TypeRewriteContext
+    public enum TypeSpecifics
     {
-        public readonly AssemblyRewriteContext AssemblyContext;
-        public readonly TypeDefinition OriginalType;
-        public readonly TypeDefinition NewType;
+        NotComputed,
+        Computing,
+        ReferenceType,
+        BlittableStruct,
+        NonBlittableStruct
+    }
 
-        public readonly bool OriginalNameWasObfuscated;
+    public readonly AssemblyRewriteContext AssemblyContext;
 
-        public FieldReference ClassPointerFieldRef { get; private set; }
-        public TypeReference SelfSubstitutedRef { get; private set; }
+    private readonly Dictionary<FieldDefinition, FieldRewriteContext> myFieldContexts = new();
+    private readonly Dictionary<MethodDefinition, MethodRewriteContext> myMethodContexts = new();
+    private readonly Dictionary<string, MethodRewriteContext> myMethodContextsByName = new();
+    public readonly TypeDefinition NewType;
 
-        public TypeSpecifics ComputedTypeSpecifics;
+    public readonly bool OriginalNameWasObfuscated;
+    public readonly TypeDefinition OriginalType;
 
-        private readonly Dictionary<FieldDefinition, FieldRewriteContext> myFieldContexts = new Dictionary<FieldDefinition, FieldRewriteContext>();
-        private readonly Dictionary<MethodDefinition, MethodRewriteContext> myMethodContexts = new Dictionary<MethodDefinition, MethodRewriteContext>();
-        private readonly Dictionary<string, MethodRewriteContext> myMethodContextsByName = new Dictionary<string, MethodRewriteContext>();
+    public TypeSpecifics ComputedTypeSpecifics;
 
-        public IEnumerable<FieldRewriteContext> Fields => myFieldContexts.Values;
-        public IEnumerable<MethodRewriteContext> Methods => myMethodContexts.Values;
+    public TypeRewriteContext(AssemblyRewriteContext assemblyContext, TypeDefinition originalType,
+        TypeDefinition newType)
+    {
+        AssemblyContext = assemblyContext ?? throw new ArgumentNullException(nameof(assemblyContext));
+        OriginalType = originalType;
+        NewType = newType ?? throw new ArgumentNullException(nameof(newType));
 
-        public TypeRewriteContext(AssemblyRewriteContext assemblyContext, TypeDefinition originalType, TypeDefinition newType)
-        {
-            AssemblyContext = assemblyContext ?? throw new ArgumentNullException(nameof(assemblyContext));
-            OriginalType = originalType;
-            NewType = newType ?? throw new ArgumentNullException(nameof(newType));
+        if (OriginalType == null) return;
 
-            if (OriginalType == null) return;
-
-            OriginalNameWasObfuscated = OriginalType.Name != NewType.Name;
-            if (OriginalNameWasObfuscated)
-                NewType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.ObfuscatedNameAttributeCtor)
-                { ConstructorArguments = { new CustomAttributeArgument(assemblyContext.Imports.Module.String(), originalType.FullName) } });
-
-            if (!OriginalType.IsValueType)
-                ComputedTypeSpecifics = TypeSpecifics.ReferenceType;
-            else if (OriginalType.IsEnum)
-                ComputedTypeSpecifics = TypeSpecifics.BlittableStruct;
-            else if (OriginalType.HasGenericParameters)
-                ComputedTypeSpecifics = TypeSpecifics.NonBlittableStruct; // not reference type, covered by first if
-        }
-
-        public void AddMembers()
-        {
-            if (NewType.HasGenericParameters)
+        OriginalNameWasObfuscated = OriginalType.Name != NewType.Name;
+        if (OriginalNameWasObfuscated)
+            NewType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.ObfuscatedNameAttributector.Value)
             {
-                var genericInstanceType = new GenericInstanceType(NewType);
-                foreach (var newTypeGenericParameter in NewType.GenericParameters)
-                    genericInstanceType.GenericArguments.Add(newTypeGenericParameter);
-                SelfSubstitutedRef = NewType.Module.ImportReference(genericInstanceType);
-                var genericTypeRef = new GenericInstanceType(AssemblyContext.Imports.Il2CppClassPointerStore)
-                { GenericArguments = { SelfSubstitutedRef } };
-                ClassPointerFieldRef = new FieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
-                    NewType.Module.ImportReference(genericTypeRef));
-            }
+                ConstructorArguments =
+                    {new CustomAttributeArgument(assemblyContext.Imports.Module.String(), originalType.FullName)}
+            });
+
+        if (!OriginalType.IsValueType)
+            ComputedTypeSpecifics = TypeSpecifics.ReferenceType;
+        else if (OriginalType.IsEnum)
+            ComputedTypeSpecifics = TypeSpecifics.BlittableStruct;
+        else if (OriginalType.HasGenericParameters)
+            ComputedTypeSpecifics = TypeSpecifics.NonBlittableStruct; // not reference type, covered by first if
+    }
+
+    public FieldReference ClassPointerFieldRef { get; private set; }
+    public TypeReference SelfSubstitutedRef { get; private set; }
+
+    public IEnumerable<FieldRewriteContext> Fields => myFieldContexts.Values;
+    public IEnumerable<MethodRewriteContext> Methods => myMethodContexts.Values;
+
+    public void AddMembers()
+    {
+        if (NewType.HasGenericParameters)
+        {
+            var genericInstanceType = new GenericInstanceType(NewType);
+            foreach (var newTypeGenericParameter in NewType.GenericParameters)
+                genericInstanceType.GenericArguments.Add(newTypeGenericParameter);
+            SelfSubstitutedRef = NewType.Module.ImportReference(genericInstanceType);
+            var genericTypeRef = new GenericInstanceType(AssemblyContext.Imports.Il2CppClassPointerStore)
+            { GenericArguments = { SelfSubstitutedRef } };
+            ClassPointerFieldRef = new FieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
+                NewType.Module.ImportReference(genericTypeRef));
+        }
+        else
+        {
+            SelfSubstitutedRef = NewType;
+            var genericTypeRef = new GenericInstanceType(AssemblyContext.Imports.Il2CppClassPointerStore);
+            if (OriginalType.IsPrimitive || OriginalType.FullName == "System.String")
+                genericTypeRef.GenericArguments.Add(
+                    NewType.Module.ImportCorlibReference(OriginalType.Namespace, OriginalType.Name));
             else
-            {
-                SelfSubstitutedRef = NewType;
-                var genericTypeRef = new GenericInstanceType(AssemblyContext.Imports.Il2CppClassPointerStore);
-                if (OriginalType.IsPrimitive || OriginalType.FullName == "System.String")
-                    genericTypeRef.GenericArguments.Add(NewType.Module.ImportCorlibReference(OriginalType.Namespace, OriginalType.Name));
-                else
-                    genericTypeRef.GenericArguments.Add(SelfSubstitutedRef);
-                ClassPointerFieldRef = new FieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
-                    NewType.Module.ImportReference(genericTypeRef));
-            }
+                genericTypeRef.GenericArguments.Add(SelfSubstitutedRef);
+            ClassPointerFieldRef = new FieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
+                NewType.Module.ImportReference(genericTypeRef));
+        }
 
-            if (OriginalType.IsEnum) return;
+        if (OriginalType.IsEnum) return;
 
-            var renamedFieldCounts = new Dictionary<string, int>();
+        var renamedFieldCounts = new Dictionary<string, int>();
 
-            foreach (var originalTypeField in OriginalType.Fields)
-                myFieldContexts[originalTypeField] = new FieldRewriteContext(this, originalTypeField, renamedFieldCounts);
+        foreach (var originalTypeField in OriginalType.Fields)
+            myFieldContexts[originalTypeField] = new FieldRewriteContext(this, originalTypeField, renamedFieldCounts);
 
-            var hasExtensionMethods = false;
+        var hasExtensionMethods = false;
 
-            foreach (var originalTypeMethod in OriginalType.Methods)
-            {
-                if (originalTypeMethod.Name == ".cctor") continue;
-                if (originalTypeMethod.Name == ".ctor" && originalTypeMethod.Parameters.Count == 1 &&
-                    originalTypeMethod.Parameters[0].ParameterType.FullName == "System.IntPtr") continue;
+        foreach (var originalTypeMethod in OriginalType.Methods)
+        {
+            if (originalTypeMethod.Name == ".cctor") continue;
+            if (originalTypeMethod.Name == ".ctor" && originalTypeMethod.Parameters.Count == 1 &&
+                originalTypeMethod.Parameters[0].ParameterType.FullName == "System.IntPtr") continue;
 
-                var methodRewriteContext = new MethodRewriteContext(this, originalTypeMethod);
-                myMethodContexts[originalTypeMethod] = methodRewriteContext;
-                myMethodContextsByName[originalTypeMethod.Name] = methodRewriteContext;
+            var methodRewriteContext = new MethodRewriteContext(this, originalTypeMethod);
+            myMethodContexts[originalTypeMethod] = methodRewriteContext;
+            myMethodContextsByName[originalTypeMethod.Name] = methodRewriteContext;
 
-                if (methodRewriteContext.HasExtensionAttribute)
+            if (methodRewriteContext.HasExtensionAttribute) hasExtensionMethods = true;
+        }
+
+        if (hasExtensionMethods)
+            NewType.CustomAttributes.Add(new CustomAttribute(AssemblyContext.Imports.Module.ExtensionAttributeCtor()));
+    }
+
+    public FieldRewriteContext GetFieldByOldField(FieldDefinition field)
+    {
+        return myFieldContexts[field];
+    }
+
+    public MethodRewriteContext GetMethodByOldMethod(MethodDefinition method)
+    {
+        return myMethodContexts[method];
+    }
+
+    public MethodRewriteContext? TryGetMethodByOldMethod(MethodDefinition method)
+    {
+        return myMethodContexts.TryGetValue(method, out var result) ? result : null;
+    }
+
+    public MethodRewriteContext? TryGetMethodByName(string name)
+    {
+        return myMethodContextsByName.TryGetValue(name, out var result) ? result : null;
+    }
+
+    public MethodRewriteContext? TryGetMethodByUnityAssemblyMethod(MethodDefinition method)
+    {
+        foreach (var methodRewriteContext in myMethodContexts)
+        {
+            var originalMethod = methodRewriteContext.Value.OriginalMethod;
+            if (originalMethod.Name != method.Name) continue;
+            if (originalMethod.Parameters.Count != method.Parameters.Count) continue;
+            var badMethod = false;
+            for (var i = 0; i < originalMethod.Parameters.Count; i++)
+                if (originalMethod.Parameters[i].ParameterType.FullName != method.Parameters[i].ParameterType.FullName)
                 {
-                    hasExtensionMethods = true;
+                    badMethod = true;
+                    break;
                 }
-            }
 
-            if (hasExtensionMethods)
-            {
-                NewType.CustomAttributes.Add(new CustomAttribute(AssemblyContext.Imports.Module.ExtensionAttributeCtor()));
-            }
+            if (badMethod) continue;
+
+            return methodRewriteContext.Value;
         }
 
-        public FieldRewriteContext GetFieldByOldField(FieldDefinition field) => myFieldContexts[field];
-        public MethodRewriteContext GetMethodByOldMethod(MethodDefinition method) => myMethodContexts[method];
-        public MethodRewriteContext? TryGetMethodByOldMethod(MethodDefinition method) => myMethodContexts.TryGetValue(method, out var result) ? result : null;
-        public MethodRewriteContext? TryGetMethodByName(string name) => myMethodContextsByName.TryGetValue(name, out var result) ? result : null;
-        public MethodRewriteContext? TryGetMethodByUnityAssemblyMethod(MethodDefinition method)
+        return null;
+    }
+
+    public FieldRewriteContext? TryGetFieldByUnityAssemblyField(FieldDefinition field)
+    {
+        foreach (var fieldRewriteContext in myFieldContexts)
         {
-            foreach (var methodRewriteContext in myMethodContexts)
-            {
-                var originalMethod = methodRewriteContext.Value.OriginalMethod;
-                if (originalMethod.Name != method.Name) continue;
-                if (originalMethod.Parameters.Count != method.Parameters.Count) continue;
-                var badMethod = false;
-                for (var i = 0; i < originalMethod.Parameters.Count; i++)
-                {
-                    if (originalMethod.Parameters[i].ParameterType.FullName != method.Parameters[i].ParameterType.FullName)
-                    {
-                        badMethod = true;
-                        break;
-                    }
-                }
-                if (badMethod) continue;
+            var originalField = fieldRewriteContext.Value.OriginalField;
+            if (originalField.Name != field.Name) continue;
 
-                return methodRewriteContext.Value;
-            }
+            if (originalField.FieldType.FullName != field.FieldType.FullName)
+                continue;
 
-            return null;
+            return fieldRewriteContext.Value;
         }
 
-        public FieldRewriteContext? TryGetFieldByUnityAssemblyField(FieldDefinition field)
-        {
-            foreach (var fieldRewriteContext in myFieldContexts)
-            {
-                var originalField = fieldRewriteContext.Value.OriginalField;
-                if (originalField.Name != field.Name) continue;
-
-                if (originalField.FieldType.FullName != field.FieldType.FullName)
-                    continue;
-
-                return fieldRewriteContext.Value;
-            }
-
-            return null;
-        }
-
-        public enum TypeSpecifics
-        {
-            NotComputed,
-            Computing,
-            ReferenceType,
-            BlittableStruct,
-            NonBlittableStruct
-        }
+        return null;
     }
 }

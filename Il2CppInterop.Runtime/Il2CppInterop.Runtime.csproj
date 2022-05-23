@@ -4,11 +4,11 @@
         <PackageId>Il2CppInterop.Runtime</PackageId>
         <Authors>knah et al.</Authors>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <TargetFrameworks>netstandard2.1;net472;net6</TargetFrameworks>
-		<DebugType>embedded</DebugType>
+        <TargetFramework>net6.0</TargetFramework>
+        <DebugType>embedded</DebugType>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>Il2CppInterop.Runtime</RootNamespace>
-        <Configurations>Debug;Release;Mini</Configurations>
+        <Configurations>Debug;Release</Configurations>
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
@@ -20,14 +20,18 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Libs" />
+        <Folder Include="Libs"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Iced" Version="1.15.0" />
+        <PackageReference Include="Iced" Version="1.17.0"/>
         <PackageReference Include="IsExternalInit" Version="1.0.0">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj"/>
     </ItemGroup>
 </Project>

@@ -1,16 +1,18 @@
 # Command-Line Usage
 
- ## Basic Usage
-  0. Build or get a release
-  1. Obtain dummy assemblies using [Il2CppDumper](https://github.com/Perfare/Il2CppDumper)
-  2. Run `Il2CppInterop --input=<path to Il2CppDumper's dummy dll dir> --output=<output directory> --mscorlib=<path to target mscorlib>`    
-       
- Resulting assemblies may be used with your favorite loader that offers a Mono domain in the IL2CPP game process, such as [MelonLoader](https://github.com/HerpDerpinstine/MelonLoader).    
- This appears to be working reasonably well for Unity 2018.4.x games, but more extensive testing is required.  
- Generated assemblies appear to be invalid according to .NET Core/.NET Framework, but run fine on Mono.
+## Basic Usage
+
+0. Build or get a release
+1. Obtain dummy assemblies using [Il2CppDumper](https://github.com/Perfare/Il2CppDumper)
+2.
+Run `Il2CppInterop --input=<path to Il2CppDumper's dummy dll dir> --output=<output directory> --mscorlib=<path to target mscorlib>`
+
+Resulting assemblies may be used with your favorite loader that offers a Mono domain in the IL2CPP game process, such
+as [MelonLoader](https://github.com/HerpDerpinstine/MelonLoader).    
+This appears to be working reasonably well for Unity 2018.4.x games, but more extensive testing is required.  
+Generated assemblies appear to be invalid according to .NET Core/.NET Framework, but run fine on Mono.
 
 ## Command-line parameter reference
-
 
 | Parameter | Explanation |
 | --------- | ----------- |
@@ -35,9 +37,12 @@
 | `--deobf-generate-asm=<assembly name>` | Optional. Include this assembly for deobfuscation map generation. If none are specified, all assemblies will be included. |
 | `--deobf-generate-new=<directory path>` | Required. Specifies the directory with new (obfuscated) assemblies. The `--input` parameter specifies old (unobfuscated) assemblies. |
 
-
 ## Required external setup
+
 Before certain features can be used (namely class injection and delegate conversion), some external setup is required.
- * Set `ClassInjector.Detour` to an implementation of a managed detour with semantics as described in the interface 
- * Alternatively, set `ClassInjector.DoHook` to an Action with same semantics as `DetourAttach` (signature `void**, void*`, first is a pointer to a variable containing pointer to hooked code start, second is a pointer to patch code start, a pointer to call-original code start is written to the first parameter)
- * Call `UnityVersionHandler.Initialize` with appropriate Unity version (default is 2018.4.20)
+
+* Set `ClassInjector.Detour` to an implementation of a managed detour with semantics as described in the interface
+* Alternatively, set `ClassInjector.DoHook` to an Action with same semantics as `DetourAttach` (
+  signature `void**, void*`, first is a pointer to a variable containing pointer to hooked code start, second is a
+  pointer to patch code start, a pointer to call-original code start is written to the first parameter)
+* Call `UnityVersionHandler.Initialize` with appropriate Unity version (default is 2018.4.20)

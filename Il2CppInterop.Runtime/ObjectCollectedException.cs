@@ -1,11 +1,10 @@
 using System;
 
-namespace Il2CppInterop.Runtime
+namespace Il2CppInterop.Runtime;
+
+public class ObjectCollectedException : Exception
 {
-    public class ObjectCollectedException : Exception
+    public ObjectCollectedException(string message) : base(message)
     {
-        public ObjectCollectedException(string message) : base(message)
-        {
-        }
     }
 }

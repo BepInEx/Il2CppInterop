@@ -1,21 +1,21 @@
 using System;
 using System.Diagnostics;
-using Il2CppInterop.Runtime;
+using Il2CppInterop.Common;
 
-namespace Il2CppInterop.Generator
+namespace Il2CppInterop.Generator;
+
+internal readonly struct TimingCookie : IDisposable
 {
-    internal readonly struct TimingCookie : IDisposable
-    {
-        private readonly Stopwatch myStopwatch;
-        public TimingCookie(string message)
-        {
-            Logger.Info(message + "... ");
-            myStopwatch = Stopwatch.StartNew();
-        }
+    private readonly Stopwatch myStopwatch;
 
-        public void Dispose()
-        {
-            Logger.Info($"Done in {myStopwatch.Elapsed}");
-        }
+    public TimingCookie(string message)
+    {
+        Logger.Info(message + "... ");
+        myStopwatch = Stopwatch.StartNew();
+    }
+
+    public void Dispose()
+    {
+        Logger.Info($"Done in {myStopwatch.Elapsed}");
     }
 }

@@ -1,25 +1,27 @@
 using System;
 using System.Collections.Generic;
 
-namespace Il2CppInterop.Generator.Extensions
-{
-    public static class CollectionEx
-    {
-        public static TV GetOrCreate<TK, TV>(this IDictionary<TK, TV> dict, TK key, Func<TK, TV> valueFactory) where TK : notnull
-        {
-            if (!dict.TryGetValue(key, out var result))
-            {
-                result = valueFactory(key);
-                dict[key] = result;
-            }
+namespace Il2CppInterop.Generator.Extensions;
 
-            return result;
+public static class CollectionEx
+{
+    public static TV GetOrCreate<TK, TV>(this IDictionary<TK, TV> dict, TK key, Func<TK, TV> valueFactory)
+        where TK : notnull
+    {
+        if (!dict.TryGetValue(key, out var result))
+        {
+            result = valueFactory(key);
+            dict[key] = result;
         }
 
-        public static void AddLocked<T>(this List<T> list, T value)
+        return result;
+    }
+
+    public static void AddLocked<T>(this List<T> list, T value)
+    {
+        lock (list)
         {
-            lock (list)
-                list.Add(value);
+            list.Add(value);
         }
     }
 }

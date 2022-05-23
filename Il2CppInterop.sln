@@ -34,37 +34,34 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workflows", "Workflows", "{
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Il2CppInterop.StructGenerator", "Il2CppInterop.StructGenerator\Il2CppInterop.StructGenerator.csproj", "{DE781BD4-650F-4ED8-B615-5CB36E6D476A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Il2CppInterop.Common", "Il2CppInterop.Common\Il2CppInterop.Common.csproj", "{E7D3A81B-11CD-402C-A447-015B00DCA3FD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-		Mini|Any CPU = Mini|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{7C3FD45B-A563-47AF-90DF-8B051A8C33A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7C3FD45B-A563-47AF-90DF-8B051A8C33A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C3FD45B-A563-47AF-90DF-8B051A8C33A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7C3FD45B-A563-47AF-90DF-8B051A8C33A0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7C3FD45B-A563-47AF-90DF-8B051A8C33A0}.Mini|Any CPU.ActiveCfg = Mini|Any CPU
-		{7C3FD45B-A563-47AF-90DF-8B051A8C33A0}.Mini|Any CPU.Build.0 = Mini|Any CPU
 		{F6405B5F-9162-49EA-9C8A-CE1AA0916CF3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F6405B5F-9162-49EA-9C8A-CE1AA0916CF3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F6405B5F-9162-49EA-9C8A-CE1AA0916CF3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F6405B5F-9162-49EA-9C8A-CE1AA0916CF3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F6405B5F-9162-49EA-9C8A-CE1AA0916CF3}.Mini|Any CPU.ActiveCfg = Mini|Any CPU
-		{F6405B5F-9162-49EA-9C8A-CE1AA0916CF3}.Mini|Any CPU.Build.0 = Mini|Any CPU
 		{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}.Mini|Any CPU.ActiveCfg = Mini|Any CPU
-		{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}.Mini|Any CPU.Build.0 = Mini|Any CPU
 		{DE781BD4-650F-4ED8-B615-5CB36E6D476A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DE781BD4-650F-4ED8-B615-5CB36E6D476A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DE781BD4-650F-4ED8-B615-5CB36E6D476A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DE781BD4-650F-4ED8-B615-5CB36E6D476A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DE781BD4-650F-4ED8-B615-5CB36E6D476A}.Mini|Any CPU.ActiveCfg = Debug|Any CPU
-		{DE781BD4-650F-4ED8-B615-5CB36E6D476A}.Mini|Any CPU.Build.0 = Debug|Any CPU
+		{E7D3A81B-11CD-402C-A447-015B00DCA3FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7D3A81B-11CD-402C-A447-015B00DCA3FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7D3A81B-11CD-402C-A447-015B00DCA3FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7D3A81B-11CD-402C-A447-015B00DCA3FD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
