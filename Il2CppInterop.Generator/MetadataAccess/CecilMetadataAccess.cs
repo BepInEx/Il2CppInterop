@@ -2,72 +2,90 @@ using System.Collections.Generic;
 using System.Linq;
 using Mono.Cecil;
 
-namespace Il2CppInterop.Generator.MetadataAccess
+namespace Il2CppInterop.Generator.MetadataAccess;
+
+public class CecilMetadataAccess : IIl2CppMetadataAccess
 {
-    public class CecilMetadataAccess : IIl2CppMetadataAccess
+    private readonly List<AssemblyDefinition> myAssemblies = new();
+    private readonly Dictionary<string, AssemblyDefinition> myAssembliesByName = new();
+    private readonly Resolver myAssemblyResolver = new();
+    private readonly Dictionary<(string AssemblyName, string TypeName), TypeDefinition> myTypesByName = new();
+
+    public CecilMetadataAccess(IEnumerable<string> assemblyPaths)
     {
-        private readonly Resolver myAssemblyResolver = new();
-        private readonly List<AssemblyDefinition> myAssemblies = new();
-        private readonly Dictionary<string, AssemblyDefinition> myAssembliesByName = new();
-        private readonly Dictionary<(string AssemblyName, string TypeName), TypeDefinition> myTypesByName = new();
+        var metadataResolver = new MetadataResolver(myAssemblyResolver);
 
-        public CecilMetadataAccess(IEnumerable<string> assemblyPaths)
+        Load(assemblyPaths.Select(path => AssemblyDefinition.ReadAssembly(path,
+            new ReaderParameters(ReadingMode.Deferred) { MetadataResolver = metadataResolver })));
+    }
+
+    public CecilMetadataAccess(IEnumerable<AssemblyDefinition> assemblies)
+    {
+        // Note: At the moment this assumes that passed assemblies have their own assembly resolver set up
+        // If this is not true, this can cause issues with reference resolving
+        Load(assemblies);
+    }
+
+    public void Dispose()
+    {
+        foreach (var assemblyDefinition in myAssemblies)
+            assemblyDefinition.Dispose();
+
+        myAssemblies.Clear();
+        myAssembliesByName.Clear();
+        myAssemblyResolver.Dispose();
+    }
+
+    public AssemblyDefinition? GetAssemblyBySimpleName(string name)
+    {
+        return myAssembliesByName.TryGetValue(name, out var result) ? result : null;
+    }
+
+    public TypeDefinition? GetTypeByName(string assemblyName, string typeName)
+    {
+        return myTypesByName.TryGetValue((assemblyName, typeName), out var result) ? result : null;
+    }
+
+    public IList<AssemblyDefinition> Assemblies => myAssemblies;
+
+    public IList<GenericInstanceType>? GetKnownInstantiationsFor(TypeDefinition genericDeclaration)
+    {
+        return null;
+    }
+
+    public string? GetStringStoredAtAddress(long offsetInMemory)
+    {
+        return null;
+    }
+
+    public MethodReference? GetMethodRefStoredAt(long offsetInMemory)
+    {
+        return null;
+    }
+
+    private void Load(IEnumerable<AssemblyDefinition> assemblies)
+    {
+        foreach (var sourceAssembly in assemblies)
         {
-            var metadataResolver = new MetadataResolver(myAssemblyResolver);
-
-            Load(assemblyPaths.Select(path => AssemblyDefinition.ReadAssembly(path, new ReaderParameters(ReadingMode.Deferred) { MetadataResolver = metadataResolver })));
+            myAssemblyResolver.Register(sourceAssembly);
+            myAssemblies.Add(sourceAssembly);
+            myAssembliesByName[sourceAssembly.Name.Name] = sourceAssembly;
         }
 
-        public CecilMetadataAccess(IEnumerable<AssemblyDefinition> assemblies)
+        foreach (var sourceAssembly in myAssemblies)
         {
-            // Note: At the moment this assumes that passed assemblies have their own assembly resolver set up
-            // If this is not true, this can cause issues with reference resolving
-            Load(assemblies);
+            var sourceAssemblyName = sourceAssembly.Name.Name;
+            foreach (var type in sourceAssembly.MainModule.Types)
+                // todo: nested types?
+                myTypesByName[(sourceAssemblyName, type.FullName)] = type;
         }
+    }
 
-        private void Load(IEnumerable<AssemblyDefinition> assemblies)
+    private class Resolver : DefaultAssemblyResolver
+    {
+        public void Register(AssemblyDefinition ass)
         {
-            foreach (var sourceAssembly in assemblies)
-            {
-                myAssemblyResolver.Register(sourceAssembly);
-                myAssemblies.Add(sourceAssembly);
-                myAssembliesByName[sourceAssembly.Name.Name] = sourceAssembly;
-            }
-
-            foreach (var sourceAssembly in myAssemblies)
-            {
-                var sourceAssemblyName = sourceAssembly.Name.Name;
-                foreach (var type in sourceAssembly.MainModule.Types)
-                {
-                    // todo: nested types?
-                    myTypesByName[(sourceAssemblyName, type.FullName)] = type;
-                }
-            }
-        }
-
-        public void Dispose()
-        {
-            foreach (var assemblyDefinition in myAssemblies)
-                assemblyDefinition.Dispose();
-
-            myAssemblies.Clear();
-            myAssembliesByName.Clear();
-            myAssemblyResolver.Dispose();
-        }
-
-        public AssemblyDefinition? GetAssemblyBySimpleName(string name) => myAssembliesByName.TryGetValue(name, out var result) ? result : null;
-
-        public TypeDefinition? GetTypeByName(string assemblyName, string typeName) => myTypesByName.TryGetValue((assemblyName, typeName), out var result) ? result : null;
-
-        public IList<AssemblyDefinition> Assemblies => myAssemblies;
-
-        public IList<GenericInstanceType>? GetKnownInstantiationsFor(TypeDefinition genericDeclaration) => null;
-        public string? GetStringStoredAtAddress(long offsetInMemory) => null;
-        public MethodReference? GetMethodRefStoredAt(long offsetInMemory) => null;
-
-        private class Resolver : DefaultAssemblyResolver
-        {
-            public void Register(AssemblyDefinition ass) => RegisterAssembly(ass);
+            RegisterAssembly(ass);
         }
     }
 }

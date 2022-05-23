@@ -5,24 +5,12 @@ using Mono.Cecil;
 
 namespace Il2CppInterop.Generator;
 
-// TODO: Instead of a cecil hack, replace with automatically generated code (do same for Il2CppInterop.Runtime)
 internal static class CorlibReferences
 {
-    private static AssemblyNameReference GetCoreLibraryReference(ModuleDefinition module)
-    {
-        return module.TypeSystem.CoreLibrary as AssemblyNameReference;
-    }
-
     public static void RewriteReferenceToMscorlib(AssemblyNameReference assemblyNameReference)
     {
         assemblyNameReference.Name = "mscorlib";
-        // (Kas): Bumped to 6.0.0.0 for the sake of testing, revert when publish
-        // TODO: Parameterize this
-#if NET_6
         assemblyNameReference.Version = new Version(6, 0, 0, 0);
-#else
-        assemblyNameReference.Version = new Version(4, 0, 0, 0);
-#endif
         assemblyNameReference.PublicKeyToken = new byte[] { 183, 122, 92, 86, 25, 52, 224, 137 };
         assemblyNameReference.Culture = "";
     }

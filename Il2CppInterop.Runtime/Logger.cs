@@ -17,8 +17,23 @@ public static class Logger
         TraceHandler = null;
     }
 
-    public static void Error(string message) => ErrorHandler?.Invoke(message);
-    public static void Warning(string message) => WarningHandler?.Invoke(message);
-    public static void Info(string message) => InfoHandler?.Invoke(message);
-    public static void Trace(string message) => TraceHandler?.Invoke(message);
+    public static void Error(string message)
+    {
+        ErrorHandler?.Invoke(message);
+    }
+
+    public static void Warning(string message)
+    {
+        WarningHandler?.Invoke(message);
+    }
+
+    public static void Info(string message)
+    {
+        InfoHandler?.Invoke(message);
+    }
+
+    public static void Trace(string message)
+    {
+        TraceHandler?.Invoke(message);
+    }
 }

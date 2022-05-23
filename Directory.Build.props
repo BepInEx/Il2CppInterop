@@ -8,10 +8,6 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>Il2CppInterop</RootNamespace>
         <LangVersion>latest</LangVersion>
-        <PackageVersion>1.0.0-pre.3</PackageVersion>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Mini' ">
-        <DefineConstants>TRACE;MINI</DefineConstants>
+        <PackageVersion>1.0.0-pre.6</PackageVersion>
     </PropertyGroup>
 </Project>

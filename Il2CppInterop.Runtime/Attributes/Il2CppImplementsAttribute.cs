@@ -1,15 +1,14 @@
 ﻿using System;
 
-namespace Il2CppInterop.Runtime.Attributes
-{
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public class Il2CppImplementsAttribute : Attribute
-    {
-        public Type[] Interfaces { get; }
+namespace Il2CppInterop.Runtime.Attributes;
 
-        public Il2CppImplementsAttribute(params Type[] interfaces)
-        {
-            Interfaces = interfaces;
-        }
+[AttributeUsage(AttributeTargets.Class)]
+public class Il2CppImplementsAttribute : Attribute
+{
+    public Il2CppImplementsAttribute(params Type[] interfaces)
+    {
+        Interfaces = interfaces;
     }
+
+    public Type[] Interfaces { get; }
 }
