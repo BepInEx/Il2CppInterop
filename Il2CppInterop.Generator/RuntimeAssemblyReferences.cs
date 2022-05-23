@@ -223,7 +223,7 @@ public class RuntimeAssemblyReferences
 
         Il2CppObjectBase_Cast = new Lazy<MethodReference>(() =>
         {
-            var mr = new MethodReference("Cast", Module.TypeSystem.Void,
+            var mr = new MethodReference("Cast", Module.Void(),
                 ResolveType("Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"));
             var gp0 = new GenericParameter("T", mr);
             mr.GenericParameters.Add(gp0);
@@ -234,7 +234,7 @@ public class RuntimeAssemblyReferences
 
         Il2CppObjectBase_TryCast = new Lazy<MethodReference>(() =>
         {
-            var mr = new MethodReference("TryCast", Module.TypeSystem.Void,
+            var mr = new MethodReference("TryCast", Module.Void(),
                 ResolveType("Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"));
             var gp0 = new GenericParameter("T", mr);
             mr.GenericParameters.Add(gp0);
@@ -245,7 +245,7 @@ public class RuntimeAssemblyReferences
 
         IL2CPP_ResolveICall = new Lazy<MethodReference>(() =>
         {
-            var mr = new MethodReference("ResolveICall", Module.TypeSystem.Void,
+            var mr = new MethodReference("ResolveICall", Module.Void(),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP"));
             var gp0 = new GenericParameter("T", mr);
             mr.GenericParameters.Add(gp0);
@@ -495,7 +495,7 @@ public class RuntimeAssemblyReferences
 
         IL2CPP_PointerToValueGeneric = new Lazy<MethodReference>(() =>
         {
-            var mr = new MethodReference("PointerToValueGeneric", Module.TypeSystem.Void,
+            var mr = new MethodReference("PointerToValueGeneric", Module.Void(),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP"));
             var gp0 = new GenericParameter("T", mr);
             mr.GenericParameters.Add(gp0);
@@ -519,16 +519,16 @@ public class RuntimeAssemblyReferences
         });
 
         ObfuscatedNameAttributector = new Lazy<MethodReference>(() => new MethodReference(".ctor",
-                Module.TypeSystem.Void,
+                Module.Void(),
                 Module.ImportReference(typeof(ObfuscatedNameAttribute)))
-        { HasThis = true, Parameters = { new ParameterDefinition(Module.TypeSystem.String) } });
+        { HasThis = true, Parameters = { new ParameterDefinition(Module.String()) } });
 
         CallerCountAttributector = new Lazy<MethodReference>(() =>
-            new MethodReference(".ctor", Module.TypeSystem.Void, Module.ImportReference(typeof(CallerCountAttribute)))
-            { HasThis = true, Parameters = { new ParameterDefinition(Module.TypeSystem.Int32) } });
+            new MethodReference(".ctor", Module.Void(), Module.ImportReference(typeof(CallerCountAttribute)))
+            { HasThis = true, Parameters = { new ParameterDefinition(Module.Int()) } });
 
         CachedScanResultsAttributector = new Lazy<MethodReference>(() =>
-            new MethodReference(".ctor", Module.TypeSystem.Void,
+            new MethodReference(".ctor", Module.Void(),
                 Module.ImportReference(typeof(CachedScanResultsAttribute)))
             {
                 HasThis = true
