@@ -49,7 +49,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Class
             public uint initializationExceptionGCHandle;
             public uint cctor_started;
             public uint cctor_finished;
-            public ulong cctor_thread;
+            public IntPtr cctor_thread;
             public Il2CppMetadataGenericContainerHandle genericContainerHandle;
             public uint instance_size;
             public uint actualSize;

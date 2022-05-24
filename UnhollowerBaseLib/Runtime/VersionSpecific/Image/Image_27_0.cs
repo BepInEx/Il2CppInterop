@@ -12,7 +12,7 @@ namespace UnhollowerBaseLib.Runtime.VersionSpecific.Image
             Il2CppImage_27_0* _ = (Il2CppImage_27_0*)ptr;
             *_ = default;
             Il2CppImageGlobalMetadata* metadata = (Il2CppImageGlobalMetadata*)Marshal.AllocHGlobal(sizeof(Il2CppImageGlobalMetadata));
-            metadata->image = (Il2CppImage*)ptr;
+            metadata->image = (Il2CppImage*)_;
             *(Il2CppImageGlobalMetadata**)&_->metadataHandle = metadata;
             return new NativeStructWrapper(ptr);
         }
