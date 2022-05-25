@@ -3,7 +3,7 @@ using System.Reflection.Emit;
 
 namespace Il2CppInterop.Common;
 
-public static class MiniIlParser
+internal static class MiniIlParser
 {
     private static readonly Dictionary<short, OpCode> OpCodesMap = new();
     private static readonly HashSet<short> PrefixCodes = new();

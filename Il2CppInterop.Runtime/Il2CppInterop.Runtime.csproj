@@ -12,7 +12,7 @@
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
-    <ItemGroup Condition=" '$(Configuration)' != 'Mini' ">
+    <ItemGroup>
         <Reference Include="Il2Cppmscorlib">
             <Private>false</Private>
             <HintPath>Libs\Il2Cppmscorlib.dll</HintPath>

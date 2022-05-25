@@ -62,44 +62,32 @@ namespace Il2CppInterop.Runtime.Injection
             if (GenericMethodGetMethod == null)
             {
                 GenericMethodGetMethod = FindGenericMethodGetMethod();
-#if NET6_0
                 _delegateCache.Add(GenericMethodGetMethod);
-#endif
             }
             if (GetTypeInfoFromTypeDefinitionIndex == null)
             {
                 GetTypeInfoFromTypeDefinitionIndex = FindGetTypeInfoFromTypeDefinitionIndex();
-#if NET6_0
                 _delegateCache.Add(GetTypeInfoFromTypeDefinitionIndex);
-#endif
             }
             if (ClassGetFieldDefaultValue == null)
             {
                 ClassGetFieldDefaultValue = FindClassGetFieldDefaultValue();
-#if NET6_0
                 _delegateCache.Add(ClassGetFieldDefaultValue);
-#endif
             }
             if (ClassInit == null)
             {
                 ClassInit = FindClassInit();
-#if NET6_0
                 _delegateCache.Add(ClassInit);
-#endif
             }
             if (ClassFromIl2CppType == null)
             {
                 ClassFromIl2CppType = FindClassFromIl2CppType();
-#if NET6_0
                 _delegateCache.Add(ClassFromIl2CppType);
-#endif
             }
             if (ClassFromName == null)
             {
                 ClassFromName = FindClassFromName();
-#if NET6_0
                 _delegateCache.Add(ClassFromName);
-#endif
             }
         }
 
@@ -154,21 +142,16 @@ namespace Il2CppInterop.Runtime.Injection
         private static readonly ConcurrentDictionary<long, IntPtr> s_InjectedClasses = new();
         /// <summary> (namespace, class, image) : class </summary>
         private static readonly Dictionary<(string _namespace, string _class, IntPtr imagePtr), IntPtr> s_ClassNameLookup = new();
-#if NET6_0
         // (Kasuromi): This is required for CoreCLR to prevent delegates from getting garbage collected (GCHandles didn't seem to work)
         private static readonly List<object> _delegateCache = new();
-#endif
         #region GenericMethod::GetMethod
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate Il2CppMethodInfo* d_GenericMethodGetMethod(Il2CppGenericMethod* gmethod, bool copyMethodPtr);
-#if !MINI
         private static readonly d_GenericMethodGetMethod GenericMethodGetMethodDetour = new(ClassInjector.hkGenericMethodGetMethod);
-#endif
         internal static d_GenericMethodGetMethod GenericMethodGetMethod;
         internal static d_GenericMethodGetMethod GenericMethodGetMethodOriginal;
         private static d_GenericMethodGetMethod FindGenericMethodGetMethod()
         {
-#if !MINI
             var getVirtualMethodAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_object_get_virtual_method));
             Logger.Trace($"il2cpp_object_get_virtual_method: 0x{getVirtualMethodAPI.ToInt64():X2}");
 
@@ -182,14 +165,9 @@ namespace Il2CppInterop.Runtime.Injection
             if (targetTargets.Count == 1) // U2021.2.0+, there's additional shim that takes 3 parameters
                 genericMethodGetMethod = targetTargets[0];
             GenericMethodGetMethodOriginal = ClassInjector.Detour.Detour(genericMethodGetMethod, GenericMethodGetMethodDetour);
-#if NET6_0
             _delegateCache.Add(GenericMethodGetMethodDetour);
             _delegateCache.Add(GenericMethodGetMethodOriginal);
-#endif
             return Marshal.GetDelegateForFunctionPointer<d_GenericMethodGetMethod>(genericMethodGetMethod);
-#else
-            return null;
-#endif
         }
         #endregion
         #region Class::FromName
@@ -215,7 +193,6 @@ namespace Il2CppInterop.Runtime.Injection
         internal static d_ClassFromName ClassFromNameOriginal;
         private static d_ClassFromName FindClassFromName()
         {
-#if !MINI
             var classFromNameAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_class_from_name));
             Logger.Trace($"il2cpp_class_from_name: 0x{classFromNameAPI.ToInt64():X2}");
 
@@ -223,14 +200,9 @@ namespace Il2CppInterop.Runtime.Injection
             Logger.Trace($"Class::FromName: 0x{classFromName.ToInt64():X2}");
 
             ClassFromNameOriginal = ClassInjector.Detour.Detour(classFromName, ClassFromNameDetour);
-#if NET6_0
             _delegateCache.Add(ClassFromNameDetour);
             _delegateCache.Add(ClassFromNameOriginal);
-#endif
             return Marshal.GetDelegateForFunctionPointer<d_ClassFromName>(classFromName);
-#else
-            return null;
-#endif
         }
         #endregion
 
@@ -250,7 +222,6 @@ namespace Il2CppInterop.Runtime.Injection
         internal static d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndexOriginal;
         private static d_GetTypeInfoFromTypeDefinitionIndex FindGetTypeInfoFromTypeDefinitionIndex(bool forceICallMethod = false)
         {
-#if !MINI
             IntPtr getTypeInfoFromTypeDefinitionIndex = IntPtr.Zero;
 
             // il2cpp_image_get_class is added in 2018.3.0f1
@@ -319,14 +290,9 @@ namespace Il2CppInterop.Runtime.Injection
                 getTypeInfoFromTypeDefinitionIndex,
                 GetTypeInfoFromTypeDefinitionIndexDetour
             );
-#if NET6_0
             _delegateCache.Add(GetTypeInfoFromTypeDefinitionIndexDetour);
             _delegateCache.Add(GetTypeInfoFromTypeDefinitionIndexOriginal);
-#endif
             return Marshal.GetDelegateForFunctionPointer<d_GetTypeInfoFromTypeDefinitionIndex>(getTypeInfoFromTypeDefinitionIndex);
-#else
-            return null;
-#endif
         }
         #endregion
 
@@ -350,7 +316,6 @@ namespace Il2CppInterop.Runtime.Injection
         internal static d_ClassFromIl2CppType ClassFromIl2CppTypeOriginal;
         private static d_ClassFromIl2CppType FindClassFromIl2CppType()
         {
-#if !MINI
             var classFromTypeAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_class_from_il2cpp_type));
             Logger.Trace($"il2cpp_class_from_il2cpp_type: 0x{classFromTypeAPI.ToInt64():X2}");
 
@@ -358,14 +323,9 @@ namespace Il2CppInterop.Runtime.Injection
             Logger.Trace($"Class::FromIl2CppType: 0x{classFromType.ToInt64():X2}");
 
             ClassFromIl2CppTypeOriginal = ClassInjector.Detour.Detour(classFromType, ClassFromIl2CppTypeDetour);
-#if NET6_0
             _delegateCache.Add(ClassFromIl2CppTypeDetour);
             _delegateCache.Add(ClassFromIl2CppTypeOriginal);
-#endif
             return Marshal.GetDelegateForFunctionPointer<d_ClassFromIl2CppType>(classFromType);
-#else
-            return null;
-#endif
         }
         #endregion
 
@@ -374,7 +334,6 @@ namespace Il2CppInterop.Runtime.Injection
         internal delegate byte* d_ClassGetFieldDefaultValue(Il2CppFieldInfo* field, out Il2CppTypeStruct* type);
         private static byte* hkClassGetFieldDefaultValue(Il2CppFieldInfo* field, out Il2CppTypeStruct* type)
         {
-#if !MINI
             if (EnumInjector.GetDefaultValueOverride(field, out IntPtr newDefaultPtr))
             {
                 INativeFieldInfoStruct wrappedField = UnityVersionHandler.Wrap(field);
@@ -385,17 +344,12 @@ namespace Il2CppInterop.Runtime.Injection
             }
             while (ClassGetFieldDefaultValueOriginal == null) Thread.Sleep(1);
             return ClassGetFieldDefaultValueOriginal(field, out type);
-#else
-            type = null;
-            return null;
-#endif
         }
         private static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueDetour = new(hkClassGetFieldDefaultValue);
         internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValue;
         internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueOriginal;
         private static d_ClassGetFieldDefaultValue FindClassGetFieldDefaultValue()
         {
-#if !MINI
             var getStaticFieldValueAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_field_static_get_value));
             Logger.Trace($"il2cpp_field_static_get_value: 0x{getStaticFieldValueAPI.ToInt64():X2}");
 
@@ -411,14 +365,9 @@ namespace Il2CppInterop.Runtime.Injection
             Logger.Trace($"Class::GetDefaultFieldValue: 0x{classGetDefaultFieldValue.ToInt64():X2}");
 
             ClassGetFieldDefaultValueOriginal = ClassInjector.Detour.Detour(classGetDefaultFieldValue, ClassGetFieldDefaultValueDetour);
-#if NET6_0
             _delegateCache.Add(ClassGetFieldDefaultValueDetour);
             _delegateCache.Add(ClassGetFieldDefaultValueOriginal);
-#endif
             return Marshal.GetDelegateForFunctionPointer<d_ClassGetFieldDefaultValue>(classGetDefaultFieldValue);
-#else
-            return null;
-#endif
         }
         #endregion
 

@@ -62,7 +62,6 @@ public class Il2CppObjectBase
 
     internal unsafe T UnboxUnsafe<T>()
     {
-#if NET6_0
         var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
         if (nestedTypeClassPointer == IntPtr.Zero)
             throw new ArgumentException($"{typeof(T)} is not an Il2Cpp reference type");
@@ -73,9 +72,6 @@ public class Il2CppObjectBase
                 $"Can't cast object of type {Marshal.PtrToStringAnsi(IL2CPP.il2cpp_class_get_name(IL2CPP.il2cpp_object_get_class(Pointer)))} to type {typeof(T)}");
 
         return Unsafe.AsRef<T>(IL2CPP.il2cpp_object_unbox(Pointer).ToPointer());
-#else
-            return (T)_unboxMethod.MakeGenericMethod(typeof(T)).Invoke(this, new object[0]);
-#endif
     }
 
     public unsafe T Unbox<T>() where T : unmanaged
@@ -89,11 +85,7 @@ public class Il2CppObjectBase
             throw new InvalidCastException(
                 $"Can't cast object of type {Marshal.PtrToStringAnsi(IL2CPP.il2cpp_class_get_name(IL2CPP.il2cpp_object_get_class(Pointer)))} to type {typeof(T)}");
         var unboxedPtr = IL2CPP.il2cpp_object_unbox(Pointer);
-#if NET6_0
         return Unsafe.AsRef<T>(unboxedPtr.ToPointer());
-#else
-            return Marshal.PtrToStructure<T>(unboxedPtr);
-#endif
     }
 
     public T? TryCast<T>() where T : Il2CppObjectBase
