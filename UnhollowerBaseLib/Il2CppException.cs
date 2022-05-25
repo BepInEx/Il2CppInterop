@@ -23,7 +23,7 @@ namespace UnhollowerBaseLib
             Il2CppSystem.Exception il2cppException = new(exception);
             return builtMessage + "\n" +
                 $"--- BEGIN IL2CPP STACK TRACE ---\n" +
-                $"{il2cppException.StackTrace}\n" +
+                $"{il2cppException}\n" +
                 $"--- END IL2CPP STACK TRACE ---\n";
         }
 
