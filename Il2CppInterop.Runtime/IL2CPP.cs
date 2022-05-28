@@ -7,10 +7,12 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using Il2CppInterop.Common;
 using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppInterop.Runtime.Runtime;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime;
 
@@ -25,7 +27,7 @@ public static unsafe class IL2CPP
         var domain = il2cpp_domain_get();
         if (domain == IntPtr.Zero)
         {
-            Logger.Error("No il2cpp domain found; sad!");
+            Logger.Instance.LogError("No il2cpp domain found; sad!");
             return;
         }
 
@@ -54,7 +56,7 @@ public static unsafe class IL2CPP
     {
         if (!ourImagesMap.TryGetValue(assemblyName, out var image))
         {
-            Logger.Error($"Assembly {assemblyName} is not registered in il2cpp");
+            Logger.Instance.LogError("Assembly {AssemblyName} is not registered in il2cpp", assemblyName);
             return IntPtr.Zero;
         }
 
@@ -68,8 +70,8 @@ public static unsafe class IL2CPP
 
         var field = il2cpp_class_get_field_from_name(clazz, fieldName);
         if (field == IntPtr.Zero)
-            Logger.Error(
-                $"Field {fieldName} was not found on class {Marshal.PtrToStringAnsi(il2cpp_class_get_name(clazz))}");
+            Logger.Instance.LogError(
+                "Field {FieldName} was not found on class {ClassName}", fieldName, Marshal.PtrToStringUTF8(il2cpp_class_get_name(clazz)));
         return field;
     }
 
@@ -85,7 +87,7 @@ public static unsafe class IL2CPP
                 return method;
 
         var className = Marshal.PtrToStringAnsi(il2cpp_class_get_name(clazz));
-        Logger.Trace($"Unable to find method {className}::{token}");
+        Logger.Instance.LogTrace("Unable to find method {ClassName}::{Token}", className, token);
 
         return NativeStructUtils.GetMethodInfoForMissingMethod(className + "::" + token);
     }
@@ -148,25 +150,26 @@ public static unsafe class IL2CPP
 
         if (methodsSeen == 1)
         {
-            Logger.Trace(
-                $"Method {className}::{methodName} was stubbed with a random matching method of the same name");
-            Logger.Trace(
-                $"Stubby return type/target: {Marshal.PtrToStringAnsi(il2cpp_type_get_name(il2cpp_method_get_return_type(lastMethod)))} / {returnTypeName}");
-            Logger.Trace("Stubby parameter types/targets follow:");
+            Logger.Instance.LogTrace(
+                "Method {ClassName}::{MethodName} was stubbed with a random matching method of the same name", className, methodName);
+            Logger.Instance.LogTrace(
+                "Stubby return type/target: {LastMethod} / {ReturnTypeName}", Marshal.PtrToStringUTF8(il2cpp_type_get_name(il2cpp_method_get_return_type(lastMethod))), returnTypeName);
+            Logger.Instance.LogTrace("Stubby parameter types/targets follow:");
             for (var i = 0; i < argTypes.Length; i++)
             {
                 var paramType = il2cpp_method_get_param(lastMethod, (uint)i);
                 var typeName = Marshal.PtrToStringAnsi(il2cpp_type_get_name(paramType));
-                Logger.Trace($"    {typeName} / {argTypes[i]}");
+                Logger.Instance.LogTrace("    {TypeName} / {ArgType}", typeName, argTypes[i]);
             }
 
             return lastMethod;
         }
 
-        Logger.Trace($"Unable to find method {className}::{methodName}; signature follows");
-        Logger.Trace($"    return {returnTypeName}");
-        foreach (var argType in argTypes) Logger.Trace($"    {argType}");
-        Logger.Trace("Available methods of this name follow:");
+        Logger.Instance.LogTrace("Unable to find method {ClassName}::{MethodName}; signature follows", className, methodName);
+        Logger.Instance.LogTrace("    return {ReturnTypeName}", returnTypeName);
+        foreach (var argType in argTypes)
+            Logger.Instance.LogTrace("    {ArgType}", argType);
+        Logger.Instance.LogTrace("Available methods of this name follow:");
         iter = IntPtr.Zero;
         while ((method = il2cpp_class_get_methods(clazz, ref iter)) != IntPtr.Zero)
         {
@@ -174,14 +177,14 @@ public static unsafe class IL2CPP
                 continue;
 
             var nParams = il2cpp_method_get_param_count(method);
-            Logger.Trace("Method starts");
-            Logger.Trace(
-                $"     return {Marshal.PtrToStringAnsi(il2cpp_type_get_name(il2cpp_method_get_return_type(method)))}");
+            Logger.Instance.LogTrace("Method starts");
+            Logger.Instance.LogTrace(
+                "     return {MethodTypeName}", Marshal.PtrToStringUTF8(il2cpp_type_get_name(il2cpp_method_get_return_type(method))));
             for (var i = 0; i < nParams; i++)
             {
                 var paramType = il2cpp_method_get_param(method, (uint)i);
                 var typeName = Marshal.PtrToStringAnsi(il2cpp_type_get_name(paramType));
-                Logger.Trace($"    {typeName}");
+                Logger.Instance.LogTrace("    {TypeName}", typeName);
             }
 
             return method;
@@ -229,7 +232,7 @@ public static unsafe class IL2CPP
         IntPtr nestedTypePtr;
         if (il2cpp_class_is_inflated(enclosingType))
         {
-            Logger.Trace("Original class was inflated, falling back to reflection");
+            Logger.Instance.LogTrace("Original class was inflated, falling back to reflection");
 
             return RuntimeReflectionHelper.GetNestedTypeViaReflection(enclosingType, nestedTypeName);
         }
@@ -238,8 +241,8 @@ public static unsafe class IL2CPP
             if (Marshal.PtrToStringAnsi(il2cpp_class_get_name(nestedTypePtr)) == nestedTypeName)
                 return nestedTypePtr;
 
-        Logger.Error(
-            $"Nested type {nestedTypeName} on {Marshal.PtrToStringAnsi(il2cpp_class_get_name(enclosingType))} not found!");
+        Logger.Instance.LogError(
+            "Nested type {NestedTypeName} on {EnclosingTypeName} not found!", nestedTypeName, Marshal.PtrToStringUTF8(il2cpp_class_get_name(enclosingType)));
 
         return IntPtr.Zero;
     }
@@ -255,7 +258,7 @@ public static unsafe class IL2CPP
         var icallPtr = il2cpp_resolve_icall(signature);
         if (icallPtr == IntPtr.Zero)
         {
-            Logger.Trace($"ICall {signature} not resolved");
+            Logger.Instance.LogTrace("ICall {Signature} not resolved", signature);
             return GenerateDelegateForMissingICall<T>(signature);
         }
 

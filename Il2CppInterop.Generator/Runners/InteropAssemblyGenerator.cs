@@ -5,12 +5,22 @@ using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.MetadataAccess;
 using Il2CppInterop.Generator.Passes;
+using Il2CppInterop.Generator.Utils;
+using Microsoft.Extensions.Logging;
 
-namespace Il2CppInterop.Generator;
+namespace Il2CppInterop.Generator.Runners;
 
 public static class InteropAssemblyGenerator
 {
-    public static void GenerateInteropAssemblies(GeneratorOptions options)
+    public static Il2CppInteropGenerator AddInteropAssemblyGenerator(this Il2CppInteropGenerator gen)
+    {
+        return gen.AddRunner<InteropAssemblyGeneratorRunner>();
+    }
+}
+
+internal class InteropAssemblyGeneratorRunner : IRunner
+{
+    public void Run(GeneratorOptions options)
     {
         if (options.Source == null || !options.Source.Any())
         {
@@ -89,7 +99,8 @@ public static class InteropAssemblyGenerator
             Pass18FinalizeMethodContexts.DoPass(rewriteContext);
         }
 
-        Logger.Info($"{Pass18FinalizeMethodContexts.TotalPotentiallyDeadMethods} total potentially dead methods");
+        Logger.Instance.LogInformation("{DeadMethodsCount} total potentially dead methods", Pass18FinalizeMethodContexts.TotalPotentiallyDeadMethods);
+
         using (new TimingCookie("Filling method parameters"))
         {
             Pass19CopyMethodParameters.DoPass(rewriteContext);
@@ -169,7 +180,7 @@ public static class InteropAssemblyGenerator
         }
         else
         {
-            Logger.Warning("Not performing unstripping as unity libs are not specified");
+            Logger.Instance.LogWarning("Not performing unstripping as unity libs are not specified");
         }
 
         // Breaks .net runtime
@@ -193,16 +204,10 @@ public static class InteropAssemblyGenerator
             Pass91GenerateMethodPointerMap.DoPass(rewriteContext, options);
         }
 
-        if (!options.NoCopyRuntimeLibs)
-        {
-            // File.Copy(typeof(IL2CPP).Assembly.Location,
-            //     Path.Combine(options.OutputDir, typeof(IL2CPP).Assembly.GetName().Name + ".dll"), true);
-            // File.Copy(typeof(Decoder).Assembly.Location,
-            //     Path.Combine(options.OutputDir, typeof(Decoder).Assembly.GetName().Name + ".dll"), true);
-        }
-
-        Logger.Info("Done!");
+        Logger.Instance.LogInformation("Done!");
 
         rewriteContext.Dispose();
     }
+
+    public void Dispose() { }
 }

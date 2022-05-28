@@ -14,7 +14,7 @@ internal static class XrefScanUtil
     {
         if (ourMetadataInitForMethodPointer == IntPtr.Zero)
         {
-            var res = XrefScanner.ScannerImpl.GetMetadataResolver();
+            var res = XrefScannerManager.Impl.GetMetadataResolver();
             if (res is ({ } m, var p))
             {
                 ourMetadataInitForMethodDelegate = m;

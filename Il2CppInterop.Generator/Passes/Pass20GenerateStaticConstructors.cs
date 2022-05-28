@@ -2,6 +2,8 @@ using System;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
+using Il2CppInterop.Generator.Utils;
+using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
@@ -17,7 +19,7 @@ public static class Pass20GenerateStaticConstructors
             foreach (var typeContext in assemblyContext.Types)
                 GenerateStaticProxy(assemblyContext, typeContext);
 
-        Logger.Trace($"\nTokenless method count: {ourTokenlessMethods}");
+        Logger.Instance.LogTrace("Tokenless method count: {TokenlessMethodCount}", ourTokenlessMethods);
     }
 
     private static void GenerateStaticProxy(AssemblyRewriteContext assemblyContext, TypeRewriteContext typeContext)

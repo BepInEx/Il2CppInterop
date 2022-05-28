@@ -1,37 +1,33 @@
-﻿namespace Il2CppInterop.Common;
+﻿using Il2CppInterop.Common.Host;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
-public static class Logger
+namespace Il2CppInterop.Common;
+
+public static class LoggerExtensions
 {
-    public static event Action<string>? ErrorHandler;
-    public static event Action<string>? WarningHandler;
-    public static event Action<string>? InfoHandler;
-    public static event Action<string>? TraceHandler;
-
-    public static void RemoveAllHandlers()
+    public static T AddLogger<T>(this T host, ILogger logger) where T : BaseHost
     {
-        ErrorHandler = null;
-        WarningHandler = null;
-        InfoHandler = null;
-        TraceHandler = null;
+        host.AddComponent(new Logger(logger));
+        return host;
+    }
+}
+
+internal class Logger : IHostComponent
+{
+    public static ILogger Instance { get; private set; } = NullLogger.Instance;
+
+    public Logger(ILogger logger)
+    {
+        Instance = logger;
     }
 
-    public static void Error(string message)
+    public void Start()
     {
-        ErrorHandler?.Invoke(message);
     }
 
-    public static void Warning(string message)
+    public void Dispose()
     {
-        WarningHandler?.Invoke(message);
-    }
-
-    public static void Info(string message)
-    {
-        InfoHandler?.Invoke(message);
-    }
-
-    public static void Trace(string message)
-    {
-        TraceHandler?.Invoke(message);
+        Instance = NullLogger.Instance;
     }
 }

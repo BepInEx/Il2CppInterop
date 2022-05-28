@@ -1,5 +1,6 @@
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
+using Il2CppInterop.Generator.Utils;
 using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;

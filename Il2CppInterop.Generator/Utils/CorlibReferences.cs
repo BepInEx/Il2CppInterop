@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Mono.Cecil;
 
-namespace Il2CppInterop.Generator;
+namespace Il2CppInterop.Generator.Utils;
 
 internal static class CorlibReferences
 {

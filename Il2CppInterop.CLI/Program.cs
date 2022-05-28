@@ -3,6 +3,7 @@ using System.CommandLine.NamingConventionBinder;
 using System.Text.RegularExpressions;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator;
+using Il2CppInterop.Generator.Runners;
 using Il2CppInterop.StructGenerator;
 using Microsoft.Extensions.Logging;
 using Mono.Cecil;
@@ -21,7 +22,6 @@ var generateCommand = new Command("generate")
     new Option<DirectoryInfo>("--unity", "Directory with original Unity assemblies for unstripping").ExistingOnly(),
     new Option<FileInfo>("--game-assembly", "Path to GameAssembly.dll. Used for certain analyses").ExistingOnly(),
     new Option<bool>("--no-xref-cache", "Don't generate xref scanning cache. All scanning will be done at runtime."),
-    new Option<bool>("--no-copy-runtime-libs", "Don't copy runtime libraries to output directory."),
     new Option<string[]>("--add-prefix-to",
         "Assemblies and namespaces starting with these will get an Il2Cpp prefix in generated assemblies. Allows multiple values."),
     new Option<FileInfo>("--deobf-map",
@@ -37,7 +37,11 @@ var generateCommand = new Command("generate")
 generateCommand.Description = "Generate wrapper assemblies that can be used to interop with Il2Cpp";
 generateCommand.Handler = CommandHandler.Create((GenerateCommandOptions opts) =>
 {
-    InteropAssemblyGenerator.GenerateInteropAssemblies(opts.Build());
+    var buildResult = opts.Build();
+    Il2CppInteropGenerator.Create(buildResult.Options)
+        .AddLogger(buildResult.Logger)
+        .AddInteropAssemblyGenerator()
+        .Run();
 });
 
 var deobfCommand = new Command("deobf");
@@ -87,9 +91,11 @@ command.Add(wrapperCommand);
 
 return command.Invoke(args);
 
+internal record CmdOptionsResult(GeneratorOptions Options, ILogger Logger);
+
 internal record BaseCmdOptions(bool Verbose)
 {
-    public virtual GeneratorOptions Build()
+    public virtual CmdOptionsResult Build()
     {
         var loggerFactory = LoggerFactory.Create(builder =>
         {
@@ -99,15 +105,11 @@ internal record BaseCmdOptions(bool Verbose)
         });
 
         var logger = loggerFactory.CreateLogger("Il2CppInterop");
-        Logger.ErrorHandler += s => logger.LogError("{Msg}", s);
-        Logger.WarningHandler += s => logger.LogWarning("{Msg}", s);
-        Logger.InfoHandler += s => logger.LogInformation("{Msg}", s);
-        Logger.TraceHandler += s => logger.LogTrace("{Msg}", s);
 
-        return new GeneratorOptions
+        return new(new GeneratorOptions
         {
             Verbose = Verbose
-        };
+        }, logger);
     }
 }
 
@@ -133,7 +135,6 @@ internal record GenerateCommandOptions(
     DirectoryInfo? Unity,
     FileInfo? GameAssembly,
     bool NoXrefCache,
-    bool NoCopyRuntimeLibs,
     string[]? AddPrefixTo,
     FileInfo? DeobfMap,
     int DeobfUniqChars,
@@ -143,9 +144,10 @@ internal record GenerateCommandOptions(
     bool PassthroughNames
 ) : BaseCmdOptions(Verbose)
 {
-    public override GeneratorOptions Build()
+    public override CmdOptionsResult Build()
     {
-        var opts = base.Build();
+        var res = base.Build();
+        var opts = res.Options;
 
         var resolver = new BasicResolver();
         var inputAssemblies = Input.EnumerateFiles("*.dll").Select(f => AssemblyDefinition.ReadAssembly(f.FullName,
@@ -161,7 +163,6 @@ internal record GenerateCommandOptions(
         opts.UnityBaseLibsDir = Unity?.FullName;
         opts.GameAssemblyPath = GameAssembly?.FullName ?? "";
         opts.NoXrefCache = NoXrefCache;
-        opts.NoCopyRuntimeLibs = NoCopyRuntimeLibs;
         opts.TypeDeobfuscationCharsPerUniquifier = DeobfUniqChars;
         opts.TypeDeobfuscationMaxUniquifiers = DeobfUniqMax;
         opts.AdditionalAssembliesBlacklist.AddRange(BlacklistAssembly ?? Array.Empty<string>());
@@ -174,7 +175,7 @@ internal record GenerateCommandOptions(
         if (DeobfMap is not null)
             opts.ReadRenameMap(DeobfMap.FullName);
 
-        return opts;
+        return res;
     }
 }
 
@@ -191,7 +192,6 @@ internal record CmdOptions(
     string[]? BlacklistAssembly,
     string[]? AddPrefixTo,
     bool NoXrefCache,
-    bool NoCopyRuntimeLibs,
     Regex? ObfRegex,
     FileInfo? RenameMap,
     bool PassthroughNames,
@@ -215,7 +215,6 @@ internal record CmdOptions(
         {
             Verbose = Verbose,
             NoXrefCache = NoXrefCache,
-            NoCopyRuntimeLibs = NoCopyRuntimeLibs,
             Source = inputAssemblies,
             OutputDir = Output.FullName,
             UnityBaseLibsDir = Unity?.FullName,

@@ -5,9 +5,11 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Text;
+using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Runtime;
+using Microsoft.Extensions.Logging;
 using Object = Il2CppSystem.Object;
 using ValueType = Il2CppSystem.ValueType;
 
@@ -195,7 +197,7 @@ public static class DelegateSupport
         bodyBuilder.Emit(OpCodes.Callvirt, typeof(object).GetMethod(nameof(ToString))!);
         bodyBuilder.Emit(OpCodes.Call,
             typeof(string).GetMethod(nameof(string.Concat), new[] { typeof(string), typeof(string) })!);
-        bodyBuilder.Emit(OpCodes.Call, typeof(Logger).GetMethod(nameof(Logger.Error))!);
+        bodyBuilder.Emit(OpCodes.Call, typeof(DelegateSupport).GetMethod(nameof(LogError))!);
 
         bodyBuilder.EndExceptionBlock();
 
@@ -204,6 +206,11 @@ public static class DelegateSupport
         bodyBuilder.Emit(OpCodes.Ret);
 
         return trampoline.CreateDelegate(GetOrCreateDelegateType(signature, managedMethod));
+    }
+
+    private static void LogError(string message)
+    {
+        Logger.Instance.LogError("{Message}", message);
     }
 
     public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppObjectBase

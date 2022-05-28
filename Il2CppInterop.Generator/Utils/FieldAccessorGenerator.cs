@@ -3,9 +3,9 @@ using Il2CppInterop.Generator.Extensions;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
-namespace Il2CppInterop.Generator;
+namespace Il2CppInterop.Generator.Utils;
 
-public static class FieldAccessorGenerator
+internal static class FieldAccessorGenerator
 {
     public static void MakeGetter(FieldDefinition field, FieldRewriteContext fieldContext, PropertyDefinition property,
         RuntimeAssemblyReferences imports)

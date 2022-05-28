@@ -19,7 +19,6 @@ public class GeneratorOptions
     public string? GameAssemblyPath { get; set; }
     public bool Verbose { get; set; }
     public bool NoXrefCache { get; set; }
-    public bool NoCopyRuntimeLibs { get; set; }
     public Regex? ObfuscatedNamesRegex { get; set; }
     public Dictionary<string, string> RenameMap { get; } = new();
     public bool PassthroughNames { get; set; }

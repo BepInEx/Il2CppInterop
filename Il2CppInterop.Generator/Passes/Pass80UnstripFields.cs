@@ -1,5 +1,6 @@
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
+using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
@@ -37,8 +38,7 @@ public static class Pass80UnstripFields
                         Pass80UnstripMethods.ResolveTypeInNewAssemblies(context, unityField.FieldType, imports);
                     if (fieldType == null)
                     {
-                        Logger.Trace(
-                            $"Field {unityField} on type {unityType.FullName} has unsupported type {unityField.FieldType}, the type will be unusable");
+                        Logger.Instance.LogTrace("Field {UnityField} on type {UnityType} has unsupported type {UnityFieldType}, the type will be unusable", unityField.ToString(), unityType.FullName, unityField.FieldType.ToString());
                         fieldsIgnored++;
                         continue;
                     }
@@ -55,8 +55,7 @@ public static class Pass80UnstripFields
             }
         }
 
-        Logger.Info(""); // finish the progress line
-        Logger.Info($"{fieldsUnstripped} fields restored");
-        Logger.Info($"{fieldsIgnored} fields failed to restore");
+        Logger.Instance.LogInformation("Restored {FieldsUnstripped} fields", fieldsUnstripped);
+        Logger.Instance.LogInformation("Failed to restore {FieldsIgnored} fields", fieldsIgnored);
     }
 }

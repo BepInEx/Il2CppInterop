@@ -1,8 +1,9 @@
 using System;
 using System.Diagnostics;
 using Il2CppInterop.Common;
+using Microsoft.Extensions.Logging;
 
-namespace Il2CppInterop.Generator;
+namespace Il2CppInterop.Generator.Utils;
 
 internal readonly struct TimingCookie : IDisposable
 {
@@ -10,12 +11,12 @@ internal readonly struct TimingCookie : IDisposable
 
     public TimingCookie(string message)
     {
-        Logger.Info(message + "... ");
+        Logger.Instance.LogInformation("{Message}...", message);
         myStopwatch = Stopwatch.StartNew();
     }
 
     public void Dispose()
     {
-        Logger.Info($"Done in {myStopwatch.Elapsed}");
+        Logger.Instance.LogInformation("Done in {Elapsed}", myStopwatch.Elapsed);
     }
 }

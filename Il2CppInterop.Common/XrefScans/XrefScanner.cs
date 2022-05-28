@@ -1,19 +1,14 @@
 using System.Reflection;
 using Iced.Intel;
 using Il2CppInterop.Common.Attributes;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Common.XrefScans;
 
 public static class XrefScanner
 {
-    internal static IXrefScannerImpl ScannerImpl { get; set; }
-
     public static unsafe IEnumerable<XrefInstance> XrefScan(MethodBase methodBase)
     {
-        if (ScannerImpl == null)
-            throw new InvalidOperationException(
-                "XrefScanner.ScannerImpl is not set. This is likely a bug in the code, please report it.");
-
         var fieldValue = Il2CppInteropUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(methodBase)
             ?.GetValue(null);
         if (fieldValue == null) return Enumerable.Empty<XrefInstance>();
@@ -25,8 +20,7 @@ public static class XrefScanner
         }
         catch (Exception e)
         {
-            Logger.Warning(
-                $"Failed to get custom attribute for {methodBase.DeclaringType!.FullName}.{methodBase.Name}: {e.Message}. Falling back to scanning.");
+            Logger.Instance.LogWarning("Failed to get custom attribute for {TypeName}.{MethodName}: {Error}. Falling back to scanning", methodBase.DeclaringType!.FullName, methodBase.Name, e.Message);
         }
 
         if (cachedAttribute == null)
@@ -42,7 +36,7 @@ public static class XrefScanner
         XrefScanMethodDb.CallMetadataInitForMethod(cachedAttribute);
 
         return XrefScanMethodDb.CachedXrefScan(cachedAttribute).Where(it =>
-            it.Type == XrefType.Method || ScannerImpl.XrefGlobalClassFilter(it.Pointer));
+            it.Type == XrefType.Method || XrefScannerManager.Impl.XrefGlobalClassFilter(it.Pointer));
     }
 
     public static IEnumerable<XrefInstance> UsedBy(MethodBase methodBase)
@@ -101,13 +95,13 @@ public static class XrefScanner
                         if (instruction.MemorySize != MemorySize.UInt64)
                             continue;
 
-                        if (skipClassCheck || ScannerImpl.XrefGlobalClassFilter(movTarget))
+                        if (skipClassCheck || XrefScannerManager.Impl.XrefGlobalClassFilter(movTarget))
                             result = new XrefInstance(XrefType.Global, movTarget, (IntPtr)instruction.IP);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex.ToString());
+                    Logger.Instance.LogError("{Error}", ex.ToString());
                 }
 
                 if (result != null)
