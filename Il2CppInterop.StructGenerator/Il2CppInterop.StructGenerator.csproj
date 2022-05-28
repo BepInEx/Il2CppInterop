@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="ClangSharp" Version="10.0.2-beta2"/>
+        <PackageReference Include="ClangSharp" Version="10.0.0-beta"/>
         <PackageReference Include="CppAst" Version="0.8.0"/>
         <PackageReference Include="IsExternalInit" Version="1.0.2">
             <PrivateAssets>all</PrivateAssets>
