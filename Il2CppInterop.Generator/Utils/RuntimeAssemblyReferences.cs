@@ -7,7 +7,7 @@ using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Generator.Contexts;
 using Mono.Cecil;
 
-namespace Il2CppInterop.Generator;
+namespace Il2CppInterop.Generator.Utils;
 
 public class RuntimeAssemblyReferences
 {

@@ -1,5 +1,7 @@
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Utils;
+using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
@@ -58,9 +60,7 @@ public static class Pass18FinalizeMethodContexts
 
         if (Pass15GenerateMemberContexts.HasObfuscatedMethods)
         {
-            Logger.Trace("");
-            Logger.Trace(
-                $"Dead method statistics: 0t={pdmTop0Caller} mt={pdmTopNZCaller} 0n={pdmNested0Caller} mn={pdmNestedNZCaller}");
+            Logger.Instance.LogTrace("Dead method statistics: 0t={Top0Caller} mt={TopNZCaller} 0n={Nested0Caller} mn={NestedNZCaller}", pdmTop0Caller, pdmTopNZCaller, pdmNested0Caller, pdmNestedNZCaller);
         }
     }
 }

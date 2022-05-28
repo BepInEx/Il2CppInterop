@@ -1,5 +1,6 @@
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
+using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
@@ -11,7 +12,7 @@ public static class Pass89GenerateForwarders
         var targetAssembly = context.TryGetAssemblyByName("UnityEngine");
         if (targetAssembly == null)
         {
-            Logger.Info("No UnityEngine.dll, will not generate forwarders");
+            Logger.Instance.LogInformation("No UnityEngine.dll, will not generate forwarders");
             return;
         }
 

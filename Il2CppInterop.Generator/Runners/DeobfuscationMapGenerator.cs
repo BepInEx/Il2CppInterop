@@ -9,45 +9,23 @@ using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.MetadataAccess;
 using Il2CppInterop.Generator.Passes;
+using Il2CppInterop.Generator.Utils;
+using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 
-namespace Il2CppInterop.Generator;
+namespace Il2CppInterop.Generator.Runners;
 
 public static class DeobfuscationMapGenerator
 {
-    public static void AnalyzeDeobfuscationParams(GeneratorOptions options)
+    public static Il2CppInteropGenerator AddDeobfuscationMapGenerator(this Il2CppInteropGenerator gen)
     {
-        RewriteGlobalContext rewriteContext;
-        IIl2CppMetadataAccess inputAssemblies;
-        using (new TimingCookie("Reading assemblies"))
-        {
-            inputAssemblies = new CecilMetadataAccess(options.Source);
-        }
-
-        using (new TimingCookie("Creating assembly contexts"))
-        {
-            rewriteContext = new RewriteGlobalContext(options, inputAssemblies, NullMetadataAccess.Instance);
-        }
-
-        for (var chars = 1; chars <= 3; chars++)
-            for (var uniq = 3; uniq <= 15; uniq++)
-            {
-                options.TypeDeobfuscationCharsPerUniquifier = chars;
-                options.TypeDeobfuscationMaxUniquifiers = uniq;
-
-                rewriteContext.RenamedTypes.Clear();
-                rewriteContext.RenameGroups.Clear();
-
-                Pass05CreateRenameGroups.DoPass(rewriteContext);
-
-                var uniqueTypes = rewriteContext.RenameGroups.Values.Count(it => it.Count == 1);
-                var nonUniqueTypes = rewriteContext.RenameGroups.Values.Count(it => it.Count > 1);
-
-                Console.WriteLine($"Chars=\t{chars}\tMaxU=\t{uniq}\tUniq=\t{uniqueTypes}\tNonUniq=\t{nonUniqueTypes}");
-            }
+        return gen.AddRunner<DeobfuscationMapGeneratorRunner>();
     }
+}
 
-    public static void GenerateDeobfuscationMap(GeneratorOptions options)
+internal class DeobfuscationMapGeneratorRunner : IRunner
+{
+    public void Run(GeneratorOptions options)
     {
         if (options.Source == null || !options.Source.Any())
         {
@@ -204,7 +182,7 @@ public static class DeobfuscationMapGenerator
                              (keyValuePair.Value.ForceNs ? keyValuePair.Key.Namespace + "." : "") +
                              keyValuePair.Key.Name + ";" + keyValuePair.Value.Item2);
 
-        Logger.Info("Done!");
+        Logger.Instance.LogInformation("Done!");
 
         rewriteContext.Dispose();
     }
@@ -410,4 +388,6 @@ public static class DeobfuscationMapGenerator
 
         return runningSum * (a.Parameters.Count + 1);
     }
+
+    public void Dispose() { }
 }

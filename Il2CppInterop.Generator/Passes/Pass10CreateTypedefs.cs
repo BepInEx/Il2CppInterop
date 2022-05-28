@@ -2,6 +2,7 @@ using System.Linq;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
+using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
@@ -72,8 +73,8 @@ public static class Pass10CreateTypedefs
             {
                 if (type.Module.Types.Any(t => t.FullName == newName))
                 {
-                    Logger.Warning(
-                        $"[Rename map issue] {newName} already exists in {type.Module.Name} (mapped from {fullName}.{convertedTypeName})");
+                    Logger.Instance.LogWarning("[Rename map issue] {NewName} already exists in {ModuleName} (mapped from {MappedNamespace}.{MappedType})",
+                        newName, type.Module.Name, fullName, convertedTypeName);
                     newName += "_Duplicate";
                 }
 

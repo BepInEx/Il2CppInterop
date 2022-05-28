@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Utils;
+using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
@@ -32,8 +33,8 @@ public static class Pass81FillUnstrippedMethodBodies
             }
         }
 
-        Logger.Info(""); // finish progress line
-        Logger.Info($"IL unstrip statistics: {methodsSucceeded} successful, {methodsFailed} failed");
+        Logger.Instance.LogInformation("IL unstrip statistics: {MethodsSucceeded} successful, {MethodsFailed} failed", methodsSucceeded,
+            methodsFailed);
     }
 
     public static void PushMethod(MethodDefinition unityMethod, MethodDefinition newMethod,

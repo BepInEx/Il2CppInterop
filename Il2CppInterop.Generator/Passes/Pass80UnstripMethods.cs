@@ -2,6 +2,7 @@ using System.Linq;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Utils;
+using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
@@ -37,7 +38,7 @@ public static class Pass80UnstripMethods
                     var returnType = ResolveTypeInNewAssemblies(context, unityMethod.ReturnType, imports);
                     if (returnType == null)
                     {
-                        Logger.Trace($"Method {unityMethod} has unsupported return type {unityMethod.ReturnType}");
+                        Logger.Instance.LogTrace("Method {UnityMethod} has unsupported return type {UnityMethodReturnType}", unityMethod.ToString(), unityMethod.ReturnType.ToString());
                         methodsIgnored++;
                         continue;
                     }
@@ -53,8 +54,7 @@ public static class Pass80UnstripMethods
                         if (convertedType == null)
                         {
                             hadBadParameter = true;
-                            Logger.Trace(
-                                $"Method {unityMethod} has unsupported parameter type {unityMethodParameter.ParameterType}");
+                            Logger.Instance.LogTrace("Method {UnityMethod} has unsupported parameter type {UnityMethodParameter}", unityMethod.ToString(), unityMethodParameter.ToString());
                             break;
                         }
 
@@ -120,9 +120,8 @@ public static class Pass80UnstripMethods
             }
         }
 
-        Logger.Info(""); // finish the progress line
-        Logger.Info($"{methodsUnstripped} methods restored");
-        Logger.Info($"{methodsIgnored} methods failed to restore");
+        Logger.Instance.LogInformation("Restored {UnstrippedMethods} methods", methodsUnstripped);
+        Logger.Instance.LogInformation("Failed to restore {IgnoredMethods} methods", methodsIgnored);
     }
 
     private static PropertyDefinition GetOrCreateProperty(MethodDefinition unityMethod, MethodDefinition newMethod)

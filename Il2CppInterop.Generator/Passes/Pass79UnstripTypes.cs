@@ -1,6 +1,8 @@
 using System.Linq;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Utils;
+using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
@@ -29,8 +31,7 @@ public static class Pass79UnstripTypes
                 ProcessType(processedAssembly, unityType, null, imports, ref typesUnstripped);
         }
 
-        Logger.Trace(""); // end the progress message
-        Logger.Trace($"{typesUnstripped} types restored");
+        Logger.Instance.LogTrace("Unstripped {UnstrippedTypeCount} types", typesUnstripped);
     }
 
     private static void ProcessType(AssemblyRewriteContext processedAssembly, TypeDefinition unityType,

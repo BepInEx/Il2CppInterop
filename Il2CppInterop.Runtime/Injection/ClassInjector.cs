@@ -7,12 +7,14 @@ using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Text;
+using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Attributes;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppInterop.Runtime.InteropTypes.Fields;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
+using Microsoft.Extensions.Logging;
 using ValueType = Il2CppSystem.ValueType;
 using Void = Il2CppSystem.Void;
 
@@ -459,7 +461,8 @@ public static unsafe class ClassInjector
 
         InjectorHelpers.AddTypeToLookup(type, classPointer.Pointer);
 
-        if (options.LogSuccess) Logger.Info($"Registered mono type {type} in il2cpp domain");
+        if (options.LogSuccess)
+            Logger.Instance.LogInformation("Registered mono type {Type} in il2cpp domain", type);
     }
 
     private static bool IsTypeSupported(Type type)
@@ -510,8 +513,8 @@ public static unsafe class ClassInjector
 
         if (!IsTypeSupported(method.ReturnType))
         {
-            Logger.Warning(
-                $"Method {method} on type {method.DeclaringType} has unsupported return type {method.ReturnType}");
+            Logger.Instance.LogWarning(
+                "Method {Method} on type {DeclaringType} has unsupported return type {ReturnType}", method.ToString(), method.DeclaringType, method.ReturnType);
             return false;
         }
 
@@ -520,8 +523,8 @@ public static unsafe class ClassInjector
             var parameterType = parameter.ParameterType;
             if (!IsTypeSupported(parameterType))
             {
-                Logger.Warning(
-                    $"Method {method} on type {method.DeclaringType} has unsupported parameter {parameter} of type {parameterType}");
+                Logger.Instance.LogWarning(
+                    "Method {Method} on type {DeclaringType} has unsupported parameter {Parameter} of type {ParameterType}", method.ToString(), method.DeclaringType, parameter, parameterType);
                 return false;
             }
         }
@@ -916,7 +919,7 @@ public static unsafe class ClassInjector
         body.Emit(OpCodes.Callvirt, typeof(object).GetMethod(nameof(ToString))!);
         body.Emit(OpCodes.Call,
             typeof(string).GetMethod(nameof(string.Concat), new[] { typeof(string), typeof(string) })!);
-        body.Emit(OpCodes.Call, typeof(Logger).GetMethod(nameof(Logger.Error))!);
+        body.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(ClassInjector.LogError))!);
 
         body.EndExceptionBlock();
 
@@ -934,6 +937,11 @@ public static unsafe class ClassInjector
         var @delegate = method.CreateDelegate(delegateType);
         GCHandle.Alloc(@delegate); // pin it forever
         return @delegate;
+    }
+
+    private static void LogError(string message)
+    {
+        Logger.Instance.LogError("{Message}", message);
     }
 
     private static string ExtractSignature(MethodInfo monoMethod)
@@ -1019,7 +1027,7 @@ public static unsafe class ClassInjector
             for (var i = 0; i < instancePointer->type_argc; i++)
                 typeArguments[i] = SystemTypeFromIl2CppType(instancePointer->type_argv[i]);
             var inflatedMethod = methods.Item1.MakeGenericMethod(typeArguments);
-            Logger.Trace("Inflated method: " + inflatedMethod.Name);
+            Logger.Instance.LogTrace("Inflated method: {InflatedMethod}", inflatedMethod.Name);
             inflatedMethodPointer = (IntPtr)ConvertMethodInfo(inflatedMethod,
                 UnityVersionHandler.Wrap(UnityVersionHandler.Wrap(gmethod->methodDefinition).Class));
             methods.Item2.Add((IntPtr)instancePointer, inflatedMethodPointer);

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.MetadataAccess;
+using Il2CppInterop.Generator.Utils;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 

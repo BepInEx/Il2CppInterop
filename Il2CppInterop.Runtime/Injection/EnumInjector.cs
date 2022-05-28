@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppSystem;
+using Microsoft.Extensions.Logging;
 using ArgumentException = System.ArgumentException;
 using Convert = System.Convert;
 using Enum = System.Enum;
@@ -116,7 +118,7 @@ public static unsafe class EnumInjector
     {
         var size = GetEnumElementSize(type);
         var blob = Marshal.AllocHGlobal(size);
-        Logger.Trace($"Allocated default value blob at 0x{blob.ToInt64():X2} of {size} for {type}");
+        Logger.Instance.LogTrace("Allocated default value blob at 0x{Blob} of {Size} for {Type}", blob.ToInt64().ToString("X2"), size, type);
         return blob;
     }
 
@@ -290,6 +292,7 @@ public static unsafe class EnumInjector
 
         InjectorHelpers.AddTypeToLookup(type, il2cppEnum.Pointer);
 
-        if (logSuccess) Logger.Info($"Registered managed enum {type} in il2cpp domain");
+        if (logSuccess)
+            Logger.Instance.LogInformation("Registered managed enum {Type} in il2cpp domain", type);
     }
 }

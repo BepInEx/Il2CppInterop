@@ -3,6 +3,7 @@ using System.Text;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
+using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
@@ -73,7 +74,10 @@ public static class UnstripGenerator
                 body.EmitObjectToPointer(param.ParameterType, param.ParameterType, enclosingType, i + argOffset, false,
                     true, true, out var refVar);
                 if (refVar != null)
-                    Logger.Trace($"Method {newMethod} has a reference-typed ref parameter, this will be ignored");
+                {
+                    Logger.Instance.LogTrace("Method {NewMethod} has a reference-typed ref parameter, this will be ignored",
+                        newMethod.ToString());
+                }
             }
         }
 

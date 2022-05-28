@@ -14,9 +14,4 @@ internal class XrefScanImpl : IXrefScannerImpl
     {
         return false;
     }
-
-    public static void Initialize()
-    {
-        XrefScanner.ScannerImpl = new XrefScanImpl();
-    }
 }

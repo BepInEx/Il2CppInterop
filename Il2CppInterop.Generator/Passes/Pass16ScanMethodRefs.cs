@@ -26,8 +26,6 @@ public static class Pass16ScanMethodRefs
             return;
         }
 
-        XrefScanImpl.Initialize();
-
         using var mappedFile = MemoryMappedFile.CreateFromFile(options.GameAssemblyPath, FileMode.Open, null, 0,
             MemoryMappedFileAccess.Read);
         using var accessor = mappedFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);

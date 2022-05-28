@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
@@ -13,6 +14,8 @@ using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.PropertyInfo;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
+using Il2CppInterop.Runtime.Startup;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Runtime;
 
@@ -32,8 +35,6 @@ public static class UnityVersionHandler
     private static readonly Type[] InterfacesOfInterest;
     private static readonly Dictionary<Type, List<(Version Version, object Handler)>> VersionedHandlers = new();
     private static readonly Dictionary<Type, object> Handlers = new();
-
-    internal static Version UnityVersion = new(2018, 4, 20);
 
     internal static INativeAssemblyStructHandler assemblyStructHandler;
     internal static INativeAssemblyNameStructHandler assemblyNameStructHandler;
@@ -73,18 +74,18 @@ public static class UnityVersionHandler
         RecalculateHandlers();
     }
 
-    public static bool IsMetadataV29OrHigher => UnityVersion >= new Version(2021, 2, 0);
+    public static bool IsMetadataV29OrHigher => Il2CppInteropRuntime.Instance.UnityVersion >= new Version(2021, 2, 0);
 
     // Version since which extra_arg is set to invoke_multicast, necessitating constructor calls
     public static bool MustUseDelegateConstructor => IsMetadataV29OrHigher;
 
-    private static void RecalculateHandlers()
+    internal static void RecalculateHandlers()
     {
         Handlers.Clear();
         foreach (var type in InterfacesOfInterest)
             foreach (var valueTuple in VersionedHandlers[type])
             {
-                if (valueTuple.Version > UnityVersion) continue;
+                if (valueTuple.Version > Il2CppInteropRuntime.Instance.UnityVersion) continue;
 
                 Handlers[type] = valueTuple.Handler;
                 break;
@@ -108,8 +109,7 @@ public static class UnityVersionHandler
         if (Handlers.TryGetValue(typeof(T), out var result))
             return (T)result;
 
-        Logger.Error(
-            $"No direct for {typeof(T).FullName} found for Unity {UnityVersion}; this likely indicates a severe error somewhere");
+        Logger.Instance.LogError("No direct for {TypeFullName} found for Unity {UnityVersion}; this likely indicates a severe error somewhere", typeof(T).FullName, Il2CppInteropRuntime.Instance.UnityVersion);
 
         throw new ApplicationException("No handler");
     }
@@ -125,17 +125,6 @@ public static class UnityVersionHandler
             return re.Types.Where(t => t != null).ToArray();
         }
     }
-
-    /// <summary>
-    ///     Initializes Unity interface for specified Unity version.
-    /// </summary>
-    /// <example>For Unity 2018.4.20, call <c>Initialize(2018, 4, 20)</c></example>
-    public static void Initialize(int majorVersion, int minorVersion, int patchVersion)
-    {
-        UnityVersion = new Version(majorVersion, minorVersion, patchVersion);
-        RecalculateHandlers();
-    }
-
 
     //Assemblies
     public static INativeAssemblyStruct NewAssembly()
