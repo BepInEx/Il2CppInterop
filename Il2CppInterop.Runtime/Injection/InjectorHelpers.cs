@@ -165,7 +165,7 @@ namespace Il2CppInterop.Runtime.Injection
             var targetTargets = XrefScannerLowLevel.JumpTargets(genericMethodGetMethod).Take(2).ToList();
             if (targetTargets.Count == 1) // U2021.2.0+, there's additional shim that takes 3 parameters
                 genericMethodGetMethod = targetTargets[0];
-            GenericMethodGetMethodOriginal = ClassInjector.Detour.Detour(genericMethodGetMethod, GenericMethodGetMethodDetour);
+            GenericMethodGetMethodOriginal = Detour.Apply(genericMethodGetMethod, GenericMethodGetMethodDetour);
             _delegateCache.Add(GenericMethodGetMethodDetour);
             _delegateCache.Add(GenericMethodGetMethodOriginal);
             return Marshal.GetDelegateForFunctionPointer<d_GenericMethodGetMethod>(genericMethodGetMethod);
@@ -200,7 +200,7 @@ namespace Il2CppInterop.Runtime.Injection
             var classFromName = XrefScannerLowLevel.JumpTargets(classFromNameAPI).Single();
             Logger.Instance.LogTrace("Class::FromName: 0x{ClassFromNameAddress}", classFromName.ToInt64().ToString("X2"));
 
-            ClassFromNameOriginal = ClassInjector.Detour.Detour(classFromName, ClassFromNameDetour);
+            ClassFromNameOriginal = Detour.Apply(classFromName, ClassFromNameDetour);
             _delegateCache.Add(ClassFromNameDetour);
             _delegateCache.Add(ClassFromNameOriginal);
             return Marshal.GetDelegateForFunctionPointer<d_ClassFromName>(classFromName);
@@ -287,7 +287,7 @@ namespace Il2CppInterop.Runtime.Injection
 
             Logger.Instance.LogTrace("MetadataCache::GetTypeInfoFromTypeDefinitionIndex: 0x{GetTypeInfoFromTypeDefinitionIndexAddress}", getTypeInfoFromTypeDefinitionIndex.ToInt64().ToString("X2"));
 
-            GetTypeInfoFromTypeDefinitionIndexOriginal = ClassInjector.Detour.Detour(
+            GetTypeInfoFromTypeDefinitionIndexOriginal = Detour.Apply(
                 getTypeInfoFromTypeDefinitionIndex,
                 GetTypeInfoFromTypeDefinitionIndexDetour
             );
@@ -323,7 +323,7 @@ namespace Il2CppInterop.Runtime.Injection
             var classFromType = XrefScannerLowLevel.JumpTargets(classFromTypeAPI).Single();
             Logger.Instance.LogTrace("Class::FromIl2CppType: 0x{ClassFromTypeAddress}", classFromType.ToInt64().ToString("X2"));
 
-            ClassFromIl2CppTypeOriginal = ClassInjector.Detour.Detour(classFromType, ClassFromIl2CppTypeDetour);
+            ClassFromIl2CppTypeOriginal = Detour.Apply(classFromType, ClassFromIl2CppTypeDetour);
             _delegateCache.Add(ClassFromIl2CppTypeDetour);
             _delegateCache.Add(ClassFromIl2CppTypeOriginal);
             return Marshal.GetDelegateForFunctionPointer<d_ClassFromIl2CppType>(classFromType);
@@ -365,7 +365,7 @@ namespace Il2CppInterop.Runtime.Injection
             var classGetDefaultFieldValue = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).First();
             Logger.Instance.LogTrace("Class::GetDefaultFieldValue: 0x{ClassGetDefaultFieldValueAddress}", classGetDefaultFieldValue.ToInt64().ToString("X2"));
 
-            ClassGetFieldDefaultValueOriginal = ClassInjector.Detour.Detour(classGetDefaultFieldValue, ClassGetFieldDefaultValueDetour);
+            ClassGetFieldDefaultValueOriginal = Detour.Apply(classGetDefaultFieldValue, ClassGetFieldDefaultValueDetour);
             _delegateCache.Add(ClassGetFieldDefaultValueDetour);
             _delegateCache.Add(ClassGetFieldDefaultValueOriginal);
             return Marshal.GetDelegateForFunctionPointer<d_ClassGetFieldDefaultValue>(classGetDefaultFieldValue);

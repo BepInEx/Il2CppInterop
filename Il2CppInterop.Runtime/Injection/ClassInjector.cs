@@ -73,8 +73,6 @@ public static unsafe class ClassInjector
 
     private static readonly ConcurrentDictionary<string, InvokerDelegate> InvokerCache = new();
 
-    public static IManagedDetour Detour = new NotImplementedDetour();
-
     private static readonly ConcurrentDictionary<(Type type, FieldAttributes attrs), IntPtr>
         _injectedFieldTypes = new();
 
@@ -1044,21 +1042,4 @@ public static unsafe class ClassInjector
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate void VoidCtorDelegate(IntPtr objectPointer);
-
-    private class NotImplementedDetour : IManagedDetour
-    {
-        public T Detour<T>(IntPtr from, T to) where T : Delegate
-        {
-            throw new NotImplementedException("Provide a detour implementation by setting ClassInjector.Detour.");
-        }
-    }
-}
-
-public interface IManagedDetour
-{
-    /// <summary>
-    ///     Patch the native function at address specified in `from`, replacing it with `to`, and return a delegate to call the
-    ///     original native function
-    /// </summary>
-    T Detour<T>(IntPtr from, T to) where T : Delegate;
 }
