@@ -10,7 +10,7 @@ internal static class CorlibReferences
     public static void RewriteReferenceToMscorlib(AssemblyNameReference assemblyNameReference)
     {
         assemblyNameReference.Name = "mscorlib";
-        assemblyNameReference.Version = new Version(6, 0, 0, 0);
+        assemblyNameReference.Version = new Version(4, 0, 0, 0);
         assemblyNameReference.PublicKeyToken = new byte[] { 183, 122, 92, 86, 25, 52, 224, 137 };
         assemblyNameReference.Culture = "";
     }
