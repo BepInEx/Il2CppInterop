@@ -197,7 +197,7 @@ public static class DelegateSupport
         bodyBuilder.Emit(OpCodes.Callvirt, typeof(object).GetMethod(nameof(ToString))!);
         bodyBuilder.Emit(OpCodes.Call,
             typeof(string).GetMethod(nameof(string.Concat), new[] { typeof(string), typeof(string) })!);
-        bodyBuilder.Emit(OpCodes.Call, typeof(DelegateSupport).GetMethod(nameof(LogError))!);
+        bodyBuilder.Emit(OpCodes.Call, typeof(DelegateSupport).GetMethod(nameof(LogError), BindingFlags.Static | BindingFlags.NonPublic)!);
 
         bodyBuilder.EndExceptionBlock();
 

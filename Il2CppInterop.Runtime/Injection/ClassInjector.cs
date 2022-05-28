@@ -919,7 +919,7 @@ public static unsafe class ClassInjector
         body.Emit(OpCodes.Callvirt, typeof(object).GetMethod(nameof(ToString))!);
         body.Emit(OpCodes.Call,
             typeof(string).GetMethod(nameof(string.Concat), new[] { typeof(string), typeof(string) })!);
-        body.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(ClassInjector.LogError))!);
+        body.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(LogError), BindingFlags.Static | BindingFlags.NonPublic)!);
 
         body.EndExceptionBlock();
 
