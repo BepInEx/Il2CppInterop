@@ -1,10 +1,11 @@
+#nullable enable
 using System.Reflection;
 
-namespace Il2CppInterop.Common;
+namespace Il2CppInterop.Common.XrefScans;
 
-public static class GeneratedDatabasesUtil
+internal static class GeneratedDatabasesUtil
 {
-    public static string? DatabasesLocationOverride { get; set; } = null;
+    private static string? DatabasesLocationOverride => Environment.GetEnvironmentVariable("IL2CPP_INTEROP_DATABASES_LOCATION");
 
     public static string GetDatabasePath(string databaseName)
     {
