@@ -29,7 +29,8 @@ public sealed class Il2CppInteropRuntime : BaseHost
     {
         var res = new Il2CppInteropRuntime
         {
-            UnityVersion = configuration.UnityVersion, DetourProvider = configuration.DetourProvider
+            UnityVersion = configuration.UnityVersion,
+            DetourProvider = configuration.DetourProvider
         };
         SetInstance(res);
         res.AddXrefScanner<Il2CppInteropRuntime, XrefScanImpl>();
