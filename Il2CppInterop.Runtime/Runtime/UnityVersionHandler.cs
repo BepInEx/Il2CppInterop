@@ -74,7 +74,8 @@ public static class UnityVersionHandler
         RecalculateHandlers();
     }
 
-    public static bool IsMetadataV29OrHigher => Il2CppInteropRuntime.Instance.UnityVersion >= new Version(2021, 2, 0);
+    public static bool HasGetMethodFromReflection { get; private set; }
+    public static bool IsMetadataV29OrHigher { get; private set; }
 
     // Version since which extra_arg is set to invoke_multicast, necessitating constructor calls
     public static bool MustUseDelegateConstructor => IsMetadataV29OrHigher;
@@ -90,6 +91,9 @@ public static class UnityVersionHandler
                 Handlers[type] = valueTuple.Handler;
                 break;
             }
+
+        HasGetMethodFromReflection = Il2CppInteropRuntime.Instance.UnityVersion > new Version(2018, 1, 0);
+        IsMetadataV29OrHigher = Il2CppInteropRuntime.Instance.UnityVersion >= new Version(2021, 2, 0);
 
         assemblyStructHandler = GetHandler<INativeAssemblyStructHandler>();
         assemblyNameStructHandler = GetHandler<INativeAssemblyNameStructHandler>();
