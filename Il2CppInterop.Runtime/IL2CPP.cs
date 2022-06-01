@@ -731,7 +731,7 @@ public static unsafe class IL2CPP
     }
 
     [DllImport("GameAssembly", EntryPoint = nameof(il2cpp_method_get_from_reflection), CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr _il2cpp_method_get_from_reflection(IntPtr method);
+    private static extern IntPtr _il2cpp_method_get_from_reflection(IntPtr method);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_method_get_object(IntPtr method, IntPtr refclass);
