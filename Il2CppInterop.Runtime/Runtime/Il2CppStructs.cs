@@ -278,3 +278,11 @@ public unsafe struct Il2CppGenericMethod
     public Il2CppMethodInfo* methodDefinition;
     public Il2CppGenericContext context;
 }
+
+public unsafe struct Il2CppReflectionMethod
+{
+    public Il2CppObject _object;
+    public Il2CppMethodInfo* method;
+    public Il2CppString* name;
+    public IntPtr reftype; // Il2CppReflectionType*
+}
