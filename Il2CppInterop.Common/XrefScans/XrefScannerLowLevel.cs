@@ -11,18 +11,34 @@ public static class XrefScannerLowLevel
 
     private static IEnumerable<IntPtr> JumpTargetsImpl(Decoder myDecoder)
     {
+        var firstFlowControl = true;
+
         while (true)
         {
             myDecoder.Decode(out var instruction);
             if (myDecoder.LastError == DecoderError.NoMoreBytes) yield break;
+
+            // 0xcc - padding after most functions
+            if (instruction.Mnemonic == Mnemonic.Int3)
+                yield break;
+
             if (instruction.FlowControl == FlowControl.Return)
                 yield break;
 
             if (instruction.FlowControl == FlowControl.UnconditionalBranch ||
                 instruction.FlowControl == FlowControl.Call)
             {
-                yield return (IntPtr)ExtractTargetAddress(in instruction);
-                if (instruction.FlowControl == FlowControl.UnconditionalBranch) yield break;
+                // We hope and pray that the compiler didn't use short jumps for any function calls
+                if (!instruction.IsJmpShort)
+                {
+                    yield return (IntPtr)ExtractTargetAddress(in instruction);
+                    if (firstFlowControl && instruction.FlowControl == FlowControl.UnconditionalBranch) yield break;
+                }
+            }
+
+            if (instruction.FlowControl != FlowControl.Next)
+            {
+                firstFlowControl = false;
             }
         }
     }
