@@ -5,6 +5,10 @@
 [![BepInEx NuGet (CLI)](https://img.shields.io/badge/NuGet-CLI-brightgreen)](https://nuget.bepinex.dev/packages/Il2CppInterop.CLI)
 [![BepInEx NuGet (Runtime)](https://img.shields.io/badge/NuGet-Runtime-brightgreen)](https://nuget.bepinex.dev/packages/Il2CppInterop.Runtime)
 
+> **BepInEx fork of Il2CppAssemblyUnhollower is not Il2CppInterop!**
+>
+> Looking for old README and guides? Check out [`legacy-unhollower` branch](https://github.com/BepInEx/Il2CppInterop/tree/legacy-unhollower).
+
 A framework for interoperation with Il2Cpp runtime in CoreCLR and mono. The framework includes
 
 * A tool to generate .NET assemblies from [Cpp2IL](https://github.com/SamboyCoding/Cpp2IL)'s output
