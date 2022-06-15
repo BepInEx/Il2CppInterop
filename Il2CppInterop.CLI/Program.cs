@@ -1,17 +1,14 @@
 ﻿using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
 using System.Text.RegularExpressions;
+using Il2CppInterop;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator;
 using Il2CppInterop.Generator.Runners;
 using Il2CppInterop.StructGenerator;
 using Microsoft.Extensions.Logging;
-using Mono.Cecil;
 
-var command = new RootCommand
-{
-    new Option<bool>("--verbose", "Produce more verbose output")
-};
+var command = new RootCommand { new Option<bool>("--verbose", "Produce more verbose output") };
 command.Description = "Generate Managed<->IL2CPP interop assemblies from Cpp2IL's output.";
 
 var generateCommand = new Command("generate")
@@ -48,11 +45,21 @@ var deobfCommand = new Command("deobf");
 deobfCommand.Description = "Tools for deobfuscating assemblies";
 var deobfAnalyzeCommand = new Command("analyze")
 {
-    new Option<DirectoryInfo>("--input", "Directory of assemblies to deobfuscate") {IsRequired = true}.ExistingOnly()
+    new Option<DirectoryInfo>("--input", "Directory of assemblies to deobfuscate") {IsRequired = true}.ExistingOnly(),
+    new Option<string[]>("--add-prefix-to",
+        "Assemblies and namespaces starting with these will get an Il2Cpp prefix in generated assemblies. Allows multiple values.")
 };
 deobfAnalyzeCommand.Description =
     "Analyze deobfuscation performance with different parameter values. Will not generate assemblies.";
-// TODO: Command implementation
+
+deobfAnalyzeCommand.Handler = CommandHandler.Create((DeobfAnalyzeCommandOptions opts) =>
+{
+    var buildResult = opts.Build();
+    Il2CppInteropGenerator.Create(buildResult.Options)
+        .AddLogger(buildResult.Logger)
+        .AddDeobfuscationAnalyzer()
+        .Run();
+});
 
 var deobfGenerateCommand = new Command("generate")
 {
@@ -64,17 +71,28 @@ var deobfGenerateCommand = new Command("generate")
     new Option<string[]>("--include",
         "Include these assemblies for deobfuscation map generation. If none are specified, all assemblies will be included."),
     new Option<int>("--deobf-uniq-chars", "How many characters per unique token to use during deobfuscation"),
-    new Option<int>("--deobf-uniq-max", "How many maximum unique tokens per type are allowed during deobfuscation")
+    new Option<int>("--deobf-uniq-max", "How many maximum unique tokens per type are allowed during deobfuscation"),
+    new Option<Regex>("--obf-regex",
+        "Specifies a regex for obfuscated names. All types and members matching will be renamed.")
 };
 deobfGenerateCommand.Description =
     "Generate a deobfuscation map from original unobfuscated assemblies. Will not generate assemblies.";
-// TODO: Command implementation
+deobfGenerateCommand.Handler = CommandHandler.Create((DeobfGenerateCommandOptions opts) =>
+{
+    var buildResult = opts.Build();
+    Il2CppInteropGenerator.Create(buildResult.Options)
+        .AddLogger(buildResult.Logger)
+        .AddDeobfuscationMapGenerator()
+        .Run();
+});
 
 var wrapperCommand = new Command("wrapper-gen")
 {
     new Option<DirectoryInfo>("--headers",
-            "Directory that contains libil2cpp headers. Directory must contains subdirectories named after libil2cpp version.")
-        {IsRequired = true}.ExistingOnly(),
+        "Directory that contains libil2cpp headers. Directory must contains subdirectories named after libil2cpp version.")
+    {
+        IsRequired = true
+    }.ExistingOnly(),
     new Option<DirectoryInfo>("--output", "Directory to write managed struct wrapper sources to") {IsRequired = true}
 };
 wrapperCommand.Description = "Tools for generating Il2Cpp struct wrappers from libi2lcpp source";
@@ -91,6 +109,7 @@ command.Add(wrapperCommand);
 
 return command.Invoke(args);
 
+
 internal record CmdOptionsResult(GeneratorOptions Options, ILogger Logger);
 
 internal record BaseCmdOptions(bool Verbose)
@@ -106,10 +125,7 @@ internal record BaseCmdOptions(bool Verbose)
 
         var logger = loggerFactory.CreateLogger("Il2CppInterop");
 
-        return new(new GeneratorOptions
-        {
-            Verbose = Verbose
-        }, logger);
+        return new CmdOptionsResult(new GeneratorOptions { Verbose = Verbose }, logger);
     }
 }
 
@@ -149,16 +165,7 @@ internal record GenerateCommandOptions(
         var res = base.Build();
         var opts = res.Options;
 
-        var resolver = new BasicResolver();
-        var inputAssemblies = Input.EnumerateFiles("*.dll").Select(f => AssemblyDefinition.ReadAssembly(f.FullName,
-            new ReaderParameters
-            {
-                AssemblyResolver = resolver
-            })).ToList();
-        foreach (var assembly in inputAssemblies)
-            resolver.Register(assembly);
-
-        opts.Source = inputAssemblies;
+        opts.Source = Utils.LoadAssembliesFrom(Input);
         opts.OutputDir = Output.FullName;
         opts.UnityBaseLibsDir = Unity?.FullName;
         opts.GameAssemblyPath = GameAssembly?.FullName ?? "";
@@ -170,76 +177,70 @@ internal record GenerateCommandOptions(
         opts.PassthroughNames = PassthroughNames;
 
         if (AddPrefixTo is not null)
+        {
             foreach (var s in AddPrefixTo)
+            {
                 opts.NamespacesAndAssembliesToPrefix.Add(s);
+            }
+        }
+
         if (DeobfMap is not null)
+        {
             opts.ReadRenameMap(DeobfMap.FullName);
+        }
 
         return res;
     }
 }
 
-// TODO: Remove once separated into subcommands
-internal record CmdOptions(
+internal record DeobfAnalyzeCommandOptions(
     bool Verbose,
-    DirectoryInfo Input,
-    DirectoryInfo Output,
-    DirectoryInfo? Unity,
-    FileInfo? GameAssembly,
-    int DeobfUniqChars,
-    int DeobfUniqMax,
-    bool DeobfAnalyze,
-    string[]? BlacklistAssembly,
     string[]? AddPrefixTo,
-    bool NoXrefCache,
-    Regex? ObfRegex,
-    FileInfo? RenameMap,
-    bool PassthroughNames,
-    bool DeobfGenerate,
-    string[]? DeobfGenerateAsm,
-    DirectoryInfo? DeobfGenerateNew
-)
+    DirectoryInfo Input
+) : BaseCmdOptions(Verbose)
 {
-    public GeneratorOptions BuildOptions()
+    public override CmdOptionsResult Build()
     {
-        var resolver = new BasicResolver();
-        var inputAssemblies = Input.EnumerateFiles("*.dll").Select(f => AssemblyDefinition.ReadAssembly(f.FullName,
-            new ReaderParameters
-            {
-                AssemblyResolver = resolver
-            })).ToList();
-        foreach (var assembly in inputAssemblies)
-            resolver.Register(assembly);
+        var res = base.Build();
+        var opts = res.Options;
 
-        var result = new GeneratorOptions
-        {
-            Verbose = Verbose,
-            NoXrefCache = NoXrefCache,
-            Source = inputAssemblies,
-            OutputDir = Output.FullName,
-            UnityBaseLibsDir = Unity?.FullName,
-            GameAssemblyPath = GameAssembly?.FullName ?? "",
-            TypeDeobfuscationCharsPerUniquifier = DeobfUniqChars,
-            TypeDeobfuscationMaxUniquifiers = DeobfUniqMax,
-            ObfuscatedNamesRegex = ObfRegex,
-            DeobfuscationNewAssembliesPath = DeobfGenerateNew?.FullName ?? "",
-            PassthroughNames = PassthroughNames
-        };
-        result.AdditionalAssembliesBlacklist.AddRange(BlacklistAssembly ?? Array.Empty<string>());
+        opts.Source = Utils.LoadAssembliesFrom(Input);
         if (AddPrefixTo is not null)
+        {
             foreach (var s in AddPrefixTo)
-                result.NamespacesAndAssembliesToPrefix.Add(s);
-        if (RenameMap is not null)
-            result.ReadRenameMap(RenameMap.FullName);
-        result.DeobfuscationGenerationAssemblies.AddRange(DeobfGenerateAsm ?? Array.Empty<string>());
-        return result;
+            {
+                opts.NamespacesAndAssembliesToPrefix.Add(s);
+            }
+        }
+
+        return res;
     }
 }
 
-internal class BasicResolver : DefaultAssemblyResolver
+internal record DeobfGenerateCommandOptions(
+    bool Verbose,
+    DirectoryInfo OldAssemblies,
+    DirectoryInfo NewAssemblies,
+    DirectoryInfo Output,
+    string[]? Include,
+    int DeobfUniqChars,
+    int DeobfUniqMax,
+    Regex? ObfRegex
+) : BaseCmdOptions(Verbose)
 {
-    public void Register(AssemblyDefinition ad)
+    public override CmdOptionsResult Build()
     {
-        RegisterAssembly(ad);
+        var res = base.Build();
+        var opts = res.Options;
+
+        opts.Source = Utils.LoadAssembliesFrom(OldAssemblies);
+        opts.OutputDir = Output.FullName;
+        opts.DeobfuscationNewAssembliesPath = NewAssemblies.FullName;
+        opts.DeobfuscationGenerationAssemblies.AddRange(Include ?? Array.Empty<string>());
+        opts.TypeDeobfuscationCharsPerUniquifier = DeobfUniqChars;
+        opts.TypeDeobfuscationMaxUniquifiers = DeobfUniqMax;
+        opts.ObfuscatedNamesRegex = ObfRegex;
+
+        return res;
     }
 }
