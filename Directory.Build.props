@@ -1,6 +1,6 @@
 <Project>
     <PropertyGroup>
-        <Version>1.0.0.0</Version>
+        <Version>1.0.0</Version>
         <PackageOutputPath>../bin/NuGet</PackageOutputPath>
         <OutputPath Condition="'$(Configuration)' == 'Release'">../bin/$(MSBuildProjectName)</OutputPath>
         <LangVersion>latest</LangVersion>
@@ -8,6 +8,6 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>Il2CppInterop</RootNamespace>
         <LangVersion>latest</LangVersion>
-        <PackageVersion>1.0.0-pre.10</PackageVersion>
+        <PackageVersion>1.0.0</PackageVersion>
     </PropertyGroup>
 </Project>
