@@ -16,7 +16,6 @@ using Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Image;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
 using Il2CppInterop.Runtime.Startup;
-using Il2CppInterop.Runtime.XrefScans;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection
@@ -27,7 +26,9 @@ namespace Il2CppInterop.Runtime.Injection
         internal static INativeImageStruct InjectedImage;
         internal static ProcessModule Il2CppModule = Process.GetCurrentProcess()
             .Modules.OfType<ProcessModule>()
-            .Single((x) => x.ModuleName == "GameAssembly.dll" || x.ModuleName == "UserAssembly.dll");
+            .Single((x) => x.ModuleName is "GameAssembly.dll" or "GameAssembly.so" or "UserAssembly.dll");
+
+        internal static IntPtr Il2CppHandle = NativeLibrary.Load("GameAssembly", typeof(InjectorHelpers).Assembly, null);
 
         internal static readonly Dictionary<Type, OpCode> StIndOpcodes = new()
         {
@@ -61,36 +62,12 @@ namespace Il2CppInterop.Runtime.Injection
         internal static void Setup()
         {
             if (InjectedAssembly == null) CreateInjectedAssembly();
-            if (GenericMethodGetMethod == null)
-            {
-                GenericMethodGetMethod = FindGenericMethodGetMethod();
-                _delegateCache.Add(GenericMethodGetMethod);
-            }
-            if (GetTypeInfoFromTypeDefinitionIndex == null)
-            {
-                GetTypeInfoFromTypeDefinitionIndex = FindGetTypeInfoFromTypeDefinitionIndex();
-                _delegateCache.Add(GetTypeInfoFromTypeDefinitionIndex);
-            }
-            if (ClassGetFieldDefaultValue == null)
-            {
-                ClassGetFieldDefaultValue = FindClassGetFieldDefaultValue();
-                _delegateCache.Add(ClassGetFieldDefaultValue);
-            }
-            if (ClassInit == null)
-            {
-                ClassInit = FindClassInit();
-                _delegateCache.Add(ClassInit);
-            }
-            if (ClassFromIl2CppType == null)
-            {
-                ClassFromIl2CppType = FindClassFromIl2CppType();
-                _delegateCache.Add(ClassFromIl2CppType);
-            }
-            if (ClassFromName == null)
-            {
-                ClassFromName = FindClassFromName();
-                _delegateCache.Add(ClassFromName);
-            }
+            GenericMethodGetMethod ??= FindGenericMethodGetMethod();
+            GetTypeInfoFromTypeDefinitionIndex ??= FindGetTypeInfoFromTypeDefinitionIndex();
+            ClassGetFieldDefaultValue ??= FindClassGetFieldDefaultValue();
+            ClassInit ??= FindClassInit();
+            ClassFromIl2CppType ??= FindClassFromIl2CppType();
+            ClassFromName ??= FindClassFromName();
         }
 
         internal static long CreateClassToken(IntPtr classPointer)
@@ -114,11 +91,19 @@ namespace Il2CppInterop.Runtime.Injection
             }
         }
 
-        internal static IntPtr GetIl2CppExport(string exportName, bool throwIfNotExist = true)
+        internal static IntPtr GetIl2CppExport(string name)
         {
-            if (!NativeLibrary.TryGetExport(Il2CppModule.BaseAddress, exportName, out var addr) && throwIfNotExist)
-                throw new NotSupportedException($"Couldn't find {exportName} in {Il2CppModule.ModuleName}'s exports");
-            return addr;
+            if (!TryGetIl2CppExport(name, out var address))
+            {
+                throw new NotSupportedException($"Couldn't find {name} in {Il2CppModule.ModuleName}'s exports");
+            }
+
+            return address;
+        }
+
+        internal static bool TryGetIl2CppExport(string name, out IntPtr address)
+        {
+            return NativeLibrary.TryGetExport(Il2CppHandle, name, out address);
         }
 
         internal static IntPtr GetIl2CppMethodPointer(MethodBase proxyMethod)
@@ -143,8 +128,6 @@ namespace Il2CppInterop.Runtime.Injection
         private static readonly ConcurrentDictionary<long, IntPtr> s_InjectedClasses = new();
         /// <summary> (namespace, class, image) : class </summary>
         private static readonly Dictionary<(string _namespace, string _class, IntPtr imagePtr), IntPtr> s_ClassNameLookup = new();
-        // (Kasuromi): This is required for CoreCLR to prevent delegates from getting garbage collected (GCHandles didn't seem to work)
-        private static readonly List<object> _delegateCache = new();
         #region GenericMethod::GetMethod
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate Il2CppMethodInfo* d_GenericMethodGetMethod(Il2CppGenericMethod* gmethod, bool copyMethodPtr);
@@ -166,8 +149,6 @@ namespace Il2CppInterop.Runtime.Injection
             if (targetTargets.Count == 1) // U2021.2.0+, there's additional shim that takes 3 parameters
                 genericMethodGetMethod = targetTargets[0];
             GenericMethodGetMethodOriginal = Detour.Apply(genericMethodGetMethod, GenericMethodGetMethodDetour);
-            _delegateCache.Add(GenericMethodGetMethodDetour);
-            _delegateCache.Add(GenericMethodGetMethodOriginal);
             return Marshal.GetDelegateForFunctionPointer<d_GenericMethodGetMethod>(genericMethodGetMethod);
         }
         #endregion
@@ -201,8 +182,6 @@ namespace Il2CppInterop.Runtime.Injection
             Logger.Instance.LogTrace("Class::FromName: 0x{ClassFromNameAddress}", classFromName.ToInt64().ToString("X2"));
 
             ClassFromNameOriginal = Detour.Apply(classFromName, ClassFromNameDetour);
-            _delegateCache.Add(ClassFromNameDetour);
-            _delegateCache.Add(ClassFromNameOriginal);
             return Marshal.GetDelegateForFunctionPointer<d_ClassFromName>(classFromName);
         }
         #endregion
@@ -291,8 +270,6 @@ namespace Il2CppInterop.Runtime.Injection
                 getTypeInfoFromTypeDefinitionIndex,
                 GetTypeInfoFromTypeDefinitionIndexDetour
             );
-            _delegateCache.Add(GetTypeInfoFromTypeDefinitionIndexDetour);
-            _delegateCache.Add(GetTypeInfoFromTypeDefinitionIndexOriginal);
             return Marshal.GetDelegateForFunctionPointer<d_GetTypeInfoFromTypeDefinitionIndex>(getTypeInfoFromTypeDefinitionIndex);
         }
         #endregion
@@ -324,8 +301,6 @@ namespace Il2CppInterop.Runtime.Injection
             Logger.Instance.LogTrace("Class::FromIl2CppType: 0x{ClassFromTypeAddress}", classFromType.ToInt64().ToString("X2"));
 
             ClassFromIl2CppTypeOriginal = Detour.Apply(classFromType, ClassFromIl2CppTypeDetour);
-            _delegateCache.Add(ClassFromIl2CppTypeDetour);
-            _delegateCache.Add(ClassFromIl2CppTypeOriginal);
             return Marshal.GetDelegateForFunctionPointer<d_ClassFromIl2CppType>(classFromType);
         }
         #endregion
@@ -360,14 +335,11 @@ namespace Il2CppInterop.Runtime.Injection
             var getStaticFieldValueInternal = XrefScannerLowLevel.JumpTargets(getStaticFieldValue).Last();
             Logger.Instance.LogTrace("Field::StaticGetValueInternal: 0x{GetStaticFieldValueInternalAddress}", getStaticFieldValueInternal.ToInt64().ToString("X2"));
 
-            // (Kasuromi): The invocation is Field::GetDefaultFieldValue, but this appears to get inlined in all the il2cpp assemblies I've looked at
-            // TODO: Add support for non-inlined method invocation
-            var classGetDefaultFieldValue = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).First();
+            var getStaticFieldValueInternalTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).ToArray();
+            var classGetDefaultFieldValue = getStaticFieldValueInternalTargets.Length == 3 ? getStaticFieldValueInternalTargets.Last() : getStaticFieldValueInternalTargets.First();
             Logger.Instance.LogTrace("Class::GetDefaultFieldValue: 0x{ClassGetDefaultFieldValueAddress}", classGetDefaultFieldValue.ToInt64().ToString("X2"));
 
             ClassGetFieldDefaultValueOriginal = Detour.Apply(classGetDefaultFieldValue, ClassGetFieldDefaultValueDetour);
-            _delegateCache.Add(ClassGetFieldDefaultValueDetour);
-            _delegateCache.Add(ClassGetFieldDefaultValueOriginal);
             return Marshal.GetDelegateForFunctionPointer<d_ClassGetFieldDefaultValue>(classGetDefaultFieldValue);
         }
         #endregion
