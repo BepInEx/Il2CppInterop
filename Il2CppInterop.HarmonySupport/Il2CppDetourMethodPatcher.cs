@@ -35,6 +35,12 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
     private static readonly MethodInfo ReportExceptionMethodInfo
         = AccessTools.Method(typeof(Il2CppDetourMethodPatcher), nameof(ReportException));
 
+    private static readonly MethodInfo Il2CppValueBoxMethodInfo
+        = AccessTools.Method(typeof(IL2CPP), nameof(IL2CPP.il2cpp_value_box));
+
+    private static readonly MethodInfo Il2CppUnboxMethodInfo
+        = AccessTools.Method(typeof(IL2CPP), nameof(IL2CPP.il2cpp_object_unbox));
+
     // Map each value type to correctly sized store opcode to prevent memory overwrite
     // Special case: bool is byte in Il2Cpp
     private static readonly Dictionary<Type, OpCode> StIndOpcodes = new()
@@ -366,6 +372,11 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         {
             il.Emit(OpCodes.Call, ManagedToIL2CPPStringMethodInfo);
         }
+        else if (returnType.IsSubclassOf(typeof(ValueType)))
+        {
+            il.Emit(OpCodes.Call, ObjectBaseToPtrMethodInfo);
+            il.Emit(OpCodes.Call, Il2CppUnboxMethodInfo);
+        }
         else if (!returnType.IsValueType && returnType.IsSubclassOf(typeof(Il2CppObjectBase)))
         {
             il.Emit(OpCodes.Call, ObjectBaseToPtrMethodInfo);
@@ -398,9 +409,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
             // On x64, struct is always a pointer but it is a non-pointer on x86
             // We don't handle byref structs on x86 yet but we're yet to encounter those
             il.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga_S, argIndex);
-            il.Emit(OpCodes.Call,
-                AccessTools.Method(typeof(IL2CPP),
-                    nameof(IL2CPP.il2cpp_value_box)));
+            il.Emit(OpCodes.Call, Il2CppValueBoxMethodInfo);
         }
         else
         {
@@ -436,6 +445,13 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
             {
                 il.Emit(OpCodes.Call, IL2CPPToManagedStringMethodInfo);
             }
+            else if (originalType.IsSubclassOf(typeof(ValueType)))
+            {
+                if (Environment.Is64BitProcess)
+                    EmitConvertArgumentToManaged(il, argIndex, originalType, out _);
+                else
+                    throw new NotSupportedException("ByRef structs are not supported on x86 yet");
+            }
             else if (originalType.IsSubclassOf(typeof(Il2CppObjectBase)))
             {
                 EmitCreateIl2CppObject(originalType);
@@ -444,7 +460,6 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
 
         if (managedParamType.IsByRef)
         {
-            // TODO: directType being ValueType is not handled yet (but it's not that common in games). Implement when needed.
             var directType = managedParamType.GetElementType();
 
             variable = il.DeclareLocal(directType);
