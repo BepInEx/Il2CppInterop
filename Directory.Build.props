@@ -8,6 +8,5 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>Il2CppInterop</RootNamespace>
         <LangVersion>latest</LangVersion>
-        <PackageVersion>1.0.0</PackageVersion>
     </PropertyGroup>
 </Project>
