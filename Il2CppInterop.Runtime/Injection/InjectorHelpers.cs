@@ -16,7 +16,6 @@ using Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Image;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
 using Il2CppInterop.Runtime.Startup;
-using Il2CppInterop.Runtime.XrefScans;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection
@@ -27,7 +26,9 @@ namespace Il2CppInterop.Runtime.Injection
         internal static INativeImageStruct InjectedImage;
         internal static ProcessModule Il2CppModule = Process.GetCurrentProcess()
             .Modules.OfType<ProcessModule>()
-            .Single((x) => x.ModuleName == "GameAssembly.dll" || x.ModuleName == "UserAssembly.dll");
+            .Single((x) => x.ModuleName is "GameAssembly.dll" or "GameAssembly.so" or "UserAssembly.dll");
+
+        internal static IntPtr Il2CppHandle = NativeLibrary.Load("GameAssembly", typeof(InjectorHelpers).Assembly, null);
 
         internal static readonly Dictionary<Type, OpCode> StIndOpcodes = new()
         {
@@ -114,11 +115,19 @@ namespace Il2CppInterop.Runtime.Injection
             }
         }
 
-        internal static IntPtr GetIl2CppExport(string exportName, bool throwIfNotExist = true)
+        internal static IntPtr GetIl2CppExport(string name)
         {
-            if (!NativeLibrary.TryGetExport(Il2CppModule.BaseAddress, exportName, out var addr) && throwIfNotExist)
-                throw new NotSupportedException($"Couldn't find {exportName} in {Il2CppModule.ModuleName}'s exports");
-            return addr;
+            if (!TryGetIl2CppExport(name, out var address))
+            {
+                throw new NotSupportedException($"Couldn't find {name} in {Il2CppModule.ModuleName}'s exports");
+            }
+
+            return address;
+        }
+
+        internal static bool TryGetIl2CppExport(string name, out IntPtr address)
+        {
+            return NativeLibrary.TryGetExport(Il2CppHandle, name, out address);
         }
 
         internal static IntPtr GetIl2CppMethodPointer(MethodBase proxyMethod)
@@ -360,9 +369,8 @@ namespace Il2CppInterop.Runtime.Injection
             var getStaticFieldValueInternal = XrefScannerLowLevel.JumpTargets(getStaticFieldValue).Last();
             Logger.Instance.LogTrace("Field::StaticGetValueInternal: 0x{GetStaticFieldValueInternalAddress}", getStaticFieldValueInternal.ToInt64().ToString("X2"));
 
-            // (Kasuromi): The invocation is Field::GetDefaultFieldValue, but this appears to get inlined in all the il2cpp assemblies I've looked at
-            // TODO: Add support for non-inlined method invocation
-            var classGetDefaultFieldValue = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).First();
+            var getStaticFieldValueInternalTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).ToArray();
+            var classGetDefaultFieldValue = getStaticFieldValueInternalTargets.Length == 3 ? getStaticFieldValueInternalTargets.Last() : getStaticFieldValueInternalTargets.First();
             Logger.Instance.LogTrace("Class::GetDefaultFieldValue: 0x{ClassGetDefaultFieldValueAddress}", classGetDefaultFieldValue.ToInt64().ToString("X2"));
 
             ClassGetFieldDefaultValueOriginal = Detour.Apply(classGetDefaultFieldValue, ClassGetFieldDefaultValueDetour);
