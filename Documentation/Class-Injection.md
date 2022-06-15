@@ -1,6 +1,6 @@
 # Class injection
 
-Starting with version `0.4.0.0`, managed classes can be injected into IL2CPP domain. Currently this is fairly limited,
+Managed classes can be injected into Il2Cpp domain. Currently this is fairly limited,
 but functional enough for GC integration and implementing custom MonoBehaviors.
 
 ## How-to
@@ -98,9 +98,13 @@ class Injected: Il2CppSystem.Object {
 }
 ```
 
+## Fields injection
+
+> TODO: Describe how field injection works based on [#24](https://github.com/BepInEx/Il2CppAssemblyUnhollower/pull/24)
+
 ## Current limitations
 
-* Only instance methods are exposed to IL2CPP side - no fields, properties, events or static methods will be visible to
-  IL2CPP reflection
+* Not all members are exposed to Il2Cpp side - no properties, events or static methods will be visible to
+  Il2Cpp reflection. Fields are exported, but the feature is fairly limited.
 * Only a limited set of types is supported for method signatures
  
