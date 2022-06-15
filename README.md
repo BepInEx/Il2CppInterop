@@ -17,20 +17,19 @@ This includes generic types and methods, arrays, and new object creation.
 This project started out as fork of [knah/Il2CppAssemblyUnhollower](https://github.com/knah/Il2CppAssemblyUnhollower)
 but has been since forked as a separate project.
 
-## WIP
+## Getting started
 
-**NOTE** This refactor is still in progress.
+For plugin developers:
 
-TODOs (in no particular order):
+* [Class injection](Documentation/Class-Injection.md)
+* [Implementing interfaces](Documentation/Implementing-Interfaces.md)
+* [Components and AssetBundles](Documentation/Injected-Components-In-Asset-Bundles.md)
 
-* [x] Rename and retarget all projects
-* [x] Remove obsolete projects (BaseLib and PdbGen)
-* [ ] Add support for CoreCLR-compatible wrapper generation
-* [ ] Remove Generator's dependency on Runtime library and the BCL
-* [ ] Remove all obsoleted functions and classes
-* [ ] Clean up CLI (add subcommands for each output type, clean up argument names)
-* [ ] Move Harmony Il2Cpp backend to this project
-* [ ] Update documentation and READMEs
+For tool integrators and advanced user:
+
+* [Using the command line tool](Documentation/Command-Line-Usage.md)
+* [Generating assemblies and bootstrapping runtime](Documentation/Integration-API.md)
+
 
 ## Used libraries
 

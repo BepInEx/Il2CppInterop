@@ -1,6 +1,6 @@
 # Injected Components in Asset Bundles
 
-Starting with version `0.4.15.0`, injected components can be used in asset bundles.
+Injected components can be used in asset bundles.
 
 ## How-to
 

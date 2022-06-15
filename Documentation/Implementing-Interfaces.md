@@ -1,6 +1,6 @@
 # Implementing interfaces with injected types
 
-Starting with 0.4.16.0, injected types can implement IL2CPP interfaces.  
+Injected types can implement Il2Cpp interfaces.  
 Just like previously, your type can't implement the interface directly, as it's still generated as a class.  
 However, you can pass additional interface types to `RegisterTypeInIl2Cpp<T>(RegisterTypeOptions options)`, and they
 will be implemented as interfaces on the IL2CPP version of your type.  
