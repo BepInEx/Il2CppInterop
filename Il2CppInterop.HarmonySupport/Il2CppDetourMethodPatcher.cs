@@ -143,10 +143,8 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
 
         DelegateCache[Original] = unmanagedDelegate;
 
-        var detourPtr =
-            Marshal.GetFunctionPointerForDelegate(unmanagedDelegate);
         nativeDetour =
-            Il2CppInteropRuntime.Instance.DetourProvider.Create(originalNativeMethodInfo.MethodPointer, detourPtr);
+            Il2CppInteropRuntime.Instance.DetourProvider.Create(originalNativeMethodInfo.MethodPointer, unmanagedDelegate);
         nativeDetour.Apply();
         modifiedNativeMethodInfo.MethodPointer = nativeDetour.OriginalTrampoline;
 
