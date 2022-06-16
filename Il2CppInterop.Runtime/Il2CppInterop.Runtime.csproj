@@ -2,7 +2,8 @@
 
     <PropertyGroup>
         <PackageId>Il2CppInterop.Runtime</PackageId>
-        <Authors>knah et al.</Authors>
+        <Authors>knah, BepInEx et al.</Authors>
+        <Description>Runtime tools for bridging .NET and Il2Cpp together</Description>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <TargetFramework>net6.0</TargetFramework>
         <DebugType>embedded</DebugType>
