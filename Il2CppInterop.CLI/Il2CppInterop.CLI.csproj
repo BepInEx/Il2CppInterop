@@ -10,6 +10,7 @@
     <PackageOutputPath>../bin/NuGet</PackageOutputPath>
     <PackageId>Il2CppInterop.CLI</PackageId>
     <Authors>BepInEx</Authors>
+    <Description>CLI tool for generating managed proxy assemblies for Il2Cpp</Description>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Configurations>Debug;Release</Configurations>
     <Platforms>AnyCPU</Platforms>

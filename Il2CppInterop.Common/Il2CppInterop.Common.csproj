@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>BepInEx, knah et al.</Authors>
+    <Description>Common API for Il2CppInterop packages</Description>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <RootNamespace>Il2CppInterop.Common</RootNamespace>

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <Description>Module to allow using Harmony with Il2CppInterop assemblies</Description>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
