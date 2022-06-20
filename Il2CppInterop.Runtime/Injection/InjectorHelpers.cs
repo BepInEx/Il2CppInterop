@@ -257,10 +257,15 @@ namespace Il2CppInterop.Runtime.Injection
                     // (Kasuromi): metadata v29 introduces handles and adds extra calls, a check for unity versions might be necessary in the future
 
                     // Second call after obtaining handle, if there are any more calls in the future - correctly index into it if issues occur
-                    var getTypeInfoFromHandle = imageGetTypeXrefs.Last();
-
+                    var getTypeInfoFromHandle = XrefScannerLowLevel.JumpTargets(imageGetType).Last();
                     // Two calls, second one (GetIndexForTypeDefinitionInternal) is inlined
                     getTypeInfoFromTypeDefinitionIndex = XrefScannerLowLevel.JumpTargets(getTypeInfoFromHandle).Single();
+
+                    // Xref scanner is sometimes confused about getTypeInfoFromHandle so we walk all the thunks until we hit the big method we need
+                    while (XrefScannerLowLevel.JumpTargets(getTypeInfoFromTypeDefinitionIndex).Count() == 1)
+                    {
+                        getTypeInfoFromTypeDefinitionIndex = XrefScannerLowLevel.JumpTargets(getTypeInfoFromTypeDefinitionIndex).Single();
+                    }
                 }
             }
 
