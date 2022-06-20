@@ -313,7 +313,12 @@ public static class ILGeneratorEx
             }
             else
             {
-                if (!unboxValueType)
+                if (unboxValueType)
+                {
+                    body.Append(loadPointer);
+                    body.Emit(OpCodes.Call, imports.IL2CPP_il2cpp_object_unbox.Value);
+                }
+                else
                 {
                     var classPointerTypeRef = new GenericInstanceType(imports.Il2CppClassPointerStore)
                     { GenericArguments = { convertedReturnType } };
@@ -322,11 +327,7 @@ public static class ILGeneratorEx
                             classPointerTypeRef);
                     body.Emit(OpCodes.Ldsfld, enclosingType.NewType.Module.ImportReference(classPointerFieldRef));
                     body.Append(loadPointer);
-                    body.Emit(OpCodes.Call, imports.IL2CPP_il2cpp_object_unbox.Value);
-                }
-                else // already boxed
-                {
-                    body.Append(loadPointer);
+                    body.Emit(OpCodes.Call, imports.IL2CPP_il2cpp_value_box.Value);
                 }
 
                 body.Emit(OpCodes.Newobj,
