@@ -153,7 +153,8 @@ public class RuntimeAssemblyReferences
             var giOwner = new GenericInstanceType(owner);
             giOwner.GenericArguments.Add(param);
             var mr = new MethodReference(".ctor", ResolveType("System.Void"),
-                giOwner) {HasThis = true};
+                giOwner)
+            { HasThis = true };
             var paramType = new ArrayType(gp);
             mr.Parameters.Add(new ParameterDefinition("", ParameterAttributes.None, paramType));
             return mr;
