@@ -6,10 +6,11 @@
 
 var target = Argument("target", "Build");
 var buildVersion = Argument("build_version", "");
+var buildTag = Argument("build_tag", "");
 
-string RunGit(string command, string separator = "") 
+string RunGit(string command, string separator = "")
 {
-    using(var process = StartAndReturnProcess("git", new ProcessSettings { Arguments = command, RedirectStandardOutput = true })) 
+    using(var process = StartAndReturnProcess("git", new ProcessSettings { Arguments = command, RedirectStandardOutput = true }))
     {
         process.WaitForExit();
         return string.Join(separator, process.GetStandardOutput());
@@ -19,9 +20,14 @@ string RunGit(string command, string separator = "")
 Task("Build")
     .Does(() =>
 {
+    var msBuildSettings = new DotNetCoreMSBuildSettings();
+    if (!string.IsNullOrEmpty(buildVersion))
+        msBuildSettings.Properties["VersionPrefix"] = new string[]{buildVersion};
+    if (!string.IsNullOrEmpty(buildTag))
+        msBuildSettings.Properties["VersionSuffix"] = new string[]{buildTag};
     var buildSettings = new DotNetCoreBuildSettings {
         Configuration = "Release",
-		MSBuildSettings = new DotNetCoreMSBuildSettings() // Apparently needed in some versions of CakeBuild
+		MSBuildSettings = msBuildSettings
     };
 
     DotNetCoreBuild(".", buildSettings);
@@ -35,6 +41,8 @@ Task("Pack")
     CreateDirectory(distDir);
 
     var versionString = string.IsNullOrEmpty(buildVersion) ? "" : $".{buildVersion}";
+    if (!string.IsNullOrEmpty(buildVersion) && !string.IsNullOrEmpty(buildTag))
+        versionString += $"-{buildTag}";
     var pathsToIgnore = new HashSet<string> { "NuGet", "zip" };
     foreach (var dir in GetDirectories("./bin/*", new GlobberSettings { Predicate = f => !pathsToIgnore.Contains(f.Path.GetDirectoryName()) })) {
         ZipCompress(dir, distDir + File($"{dir.GetDirectoryName()}{versionString}.zip"));
