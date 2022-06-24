@@ -24,9 +24,9 @@ public class RuntimeAssemblyReferences
 
     public ModuleDefinition Module { get; }
 
-    public Lazy<MethodReference> Il2CppRefrenceArrayctor { get; private set; }
+    public Memoize<TypeReference, MethodReference> Il2CppRefrenceArrayctor { get; private set; }
     public Lazy<MethodReference> Il2CppStringArrayctor { get; private set; }
-    public Lazy<MethodReference> Il2CppStructArrayctor { get; private set; }
+    public Memoize<TypeReference, MethodReference> Il2CppStructArrayctor { get; private set; }
     public Lazy<MethodReference> IL2CPP_Il2CppObjectBaseToPtr { get; private set; }
     public Lazy<MethodReference> IL2CPP_Il2CppObjectBaseToPtrNotNull { get; private set; }
     public Lazy<MethodReference> IL2CPP_Il2CppStringToManaged { get; private set; }
@@ -146,15 +146,14 @@ public class RuntimeAssemblyReferences
 
     private void InitMethodRefs()
     {
-        Il2CppRefrenceArrayctor = new Lazy<MethodReference>(() =>
+        Il2CppRefrenceArrayctor = new((param) =>
         {
             var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<T>");
             var gp = owner.GenericParameters[0];
             var giOwner = new GenericInstanceType(owner);
-            giOwner.GenericArguments.Add(gp);
+            giOwner.GenericArguments.Add(param);
             var mr = new MethodReference(".ctor", ResolveType("System.Void"),
-                giOwner);
-            mr.HasThis = true;
+                giOwner) {HasThis = true};
             var paramType = new ArrayType(gp);
             mr.Parameters.Add(new ParameterDefinition("", ParameterAttributes.None, paramType));
             return mr;
@@ -169,12 +168,12 @@ public class RuntimeAssemblyReferences
             return mr;
         });
 
-        Il2CppStructArrayctor = new Lazy<MethodReference>(() =>
+        Il2CppStructArrayctor = new((param) =>
         {
             var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<T>");
             var gp = owner.GenericParameters[0];
             var giOwner = new GenericInstanceType(owner);
-            giOwner.GenericArguments.Add(gp);
+            giOwner.GenericArguments.Add(param);
             var mr = new MethodReference(".ctor", ResolveType("System.Void"),
                 giOwner);
             mr.HasThis = true;
