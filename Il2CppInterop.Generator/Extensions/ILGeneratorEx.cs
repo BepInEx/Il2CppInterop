@@ -316,7 +316,6 @@ public static class ILGeneratorEx
                 if (unboxValueType)
                 {
                     body.Append(loadPointer);
-                    body.Emit(OpCodes.Call, imports.IL2CPP_il2cpp_object_unbox.Value);
                 }
                 else
                 {
