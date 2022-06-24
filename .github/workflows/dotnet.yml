@@ -26,21 +26,17 @@ jobs:
           if [ "${GITHUB_REF#refs/tags/v}" != "$GITHUB_REF" ]; then
           echo ::set-output name=version::${GITHUB_REF#refs/tags/v}
           else
-          version_main=$(cat Directory.Build.props | grep "<Version>" | sed -e 's/<Version>//' -e 's/<\/Version>//' | tr -d ' \r\n')
-          build_number="$(date +%Y%m%d).${GITHUB_RUN_ID}"
-          version="${version_main}-ci.${build_number}"
-          sed -i "s/<Version>.*<\/Version>/<Version>${version}<\/Version>/g" Directory.Build.props
-          echo ::set-output name=version::${version}
+          echo ::set-output name=build_tag::ci.$(date +%Y%m%d).${GITHUB_RUN_NUMBER}
           fi
 
       - name: Build
-        run: ./build.sh --target=Pack --build_version=${{ steps.get_version.outputs.version }}
+        run: ./build.sh --target=Pack --build_version ${{ steps.get_version.outputs.version }} --build_tag ${{ steps.get_version.outputs.build_tag }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: ./bin/zip/*.zip
-          name: Il2CppInterop.${{ steps.get_version.outputs.version }}
+          name: Il2CppInterop
 
       - name: Push to NuGet
         if: github.ref == 'refs/heads/master'
