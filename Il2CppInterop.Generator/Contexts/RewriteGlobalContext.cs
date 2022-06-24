@@ -200,12 +200,8 @@ public class RewriteGlobalContext : IDisposable
                         var convertedElementType = resolve(elementType)!;
 
                         constructorReference = imports.Module.ImportReference(convertedElementType.IsValueType
-                            ? imports.Il2CppStructArrayctor.Value
-                            : imports.Il2CppRefrenceArrayctor.Value);
-
-                        var declaringType = (GenericInstanceType)constructorReference.DeclaringType;
-                        declaringType.GenericArguments.Clear();
-                        declaringType.GenericArguments.Add(convertedElementType);
+                            ? imports.Il2CppStructArrayctor.Get(convertedElementType)
+                            : imports.Il2CppRefrenceArrayctor.Get(convertedElementType));
                     }
 
                     body.Emit(OpCodes.Newobj, constructorReference);
