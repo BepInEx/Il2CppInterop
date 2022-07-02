@@ -4,9 +4,7 @@
     <PackageId>Il2CppInterop.Generator</PackageId>
     <Authors>knah, BepInEx et al.</Authors>
     <Description>Library for generating assemblies and metadata for calling Il2Cpp functions from .NET</Description>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <TargetFrameworks>netstandard2.1;net472</TargetFrameworks>
-    <DebugType>embedded</DebugType>
     <RootNamespace>Il2CppInterop.Generator</RootNamespace>
     <Configurations>Debug;Release</Configurations>
     <Platforms>AnyCPU</Platforms>

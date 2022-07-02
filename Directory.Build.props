@@ -1,13 +1,25 @@
 <Project>
-    <PropertyGroup>
-        <VersionPrefix>1.0.0</VersionPrefix>
-        <Authors>BepInEx</Authors>
-        <PackageOutputPath>../bin/NuGet</PackageOutputPath>
-        <OutputPath Condition="'$(Configuration)' == 'Release'">../bin/$(MSBuildProjectName)</OutputPath>
-        <LangVersion>latest</LangVersion>
-        <Nullable>disable</Nullable>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <RootNamespace>Il2CppInterop</RootNamespace>
-        <LangVersion>latest</LangVersion>
-    </PropertyGroup>
+  <PropertyGroup>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <Authors>BepInEx</Authors>
+    <PackageOutputPath>../bin/NuGet</PackageOutputPath>
+    <OutputPath Condition="'$(Configuration)' == 'Release'">../bin/$(MSBuildProjectName)</OutputPath>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Il2CppInterop</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <PackageIcon>logo_icon.png</PackageIcon>
+    <PackageLicenseExpression>LGPL-3.0-only</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <DebugType>embedded</DebugType>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\logo\logo_icon.png" Pack="true" Visible="false" PackagePath=""/>
+    <None Include="..\README.md" Pack="true" Visible="false" PackagePath=""/>
+  </ItemGroup>
 </Project>
