@@ -43,7 +43,7 @@ jobs:
         run: |
           if [ "${GITHUB_REF#refs/tags/v}" != "$GITHUB_REF" ]; then
             push_source="https://api.nuget.org/v3/index.json"
-            push_api_key="${{ secrets.NUGET_KEY }}"
+            push_api_key="${{ secrets.NUGET_ORG_KEY }}"
           else
             push_source="${{ secrets.BEPIN_DEV_NUGET_SOURCE }}"
             push_api_key="${{ secrets.BEPIN_DEV_NUGET_KEY }}"
