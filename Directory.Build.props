@@ -22,4 +22,9 @@
     <None Include="..\logo\logo_icon.png" Pack="true" Visible="false" PackagePath=""/>
     <None Include="..\README.md" Pack="true" Visible="false" PackagePath=""/>
   </ItemGroup>
+
+  <PropertyGroup>
+    <!-- TODO: Remove once all public methods have been documented or hidden.  -->
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
 </Project>
