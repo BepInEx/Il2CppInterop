@@ -1,25 +1,29 @@
-# Il2CppInterop
+<p align="center">
+    <img src="logo/logo_big.svg" width="300">
+</p>
 
 [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/BepInEx/Il2CppInterop/.NET)](https://github.com/BepInEx/Il2CppInterop/actions/workflows/dotnet.yml)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/BepInEx/Il2CppInterop)](https://github.com/BepInEx/Il2CppInterop/releases)
 [![BepInEx NuGet (CLI)](https://img.shields.io/badge/NuGet-CLI-brightgreen)](https://nuget.bepinex.dev/packages/Il2CppInterop.CLI)
 [![BepInEx NuGet (Runtime)](https://img.shields.io/badge/NuGet-Runtime-brightgreen)](https://nuget.bepinex.dev/packages/Il2CppInterop.Runtime)
 
+***
+
 > **BepInEx fork of Il2CppAssemblyUnhollower is now Il2CppInterop!**
 >
 > Looking for old README and guides? Check out [`legacy-unhollower` branch](https://github.com/BepInEx/Il2CppInterop/tree/legacy-unhollower).
 
-A framework for interoperation with Il2Cpp runtime in CoreCLR and mono. The framework includes
+Il2CppInterop is a framework for bridging together Unity's Il2Cpp and .NET's CoreCLR runtimes. The framework various interoperability tools:
 
-* A tool to generate .NET assemblies from [Cpp2IL](https://github.com/SamboyCoding/Cpp2IL)'s output
-* A runtime library to work with Il2Cpp
-* Libraries to integrate other tools with Il2Cpp
+* A tool to generate .NET assemblies from [Cpp2IL](https://github.com/SamboyCoding/Cpp2IL)'s output.
+* A runtime library to work with Il2Cpp objects in CoreCLR.
+* Libraries to integrate other tools with Il2Cpp.
 
-The framework allows the use of IL2CPP domain and objects in it from a managed .NET domain.
+The framework allows the use of Il2Cpp domain and objects in it from a managed .NET domain.
 This includes generic types and methods, arrays, and new object creation.
 
 This project started out as fork of [knah/Il2CppAssemblyUnhollower](https://github.com/knah/Il2CppAssemblyUnhollower)
-but has been since forked as a separate project.
+but has been since been modified with new API and fixes to be a standalone project.
 
 ## Getting started
 
