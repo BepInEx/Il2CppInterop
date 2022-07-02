@@ -47,6 +47,10 @@ public static class Pass21GenerateValueTypeFields
                                 .Single(it => it.AttributeType.Name == "FieldOffsetAttribute")
                                 .Fields.Single().Argument.Value, 16);
 
+                        // Special case: bools in Il2Cpp are bytes
+                        if (newField.FieldType.FullName == "System.Boolean")
+                            newField.MarshalInfo = new MarshalInfo(NativeType.U1);
+
                         newType.Fields.Add(newField);
                     }
                 }
