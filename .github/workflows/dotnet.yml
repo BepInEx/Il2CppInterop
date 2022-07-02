@@ -39,9 +39,16 @@ jobs:
           name: Il2CppInterop
 
       - name: Push to NuGet
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
         run: |
-          dotnet nuget push -s ${{ secrets.BEPIN_DEV_NUGET_SOURCE }} -k ${{ secrets.BEPIN_DEV_NUGET_KEY }} ./bin/NuGet/*.nupkg
+          if [ "${GITHUB_REF#refs/tags/v}" != "$GITHUB_REF" ]; then
+            push_source="https://api.nuget.org/v3/index.json"
+            push_api_key="${{ secrets.NUGET_KEY }}"
+          else
+            push_source="${{ secrets.BEPIN_DEV_NUGET_SOURCE }}"
+            push_api_key="${{ secrets.BEPIN_DEV_NUGET_KEY }}"
+          fi
+          dotnet nuget push -s "$push_source" -k "$push_api_key" ./bin/NuGet/*.nupkg
 
       - name: Publish a release
         uses: softprops/action-gh-release@v1
