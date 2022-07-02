@@ -29,14 +29,14 @@ but has been since been modified with new API and fixes to be a standalone proje
 
 For plugin developers:
 
-* [Class injection](Documentation/Class-Injection.md)
-* [Implementing interfaces](Documentation/Implementing-Interfaces.md)
-* [Components and AssetBundles](Documentation/Injected-Components-In-Asset-Bundles.md)
+* [Class injection](https://github.com/BepInEx/Il2CppInterop/blob/master/Documentation/Class-Injection.md)
+* [Implementing interfaces](https://github.com/BepInEx/Il2CppInterop/blob/master/Documentation/Implementing-Interfaces.md)
+* [Components and AssetBundles](https://github.com/BepInEx/Il2CppInterop/blob/master/Documentation/Injected-Components-In-Asset-Bundles.md)
 
 For tool integrators and advanced user:
 
-* [Using the command line tool](Documentation/Command-Line-Usage.md)
-* [Generating assemblies and bootstrapping runtime](Documentation/Integration-API.md)
+* [Using the command line tool](https://github.com/BepInEx/Il2CppInterop/blob/master/Documentation/Command-Line-Usage.md)
+* [Generating assemblies and bootstrapping runtime](https://github.com/BepInEx/Il2CppInterop/blob/master/Documentation/Integration-API.md)
 
 
 ## Used libraries
