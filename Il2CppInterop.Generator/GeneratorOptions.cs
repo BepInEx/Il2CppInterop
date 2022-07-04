@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -22,6 +20,7 @@ public class GeneratorOptions
     public Regex? ObfuscatedNamesRegex { get; set; }
     public Dictionary<string, string> RenameMap { get; } = new();
     public bool PassthroughNames { get; set; }
+    public bool Parallel { get; set; } = true;
 
     public HashSet<string> NamespacesAndAssembliesToPrefix { get; } =
         new() { "System", "mscorlib", "Microsoft", "Mono", "I18N" };
