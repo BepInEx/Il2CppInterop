@@ -29,7 +29,8 @@ var generateCommand = new Command("generate")
     new Option<Regex>("--obf-regex",
         "Specifies a regex for obfuscated names. All types and members matching will be renamed."),
     new Option<bool>("--passthrough-names",
-        "If specified, names will be copied from input assemblies as-is without renaming or deobfuscation.")
+        "If specified, names will be copied from input assemblies as-is without renaming or deobfuscation."),
+    new Option<bool>("--no-parallel", "Disable parallel processing when writing assemblies. Use if you encounter stability issues when generating assemblies."),
 };
 generateCommand.Description = "Generate wrapper assemblies that can be used to interop with Il2Cpp";
 generateCommand.Handler = CommandHandler.Create((GenerateCommandOptions opts) =>
@@ -157,7 +158,8 @@ internal record GenerateCommandOptions(
     int DeobfUniqMax,
     string[]? BlacklistAssembly,
     Regex? ObfRegex,
-    bool PassthroughNames
+    bool PassthroughNames,
+    bool NoParallel
 ) : BaseCmdOptions(Verbose)
 {
     public override CmdOptionsResult Build()
@@ -175,6 +177,7 @@ internal record GenerateCommandOptions(
         opts.AdditionalAssembliesBlacklist.AddRange(BlacklistAssembly ?? Array.Empty<string>());
         opts.ObfuscatedNamesRegex = ObfRegex;
         opts.PassthroughNames = PassthroughNames;
+        opts.Parallel = !NoParallel;
 
         if (AddPrefixTo is not null)
         {
