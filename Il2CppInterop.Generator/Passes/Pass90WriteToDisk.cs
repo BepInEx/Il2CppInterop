@@ -29,7 +29,7 @@ public static class Pass90WriteToDisk
                     var match = context.Assemblies.FirstOrDefault(f => f.NewAssembly.FullName == reference.FullName);
                     if (match != null)
                     {
-                        registerMethod!.Invoke(resolver, new object[] {match.NewAssembly});
+                        registerMethod!.Invoke(resolver, new object[] { match.NewAssembly });
                     }
                 }
             }
