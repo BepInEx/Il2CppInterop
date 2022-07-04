@@ -1,6 +1,4 @@
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Utils;
 using Mono.Cecil;
@@ -18,6 +16,7 @@ public static class Pass90WriteToDisk
         {
             var module = asmContext.NewAssembly.MainModule;
             if (module.AssemblyResolver is DefaultAssemblyResolver resolver)
+            {
                 foreach (var reference in module.AssemblyReferences)
                 {
                     // TODO: Instead of a hack, set correctly initially via source generator
@@ -28,18 +27,33 @@ public static class Pass90WriteToDisk
                     }
 
                     var match = context.Assemblies.FirstOrDefault(f => f.NewAssembly.FullName == reference.FullName);
-                    if (match != null) registerMethod!.Invoke(resolver, new object[] { match.NewAssembly });
+                    if (match != null)
+                    {
+                        registerMethod!.Invoke(resolver, new object[] {match.NewAssembly});
+                    }
                 }
+            }
         }
 
-        var tasks = context.Assemblies
-            .Where(it => !options.AdditionalAssembliesBlacklist.Contains(it.NewAssembly.Name.Name)).Select(
-                assemblyContext => Task.Run(() =>
-                {
-                    assemblyContext.NewAssembly.Write(options.OutputDir + "/" +
-                                                      assemblyContext.NewAssembly.Name.Name + ".dll");
-                })).ToArray();
+        var assembliesToProcess = context.Assemblies
+            .Where(it => !options.AdditionalAssembliesBlacklist.Contains(it.NewAssembly.Name.Name));
 
-        Task.WaitAll(tasks);
+        void Processor(AssemblyRewriteContext assemblyContext)
+        {
+            assemblyContext.NewAssembly.Write(
+                Path.Combine(options.OutputDir ?? ".", $"{assemblyContext.NewAssembly.Name.Name}.dll"));
+        }
+
+        if (options.Parallel)
+        {
+            Parallel.ForEach(assembliesToProcess, Processor);
+        }
+        else
+        {
+            foreach (var assemblyRewriteContext in assembliesToProcess)
+            {
+                Processor(assemblyRewriteContext);
+            }
+        }
     }
 }
