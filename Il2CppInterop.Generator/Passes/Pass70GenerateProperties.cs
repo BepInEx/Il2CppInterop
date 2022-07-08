@@ -51,7 +51,7 @@ public static class Pass70GenerateProperties
                     var realDefaultMemberAttribute =
                         type.CustomAttributes.FirstOrDefault(it => it.AttributeType.Name == nameof(DefaultMemberAttribute));
                     if (realDefaultMemberAttribute != null)
-                        defaultMemberName = realDefaultMemberAttribute.ConstructorArguments[0].Value.ToString();
+                        defaultMemberName = realDefaultMemberAttribute.ConstructorArguments[0].Value?.ToString() ?? "Item";
                 }
 
                 if (defaultMemberName != null)
