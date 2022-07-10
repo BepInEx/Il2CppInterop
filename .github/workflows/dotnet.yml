@@ -48,7 +48,7 @@ jobs:
             push_source="${{ secrets.BEPIN_DEV_NUGET_SOURCE }}"
             push_api_key="${{ secrets.BEPIN_DEV_NUGET_KEY }}"
           fi
-          dotnet nuget push -s "$push_source" -k "$push_api_key" ./bin/NuGet/*.nupkg
+          dotnet nuget push --skip-duplicate -s "$push_source" -k "$push_api_key" ./bin/NuGet/*.nupkg
 
       - name: Publish a release
         uses: softprops/action-gh-release@v1
