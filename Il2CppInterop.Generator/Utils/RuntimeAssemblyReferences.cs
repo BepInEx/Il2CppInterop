@@ -27,6 +27,9 @@ public class RuntimeAssemblyReferences
     public Memoize<TypeReference, MethodReference> Il2CppRefrenceArrayctor { get; private set; }
     public Lazy<MethodReference> Il2CppStringArrayctor { get; private set; }
     public Memoize<TypeReference, MethodReference> Il2CppStructArrayctor { get; private set; }
+    public Memoize<TypeReference, MethodReference> Il2CppRefrenceArrayctor_size { get; private set; }
+    public Lazy<MethodReference> Il2CppStringArrayctor_size { get; private set; }
+    public Memoize<TypeReference, MethodReference> Il2CppStructArrayctor_size { get; private set; }
     public Lazy<MethodReference> IL2CPP_Il2CppObjectBaseToPtr { get; private set; }
     public Lazy<MethodReference> IL2CPP_Il2CppObjectBaseToPtrNotNull { get; private set; }
     public Lazy<MethodReference> IL2CPP_Il2CppStringToManaged { get; private set; }
@@ -100,6 +103,7 @@ public class RuntimeAssemblyReferences
         allTypes["System.Int32"] = Module.ImportReference(typeof(int));
         allTypes["System.UInt32&"] = Module.ImportReference(typeof(uint).MakeByRefType());
         allTypes["System.Boolean"] = Module.ImportReference(typeof(bool));
+        allTypes["System.Int64"] = Module.ImportReference(typeof(long));
 
         var assemblyRef = new AssemblyNameReference("Il2CppInterop.Runtime", new Version(0, 0, 0, 0));
         Module.AssemblyReferences.Add(assemblyRef);
@@ -180,6 +184,39 @@ public class RuntimeAssemblyReferences
             mr.HasThis = true;
             var paramType = new ArrayType(gp);
             mr.Parameters.Add(new ParameterDefinition("", ParameterAttributes.None, paramType));
+            return mr;
+        });
+
+        Il2CppRefrenceArrayctor_size = new((param) =>
+        {
+            var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<T>");
+            var giOwner = new GenericInstanceType(owner);
+            giOwner.GenericArguments.Add(param);
+            var mr = new MethodReference(".ctor", ResolveType("System.Void"),
+                    giOwner)
+            { HasThis = true };
+            mr.Parameters.Add(new ParameterDefinition("", ParameterAttributes.None, ResolveType("System.Int64")));
+            return mr;
+        });
+
+        Il2CppStringArrayctor_size = new Lazy<MethodReference>(() =>
+        {
+            var mr = new MethodReference(".ctor", ResolveType("System.Void"),
+                ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray"));
+            mr.HasThis = true;
+            mr.Parameters.Add(new ParameterDefinition("", ParameterAttributes.None, ResolveType("System.Int64")));
+            return mr;
+        });
+
+        Il2CppStructArrayctor_size = new((param) =>
+        {
+            var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<T>");
+            var giOwner = new GenericInstanceType(owner);
+            giOwner.GenericArguments.Add(param);
+            var mr = new MethodReference(".ctor", ResolveType("System.Void"),
+                giOwner);
+            mr.HasThis = true;
+            mr.Parameters.Add(new ParameterDefinition("", ParameterAttributes.None, ResolveType("System.Int64")));
             return mr;
         });
 
