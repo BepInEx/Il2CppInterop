@@ -135,10 +135,7 @@ public class RewriteGlobalContext : IDisposable
             return null;
 
         var paramsParameters = originalMethod.Parameters.Where(parameter =>
-            parameter.ParameterType is ArrayType { Rank: 1 } arrayType
-            && !(resolve(arrayType.ElementType)?.IsGenericParameter ?? true)
-            && parameter.CustomAttributes.Any(attribute =>
-                attribute.AttributeType.FullName == typeof(ParamArrayAttribute).FullName)
+            parameter.IsParamsArray() && !(resolve(((ArrayType)parameter.ParameterType).ElementType)?.IsGenericParameter ?? true)
         ).ToArray();
 
         if (paramsParameters.Any())

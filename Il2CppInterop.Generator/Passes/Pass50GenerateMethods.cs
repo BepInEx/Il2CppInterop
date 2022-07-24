@@ -31,6 +31,41 @@ public static class Pass50GenerateMethods
                     if (valueTypeLocal.VariableType.FullName != "System.Void")
                         newMethod.Body.Variables.Add(valueTypeLocal);
 
+                    // Pre-initialize any present params
+                    // TODO: This doesn't account for params T[] (i.e. generic element type) yet; may emit incorrect IL
+                    // TODO: Do we really need a loop here? C# allows only one params array.
+                    //       On the other hand, CreateParamsMethod accommodates multiple ParamArrayAttribute as well
+                    Instruction nextInstruction = null;
+                    for (var paramIndex = 0; paramIndex < originalMethod.Parameters.Count; paramIndex++)
+                    {
+                        var newParameter = newMethod.Parameters[paramIndex];
+                        var originalParameter = originalMethod.Parameters[paramIndex];
+                        if (!originalParameter.IsParamsArray())
+                            continue;
+
+                        var originalElementType = ((ArrayType)originalParameter.ParameterType).ElementType;
+
+                        if (nextInstruction != null)
+                            bodyBuilder.Append(nextInstruction);
+                        nextInstruction = bodyBuilder.Create(OpCodes.Nop);
+
+                        bodyBuilder.Emit(OpCodes.Ldarg, newParameter);
+                        bodyBuilder.Emit(OpCodes.Brtrue, nextInstruction);
+
+                        bodyBuilder.Emit(OpCodes.Ldc_I4_0);
+                        bodyBuilder.Emit(OpCodes.Conv_I8);
+                        bodyBuilder.Emit(OpCodes.Newobj, imports.Module.ImportReference(originalElementType.FullName switch
+                        {
+                            "System.String" => imports.Il2CppStringArrayctor_size.Value,
+                            _ when originalElementType.IsValueType => imports.Il2CppStructArrayctor_size.Get(((GenericInstanceType)newParameter.ParameterType).GenericArguments[0]),
+                            _ => imports.Il2CppRefrenceArrayctor_size.Get(((GenericInstanceType)newParameter.ParameterType).GenericArguments[0])
+                        }));
+                        bodyBuilder.Emit(OpCodes.Starg, newParameter);
+                    }
+
+                    if (nextInstruction != null)
+                        bodyBuilder.Append(nextInstruction);
+
                     if (!originalMethod.DeclaringType.IsValueType)
                     {
                         if (originalMethod.IsConstructor)
