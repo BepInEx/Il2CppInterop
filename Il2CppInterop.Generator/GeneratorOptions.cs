@@ -22,8 +22,8 @@ public class GeneratorOptions
     public bool PassthroughNames { get; set; }
     public bool Parallel { get; set; } = true;
 
-    public HashSet<string> NamespacesAndAssembliesToPrefix { get; } =
-        new() { "System", "mscorlib", "Microsoft", "Mono", "I18N" };
+    public HashSet<string> NamespacesAndAssembliesToNotPrefix { get; } =
+        new() { "UnityEditor", "UnityEngine" };
 
     public List<string> DeobfuscationGenerationAssemblies { get; } = new();
     public string? DeobfuscationNewAssembliesPath { get; set; }
