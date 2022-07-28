@@ -19,8 +19,8 @@ var generateCommand = new Command("generate")
     new Option<DirectoryInfo>("--unity", "Directory with original Unity assemblies for unstripping").ExistingOnly(),
     new Option<FileInfo>("--game-assembly", "Path to GameAssembly.dll. Used for certain analyses").ExistingOnly(),
     new Option<bool>("--no-xref-cache", "Don't generate xref scanning cache. All scanning will be done at runtime."),
-    new Option<string[]>("--add-prefix-to",
-        "Assemblies and namespaces starting with these will get an Il2Cpp prefix in generated assemblies. Allows multiple values."),
+    new Option<string[]>("--dont-add-prefix-to",
+        "Assemblies and namespaces starting with these will not get an Il2Cpp prefix in generated assemblies. Allows multiple values."),
     new Option<FileInfo>("--deobf-map",
         "Specifies a file specifying deobfuscation map for obfuscated types and members.").ExistingOnly(),
     new Option<int>("--deobf-uniq-chars", "How many characters per unique token to use during deobfuscation"),
@@ -47,8 +47,8 @@ deobfCommand.Description = "Tools for deobfuscating assemblies";
 var deobfAnalyzeCommand = new Command("analyze")
 {
     new Option<DirectoryInfo>("--input", "Directory of assemblies to deobfuscate") {IsRequired = true}.ExistingOnly(),
-    new Option<string[]>("--add-prefix-to",
-        "Assemblies and namespaces starting with these will get an Il2Cpp prefix in generated assemblies. Allows multiple values.")
+    new Option<string[]>("--dont-add-prefix-to",
+        "Assemblies and namespaces starting with these will not get an Il2Cpp prefix in generated assemblies. Allows multiple values.")
 };
 deobfAnalyzeCommand.Description =
     "Analyze deobfuscation performance with different parameter values. Will not generate assemblies.";
@@ -152,7 +152,7 @@ internal record GenerateCommandOptions(
     DirectoryInfo? Unity,
     FileInfo? GameAssembly,
     bool NoXrefCache,
-    string[]? AddPrefixTo,
+    string[]? DontAddPrefixTo,
     FileInfo? DeobfMap,
     int DeobfUniqChars,
     int DeobfUniqMax,
@@ -179,11 +179,11 @@ internal record GenerateCommandOptions(
         opts.PassthroughNames = PassthroughNames;
         opts.Parallel = !NoParallel;
 
-        if (AddPrefixTo is not null)
+        if (DontAddPrefixTo is not null)
         {
-            foreach (var s in AddPrefixTo)
+            foreach (var s in DontAddPrefixTo)
             {
-                opts.NamespacesAndAssembliesToPrefix.Add(s);
+                opts.NamespacesAndAssembliesToNotPrefix.Add(s);
             }
         }
 
@@ -198,7 +198,7 @@ internal record GenerateCommandOptions(
 
 internal record DeobfAnalyzeCommandOptions(
     bool Verbose,
-    string[]? AddPrefixTo,
+    string[]? DontAddPrefixTo,
     DirectoryInfo Input
 ) : BaseCmdOptions(Verbose)
 {
@@ -208,11 +208,11 @@ internal record DeobfAnalyzeCommandOptions(
         var opts = res.Options;
 
         opts.Source = Utils.LoadAssembliesFrom(Input);
-        if (AddPrefixTo is not null)
+        if (DontAddPrefixTo is not null)
         {
-            foreach (var s in AddPrefixTo)
+            foreach (var s in DontAddPrefixTo)
             {
-                opts.NamespacesAndAssembliesToPrefix.Add(s);
+                opts.NamespacesAndAssembliesToNotPrefix.Add(s);
             }
         }
 
