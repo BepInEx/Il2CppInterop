@@ -469,22 +469,11 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
 
         fixedStructAssembly ??=
             AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("FixedSizeStructAssembly"),
-                AssemblyBuilderAccess.RunAndCollect);
+                AssemblyBuilderAccess.Run);
         fixedStructModuleBuilder ??= fixedStructAssembly.DefineDynamicModule("FixedSizeStructAssembly");
 
         var tb = fixedStructModuleBuilder.DefineType($"IL2CPPDetour_FixedSizeStruct_{size}b",
-            TypeAttributes.SequentialLayout, typeof(ValueType));
-        var fb = tb.DefineField("buffer", typeof(IntPtr), FieldAttributes.Public);
-        fb.SetCustomAttribute(new
-            CustomAttributeBuilder(AccessTools.Constructor(typeof(MarshalAsAttribute), new[] { typeof(UnmanagedType) }),
-                new object[] { UnmanagedType.ByValArray },
-                new[]
-                {
-                    AccessTools.Field(typeof(MarshalAsAttribute),
-                        nameof(MarshalAsAttribute.SizeConst)),
-                    AccessTools.Field(typeof(MarshalAsAttribute),
-                        nameof(MarshalAsAttribute.ArraySubType))
-                }, new object[] { size, UnmanagedType.U1 }));
+            TypeAttributes.ExplicitLayout, typeof(System.ValueType), size);
 
         var type = tb.CreateType();
         return FixedStructCache[size] = type;
