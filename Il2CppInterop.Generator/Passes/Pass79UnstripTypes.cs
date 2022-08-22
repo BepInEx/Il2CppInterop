@@ -39,6 +39,7 @@ public static class Pass79UnstripTypes
     {
         if (unityType.Name == "<Module>")
             return;
+        var newModule = processedAssembly.NewAssembly.MainModule;
         var processedType = enclosingNewType == null
             ? processedAssembly.TryGetTypeByName(unityType.FullName)?.NewType
             : enclosingNewType.NestedTypes.SingleOrDefault(it => it.Name == unityType.Name);
@@ -50,7 +51,7 @@ public static class Pass79UnstripTypes
             var clonedType = CloneEnum(unityType, imports);
             if (enclosingNewType == null)
             {
-                processedAssembly.NewAssembly.MainModule.Types.Add(clonedType);
+                newModule.Types.Add(clonedType);
             }
             else
             {
@@ -67,10 +68,10 @@ public static class Pass79UnstripTypes
             !unityType.HasGenericParameters) // restore all types even if it would be not entirely correct
         {
             typesUnstripped++;
-            var clonedType = CloneStatic(unityType, imports);
+            var clonedType = new TypeDefinition(unityType.Namespace, unityType.Name, ForcePublic(unityType.Attributes), unityType.BaseType == null ? null : newModule.ImportReference(unityType.BaseType));
             if (enclosingNewType == null)
             {
-                processedAssembly.NewAssembly.MainModule.Types.Add(clonedType);
+                newModule.Types.Add(clonedType);
             }
             else
             {
@@ -121,13 +122,6 @@ public static class Pass79UnstripTypes
         }
 
         return false;
-    }
-
-    private static TypeDefinition CloneStatic(TypeDefinition sourceEnum, RuntimeAssemblyReferences imports)
-    {
-        var newType = new TypeDefinition(sourceEnum.Namespace, sourceEnum.Name, ForcePublic(sourceEnum.Attributes),
-            sourceEnum.BaseType?.FullName == "System.ValueType" ? imports.Module.ValueType() : imports.Module.Object());
-        return newType;
     }
 
     private static TypeAttributes ForcePublic(TypeAttributes typeAttributes)
