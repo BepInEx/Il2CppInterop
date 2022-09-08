@@ -342,7 +342,7 @@ namespace Il2CppInterop.Runtime.Injection
                 // MonoField isn't present on 2021.2.0+
                 var monoFieldType = Il2CppMscorlib.GetTypes().SingleOrDefault((x) => x.Name is "MonoField");
                 if (monoFieldType == null)
-                    throw new Exception($"MonoField isn't present in Il2Cppmscorlib.dll for unity version {Il2CppInteropRuntime.Instance.UnityVersion}, unable to fetch icall");
+                    throw new Exception($"Unity {Il2CppInteropRuntime.Instance.UnityVersion} is not supported at the moment: MonoField isn't present in Il2Cppmscorlib.dll for unity version, unable to fetch icall");
 
                 var monoFieldGetValueInternalThunk = GetIl2CppMethodPointer(monoFieldType.GetMethod(nameof(Il2CppSystem.Reflection.MonoField.GetValueInternal)));
                 Logger.Instance.LogTrace("Il2CppSystem.Reflection.MonoField::thunk_GetValueInternal: 0x{MonoFieldGetValueInternalThunkAddress}", monoFieldGetValueInternalThunk.ToInt64().ToString("X2"));
