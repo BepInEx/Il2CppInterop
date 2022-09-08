@@ -22,6 +22,7 @@ namespace Il2CppInterop.Runtime.Injection
 {
     internal static unsafe class InjectorHelpers
     {
+        internal static Assembly Il2CppMscorlib = typeof(Il2CppSystem.Type).Assembly;
         internal static INativeAssemblyStruct InjectedAssembly;
         internal static INativeImageStruct InjectedImage;
         internal static ProcessModule Il2CppModule = Process.GetCurrentProcess()
@@ -329,19 +330,52 @@ namespace Il2CppInterop.Runtime.Injection
         private static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueDetour = new(hkClassGetFieldDefaultValue);
         internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValue;
         internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueOriginal;
-        private static d_ClassGetFieldDefaultValue FindClassGetFieldDefaultValue()
+        private static d_ClassGetFieldDefaultValue FindClassGetFieldDefaultValue(bool forceICallMethod = false)
         {
-            var getStaticFieldValueAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_field_static_get_value));
-            Logger.Instance.LogTrace("il2cpp_field_static_get_value: 0x{GetStaticFieldValueApiAddress}", getStaticFieldValueAPI.ToInt64().ToString("X2"));
+            // NOTE: In some cases this pointer will be MetadataCache::GetFieldDefaultValueForField due to Field::GetDefaultFieldValue being
+            // inlined but we'll treat it the same even though it doesn't receive the type parameter the RDX register
+            // doesn't get cleared so we still get the same parameters
+            var classGetDefaultFieldValue = IntPtr.Zero;
 
-            var getStaticFieldValue = XrefScannerLowLevel.JumpTargets(getStaticFieldValueAPI).Single();
-            Logger.Instance.LogTrace("Field::StaticGetValue: 0x{GetStaticFieldValueAddress}", getStaticFieldValue.ToInt64().ToString("X2"));
+            if (forceICallMethod)
+            {
+                // MonoField isn't present on 2021.2.0+
+                var monoFieldType = Il2CppMscorlib.GetTypes().SingleOrDefault((x) => x.Name is "MonoField");
+                if (monoFieldType == null)
+                    throw new Exception($"MonoField isn't present in Il2Cppmscorlib.dll for unity version {Il2CppInteropRuntime.Instance.UnityVersion}, unable to fetch icall");
 
-            var getStaticFieldValueInternal = XrefScannerLowLevel.JumpTargets(getStaticFieldValue).Last();
-            Logger.Instance.LogTrace("Field::StaticGetValueInternal: 0x{GetStaticFieldValueInternalAddress}", getStaticFieldValueInternal.ToInt64().ToString("X2"));
+                var monoFieldGetValueInternalThunk = GetIl2CppMethodPointer(monoFieldType.GetMethod(nameof(Il2CppSystem.Reflection.MonoField.GetValueInternal)));
+                Logger.Instance.LogTrace("Il2CppSystem.Reflection.MonoField::thunk_GetValueInternal: 0x{MonoFieldGetValueInternalThunkAddress}", monoFieldGetValueInternalThunk.ToInt64().ToString("X2"));
 
-            var getStaticFieldValueInternalTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).ToArray();
-            var classGetDefaultFieldValue = getStaticFieldValueInternalTargets.Length == 3 ? getStaticFieldValueInternalTargets.Last() : getStaticFieldValueInternalTargets.First();
+                var monoFieldGetValueInternal = XrefScannerLowLevel.JumpTargets(monoFieldGetValueInternalThunk).Single();
+                Logger.Instance.LogTrace("Il2CppSystem.Reflection.MonoField::GetValueInternal: 0x{MonoFieldGetValueInternalAddress}", monoFieldGetValueInternal.ToInt64().ToString("X2"));
+
+                // Field::GetValueObject could be inlined with Field::GetValueObjectForThread
+                var fieldGetValueObject = XrefScannerLowLevel.JumpTargets(monoFieldGetValueInternal).Single();
+                Logger.Instance.LogTrace("Field::GetValueObject: 0x{FieldGetValueObjectAddress}", fieldGetValueObject.ToInt64().ToString("X2"));
+
+                var fieldGetValueObjectForThread = XrefScannerLowLevel.JumpTargets(fieldGetValueObject).Last();
+                Logger.Instance.LogTrace("Field::GetValueObjectForThread: 0x{FieldGetValueObjectForThreadAddress}", fieldGetValueObjectForThread.ToInt64().ToString("X2"));
+
+                classGetDefaultFieldValue = XrefScannerLowLevel.JumpTargets(fieldGetValueObjectForThread).ElementAt(2);
+            }
+            else
+            {
+                var getStaticFieldValueAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_field_static_get_value));
+                Logger.Instance.LogTrace("il2cpp_field_static_get_value: 0x{GetStaticFieldValueApiAddress}", getStaticFieldValueAPI.ToInt64().ToString("X2"));
+
+                var getStaticFieldValue = XrefScannerLowLevel.JumpTargets(getStaticFieldValueAPI).Single();
+                Logger.Instance.LogTrace("Field::StaticGetValue: 0x{GetStaticFieldValueAddress}", getStaticFieldValue.ToInt64().ToString("X2"));
+
+                var getStaticFieldValueInternal = XrefScannerLowLevel.JumpTargets(getStaticFieldValue).Last();
+                Logger.Instance.LogTrace("Field::StaticGetValueInternal: 0x{GetStaticFieldValueInternalAddress}", getStaticFieldValueInternal.ToInt64().ToString("X2"));
+
+                var getStaticFieldValueInternalTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).ToArray();
+
+                if (getStaticFieldValueInternalTargets.Length == 0) return FindClassGetFieldDefaultValue(true);
+
+                classGetDefaultFieldValue = getStaticFieldValueInternalTargets.Length == 3 ? getStaticFieldValueInternalTargets.Last() : getStaticFieldValueInternalTargets.First();
+            }
             Logger.Instance.LogTrace("Class::GetDefaultFieldValue: 0x{ClassGetDefaultFieldValueAddress}", classGetDefaultFieldValue.ToInt64().ToString("X2"));
 
             ClassGetFieldDefaultValueOriginal = Detour.Apply(classGetDefaultFieldValue, ClassGetFieldDefaultValueDetour);
