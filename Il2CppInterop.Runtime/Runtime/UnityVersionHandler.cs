@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Il2CppInterop.Common;
+using Il2CppInterop.Common.Extensions;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
@@ -120,14 +121,7 @@ public static class UnityVersionHandler
 
     private static Type[] GetAllTypesSafe()
     {
-        try
-        {
-            return typeof(UnityVersionHandler).Assembly.GetTypes();
-        }
-        catch (ReflectionTypeLoadException re)
-        {
-            return re.Types.Where(t => t != null).ToArray();
-        }
+        return typeof(UnityVersionHandler).Assembly.GetTypesSafe();
     }
 
     //Assemblies
