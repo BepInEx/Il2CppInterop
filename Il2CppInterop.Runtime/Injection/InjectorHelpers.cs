@@ -331,13 +331,35 @@ namespace Il2CppInterop.Runtime.Injection
         private static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueDetour = new(hkClassGetFieldDefaultValue);
         internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValue;
         internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueOriginal;
-        private static d_ClassGetFieldDefaultValue FindClassGetFieldDefaultValue(bool forceICallMethod = false)
-        {
-            // NOTE: In some cases this pointer will be MetadataCache::GetFieldDefaultValueForField due to Field::GetDefaultFieldValue being
-            // inlined but we'll treat it the same even though it doesn't receive the type parameter the RDX register
-            // doesn't get cleared so we still get the same parameters
-            var classGetDefaultFieldValue = IntPtr.Zero;
 
+        private static readonly MemoryUtils.SignatureDefinition[] s_ClassGetFieldDefaultValueSignatures =
+        {
+            // Test Game - Unity 2021.3.4 (x64)
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x48\x8B\x79\x10\x48\x8B\xD9\x48",
+                mask = "xxxxxxxxxxxxxxxxxxxxxxx",
+                xref = false
+            },
+            // GTFO - Unity 2019.4.21 (x64)
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\x41\x10\x48\x8B\xD9\x48\x8B",
+                mask = "xxxxxxxxxxxxxxxxxxx",
+                xref = false
+            },
+            // Evony - Unity 2018.4.0 (x86)
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\x55\x8B\xEC\x56\xFF\x75\x08\xE8\x00\x00\x00\x00\x8B\xF0\x83\xC4\x04\x85\xF6",
+                mask = "xxxxxxxx????xxxxxxx",
+                xref = false
+            },
+        };
+
+        private static nint FindClassGetFieldDefaultValueXref(bool forceICallMethod = false)
+        {
+            nint classGetDefaultFieldValue = 0;
             if (forceICallMethod)
             {
                 // MonoField isn't present on 2021.2.0+
@@ -373,11 +395,27 @@ namespace Il2CppInterop.Runtime.Injection
 
                 var getStaticFieldValueInternalTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).ToArray();
 
-                if (getStaticFieldValueInternalTargets.Length == 0) return FindClassGetFieldDefaultValue(true);
+                if (getStaticFieldValueInternalTargets.Length == 0) return FindClassGetFieldDefaultValueXref(true);
 
                 classGetDefaultFieldValue = getStaticFieldValueInternalTargets.Length == 3 ? getStaticFieldValueInternalTargets.Last() : getStaticFieldValueInternalTargets.First();
             }
-            Logger.Instance.LogTrace("Class::GetDefaultFieldValue: 0x{ClassGetDefaultFieldValueAddress}", classGetDefaultFieldValue.ToInt64().ToString("X2"));
+            return classGetDefaultFieldValue;
+        }
+        private static d_ClassGetFieldDefaultValue FindClassGetFieldDefaultValue(bool forceICallMethod = false)
+        {
+            // NOTE: In some cases this pointer will be MetadataCache::GetFieldDefaultValueForField due to Field::GetDefaultFieldValue being
+            // inlined but we'll treat it the same even though it doesn't receive the type parameter the RDX register
+            // doesn't get cleared so we still get the same parameters
+            var classGetDefaultFieldValue = s_ClassGetFieldDefaultValueSignatures
+                .Select(s => MemoryUtils.FindSignatureInModule(Il2CppModule, s))
+                .FirstOrDefault(p => p != 0);
+
+            if (classGetDefaultFieldValue == 0)
+            {
+                Logger.Instance.LogTrace("Couldn't fetch Class::GetDefaultFieldValue with signatures, using method traversal");
+                classGetDefaultFieldValue = FindClassGetFieldDefaultValueXref(forceICallMethod);
+            }
+            Logger.Instance.LogTrace("Class::GetDefaultFieldValue: 0x{ClassGetDefaultFieldValueAddress}", classGetDefaultFieldValue.ToString("X2"));
 
             ClassGetFieldDefaultValueOriginal = Detour.Apply(classGetDefaultFieldValue, ClassGetFieldDefaultValueDetour);
             return Marshal.GetDelegateForFunctionPointer<d_ClassGetFieldDefaultValue>(classGetDefaultFieldValue);
