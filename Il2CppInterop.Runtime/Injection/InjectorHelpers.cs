@@ -337,8 +337,8 @@ namespace Il2CppInterop.Runtime.Injection
             // Test Game - Unity 2021.3.4 (x64)
             new MemoryUtils.SignatureDefinition
             {
-                pattern = "\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x48\x8B\x79\x10\x48\x8B\xD9\x48",
-                mask = "xxxxxxxxxxxxxxxxxxxxxxx",
+                pattern = "\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x48\x8B\x79\x10\x48\x8B\xD9\x48\x8B\xF2\x48\x2B\x9F",
+                mask = "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
                 xref = false
             },
             // GTFO - Unity 2019.4.21 (x64)
