@@ -52,10 +52,6 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         [typeof(double)] = OpCodes.Stind_R8
     };
 
-    private static AssemblyBuilder fixedStructAssembly;
-    private static ModuleBuilder fixedStructModuleBuilder;
-    private static readonly Dictionary<int, Type> FixedStructCache = new();
-
     private static readonly Dictionary<object, object> DelegateCache = new();
     private INativeMethodInfoStruct modifiedNativeMethodInfo;
 
@@ -227,10 +223,10 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         }
 
         unmanagedParams[^1] = typeof(Il2CppMethodInfo*);
-        Array.Copy(managedParams.Select(ConvertManagedTypeToIL2CPPType).ToArray(), 0,
+        Array.Copy(managedParams.Select(TrampolineHelpers.NativeType).ToArray(), 0,
             unmanagedParams, paramStartIndex, managedParams.Length);
 
-        var unmanagedReturnType = ConvertManagedTypeToIL2CPPType(managedReturnType);
+        var unmanagedReturnType = managedReturnType.NativeType();
 
         var dmd = new DynamicMethodDefinition("(il2cpp -> managed) " + Original.Name,
             unmanagedReturnType,
@@ -292,7 +288,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
             {
                 uint align = 0;
                 var size =
-                    IL2CPP.il2cpp_class_value_size(Il2CppTypeToClassPointer(managedReturnType),
+                    IL2CPP.il2cpp_class_value_size(Il2CppClassPointerStore.GetNativeClassPointer(managedReturnType),
                         ref align);
 
                 il.Emit(OpCodes.Ldarg_0);
@@ -319,45 +315,6 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
     private static void ReportException(Exception ex) =>
         Logger.Instance.LogError(ex, "During invoking native->managed trampoline");
 
-    private static Type ConvertManagedTypeToIL2CPPType(Type managedType)
-    {
-        if (managedType.IsByRef)
-        {
-            var directType = managedType.GetElementType();
-
-            // bool is byte in Il2Cpp, but int in CLR => force size to be correct
-            if (directType == typeof(bool))
-            {
-                return typeof(byte).MakeByRefType();
-            }
-
-            if (directType == typeof(string) || directType.IsSubclassOf(typeof(Il2CppObjectBase)))
-            {
-                return typeof(IntPtr*);
-            }
-        }
-        else if (managedType.IsSubclassOf(typeof(ValueType)) && !Environment.Is64BitProcess)
-        {
-            // Struct that's passed on the stack => handle as general struct
-            uint align = 0;
-            var fixedSize =
-                IL2CPP.il2cpp_class_value_size(Il2CppTypeToClassPointer(managedType), ref align);
-            return GetFixedSizeStructType(fixedSize);
-        }
-        else if (managedType == typeof(string) || managedType.IsSubclassOf(typeof(Il2CppObjectBase))
-                ) // General reference type
-        {
-            return typeof(IntPtr);
-        }
-        else if (managedType == typeof(bool))
-        {
-            // bool is byte in Il2Cpp, but int in CLR => force size to be correct
-            return typeof(byte);
-        }
-
-        return managedType;
-    }
-
     private static void EmitConvertManagedTypeToIL2CPP(ILGenerator il, Type returnType)
     {
         if (returnType == typeof(string))
@@ -370,17 +327,6 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         }
     }
 
-    private static IntPtr Il2CppTypeToClassPointer(Type type)
-    {
-        if (type == typeof(void))
-        {
-            return Il2CppClassPointerStore<Void>.NativeClassPtr;
-        }
-
-        return (IntPtr)typeof(Il2CppClassPointerStore<>).MakeGenericType(type).GetField("NativeClassPtr")
-            .GetValue(null);
-    }
-
     private static void EmitConvertArgumentToManaged(ILGenerator il,
         int argIndex,
         Type managedParamType,
@@ -391,7 +337,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         if (managedParamType.IsSubclassOf(typeof(ValueType)))
         {
             // Box struct into object first before conversion
-            il.Emit(OpCodes.Ldc_I8, Il2CppTypeToClassPointer(managedParamType).ToInt64());
+            il.Emit(OpCodes.Ldc_I8, Il2CppClassPointerStore.GetNativeClassPointer(managedParamType).ToInt64());
             il.Emit(OpCodes.Conv_I);
             // On x64, struct is always a pointer but it is a non-pointer on x86
             // We don't handle byref structs on x86 yet but we're yet to encounter those
@@ -458,24 +404,5 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         {
             HandleTypeConversion(managedParamType);
         }
-    }
-
-    private static Type GetFixedSizeStructType(int size)
-    {
-        if (FixedStructCache.TryGetValue(size, out var result))
-        {
-            return result;
-        }
-
-        fixedStructAssembly ??=
-            AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("FixedSizeStructAssembly"),
-                AssemblyBuilderAccess.Run);
-        fixedStructModuleBuilder ??= fixedStructAssembly.DefineDynamicModule("FixedSizeStructAssembly");
-
-        var tb = fixedStructModuleBuilder.DefineType($"IL2CPPDetour_FixedSizeStruct_{size}b",
-            TypeAttributes.ExplicitLayout, typeof(System.ValueType), size);
-
-        var type = tb.CreateType();
-        return FixedStructCache[size] = type;
     }
 }
