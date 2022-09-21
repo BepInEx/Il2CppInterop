@@ -136,20 +136,41 @@ namespace Il2CppInterop.Runtime.Injection
         private static readonly d_GenericMethodGetMethod GenericMethodGetMethodDetour = new(ClassInjector.hkGenericMethodGetMethod);
         internal static d_GenericMethodGetMethod GenericMethodGetMethod;
         internal static d_GenericMethodGetMethod GenericMethodGetMethodOriginal;
+
+        private static readonly MemoryUtils.SignatureDefinition[] s_GenericMethodGetMethodSignatures =
+        {
+            // Unity 2021.2.5 (x64)
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x56\x57\x41\x54\x41\x56\x41\x57\x48\x81\xEC\xB0",
+                mask = "xxxxxxxxxxxxxxxxxxxxxxx",
+                xref = false
+            }
+        };
         private static d_GenericMethodGetMethod FindGenericMethodGetMethod()
         {
-            var getVirtualMethodAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_object_get_virtual_method));
-            Logger.Instance.LogTrace("il2cpp_object_get_virtual_method: 0x{GetVirtualMethodApiAddress}", getVirtualMethodAPI.ToInt64().ToString("X2"));
+            // On Unity 2021.2+, the 3 parameter shim can be inlined and optimized by the compiler
+            // which moves the method we're looking for
+            var genericMethodGetMethod = s_GenericMethodGetMethodSignatures
+                .Select(s => MemoryUtils.FindSignatureInModule(Il2CppModule, s))
+                .FirstOrDefault(p => p != 0);
 
-            var getVirtualMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethodAPI).Single();
-            Logger.Instance.LogTrace("Object::GetVirtualMethod: 0x{GetVirtualMethodAddress}", getVirtualMethod.ToInt64().ToString("X2"));
+            if (genericMethodGetMethod == 0)
+            {
+                var getVirtualMethodAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_object_get_virtual_method));
+                Logger.Instance.LogTrace("il2cpp_object_get_virtual_method: 0x{GetVirtualMethodApiAddress}", getVirtualMethodAPI.ToInt64().ToString("X2"));
 
-            var genericMethodGetMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethod).Last();
-            Logger.Instance.LogTrace("GenericMethod::GetMethod: 0x{GenericMethodGetMethodAddress}", genericMethodGetMethod.ToInt64().ToString("X2"));
+                var getVirtualMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethodAPI).Single();
+                Logger.Instance.LogTrace("Object::GetVirtualMethod: 0x{GetVirtualMethodAddress}", getVirtualMethod.ToInt64().ToString("X2"));
 
-            var targetTargets = XrefScannerLowLevel.JumpTargets(genericMethodGetMethod).Take(2).ToList();
-            if (targetTargets.Count == 1) // U2021.2.0+, there's additional shim that takes 3 parameters
-                genericMethodGetMethod = targetTargets[0];
+                genericMethodGetMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethod).Last();
+
+                var targetTargets = XrefScannerLowLevel.JumpTargets(genericMethodGetMethod).Take(2).ToList();
+                if (targetTargets.Count == 1) // U2021.2.0+, there's additional shim that takes 3 parameters
+                    genericMethodGetMethod = targetTargets[0];
+            }
+
+            Logger.Instance.LogTrace("GenericMethod::GetMethod: 0x{GenericMethodGetMethodAddress}", genericMethodGetMethod.ToString("X2"));
             GenericMethodGetMethodOriginal = Detour.Apply(genericMethodGetMethod, GenericMethodGetMethodDetour);
             return Marshal.GetDelegateForFunctionPointer<d_GenericMethodGetMethod>(genericMethodGetMethod);
         }
