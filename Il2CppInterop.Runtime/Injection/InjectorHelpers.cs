@@ -142,7 +142,7 @@ namespace Il2CppInterop.Runtime.Injection
             // Unity 2021.2.5 (x64)
             new MemoryUtils.SignatureDefinition
             {
-                pattern = "\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x56\x57\x41\x54\x41\x56\x41\x57\x48\x81\xEC\xB0",
+                pattern = "\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x56\x57\x41\x54\x41\x56\x41\x57\x48\x81\xEC\xB0\x00",
                 mask = "xxxxxxxxxxxxxxxxxxxxxxx",
                 xref = false
             }
