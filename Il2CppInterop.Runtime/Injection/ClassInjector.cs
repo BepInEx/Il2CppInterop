@@ -986,7 +986,7 @@ public static unsafe class ClassInjector
 
     private static Type SystemTypeFromIl2CppType(Il2CppTypeStruct* typePointer)
     {
-        var klass = UnityVersionHandler.Wrap(InjectorHelpers.ClassFromIl2CppType(typePointer));
+        var klass = UnityVersionHandler.Wrap((Il2CppClass*)IL2CPP.il2cpp_class_from_type((IntPtr)typePointer));
         var assembly = UnityVersionHandler.Wrap(UnityVersionHandler.Wrap(klass.Image).Assembly);
 
         var fullName = new StringBuilder();
