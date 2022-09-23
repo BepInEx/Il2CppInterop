@@ -952,11 +952,6 @@ public static unsafe class ClassInjector
         return builder.ToString();
     }
 
-    internal static Type NativeType(this Type type)
-    {
-        return type.IsValueType ? type : typeof(IntPtr);
-    }
-
     private static Type RewriteType(Type type)
     {
         if (type.IsValueType && !type.IsEnum)
