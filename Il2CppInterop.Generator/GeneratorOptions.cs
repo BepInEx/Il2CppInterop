@@ -22,8 +22,11 @@ public class GeneratorOptions
     public bool PassthroughNames { get; set; }
     public bool Parallel { get; set; } = true;
 
+    public PrefixMode Il2CppPrefixMode { get; set; } = PrefixMode.OptIn;
+    public HashSet<string> NamespacesAndAssembliesToPrefix { get; } =
+        new() { "System", "mscorlib", "Microsoft", "Mono", "I18N" };
     public HashSet<string> NamespacesAndAssembliesToNotPrefix { get; } =
-        new() { "UnityEditor", "UnityEngine" };
+        new() { "Unity" };
 
     public List<string> DeobfuscationGenerationAssemblies { get; } = new();
     public string? DeobfuscationNewAssembliesPath { get; set; }
@@ -59,5 +62,17 @@ public class GeneratorOptions
             if (split.Length < 2) continue;
             RenameMap[split[0]] = split[1];
         }
+    }
+
+    public enum PrefixMode
+    {
+        /// <summary>
+        ///     Only specified namespaces and assemblies will be renamed.
+        /// </summary>
+        OptIn,
+        /// <summary>
+        ///     Only specified namespaces and assemblies will not be renamed.
+        /// </summary>
+        OptOut
     }
 }

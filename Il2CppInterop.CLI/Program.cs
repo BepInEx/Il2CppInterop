@@ -19,8 +19,12 @@ var generateCommand = new Command("generate")
     new Option<DirectoryInfo>("--unity", "Directory with original Unity assemblies for unstripping").ExistingOnly(),
     new Option<FileInfo>("--game-assembly", "Path to GameAssembly.dll. Used for certain analyses").ExistingOnly(),
     new Option<bool>("--no-xref-cache", "Don't generate xref scanning cache. All scanning will be done at runtime."),
+    new Option<string[]>("--add-prefix-to",
+        "Assemblies and namespaces starting with these will get an Il2Cpp prefix in generated assemblies. Allows multiple values. Obsolete."),
     new Option<string[]>("--dont-add-prefix-to",
         "Assemblies and namespaces starting with these will not get an Il2Cpp prefix in generated assemblies. Allows multiple values."),
+    new Option<bool>("--use-opt-out-prefixing",
+        "Assemblies and namespaces starting with will get an Il2Cpp prefix in generated assemblies unless otherwise specified. Obsolete."),
     new Option<FileInfo>("--deobf-map",
         "Specifies a file specifying deobfuscation map for obfuscated types and members.").ExistingOnly(),
     new Option<int>("--deobf-uniq-chars", "How many characters per unique token to use during deobfuscation"),
@@ -47,8 +51,12 @@ deobfCommand.Description = "Tools for deobfuscating assemblies";
 var deobfAnalyzeCommand = new Command("analyze")
 {
     new Option<DirectoryInfo>("--input", "Directory of assemblies to deobfuscate") {IsRequired = true}.ExistingOnly(),
+    new Option<string[]>("--add-prefix-to",
+        "Assemblies and namespaces starting with these will get an Il2Cpp prefix in generated assemblies. Allows multiple values. Obsolete."),
     new Option<string[]>("--dont-add-prefix-to",
-        "Assemblies and namespaces starting with these will not get an Il2Cpp prefix in generated assemblies. Allows multiple values.")
+        "Assemblies and namespaces starting with these will not get an Il2Cpp prefix in generated assemblies. Allows multiple values."),
+    new Option<bool>("--use-opt-out-prefixing",
+        "Assemblies and namespaces starting with will get an Il2Cpp prefix in generated assemblies unless otherwise specified. Obsolete.")
 };
 deobfAnalyzeCommand.Description =
     "Analyze deobfuscation performance with different parameter values. Will not generate assemblies.";
@@ -152,7 +160,9 @@ internal record GenerateCommandOptions(
     DirectoryInfo? Unity,
     FileInfo? GameAssembly,
     bool NoXrefCache,
+    string[]? AddPrefixTo,
     string[]? DontAddPrefixTo,
+    bool UseOptOutPrefixing,
     FileInfo? DeobfMap,
     int DeobfUniqChars,
     int DeobfUniqMax,
@@ -179,12 +189,39 @@ internal record GenerateCommandOptions(
         opts.PassthroughNames = PassthroughNames;
         opts.Parallel = !NoParallel;
 
-        if (DontAddPrefixTo is not null)
+        if (AddPrefixTo is not null && AddPrefixTo.Length > 0)
         {
+            if (DontAddPrefixTo is not null && DontAddPrefixTo.Length > 0)
+            {
+                throw new Exception("--add-prefix-to cannot be used with --dont-add-prefix-to");
+            }
+            else if (UseOptOutPrefixing)
+            {
+                throw new Exception("--add-prefix-to cannot be used with --use-opt-out-prefixing");
+            }
+
+            opts.Il2CppPrefixMode = GeneratorOptions.PrefixMode.OptIn;
+            foreach (var s in AddPrefixTo)
+            {
+                opts.NamespacesAndAssembliesToPrefix.Add(s);
+            }
+        }
+        else if (DontAddPrefixTo is not null && DontAddPrefixTo.Length > 0)
+        {
+            opts.Il2CppPrefixMode = GeneratorOptions.PrefixMode.OptOut;
             foreach (var s in DontAddPrefixTo)
             {
                 opts.NamespacesAndAssembliesToNotPrefix.Add(s);
             }
+        }
+        else if (UseOptOutPrefixing)
+        {
+            opts.Il2CppPrefixMode = GeneratorOptions.PrefixMode.OptOut;
+        }
+
+        if (opts.Il2CppPrefixMode == GeneratorOptions.PrefixMode.OptIn)
+        {
+            res.Logger.LogWarning("Opt-In prefixing is obsolete and will be removed in a future version.");
         }
 
         if (DeobfMap is not null)
@@ -198,7 +235,9 @@ internal record GenerateCommandOptions(
 
 internal record DeobfAnalyzeCommandOptions(
     bool Verbose,
+    string[]? AddPrefixTo,
     string[]? DontAddPrefixTo,
+    bool UseOptOutPrefixing,
     DirectoryInfo Input
 ) : BaseCmdOptions(Verbose)
 {
@@ -208,12 +247,40 @@ internal record DeobfAnalyzeCommandOptions(
         var opts = res.Options;
 
         opts.Source = Utils.LoadAssembliesFrom(Input);
-        if (DontAddPrefixTo is not null)
+
+        if (AddPrefixTo is not null && AddPrefixTo.Length > 0)
         {
+            if (DontAddPrefixTo is not null && DontAddPrefixTo.Length > 0)
+            {
+                throw new Exception("--add-prefix-to cannot be used with --dont-add-prefix-to");
+            }
+            else if (UseOptOutPrefixing)
+            {
+                throw new Exception("--add-prefix-to cannot be used with --use-opt-out-prefixing");
+            }
+
+            opts.Il2CppPrefixMode = GeneratorOptions.PrefixMode.OptIn;
+            foreach (var s in AddPrefixTo)
+            {
+                opts.NamespacesAndAssembliesToPrefix.Add(s);
+            }
+        }
+        else if (DontAddPrefixTo is not null && DontAddPrefixTo.Length > 0)
+        {
+            opts.Il2CppPrefixMode = GeneratorOptions.PrefixMode.OptOut;
             foreach (var s in DontAddPrefixTo)
             {
                 opts.NamespacesAndAssembliesToNotPrefix.Add(s);
             }
+        }
+        else if (UseOptOutPrefixing)
+        {
+            opts.Il2CppPrefixMode = GeneratorOptions.PrefixMode.OptOut;
+        }
+
+        if (opts.Il2CppPrefixMode == GeneratorOptions.PrefixMode.OptIn)
+        {
+            res.Logger.LogWarning("Opt-In prefixing is obsolete and will be removed in a future version.");
         }
 
         return res;
