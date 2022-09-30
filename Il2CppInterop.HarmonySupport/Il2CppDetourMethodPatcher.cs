@@ -230,12 +230,12 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         // TODO: Handle ARM
         // TODO: Check if this applies to values other than structs
         {
+            unmanagedReturnType = typeof(IntPtr);
             paramStartIndex++;
         }
 
         if (!Original.IsStatic)
         {
-            unmanagedReturnType = typeof(IntPtr);
             paramStartIndex++;
         }
 
