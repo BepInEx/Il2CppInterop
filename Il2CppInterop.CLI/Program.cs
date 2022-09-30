@@ -24,7 +24,7 @@ var generateCommand = new Command("generate")
     new Option<string[]>("--dont-add-prefix-to",
         "Assemblies and namespaces starting with these will not get an Il2Cpp prefix in generated assemblies. Allows multiple values."),
     new Option<bool>("--use-opt-out-prefixing",
-        "Assemblies and namespaces starting with will get an Il2Cpp prefix in generated assemblies unless otherwise specified. Obsolete."),
+        "Assemblies and namespaces will get an Il2Cpp prefix in generated assemblies unless otherwise specified. Obsolete."),
     new Option<FileInfo>("--deobf-map",
         "Specifies a file specifying deobfuscation map for obfuscated types and members.").ExistingOnly(),
     new Option<int>("--deobf-uniq-chars", "How many characters per unique token to use during deobfuscation"),
@@ -56,7 +56,7 @@ var deobfAnalyzeCommand = new Command("analyze")
     new Option<string[]>("--dont-add-prefix-to",
         "Assemblies and namespaces starting with these will not get an Il2Cpp prefix in generated assemblies. Allows multiple values."),
     new Option<bool>("--use-opt-out-prefixing",
-        "Assemblies and namespaces starting with will get an Il2Cpp prefix in generated assemblies unless otherwise specified. Obsolete.")
+        "Assemblies and namespaces will get an Il2Cpp prefix in generated assemblies unless otherwise specified. Obsolete.")
 };
 deobfAnalyzeCommand.Description =
     "Analyze deobfuscation performance with different parameter values. Will not generate assemblies.";
