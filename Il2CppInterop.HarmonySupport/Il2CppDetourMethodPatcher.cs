@@ -52,7 +52,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         [typeof(double)] = OpCodes.Stind_R8
     };
 
-    private static readonly Dictionary<object, object> DelegateCache = new();
+    private static readonly List<object> DelegateCache = new();
     private INativeMethodInfoStruct modifiedNativeMethodInfo;
 
     private IDetour nativeDetour;
@@ -136,8 +136,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
             CallingConvention.Cdecl);
 
         var unmanagedDelegate = unmanagedTrampolineMethod.CreateDelegate(unmanagedDelegateType);
-
-        DelegateCache[Original] = unmanagedDelegate;
+        DelegateCache.Add(unmanagedDelegate);
 
         nativeDetour =
             Il2CppInteropRuntime.Instance.DetourProvider.Create(originalNativeMethodInfo.MethodPointer, unmanagedDelegate);
