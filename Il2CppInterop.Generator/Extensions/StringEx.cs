@@ -7,11 +7,23 @@ public static class StringEx
 {
     public static string UnSystemify(this string str, GeneratorOptions options)
     {
-        foreach (var prefix in options.NamespacesAndAssembliesToPrefix)
-            if (str.StartsWith(prefix))
-                return "Il2Cpp" + str;
+        const string Il2CppPrefix = "Il2Cpp";
+        if (options.Il2CppPrefixMode == GeneratorOptions.PrefixMode.OptIn)
+        {
+            foreach (var prefix in options.NamespacesAndAssembliesToPrefix)
+                if (str.StartsWith(prefix, StringComparison.Ordinal))
+                    return Il2CppPrefix + str;
 
-        return str;
+            return str;
+        }
+        else
+        {
+            foreach (var prefix in options.NamespacesAndAssembliesToNotPrefix)
+                if (str.StartsWith(prefix, StringComparison.Ordinal))
+                    return str;
+
+            return Il2CppPrefix + str;
+        }
     }
 
     public static string FilterInvalidInSourceChars(this string str)
