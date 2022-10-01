@@ -14,6 +14,7 @@ using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppInterop.Runtime.InteropTypes.Fields;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
 using Microsoft.Extensions.Logging;
 using ValueType = Il2CppSystem.ValueType;
 using Void = Il2CppSystem.Void;
@@ -62,7 +63,7 @@ public class RegisterTypeOptions
     public Il2CppInterfaceCollection? Interfaces { get; init; } = null;
 }
 
-public static unsafe class ClassInjector
+public static unsafe partial class ClassInjector
 {
     /// <summary> type.FullName </summary>
     private static readonly HashSet<string> InjectedTypes = new();
@@ -234,6 +235,8 @@ public static unsafe class ClassInjector
 
         classPointer.Flags = baseClassPointer.Flags; // todo: adjust flags?
 
+        if (!type.IsAbstract) classPointer.Flags &= ~Il2CppClassAttributes.TYPE_ATTRIBUTE_ABSTRACT;
+
         var fieldsToInject = type
             .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
             .Where(IsFieldEligible)
@@ -292,10 +295,9 @@ public static unsafe class ClassInjector
         classPointer.InstanceSize = (uint)(fieldOffset + sizeof(InjectedClassData));
         classPointer.ActualSize = classPointer.InstanceSize;
 
-        var eligibleMethods =
-            type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
-                            BindingFlags.DeclaredOnly).Where(IsMethodEligible).ToArray();
-        var methodCount = 2 + eligibleMethods.Length; // 1 is the finalizer, 1 is empty ctor
+        var eligibleMethods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).Where(IsMethodEligible).ToArray();
+        var methodsOffset = type.IsAbstract ? 1 : 2; // 1 is the finalizer, 1 is empty ctor
+        var methodCount = methodsOffset + eligibleMethods.Length;
 
         classPointer.MethodCount = (ushort)methodCount;
         var methodPointerArray = (Il2CppMethodInfo**)Marshal.AllocHGlobal(methodCount * IntPtr.Size);
@@ -303,97 +305,130 @@ public static unsafe class ClassInjector
 
         methodPointerArray[0] = ConvertStaticMethod(FinalizeDelegate, "Finalize", classPointer);
         var finalizeMethod = UnityVersionHandler.Wrap(methodPointerArray[0]);
-        if (!type.IsAbstract)
-            methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type, fieldsToInject), ".ctor", classPointer);
-        Dictionary<(string name, int paramCount, bool isGeneric), int> infos = new(eligibleMethods.Length);
+        if (!type.IsAbstract) methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type, fieldsToInject), ".ctor", classPointer);
+        var infos = new Dictionary<(string, int, bool), int>(eligibleMethods.Length);
         for (var i = 0; i < eligibleMethods.Length; i++)
         {
             var methodInfo = eligibleMethods[i];
-            var methodInfoPointer = methodPointerArray[i + 2] = ConvertMethodInfo(methodInfo, classPointer);
-            if (methodInfo.IsGenericMethod)
-                InflatedMethodFromContextDictionary.Add((IntPtr)methodInfoPointer,
-                    (methodInfo, new Dictionary<IntPtr, IntPtr>()));
-            infos[(methodInfo.Name, methodInfo.GetParameters().Length, methodInfo.IsGenericMethod)] = i + 2;
+            var methodInfoPointer = methodPointerArray[i + methodsOffset] = ConvertMethodInfo(methodInfo, classPointer);
+            if (methodInfo.IsGenericMethod && !methodInfo.IsAbstract)
+                InflatedMethodFromContextDictionary.Add((IntPtr)methodInfoPointer, (methodInfo, new Dictionary<IntPtr, IntPtr>()));
+            infos[(methodInfo.Name, methodInfo.GetParameters().Length, methodInfo.IsGenericMethod)] = i + methodsOffset;
         }
+
+        var abstractMethods = eligibleMethods.Where(x => x.IsAbstract).ToArray();
 
         var vTablePointer = (VirtualInvokeData*)classPointer.VTable;
         var baseVTablePointer = (VirtualInvokeData*)baseClassPointer.VTable;
-        classPointer.VtableCount = (ushort)(baseClassPointer.VtableCount + interfaceFunctionCount);
+        classPointer.VtableCount = (ushort)(baseClassPointer.VtableCount + interfaceFunctionCount + abstractMethods.Length);
 
-        //Abstract and Virtual Fix
-        if (classPointer.Flags.HasFlag(Il2CppClassAttributes.TYPE_ATTRIBUTE_ABSTRACT) &&
-            IL2CPP.il2cpp_class_is_abstract((IntPtr)baseClassPointer.Class))
+        var extendsAbstract = baseClassPointer.Flags.HasFlag(Il2CppClassAttributes.TYPE_ATTRIBUTE_ABSTRACT);
+        var abstractBaseMethods = new List<INativeMethodInfoStruct>();
+
+        if (extendsAbstract)
         {
-            //Inheriting from an abstract class, make injected class not abstract.
-            classPointer.Flags &= ~Il2CppClassAttributes.TYPE_ATTRIBUTE_ABSTRACT;
-
-            int nativeMethodCount = baseClassPointer.MethodCount;
-            var methofPointerArrayIndices = new List<int>();
-            for (var x = 0; x < nativeMethodCount; x++)
+            static void FindAbstractMethods(List<INativeMethodInfoStruct> list, INativeClassStruct klass)
             {
-                var method = UnityVersionHandler.Wrap(baseClassPointer.Methods[x]);
+                if (klass.Parent != default) FindAbstractMethods(list, UnityVersionHandler.Wrap(klass.Parent));
 
-                //VTable entries for abstact methods are empty point them to implementation methods
-                if (method.Flags.HasFlag(Il2CppMethodFlags.METHOD_ATTRIBUTE_ABSTRACT))
+                for (var i = 0; i < klass.MethodCount; i++)
                 {
-                    var name = Marshal.PtrToStringAnsi(method.Name);
-                    var parameters = new Type[method.ParametersCount];
+                    var baseMethod = UnityVersionHandler.Wrap(klass.Methods[i]);
+                    var name = Marshal.PtrToStringAnsi(baseMethod.Name)!;
 
-                    for (var i = 0; i < method.ParametersCount; i++)
+                    if (baseMethod.Flags.HasFlag(Il2CppMethodFlags.METHOD_ATTRIBUTE_ABSTRACT))
                     {
-                        var parameterInfo = UnityVersionHandler.Wrap(method.Parameters, i);
-                        var parameterType = SystemTypeFromIl2CppType(parameterInfo.ParameterType);
-
-                        parameters[i] = parameterType;
+                        list.Add(baseMethod);
                     }
-
-                    var monoMethodImplementation = type.GetMethod(name, parameters);
-
-                    var methodPointerArrayIndex = Array.IndexOf(eligibleMethods, monoMethodImplementation);
-                    if (methodPointerArrayIndex < 0)
+                    else
                     {
-                        throw new ArgumentException($"{type.Name} does not implement the abstract method {name}");
-                    }
+                        var existing = list.SingleOrDefault(m =>
+                        {
+                            if (Marshal.PtrToStringAnsi(m.Name) != name) return false;
+                            if (m.ParametersCount != baseMethod.ParametersCount) return false;
 
-                    methodPointerArrayIndex += 2;
-                    methofPointerArrayIndices.Add(methodPointerArrayIndex);
+                            for (var i = 0; i < m.ParametersCount; i++)
+                            {
+                                var parameterInfo = UnityVersionHandler.Wrap(baseMethod.Parameters, i);
+                                var otherParameterInfo = UnityVersionHandler.Wrap(m.Parameters, i);
+
+                                if (Marshal.PtrToStringAnsi(parameterInfo.Name) != Marshal.PtrToStringAnsi(otherParameterInfo.Name)) return false;
+
+                                if (GetIl2CppTypeFullName(parameterInfo.ParameterType) != GetIl2CppTypeFullName(otherParameterInfo.ParameterType)) return false;
+                            }
+
+                            return true;
+                        });
+
+                        if (existing != null)
+                        {
+                            list.Remove(existing);
+                        }
+                    }
                 }
             }
 
-
-            var abstractMethodIndex = 0;
-            var abstractIndices = methofPointerArrayIndices.ToArray();
-
-            for (var y = 0; y < classPointer.VtableCount; y++)
-                if ((int)baseVTablePointer[y].methodPtr == 0)
-                {
-                    var method = UnityVersionHandler.Wrap(methodPointerArray[abstractIndices[abstractMethodIndex]]);
-                    vTablePointer[y].method = methodPointerArray[abstractIndices[abstractMethodIndex]];
-                    vTablePointer[y].methodPtr = method.MethodPointer;
-                    abstractMethodIndex++;
-                }
+            FindAbstractMethods(abstractBaseMethods, baseClassPointer);
         }
 
+        var abstractV = 0;
         for (var i = 0; i < baseClassPointer.VtableCount; i++)
         {
-            if (baseVTablePointer[i].methodPtr == IntPtr.Zero) continue;
             vTablePointer[i] = baseVTablePointer[i];
-            var Il2CppMethodName = Marshal.PtrToStringAnsi(UnityVersionHandler.Wrap(vTablePointer[i].method).Name);
-            var monoMethodImplementation = type.GetMethod(Il2CppMethodName,
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
 
-            var methodPointerArrayIndex = Array.IndexOf(eligibleMethods, monoMethodImplementation);
-            if (methodPointerArrayIndex > 0)
+            INativeMethodInfoStruct baseMethod;
+
+            if (baseVTablePointer[i].method == default)
             {
-                var method = UnityVersionHandler.Wrap(methodPointerArray[methodPointerArrayIndex + 2]);
-                vTablePointer[i].method = methodPointerArray[methodPointerArrayIndex + 2];
-                vTablePointer[i].methodPtr = method.MethodPointer;
+                if (!extendsAbstract) throw new NullReferenceException("VTable method was null even though base type isn't abstract");
+
+                baseMethod = abstractBaseMethods[abstractV++];
+
+                vTablePointer[i].method = baseMethod.MethodInfoPointer;
+                vTablePointer[i].methodPtr = baseMethod.MethodPointer;
+            }
+            else
+            {
+                baseMethod = UnityVersionHandler.Wrap(vTablePointer[i].method);
             }
 
-            if (Il2CppMethodName == "Finalize") // slot number is not static
+            var methodName = Marshal.PtrToStringAnsi(baseMethod.Name);
+
+            if (methodName == "Finalize") // slot number is not static
             {
                 vTablePointer[i].method = methodPointerArray[0];
                 vTablePointer[i].methodPtr = finalizeMethod.MethodPointer;
+                continue;
+            }
+
+            var parameters = new Type[baseMethod.ParametersCount];
+
+            for (var j = 0; j < baseMethod.ParametersCount; j++)
+            {
+                var parameterInfo = UnityVersionHandler.Wrap(baseMethod.Parameters, j);
+                var parameterType = SystemTypeFromIl2CppType(parameterInfo.ParameterType);
+
+                parameters[j] = parameterType;
+            }
+
+            var monoMethodImplementation = type.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly, parameters);
+
+            if (monoMethodImplementation != null && monoMethodImplementation.IsAbstract)
+            {
+                continue;
+            }
+
+            var methodPointerArrayIndex = Array.IndexOf(eligibleMethods, monoMethodImplementation);
+            if (methodPointerArrayIndex >= 0)
+            {
+                var method = UnityVersionHandler.Wrap(methodPointerArray[methodPointerArrayIndex + methodsOffset]);
+                vTablePointer[i].method = methodPointerArray[methodPointerArrayIndex + methodsOffset];
+                vTablePointer[i].methodPtr = method.MethodPointer;
+            }
+
+            if (vTablePointer[i].method == default || vTablePointer[i].methodPtr == IntPtr.Zero)
+            {
+                throw new Exception("No method found for vtable entry " + methodName);
             }
         }
 
@@ -444,6 +479,11 @@ public static unsafe class ClassInjector
                 offset = offsets[i - baseClassPointer.InterfaceOffsetsCount]
             };
 
+        for (var i = 0; i < abstractMethods.Length; i++)
+        {
+            vTablePointer[index++] = default;
+        }
+
         var TypeHierarchyDepth = 1 + baseClassPointer.TypeHierarchyDepth;
         classPointer.TypeHierarchyDepth = (byte)TypeHierarchyDepth;
         classPointer.TypeHierarchy = (Il2CppClass**)Marshal.AllocHGlobal(TypeHierarchyDepth * IntPtr.Size);
@@ -486,7 +526,7 @@ public static unsafe class ClassInjector
     private static bool IsMethodEligible(MethodInfo method)
     {
         if (method.Name == "Finalize") return false;
-        if (method.IsStatic || method.IsAbstract) return false;
+        if (method.IsStatic) return false;
         if (method.CustomAttributes.Any(it => typeof(HideFromIl2CppAttribute).IsAssignableFrom(it.AttributeType)))
             return false;
 
@@ -628,7 +668,7 @@ public static unsafe class ClassInjector
                 converted.IsInflated = true;
         }
 
-        if (!monoMethod.ContainsGenericParameters)
+        if (!monoMethod.ContainsGenericParameters && !monoMethod.IsAbstract)
         {
             converted.InvokerMethod = Marshal.GetFunctionPointerForDelegate(GetOrCreateInvoker(monoMethod));
             converted.MethodPointer = Marshal.GetFunctionPointerForDelegate(GetOrCreateTrampoline(monoMethod));
@@ -651,6 +691,11 @@ public static unsafe class ClassInjector
 
         converted.Flags = Il2CppMethodFlags.METHOD_ATTRIBUTE_PUBLIC |
                           Il2CppMethodFlags.METHOD_ATTRIBUTE_HIDE_BY_SIG;
+
+        if (monoMethod.IsAbstract)
+        {
+            converted.Flags |= Il2CppMethodFlags.METHOD_ATTRIBUTE_ABSTRACT;
+        }
 
         return converted.MethodInfoPointer;
     }
@@ -984,7 +1029,7 @@ public static unsafe class ClassInjector
         return type;
     }
 
-    private static Type SystemTypeFromIl2CppType(Il2CppTypeStruct* typePointer)
+    private static string GetIl2CppTypeFullName(Il2CppTypeStruct* typePointer)
     {
         var klass = UnityVersionHandler.Wrap((Il2CppClass*)IL2CPP.il2cpp_class_from_type((IntPtr)typePointer));
         var assembly = UnityVersionHandler.Wrap(UnityVersionHandler.Wrap(klass.Image).Assembly);
@@ -1000,11 +1045,20 @@ public static unsafe class ClassInjector
 
         fullName.Append(Marshal.PtrToStringAnsi(klass.Name));
 
-        fullName.Append(", ");
-        fullName.Append(Marshal.PtrToStringAnsi(assembly.Name.Name));
+        var assemblyName = Marshal.PtrToStringAnsi(assembly.Name.Name);
+        if (assemblyName != "mscorlib")
+        {
+            fullName.Append(", ");
+            fullName.Append(assemblyName);
+        }
 
-        var type = Type.GetType(fullName.ToString()) ??
-                   throw new NullReferenceException($"Couldn't find System.Type for Il2Cpp type: {fullName}");
+        return fullName.ToString();
+    }
+
+    private static Type SystemTypeFromIl2CppType(Il2CppTypeStruct* typePointer)
+    {
+        var fullName = GetIl2CppTypeFullName(typePointer);
+        var type = Type.GetType(fullName) ?? throw new NullReferenceException($"Couldn't find System.Type for Il2Cpp type: {fullName}");
         return RewriteType(type);
     }
 
