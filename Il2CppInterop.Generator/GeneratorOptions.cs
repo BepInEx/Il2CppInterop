@@ -26,7 +26,7 @@ public class GeneratorOptions
     public HashSet<string> NamespacesAndAssembliesToPrefix { get; } =
         new() { "System", "mscorlib", "Microsoft", "Mono", "I18N" };
     public HashSet<string> NamespacesAndAssembliesToNotPrefix { get; } =
-        new() { "Unity" };
+        new() { "Assembly-CSharp", "Unity" };
 
     public List<string> DeobfuscationGenerationAssemblies { get; } = new();
     public string? DeobfuscationNewAssembliesPath { get; set; }
