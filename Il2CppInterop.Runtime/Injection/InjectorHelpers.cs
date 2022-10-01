@@ -304,18 +304,26 @@ namespace Il2CppInterop.Runtime.Injection
 
         #region Class::FromIl2CppType
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate Il2CppClass* d_ClassFromIl2CppType(Il2CppTypeStruct* type);
-        private static Il2CppClass* hkClassFromIl2CppType(Il2CppTypeStruct* type)
+        internal delegate Il2CppClass* d_ClassFromIl2CppType(Il2CppType* type, bool throwOnError);
+
+        /// Common version of the Il2CppType, the only thing that changed between unity version are the bitfields values that we don't use
+        internal readonly struct Il2CppType
         {
-            var wrappedType = UnityVersionHandler.Wrap(type);
-            if ((long)wrappedType.Data < 0 && (wrappedType.Type == Il2CppTypeEnum.IL2CPP_TYPE_CLASS || wrappedType.Type == Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE))
+            public readonly void* data;
+            public readonly ushort attrs;
+            public readonly Il2CppTypeEnum type;
+            private readonly byte _bitfield;
+        }
+
+        private static Il2CppClass* hkClassFromIl2CppType(Il2CppType* type, bool throwOnError)
+        {
+            if ((nint)type->data < 0 && (type->type == Il2CppTypeEnum.IL2CPP_TYPE_CLASS || type->type == Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE))
             {
-                s_InjectedClasses.TryGetValue((long)wrappedType.Data, out var classPointer);
+                s_InjectedClasses.TryGetValue((nint)type->data, out var classPointer);
                 return (Il2CppClass*)classPointer;
             }
 
-            while (ClassFromIl2CppTypeOriginal == null) Thread.Sleep(1);
-            return ClassFromIl2CppTypeOriginal(type);
+            return ClassFromIl2CppTypeOriginal(type, throwOnError);
         }
         private static d_ClassFromIl2CppType ClassFromIl2CppTypeDetour = new(hkClassFromIl2CppType);
         internal static d_ClassFromIl2CppType ClassFromIl2CppType;
