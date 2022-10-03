@@ -99,6 +99,7 @@ public class TypeRewriteContext
             if (originalTypeMethod.Name == ".cctor") continue;
             if (originalTypeMethod.Name == ".ctor" && originalTypeMethod.Parameters.Count == 1 &&
                 originalTypeMethod.Parameters[0].ParameterType.FullName == "System.IntPtr") continue;
+            if (originalTypeMethod.HasOverrides) continue;
 
             var methodRewriteContext = new MethodRewriteContext(this, originalTypeMethod);
             myMethodContexts[originalTypeMethod] = methodRewriteContext;

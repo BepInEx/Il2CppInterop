@@ -20,6 +20,8 @@ public static class Pass70GenerateProperties
 
                 foreach (var oldProperty in type.Properties)
                 {
+                    if ((oldProperty.GetMethod?.HasOverrides ?? false) || (oldProperty.SetMethod?.HasOverrides ?? false)) continue;
+
                     var unmangledPropertyName = UnmanglePropertyName(assemblyContext, oldProperty, typeContext.NewType,
                         propertyCountsByName);
 
