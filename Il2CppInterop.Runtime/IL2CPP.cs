@@ -269,9 +269,8 @@ public static unsafe class IL2CPP
     {
         var invoke = typeof(T).GetMethod("Invoke")!;
 
-        var trampoline = new DynamicMethod("(missing icall delegate) " + typeof(T).FullName, MethodAttributes.Static,
-            CallingConventions.Standard, invoke.ReturnType,
-            invoke.GetParameters().Select(it => it.ParameterType).ToArray(), typeof(IL2CPP), true);
+        var trampoline = new DynamicMethod("(missing icall delegate) " + typeof(T).FullName,
+            invoke.ReturnType, invoke.GetParameters().Select(it => it.ParameterType).ToArray(), typeof(IL2CPP), true);
         var bodyBuilder = trampoline.GetILGenerator();
 
         bodyBuilder.Emit(OpCodes.Ldstr, $"ICall with signature {signature} was not resolved");
