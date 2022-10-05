@@ -258,7 +258,7 @@ public static unsafe class IL2CPP
         var icallPtr = il2cpp_resolve_icall(signature);
         if (icallPtr == IntPtr.Zero)
         {
-            Logger.Instance.LogTrace("ICall {Signature} not resolved", signature);
+            Logger.Instance.LogTrace($"ICall {signature} not resolved");
             return GenerateDelegateForMissingICall<T>(signature);
         }
 
@@ -269,16 +269,29 @@ public static unsafe class IL2CPP
     {
         var invoke = typeof(T).GetMethod("Invoke")!;
 
-        var trampoline = new DynamicMethod("(missing icall delegate) " + typeof(T).FullName, MethodAttributes.Static,
-            CallingConventions.Standard, invoke.ReturnType,
-            invoke.GetParameters().Select(it => it.ParameterType).ToArray(), typeof(IL2CPP), true);
-        var bodyBuilder = trampoline.GetILGenerator();
+        try
+        {
+            var trampoline = new DynamicMethod(
+                "(missing ICall delegate) " + typeof(T).FullName, 
+                MethodAttributes.Static,
+                CallingConventions.Standard,
+                invoke.ReturnType,
+                invoke.GetParameters().Select(it => it.ParameterType).ToArray(), 
+                typeof(IL2CPP),
+                true
+            );
+            var bodyBuilder = trampoline.GetILGenerator();
+            bodyBuilder.Emit(OpCodes.Ldstr, $"ICall with signature {signature} was not resolved");
+            bodyBuilder.Emit(OpCodes.Newobj, typeof(Exception).GetConstructor(new[] { typeof(string) })!);
+            bodyBuilder.Emit(OpCodes.Throw);
 
-        bodyBuilder.Emit(OpCodes.Ldstr, $"ICall with signature {signature} was not resolved");
-        bodyBuilder.Emit(OpCodes.Newobj, typeof(Exception).GetConstructor(new[] { typeof(string) })!);
-        bodyBuilder.Emit(OpCodes.Throw);
-
-        return (T)trampoline.CreateDelegate(typeof(T));
+            return (T)trampoline.CreateDelegate(typeof(T));
+        }
+        catch
+        {
+            Logger.Instance.LogError($"{typeof(T).FullName} delegate creation error.");
+            return null;
+        }
     }
 
     public static T? PointerToValueGeneric<T>(IntPtr objectPointer, bool isFieldPointer, bool valueTypeWouldBeBoxed)
