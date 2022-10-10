@@ -8,15 +8,15 @@ namespace Il2CppInterop.Generator.Passes;
 
 public static class Pass60AddImplicitConversions
 {
+    private const MethodAttributes OperatorAttributes = MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig;
+
     public static void DoPass(RewriteGlobalContext context)
     {
         var assemblyContext = context.GetAssemblyByName("mscorlib");
         var typeContext = assemblyContext.GetTypeByName("System.String");
         var objectTypeContext = assemblyContext.GetTypeByName("System.Object");
 
-        var methodFromMonoString = new MethodDefinition("op_Implicit",
-            MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.SpecialName |
-            MethodAttributes.HideBySig, typeContext.NewType);
+        var methodFromMonoString = new MethodDefinition("op_Implicit", OperatorAttributes, typeContext.NewType);
         methodFromMonoString.Parameters.Add(new ParameterDefinition(assemblyContext.Imports.Module.String()));
         typeContext.NewType.Methods.Add(methodFromMonoString);
         var fromBuilder = methodFromMonoString.Body.GetILProcessor();
@@ -38,9 +38,7 @@ public static class Pass60AddImplicitConversions
             });
         fromBuilder.Emit(OpCodes.Ret);
 
-        var methodToObject = new MethodDefinition("op_Implicit",
-            MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.SpecialName |
-            MethodAttributes.HideBySig, objectTypeContext.NewType);
+        var methodToObject = new MethodDefinition("op_Implicit", OperatorAttributes, objectTypeContext.NewType);
         methodToObject.Parameters.Add(new ParameterDefinition(assemblyContext.Imports.Module.String()));
         objectTypeContext.NewType.Methods.Add(methodToObject);
         var toObjectBuilder = methodToObject.Body.GetILProcessor();
@@ -48,9 +46,7 @@ public static class Pass60AddImplicitConversions
         toObjectBuilder.Emit(OpCodes.Call, methodFromMonoString);
         toObjectBuilder.Emit(OpCodes.Ret);
 
-        var methodToMonoString = new MethodDefinition("op_Implicit",
-            MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.SpecialName |
-            MethodAttributes.HideBySig, assemblyContext.Imports.Module.String());
+        var methodToMonoString = new MethodDefinition("op_Implicit", OperatorAttributes, assemblyContext.Imports.Module.String());
         methodToMonoString.Parameters.Add(new ParameterDefinition(typeContext.NewType));
         typeContext.NewType.Methods.Add(methodToMonoString);
         var toBuilder = methodToMonoString.Body.GetILProcessor();
@@ -70,6 +66,44 @@ public static class Pass60AddImplicitConversions
         toBuilder.Emit(OpCodes.Ret);
 
         AddDelegateConversions(context);
+
+        var primitiveTypes = new[]
+        {
+            assemblyContext.Imports.Module.Short(),
+            assemblyContext.Imports.Module.Int(),
+            assemblyContext.Imports.Module.Long(),
+            assemblyContext.Imports.Module.UShort(),
+            assemblyContext.Imports.Module.UInt(),
+            assemblyContext.Imports.Module.ULong(),
+            assemblyContext.Imports.Module.Float(),
+            assemblyContext.Imports.Module.Double(),
+        };
+
+        foreach (var systemType in primitiveTypes)
+        {
+            var il2CppSystemType = assemblyContext.GetTypeByName(systemType.FullName).NewType;
+
+            var method = new MethodDefinition("op_Implicit", OperatorAttributes, objectTypeContext.NewType);
+            method.Parameters.Add(new ParameterDefinition("value", ParameterAttributes.None, systemType));
+
+            var il = method.Body.GetILProcessor();
+
+            var structLocal = new VariableDefinition(il2CppSystemType);
+            method.Body.Variables.Add(structLocal);
+
+            il.Emit(OpCodes.Ldloca, structLocal);
+            il.Emit(OpCodes.Initobj, il2CppSystemType);
+
+            il.Emit(OpCodes.Ldloca, structLocal);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Stfld, il2CppSystemType.Fields.Single(f => f.Name == "m_value"));
+
+            il.Emit(OpCodes.Ldloca_S, structLocal);
+            il.Emit(OpCodes.Call, il2CppSystemType.Methods.Single(m => m.Name == "BoxIl2CppObject"));
+            il.Emit(OpCodes.Ret);
+
+            objectTypeContext.NewType.Methods.Add(method);
+        }
     }
 
     private static void AddDelegateConversions(RewriteGlobalContext context)
@@ -86,9 +120,7 @@ public static class Pass60AddImplicitConversions
                 if (invokeMethod.Parameters.Any(it => it.ParameterType.IsByReference || it.ParameterType.IsPointer))
                     continue;
 
-                var implicitMethod = new MethodDefinition("op_Implicit",
-                    MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.SpecialName |
-                    MethodAttributes.HideBySig, typeContext.SelfSubstitutedRef);
+                var implicitMethod = new MethodDefinition("op_Implicit", OperatorAttributes, typeContext.SelfSubstitutedRef);
                 typeContext.NewType.Methods.Add(implicitMethod);
 
                 var hasReturn = invokeMethod.ReturnType.FullName != "System.Void";
@@ -141,9 +173,7 @@ public static class Pass60AddImplicitConversions
                 bodyBuilder.Emit(OpCodes.Ret);
 
                 // public static T operator+(T lhs, T rhs) => Il2CppSystem.Delegate.Combine(lhs, rhs).Cast<T>();
-                var addMethod = new MethodDefinition("op_Addition",
-                    MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.SpecialName |
-                    MethodAttributes.HideBySig, typeContext.SelfSubstitutedRef);
+                var addMethod = new MethodDefinition("op_Addition", OperatorAttributes, typeContext.SelfSubstitutedRef);
                 typeContext.NewType.Methods.Add(addMethod);
                 addMethod.Parameters.Add(new ParameterDefinition(typeContext.SelfSubstitutedRef));
                 addMethod.Parameters.Add(new ParameterDefinition(typeContext.SelfSubstitutedRef));
@@ -158,9 +188,7 @@ public static class Pass60AddImplicitConversions
                 addBody.Emit(OpCodes.Ret);
 
                 // public static T operator-(T lhs, T rhs) => Il2CppSystem.Delegate.Remove(lhs, rhs)?.Cast<T>();
-                var subtractMethod = new MethodDefinition("op_Subtraction",
-                    MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.SpecialName |
-                    MethodAttributes.HideBySig, typeContext.SelfSubstitutedRef);
+                var subtractMethod = new MethodDefinition("op_Subtraction", OperatorAttributes, typeContext.SelfSubstitutedRef);
                 typeContext.NewType.Methods.Add(subtractMethod);
                 subtractMethod.Parameters.Add(new ParameterDefinition(typeContext.SelfSubstitutedRef));
                 subtractMethod.Parameters.Add(new ParameterDefinition(typeContext.SelfSubstitutedRef));
