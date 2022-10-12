@@ -20,8 +20,6 @@ public static unsafe class IL2CPP
 {
     private static readonly Dictionary<string, IntPtr> ourImagesMap = new();
 
-    private static readonly MethodInfo CastMethod = typeof(Il2CppObjectBase).GetMethod(nameof(Il2CppObjectBase.Cast));
-
     static IL2CPP()
     {
         var domain = il2cpp_domain_get();
@@ -299,10 +297,11 @@ public static unsafe class IL2CPP
         if (objectPointer == IntPtr.Zero)
             return default;
 
-        var nativeObject = new Il2CppObjectBase(objectPointer);
         if (typeof(T).IsValueType)
-            return nativeObject.UnboxUnsafe<T>();
-        return (T)CastMethod.MakeGenericMethod(typeof(T)).Invoke(nativeObject, new object[0]);
+            return Il2CppObjectBase.UnboxUnsafe<T>(objectPointer);
+
+        var il2CppObjectBase = Il2CppObjectBase.CreateUnsafe<T>(objectPointer);
+        return Unsafe.As<Il2CppObjectBase, T>(ref il2CppObjectBase);
     }
 
     public static string RenderTypeName<T>(bool addRefMarker = false)
