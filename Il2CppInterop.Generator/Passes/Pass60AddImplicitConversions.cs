@@ -69,14 +69,23 @@ public static class Pass60AddImplicitConversions
 
         var primitiveTypes = new[]
         {
+            assemblyContext.Imports.Module.SByte(),
+            assemblyContext.Imports.Module.Byte(),
+
             assemblyContext.Imports.Module.Short(),
-            assemblyContext.Imports.Module.Int(),
-            assemblyContext.Imports.Module.Long(),
             assemblyContext.Imports.Module.UShort(),
+
+            assemblyContext.Imports.Module.Int(),
             assemblyContext.Imports.Module.UInt(),
+
+            assemblyContext.Imports.Module.Long(),
             assemblyContext.Imports.Module.ULong(),
+
             assemblyContext.Imports.Module.Float(),
             assemblyContext.Imports.Module.Double(),
+
+            assemblyContext.Imports.Module.Char(),
+            assemblyContext.Imports.Module.Bool(),
         };
 
         foreach (var systemType in primitiveTypes)
