@@ -40,6 +40,16 @@ internal static class CorlibReferences
         return module.ImportReference(typeof(string));
     }
 
+    public static TypeReference SByte(this ModuleDefinition module)
+    {
+        return module.ImportReference(typeof(sbyte));
+    }
+
+    public static TypeReference Byte(this ModuleDefinition module)
+    {
+        return module.ImportReference(typeof(byte));
+    }
+
     public static TypeReference Short(this ModuleDefinition module)
     {
         return module.ImportReference(typeof(short));
@@ -78,6 +88,11 @@ internal static class CorlibReferences
     public static TypeReference Double(this ModuleDefinition module)
     {
         return module.ImportReference(typeof(double));
+    }
+
+    public static TypeReference Char(this ModuleDefinition module)
+    {
+        return module.ImportReference(typeof(char));
     }
 
     public static TypeReference Type(this ModuleDefinition module)
