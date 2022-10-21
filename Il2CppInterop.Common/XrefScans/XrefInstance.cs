@@ -3,18 +3,18 @@ namespace Il2CppInterop.Common.XrefScans;
 public readonly struct XrefInstance
 {
     public readonly XrefType Type;
-    public readonly IntPtr Pointer;
-    public readonly IntPtr FoundAt;
+    public readonly nint Pointer;
+    public readonly nint FoundAt;
 
-    public XrefInstance(XrefType type, IntPtr pointer, IntPtr foundAt)
+    public XrefInstance(XrefType type, nint pointer, nint foundAt)
     {
         Type = type;
         Pointer = pointer;
         FoundAt = foundAt;
     }
 
-    internal XrefInstance RelativeToBase(long baseAddress)
+    internal XrefInstance RelativeToBase(nint baseAddress)
     {
-        return new XrefInstance(Type, (IntPtr)((long)Pointer - baseAddress), (IntPtr)((long)FoundAt - baseAddress));
+        return new XrefInstance(Type, Pointer - baseAddress, FoundAt - baseAddress);
     }
 }
