@@ -166,7 +166,7 @@ namespace Il2CppInterop.Runtime.Injection
                 genericMethodGetMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethod).Last();
 
                 var targetTargets = XrefScannerLowLevel.JumpTargets(genericMethodGetMethod).Take(2).ToList();
-                if (targetTargets.Count == 1) // U2021.2.0+, there's additional shim that takes 3 parameters
+                if (targetTargets.Count == 1 && UnityVersionHandler.IsMetadataV29OrHigher) // U2021.2.0+, there's additional shim that takes 3 parameters
                     genericMethodGetMethod = targetTargets[0];
             }
 
