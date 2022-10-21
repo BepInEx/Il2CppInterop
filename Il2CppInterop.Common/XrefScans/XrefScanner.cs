@@ -77,7 +77,7 @@ public static class XrefScanner
             {
                 var targetAddress = ExtractTargetAddress(instruction);
                 if (targetAddress != 0)
-                    yield return new XrefInstance(XrefType.Method, (IntPtr)targetAddress, (IntPtr)instruction.IP);
+                    yield return new XrefInstance(XrefType.Method, (nint)targetAddress, (nint)instruction.IP);
                 continue;
             }
 
