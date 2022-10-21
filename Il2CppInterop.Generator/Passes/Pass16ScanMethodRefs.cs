@@ -30,13 +30,13 @@ public static class Pass16ScanMethodRefs
             MemoryMappedFileAccess.Read);
         using var accessor = mappedFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
 
-        IntPtr gameAssemblyPtr;
+        nint gameAssemblyPtr;
 
         unsafe
         {
             byte* fileStartPtr = null;
             accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref fileStartPtr);
-            gameAssemblyPtr = (IntPtr)fileStartPtr;
+            gameAssemblyPtr = (nint)fileStartPtr;
         }
 
         context.HasGcWbarrierFieldWrite =
@@ -45,7 +45,7 @@ public static class Pass16ScanMethodRefs
         if (!Pass15GenerateMemberContexts.HasObfuscatedMethods) return;
 
         var methodToCallersMap = new ConcurrentDictionary<long, List<XrefInstance>>();
-        var methodToCalleesMap = new ConcurrentDictionary<long, List<long>>();
+        var methodToCalleesMap = new ConcurrentDictionary<long, List<nint>>();
 
         context.MethodStartAddresses.Sort();
 
@@ -58,8 +58,7 @@ public static class Pass16ScanMethodRefs
 
                 if (!options.NoXrefCache)
                 {
-                    var pair = XrefScanMetadataGenerationUtil.FindMetadataInitForMethod(originalTypeMethod,
-                        (long)gameAssemblyPtr);
+                    var pair = XrefScanMetadataGenerationUtil.FindMetadataInitForMethod(originalTypeMethod, gameAssemblyPtr);
                     originalTypeMethod.MetadataInitFlagRva = pair.FlagRva;
                     originalTypeMethod.MetadataInitTokenRva = pair.TokenRva;
                 }
@@ -73,14 +72,13 @@ public static class Pass16ScanMethodRefs
                              XrefScanner.DecoderForAddress(IntPtr.Add(gameAssemblyPtr, (int)address), (int)length),
                              true))
                 {
-                    var callTarget = callTargetGlobal.RelativeToBase((long)gameAssemblyPtr +
-                        originalTypeMethod.FileOffset - originalTypeMethod.Rva);
+                    var callTarget = callTargetGlobal.RelativeToBase(gameAssemblyPtr + (nint)originalTypeMethod.FileOffset - (nint)originalTypeMethod.Rva);
                     if (callTarget.Type == XrefType.Method)
                     {
-                        var targetRelative = (long)callTarget.Pointer;
+                        var targetRelative = callTarget.Pointer;
                         methodToCallersMap.GetOrAdd(targetRelative, _ => new List<XrefInstance>()).AddLocked(
-                            new XrefInstance(XrefType.Method, (IntPtr)originalTypeMethod.Rva, callTarget.FoundAt));
-                        methodToCalleesMap.GetOrAdd(originalTypeMethod.Rva, _ => new List<long>())
+                            new XrefInstance(XrefType.Method, (nint)originalTypeMethod.Rva, callTarget.FoundAt));
+                        methodToCalleesMap.GetOrAdd(originalTypeMethod.Rva, _ => new List<nint>())
                             .AddLocked(targetRelative);
                     }
 
@@ -113,7 +111,7 @@ public static class Pass16ScanMethodRefs
                 }
     }
 
-    private static unsafe bool FindByteSequence(IntPtr basePtr, long length, string str)
+    private static unsafe bool FindByteSequence(nint basePtr, long length, string str)
     {
         var bytes = (byte*)basePtr;
         var sequence = Encoding.UTF8.GetBytes(str);
