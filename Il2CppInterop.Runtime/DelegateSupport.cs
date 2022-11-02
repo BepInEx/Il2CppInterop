@@ -112,9 +112,7 @@ public static class DelegateSupport
     private static Delegate GenerateNativeToManagedTrampoline(Il2CppSystem.Reflection.MethodInfo nativeMethod,
         MethodInfo managedMethod, MethodSignature signature)
     {
-        var returnType = nativeMethod.ReturnType.IsValueType
-            ? managedMethod.ReturnType
-            : typeof(IntPtr);
+        var returnType = managedMethod.ReturnType.NativeType();
 
         var managedParameters = managedMethod.GetParameters();
         var nativeParameters = nativeMethod.GetParameters();
