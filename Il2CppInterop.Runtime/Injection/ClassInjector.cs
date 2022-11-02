@@ -1043,6 +1043,13 @@ public static unsafe partial class ClassInjector
             fullName.Append('.');
         }
 
+        var declaringType = klass;
+        while ((declaringType = UnityVersionHandler.Wrap(declaringType.DeclaringType)) != default)
+        {
+            fullName.Append(Marshal.PtrToStringAnsi(declaringType.Name));
+            fullName.Append('+');
+        }
+
         fullName.Append(Marshal.PtrToStringAnsi(klass.Name));
 
         var assemblyName = Marshal.PtrToStringAnsi(assembly.Name.Name);
