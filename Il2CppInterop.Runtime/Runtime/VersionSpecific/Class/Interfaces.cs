@@ -44,6 +44,7 @@ public interface INativeClassStruct : INativeStruct
     unsafe ref Il2CppClass* Parent { get; }
     unsafe ref Il2CppClass* ElementClass { get; }
     unsafe ref Il2CppClass* CastClass { get; }
+    unsafe ref Il2CppClass* DeclaringType { get; }
     unsafe ref Il2CppClass* Class { get; }
 
     unsafe ref Il2CppFieldInfo* Fields { get; }
