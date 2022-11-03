@@ -151,6 +151,7 @@ public unsafe class NativeClassStructHandler_21_1 : INativeClassStructHandler
         public ref Il2CppClass* Parent => ref _->parent;
         public ref Il2CppClass* ElementClass => ref _->element_class;
         public ref Il2CppClass* CastClass => ref _->castClass;
+        public ref Il2CppClass* DeclaringType => ref _->declaringType;
         public ref Il2CppClass* Class => ref _klassDummy;
         public ref Il2CppFieldInfo* Fields => ref _->fields;
         public ref Il2CppMethodInfo** Methods => ref _->methods;

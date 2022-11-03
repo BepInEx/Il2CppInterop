@@ -105,6 +105,7 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
         new ByRefWrapper("Il2CppClass*", "Parent", new[] { "parent" }),
         new ByRefWrapper("Il2CppClass*", "ElementClass", new[] { "element_class" }),
         new ByRefWrapper("Il2CppClass*", "CastClass", new[] { "castClass" }),
+        new ByRefWrapper("Il2CppClass*", "DeclaringType", new[] { "declaringType" }),
         new ByRefWrapper("Il2CppClass*", "Class", new[] { "klass" }, makeDummyIfNotExist: true),
         new ByRefWrapper("Il2CppFieldInfo*", "Fields", new[] { "fields" }),
         new ByRefWrapper("Il2CppMethodInfo**", "Methods", new[] { "methods" }),
