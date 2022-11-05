@@ -320,8 +320,9 @@ public static unsafe partial class ClassInjector
         classPointer.InstanceSize = (uint)(fieldOffset + sizeof(InjectedClassData));
         classPointer.ActualSize = classPointer.InstanceSize;
 
-        var eligibleMethods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).Where(IsMethodEligible).ToArray();
-        var methodsOffset = type.IsAbstract ? 1 : 2; // 1 is the finalizer, 1 is empty ctor
+        var eligibleMethods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+            .Where(IsMethodEligible).ToArray();
+        var methodsOffset = (type.IsAbstract || type.IsValueType) ? 1 : 2; // 1 is the finalizer, 1 is empty ctor
         var methodCount = methodsOffset + eligibleMethods.Length;
 
         classPointer.MethodCount = (ushort)methodCount;
@@ -335,7 +336,7 @@ public static unsafe partial class ClassInjector
             .Where(IsFieldEligible)
             .ToArray();
 
-        if (!type.IsAbstract) methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type, fieldsToInitialize), ".ctor", classPointer);
+        if (!type.IsAbstract && !type.IsValueType) methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type, fieldsToInitialize), ".ctor", classPointer);
         var infos = new Dictionary<(string, int, bool), int>(eligibleMethods.Length);
         for (var i = 0; i < eligibleMethods.Length; i++)
         {
@@ -793,19 +794,16 @@ public static unsafe partial class ClassInjector
             body.Emit(OpCodes.Ldloc, local);
         }
 
-        if (!targetType.IsValueType)
+        foreach (var field in fieldsToInitialize)
         {
-            foreach (var field in fieldsToInitialize)
-            {
-                body.Emit(OpCodes.Dup);
-                body.Emit(OpCodes.Dup);
-                body.Emit(OpCodes.Ldstr, field.Name);
-                body.Emit(OpCodes.Newobj, field.FieldType.GetConstructor(
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
-                    new[] { typeof(Il2CppObjectBase), typeof(string) }, Array.Empty<ParameterModifier>())
-                );
-                body.Emit(OpCodes.Stfld, field);
-            }
+            body.Emit(OpCodes.Dup);
+            body.Emit(OpCodes.Dup);
+            body.Emit(OpCodes.Ldstr, field.Name);
+            body.Emit(OpCodes.Newobj, field.FieldType.GetConstructor(
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
+                new[] { typeof(Il2CppObjectBase), typeof(string) }, Array.Empty<ParameterModifier>())
+            );
+            body.Emit(OpCodes.Stfld, field);
         }
 
         body.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(ProcessNewObject))!);
