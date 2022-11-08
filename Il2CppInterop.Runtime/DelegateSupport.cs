@@ -120,9 +120,7 @@ public static class DelegateSupport
         parameterTypes[0] = typeof(IntPtr);
         parameterTypes[managedParameters.Length + 1] = typeof(Il2CppMethodInfo*);
         for (var i = 0; i < managedParameters.Length; i++)
-            parameterTypes[i + 1] = nativeParameters[i].ParameterType.IsValueType
-                ? managedParameters[i].ParameterType
-                : typeof(IntPtr);
+            parameterTypes[i + 1] = managedParameters[i].ParameterType.NativeType();
 
         var trampoline = new DynamicMethod("(il2cpp delegate trampoline) " + ExtractSignature(managedMethod),
             MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, returnType, parameterTypes,
