@@ -136,20 +136,41 @@ namespace Il2CppInterop.Runtime.Injection
         private static readonly d_GenericMethodGetMethod GenericMethodGetMethodDetour = new(ClassInjector.hkGenericMethodGetMethod);
         internal static d_GenericMethodGetMethod GenericMethodGetMethod;
         internal static d_GenericMethodGetMethod GenericMethodGetMethodOriginal;
+
+        private static readonly MemoryUtils.SignatureDefinition[] s_GenericMethodGetMethodSignatures =
+        {
+            // Unity 2021.2.5 (x64)
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x56\x57\x41\x54\x41\x56\x41\x57\x48\x81\xEC\xB0\x00",
+                mask = "xxxxxxxxxxxxxxxxxxxxxxx",
+                xref = false
+            }
+        };
         private static d_GenericMethodGetMethod FindGenericMethodGetMethod()
         {
-            var getVirtualMethodAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_object_get_virtual_method));
-            Logger.Instance.LogTrace("il2cpp_object_get_virtual_method: 0x{GetVirtualMethodApiAddress}", getVirtualMethodAPI.ToInt64().ToString("X2"));
+            // On Unity 2021.2+, the 3 parameter shim can be inlined and optimized by the compiler
+            // which moves the method we're looking for
+            var genericMethodGetMethod = s_GenericMethodGetMethodSignatures
+                .Select(s => MemoryUtils.FindSignatureInModule(Il2CppModule, s))
+                .FirstOrDefault(p => p != 0);
 
-            var getVirtualMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethodAPI).Single();
-            Logger.Instance.LogTrace("Object::GetVirtualMethod: 0x{GetVirtualMethodAddress}", getVirtualMethod.ToInt64().ToString("X2"));
+            if (genericMethodGetMethod == 0)
+            {
+                var getVirtualMethodAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_object_get_virtual_method));
+                Logger.Instance.LogTrace("il2cpp_object_get_virtual_method: 0x{GetVirtualMethodApiAddress}", getVirtualMethodAPI.ToInt64().ToString("X2"));
 
-            var genericMethodGetMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethod).Last();
-            Logger.Instance.LogTrace("GenericMethod::GetMethod: 0x{GenericMethodGetMethodAddress}", genericMethodGetMethod.ToInt64().ToString("X2"));
+                var getVirtualMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethodAPI).Single();
+                Logger.Instance.LogTrace("Object::GetVirtualMethod: 0x{GetVirtualMethodAddress}", getVirtualMethod.ToInt64().ToString("X2"));
 
-            var targetTargets = XrefScannerLowLevel.JumpTargets(genericMethodGetMethod).Take(2).ToList();
-            if (targetTargets.Count == 1) // U2021.2.0+, there's additional shim that takes 3 parameters
-                genericMethodGetMethod = targetTargets[0];
+                genericMethodGetMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethod).Last();
+
+                var targetTargets = XrefScannerLowLevel.JumpTargets(genericMethodGetMethod).Take(2).ToList();
+                if (targetTargets.Count == 1 && UnityVersionHandler.IsMetadataV29OrHigher) // U2021.2.0+, there's additional shim that takes 3 parameters
+                    genericMethodGetMethod = targetTargets[0];
+            }
+
+            Logger.Instance.LogTrace("GenericMethod::GetMethod: 0x{GenericMethodGetMethodAddress}", genericMethodGetMethod.ToString("X2"));
             GenericMethodGetMethodOriginal = Detour.Apply(genericMethodGetMethod, GenericMethodGetMethodDetour);
             return Marshal.GetDelegateForFunctionPointer<d_GenericMethodGetMethod>(genericMethodGetMethod);
         }
@@ -339,13 +360,35 @@ namespace Il2CppInterop.Runtime.Injection
         private static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueDetour = new(hkClassGetFieldDefaultValue);
         internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValue;
         internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueOriginal;
-        private static d_ClassGetFieldDefaultValue FindClassGetFieldDefaultValue(bool forceICallMethod = false)
-        {
-            // NOTE: In some cases this pointer will be MetadataCache::GetFieldDefaultValueForField due to Field::GetDefaultFieldValue being
-            // inlined but we'll treat it the same even though it doesn't receive the type parameter the RDX register
-            // doesn't get cleared so we still get the same parameters
-            var classGetDefaultFieldValue = IntPtr.Zero;
 
+        private static readonly MemoryUtils.SignatureDefinition[] s_ClassGetFieldDefaultValueSignatures =
+        {
+            // Test Game - Unity 2021.3.4 (x64)
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x48\x8B\x79\x10\x48\x8B\xD9\x48\x8B\xF2\x48\x2B\x9F",
+                mask = "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                xref = false
+            },
+            // GTFO - Unity 2019.4.21 (x64)
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\x41\x10\x48\x8B\xD9\x48\x8B",
+                mask = "xxxxxxxxxxxxxxxxxxx",
+                xref = false
+            },
+            // Evony - Unity 2018.4.0 (x86)
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\x55\x8B\xEC\x56\xFF\x75\x08\xE8\x00\x00\x00\x00\x8B\xF0\x83\xC4\x04\x85\xF6",
+                mask = "xxxxxxxx????xxxxxxx",
+                xref = false
+            },
+        };
+
+        private static nint FindClassGetFieldDefaultValueXref(bool forceICallMethod = false)
+        {
+            nint classGetDefaultFieldValue = 0;
             if (forceICallMethod)
             {
                 // MonoField isn't present on 2021.2.0+
@@ -381,11 +424,27 @@ namespace Il2CppInterop.Runtime.Injection
 
                 var getStaticFieldValueInternalTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).ToArray();
 
-                if (getStaticFieldValueInternalTargets.Length == 0) return FindClassGetFieldDefaultValue(true);
+                if (getStaticFieldValueInternalTargets.Length == 0) return FindClassGetFieldDefaultValueXref(true);
 
                 classGetDefaultFieldValue = getStaticFieldValueInternalTargets.Length == 3 ? getStaticFieldValueInternalTargets.Last() : getStaticFieldValueInternalTargets.First();
             }
-            Logger.Instance.LogTrace("Class::GetDefaultFieldValue: 0x{ClassGetDefaultFieldValueAddress}", classGetDefaultFieldValue.ToInt64().ToString("X2"));
+            return classGetDefaultFieldValue;
+        }
+        private static d_ClassGetFieldDefaultValue FindClassGetFieldDefaultValue(bool forceICallMethod = false)
+        {
+            // NOTE: In some cases this pointer will be MetadataCache::GetFieldDefaultValueForField due to Field::GetDefaultFieldValue being
+            // inlined but we'll treat it the same even though it doesn't receive the type parameter the RDX register
+            // doesn't get cleared so we still get the same parameters
+            var classGetDefaultFieldValue = s_ClassGetFieldDefaultValueSignatures
+                .Select(s => MemoryUtils.FindSignatureInModule(Il2CppModule, s))
+                .FirstOrDefault(p => p != 0);
+
+            if (classGetDefaultFieldValue == 0)
+            {
+                Logger.Instance.LogTrace("Couldn't fetch Class::GetDefaultFieldValue with signatures, using method traversal");
+                classGetDefaultFieldValue = FindClassGetFieldDefaultValueXref(forceICallMethod);
+            }
+            Logger.Instance.LogTrace("Class::GetDefaultFieldValue: 0x{ClassGetDefaultFieldValueAddress}", classGetDefaultFieldValue.ToString("X2"));
 
             ClassGetFieldDefaultValueOriginal = Detour.Apply(classGetDefaultFieldValue, ClassGetFieldDefaultValueDetour);
             return Marshal.GetDelegateForFunctionPointer<d_ClassGetFieldDefaultValue>(classGetDefaultFieldValue);
