@@ -79,6 +79,14 @@ public static class Pass79UnstripTypes
                 clonedType.DeclaringType = enclosingNewType;
             }
 
+            // Unity assemblies sometimes have struct layouts on classes.
+            // This gets overlooked on mono but not on coreclr.
+            if (!clonedType.IsValueType && (clonedType.IsExplicitLayout || clonedType.IsSequentialLayout))
+            {
+                clonedType.IsExplicitLayout = clonedType.IsSequentialLayout = false;
+                clonedType.IsAutoLayout = true;
+            }
+
             processedAssembly.RegisterTypeRewrite(new TypeRewriteContext(processedAssembly, null, clonedType));
             processedType = clonedType;
         }
