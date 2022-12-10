@@ -42,10 +42,7 @@ public static class Pass21GenerateValueTypeFields
                                 ? assemblyContext.Imports.Module.IntPtr()
                                 : assemblyContext.RewriteTypeRef(field.FieldType));
 
-                        newField.Offset = Convert.ToInt32(
-                            (string)field.CustomAttributes
-                                .Single(it => it.AttributeType.Name == "FieldOffsetAttribute")
-                                .Fields.Single().Argument.Value, 16);
+                        newField.Offset = field.ExtractFieldOffset();
 
                         // Special case: bools in Il2Cpp are bytes
                         if (newField.FieldType.FullName == "System.Boolean")
