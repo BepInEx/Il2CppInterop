@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Linq;
 using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Extensions;
@@ -8,30 +6,42 @@ public static class CustomAttributeEx
 {
     public static long ExtractOffset(this ICustomAttributeProvider originalMethod)
     {
-        return Extract(originalMethod, "AddressAttribute", "Offset");
+        return ExtractLong(originalMethod, "AddressAttribute", "Offset");
     }
 
     public static long ExtractRva(this ICustomAttributeProvider originalMethod)
     {
-        return Extract(originalMethod, "AddressAttribute", "RVA");
+        return ExtractLong(originalMethod, "AddressAttribute", "RVA");
     }
 
     public static long ExtractToken(this ICustomAttributeProvider originalMethod)
     {
-        return Extract(originalMethod, "TokenAttribute", "Token");
+        return ExtractLong(originalMethod, "TokenAttribute", "Token");
     }
 
-    private static long Extract(this ICustomAttributeProvider originalMethod, string attributeName,
+    public static int ExtractFieldOffset(this ICustomAttributeProvider originalField)
+    {
+        return ExtractInt(originalField, "FieldOffsetAttribute", "Offset");
+    }
+
+    private static string Extract(this ICustomAttributeProvider originalMethod, string attributeName,
         string parameterName)
     {
-        var addressAttribute =
-            originalMethod.CustomAttributes.SingleOrDefault(it => it.AttributeType.Name == attributeName);
-        var rvaField = addressAttribute?.Fields.SingleOrDefault(it => it.Name == parameterName);
+        var attribute = originalMethod.CustomAttributes.SingleOrDefault(it => it.AttributeType.Name == attributeName);
+        var field = attribute?.Fields.SingleOrDefault(it => it.Name == parameterName);
 
-        if (rvaField?.Name == null) return 0;
+        if (field?.Name == null) return null;
 
-        var addressString = (string)rvaField.Value.Argument.Value;
-        long.TryParse(addressString.Substring(2), NumberStyles.HexNumber, null, out var address);
-        return address;
+        return (string)field.Value.Argument.Value;
+    }
+
+    private static long ExtractLong(this ICustomAttributeProvider originalMethod, string attributeName, string parameterName)
+    {
+        return Convert.ToInt64(Extract(originalMethod, attributeName, parameterName), 16);
+    }
+
+    private static int ExtractInt(this ICustomAttributeProvider originalMethod, string attributeName, string parameterName)
+    {
+        return Convert.ToInt32(Extract(originalMethod, attributeName, parameterName), 16);
     }
 }
