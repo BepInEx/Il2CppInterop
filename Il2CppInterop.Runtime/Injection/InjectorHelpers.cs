@@ -216,7 +216,7 @@ namespace Il2CppInterop.Runtime.Injection
             if (s_InjectedClasses.TryGetValue(index, out IntPtr classPtr))
                 return (Il2CppClass*)classPtr;
 
-                return GetTypeInfoFromTypeDefinitionIndexOriginal(index);
+            return GetTypeInfoFromTypeDefinitionIndexOriginal(index);
         }
         private static readonly d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndexDetour = new(hkGetTypeInfoFromTypeDefinitionIndex);
         internal static d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndex;
