@@ -276,17 +276,17 @@ namespace Il2CppInterop.Runtime.Injection
                 if (imageGetTypeXrefs.Count() > 1 && UnityVersionHandler.IsMetadataV29OrHigher)
                 {
                     // (Kasuromi): metadata v29 introduces handles and adds extra calls, a check for unity versions might be necessary in the future
-                    
+
                     Logger.Instance.LogTrace($"imageGetTypeXrefs.Length: {imageGetTypeXrefs.Length}");
-                    
+
                     // If the game is built as IL2CPP Master, GetAssemblyTypeHandle is inlined, xrefs length is 3 and it's the first function call,
                     // if not, it's the last call.
                     var getTypeInfoFromHandle = imageGetTypeXrefs.Length == 2 ? imageGetTypeXrefs.Last() : imageGetTypeXrefs.First();
-                    
+
                     Logger.Instance.LogTrace($"getTypeInfoFromHandle: {getTypeInfoFromHandle:X2}");
 
                     var getTypeInfoFromHandleXrefs = XrefScannerLowLevel.JumpTargets(getTypeInfoFromHandle).ToArray();
-                    
+
                     // If getTypeInfoFromHandle xrefs is not a single call, it's the function we want, if not, we keep xrefing until we find it
                     if (getTypeInfoFromHandleXrefs.Length != 1)
                     {
