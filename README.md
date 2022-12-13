@@ -12,7 +12,7 @@
 
 ***
 
-> **BepInEx fork of Il2CppAssemblyUnhollower is now Il2CppInterop!**
+> **BepInEx fork of Il2CppAssemblyUnhollower is now Il2CppInterop!** 
 >
 > Looking for old README and guides? Check out [`legacy-unhollower` branch](https://github.com/BepInEx/Il2CppInterop/tree/legacy-unhollower).
 
