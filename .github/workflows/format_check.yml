@@ -4,6 +4,9 @@ on: [push, pull_request]
 
 jobs:
   build:
+    # Prevent running workflow twice on a PR from a non-fork
+    # We could use Skip Duplicate Actions, but this is shorter
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     runs-on: ubuntu-latest
 
