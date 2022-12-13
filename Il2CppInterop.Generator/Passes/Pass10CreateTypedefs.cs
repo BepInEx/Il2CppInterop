@@ -23,7 +23,7 @@ public static class Pass10CreateTypedefs
         var convertedTypeName = GetConvertedTypeName(assemblyContext.GlobalContext, type, parentType);
         var newType =
             new TypeDefinition(
-                convertedTypeName.Namespace ?? type.Namespace.UnSystemify(assemblyContext.GlobalContext.Options),
+                convertedTypeName.Namespace ?? GetNamespace(type, assemblyContext),
                 convertedTypeName.Name, AdjustAttributes(type.Attributes));
         newType.IsSequentialLayout = false;
 
@@ -44,6 +44,14 @@ public static class Pass10CreateTypedefs
             ProcessType(typeNestedType, assemblyContext, newType);
 
         assemblyContext.RegisterTypeRewrite(new TypeRewriteContext(assemblyContext, type, newType));
+
+        static string GetNamespace(TypeDefinition type, AssemblyRewriteContext assemblyContext)
+        {
+            if (type.Name is "<Module>" or "<PrivateImplementationDetails>" || type.DeclaringType is not null)
+                return type.Namespace;
+            else
+                return type.Namespace.UnSystemify(assemblyContext.GlobalContext.Options);
+        }
     }
 
     internal static (string? Namespace, string Name) GetConvertedTypeName(
