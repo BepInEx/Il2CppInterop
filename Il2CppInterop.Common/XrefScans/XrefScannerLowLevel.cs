@@ -4,12 +4,12 @@ namespace Il2CppInterop.Common.XrefScans;
 
 public static class XrefScannerLowLevel
 {
-    public static IEnumerable<IntPtr> JumpTargets(IntPtr codeStart)
+    public static IEnumerable<IntPtr> JumpTargets(IntPtr codeStart, bool ignoreRetn = false)
     {
-        return JumpTargetsImpl(XrefScanner.DecoderForAddress(codeStart));
+        return JumpTargetsImpl(XrefScanner.DecoderForAddress(codeStart), ignoreRetn);
     }
 
-    private static IEnumerable<IntPtr> JumpTargetsImpl(Decoder myDecoder)
+    private static IEnumerable<IntPtr> JumpTargetsImpl(Decoder myDecoder, bool ignoreRetn)
     {
         var firstFlowControl = true;
 
@@ -22,7 +22,7 @@ public static class XrefScannerLowLevel
             if (instruction.Mnemonic == Mnemonic.Int3)
                 yield break;
 
-            if (instruction.FlowControl == FlowControl.Return)
+            if (instruction.FlowControl == FlowControl.Return && !ignoreRetn)
                 yield break;
 
             if (instruction.FlowControl == FlowControl.UnconditionalBranch ||
