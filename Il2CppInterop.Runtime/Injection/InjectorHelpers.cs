@@ -163,18 +163,20 @@ namespace Il2CppInterop.Runtime.Injection
                 var getVirtualMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethodAPI).Single();
                 Logger.Instance.LogTrace("Object::GetVirtualMethod: 0x{GetVirtualMethodAddress}", getVirtualMethod.ToInt64().ToString("X2"));
 
-                var getVirtualMethodJmps = XrefScannerLowLevel.JumpTargets(getVirtualMethod).ToArray();
+                var getVirtualMethodXrefs = XrefScannerLowLevel.JumpTargets(getVirtualMethod).ToArray();
 
                 // If the game is built with IL2CPP Master setting, this will return 0 entries, so we do another xref scan with retn instructions ignored.
-                if (getVirtualMethodJmps.Length == 0)
+                if (getVirtualMethodXrefs.Length == 0)
                 {
                     genericMethodGetMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethod, true).Last();
                 }
                 else
                 {
-                    var targetTargets = XrefScannerLowLevel.JumpTargets(genericMethodGetMethod).Take(2).ToArray();
+                    var targetTargets = getVirtualMethodXrefs.Take(2).ToArray();
                     if (targetTargets.Length == 1 && UnityVersionHandler.IsMetadataV29OrHigher) // U2021.2.0+, there's additional shim that takes 3 parameters
                         genericMethodGetMethod = targetTargets[0];
+                    else
+                        genericMethodGetMethod = getVirtualMethodXrefs.Last();
                 }
             }
 
