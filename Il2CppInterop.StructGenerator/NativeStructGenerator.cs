@@ -66,6 +66,7 @@ internal class NativeStructGenerator
                 $"_{lastBitfield.Name.ToLower()}"));
             bitfields.Add(lastBitfield);
             lastBitfield = null;
+            bitfieldNextBit = 0;
         }
 
         foreach (var baseType in CppClass.BaseTypes)
@@ -85,6 +86,7 @@ internal class NativeStructGenerator
 
             if (field.IsBitField)
             {
+                if (bitfieldNextBit == 8) FinalizeBitfield();
                 if (VisitBitfieldElement(field)) FinalizeBitfield();
             }
             else
