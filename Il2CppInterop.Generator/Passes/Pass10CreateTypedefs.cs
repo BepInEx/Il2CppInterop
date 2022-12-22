@@ -13,8 +13,10 @@ public static class Pass10CreateTypedefs
     {
         foreach (var assemblyContext in context.Assemblies)
             foreach (var type in assemblyContext.OriginalAssembly.MainModule.Types)
-                if (type.Namespace != "Cpp2ILInjected" && type.Name != "<Module>")
+                if (!IsCpp2ILInjectedType(type) && type.Name != "<Module>")
                     ProcessType(type, assemblyContext, null);
+
+        static bool IsCpp2ILInjectedType(TypeDefinition type) => type.Namespace?.StartsWith("Cpp2ILInjected", StringComparison.Ordinal) ?? false;
     }
 
     private static void ProcessType(TypeDefinition type, AssemblyRewriteContext assemblyContext,
@@ -47,7 +49,7 @@ public static class Pass10CreateTypedefs
 
         static string GetNamespace(TypeDefinition type, AssemblyRewriteContext assemblyContext)
         {
-            if (type.Name is "<Module>" or "<PrivateImplementationDetails>" || type.DeclaringType is not null)
+            if (type.Name is "<Module>" || type.DeclaringType is not null)
                 return type.Namespace;
             else
                 return type.Namespace.UnSystemify(assemblyContext.GlobalContext.Options);
