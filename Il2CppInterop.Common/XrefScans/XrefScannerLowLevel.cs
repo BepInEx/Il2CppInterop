@@ -4,12 +4,7 @@ namespace Il2CppInterop.Common.XrefScans;
 
 public static class XrefScannerLowLevel
 {
-    public static IEnumerable<IntPtr> JumpTargets(IntPtr codeStart)
-    {
-        return JumpTargets(codeStart, false);
-    }
-
-    public static IEnumerable<IntPtr> JumpTargets(IntPtr codeStart, bool ignoreRetn)
+    public static IEnumerable<IntPtr> JumpTargets(IntPtr codeStart, bool ignoreRetn = false)
     {
         return JumpTargetsImpl(XrefScanner.DecoderForAddress(codeStart), ignoreRetn);
     }
