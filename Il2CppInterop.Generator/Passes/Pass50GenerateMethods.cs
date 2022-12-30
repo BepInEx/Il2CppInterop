@@ -203,7 +203,7 @@ public static class Pass50GenerateMethods
                         bodyBuilder.Emit(OpCodes.Ldc_I4_0);
                     else
                         bodyBuilder.EmitObjectToPointer(originalMethod.DeclaringType, newMethod.DeclaringType, typeContext, 0,
-                            true, false, true, out _);
+                            true, false, true, true, out _);
 
                     bodyBuilder.Emit(OpCodes.Ldloc, argArray);
                     bodyBuilder.Emit(OpCodes.Ldloca, exceptionLocal);

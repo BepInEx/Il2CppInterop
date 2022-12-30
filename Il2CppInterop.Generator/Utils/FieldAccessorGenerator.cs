@@ -64,7 +64,7 @@ internal static class FieldAccessorGenerator
             getter.Body.Variables.Add(local0);
 
             getterBody.EmitObjectToPointer(fieldContext.DeclaringType.OriginalType, fieldContext.DeclaringType.NewType,
-                fieldContext.DeclaringType, 0, false, false, false, out _);
+                fieldContext.DeclaringType, 0, false, false, false, false, out _);
             getterBody.Emit(OpCodes.Ldsfld, fieldContext.PointerField);
             getterBody.Emit(OpCodes.Call, imports.IL2CPP_il2cpp_field_get_offset.Value);
             getterBody.Emit(OpCodes.Add);
@@ -94,13 +94,13 @@ internal static class FieldAccessorGenerator
         {
             setterBody.Emit(OpCodes.Ldsfld, fieldContext.PointerField);
             setterBody.EmitObjectToPointer(field.FieldType, property.PropertyType, fieldContext.DeclaringType, 0, false,
-                true, true, out _);
+                true, true, true, out _);
             setterBody.Emit(OpCodes.Call, imports.IL2CPP_il2cpp_field_static_set_value.Value);
         }
         else
         {
             setterBody.EmitObjectToPointer(fieldContext.DeclaringType.OriginalType, fieldContext.DeclaringType.NewType,
-                fieldContext.DeclaringType, 0, false, false, false, out _);
+                fieldContext.DeclaringType, 0, false, false, false, false, out _);
             setterBody.Emit(OpCodes.Dup);
             setterBody.Emit(OpCodes.Ldsfld, fieldContext.PointerField);
             setterBody.Emit(OpCodes.Call, imports.IL2CPP_il2cpp_field_get_offset.Value);
