@@ -31,15 +31,15 @@ public static class DelegateSupport
     {
         return ourDelegateTypes.GetOrAdd(signature,
             (signature, managedMethodInner) =>
-                CreateDelegateType(managedMethodInner, signature.HasThis, signature.ConstructedFromNative),
+                CreateDelegateType(managedMethodInner, signature),
             managedMethod);
     }
 
-    private static Type CreateDelegateType(MethodInfo managedMethodInner, bool addIntPtrForThis, bool addNamingDisambig)
+    private static Type CreateDelegateType(MethodInfo managedMethodInner, MethodSignature signature)
     {
         var newType = ModuleBuilder.DefineType(
-            "Il2CppToManagedDelegate_" + ExtractSignature(managedMethodInner) + (addIntPtrForThis ? "HasThis" : "") +
-            (addNamingDisambig ? "FromNative" : ""), TypeAttributes.Sealed | TypeAttributes.Public,
+            "Il2CppToManagedDelegate_" + managedMethodInner.DeclaringType.FullName + "_" + signature.GetHashCode() + (signature.HasThis ? "HasThis" : "") +
+            (signature.ConstructedFromNative ? "FromNative" : ""), TypeAttributes.Sealed | TypeAttributes.Public,
             typeof(MulticastDelegate));
         newType.SetCustomAttribute(new CustomAttributeBuilder(
             typeof(UnmanagedFunctionPointerAttribute).GetConstructor(new[] { typeof(CallingConvention) })!,
@@ -50,11 +50,11 @@ public static class DelegateSupport
             MethodAttributes.Public, CallingConventions.HasThis, new[] { typeof(object), typeof(IntPtr) });
         ctor.SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
-        var parameterOffset = addIntPtrForThis ? 1 : 0;
+        var parameterOffset = signature.HasThis ? 1 : 0;
         var managedParameters = managedMethodInner.GetParameters();
         var parameterTypes = new Type[managedParameters.Length + 1 + parameterOffset];
 
-        if (addIntPtrForThis)
+        if (signature.HasThis)
             parameterTypes[0] = typeof(IntPtr);
 
         parameterTypes[parameterTypes.Length - 1] = typeof(Il2CppMethodInfo*);
