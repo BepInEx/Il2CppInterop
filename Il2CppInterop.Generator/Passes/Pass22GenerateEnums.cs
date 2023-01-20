@@ -18,6 +18,18 @@ public static class Pass22GenerateEnums
                 var type = typeContext.OriginalType;
                 var newType = typeContext.NewType;
 
+                if (type.Namespace.NameShouldBePrefixed(context.Options))
+                {
+                    newType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.OriginalNameAttributector.Value)
+                    {
+                        ConstructorArguments = {
+                            new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Module.Name),
+                            new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Namespace),
+                            new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Name),
+                        }
+                    });
+                }
+
                 if (type.CustomAttributes.Any(it => it.AttributeType.FullName == "System.FlagsAttribute"))
                     newType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.Module.FlagsAttributeCtor()));
 

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Runtime.Attributes;
 using String = Il2CppSystem.String;
 using Void = Il2CppSystem.Void;
@@ -42,13 +43,24 @@ public static class Il2CppClassPointerStore<T>
         }
         else
         {
+            var assemblyName = targetType.Module.Name;
+            var @namespace = targetType.Namespace ?? "";
+            var name = targetType.Name;
+            foreach (var customAttribute in targetType.CustomAttributes)
+            {
+                if (customAttribute.AttributeType != typeof(OriginalNameAttribute)) continue;
+                assemblyName = (string)customAttribute.ConstructorArguments[0].Value;
+                @namespace = (string)customAttribute.ConstructorArguments[1].Value;
+                name = (string)customAttribute.ConstructorArguments[2].Value;
+            }
+
             if (targetType.IsNested)
                 NativeClassPtr =
                     IL2CPP.GetIl2CppNestedType(Il2CppClassPointerStore.GetNativeClassPointer(targetType.DeclaringType),
-                        targetType.Name);
+                        name);
             else
                 NativeClassPtr =
-                    IL2CPP.GetIl2CppClass(targetType.Module.Name, targetType.Namespace ?? "", targetType.Name);
+                    IL2CPP.GetIl2CppClass(assemblyName, @namespace, name);
         }
 
         if (targetType.IsPrimitive || targetType == typeof(string))
