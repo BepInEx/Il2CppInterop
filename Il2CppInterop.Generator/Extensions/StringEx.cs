@@ -5,25 +5,28 @@ namespace Il2CppInterop.Generator.Extensions;
 
 public static class StringEx
 {
-    public static string UnSystemify(this string str, GeneratorOptions options)
+    public static bool NameShouldBePrefixed(this string str, GeneratorOptions options)
     {
-        const string Il2CppPrefix = "Il2Cpp";
         if (options.Il2CppPrefixMode == GeneratorOptions.PrefixMode.OptIn)
         {
             foreach (var prefix in options.NamespacesAndAssembliesToPrefix)
                 if (str.StartsWith(prefix, StringComparison.Ordinal))
-                    return Il2CppPrefix + str;
-
-            return str;
+                    return true;
+            return false;
         }
         else
         {
             foreach (var prefix in options.NamespacesAndAssembliesToNotPrefix)
                 if (str.StartsWith(prefix, StringComparison.Ordinal))
-                    return str;
+                    return false;
 
-            return Il2CppPrefix + str;
+            return true;
         }
+    }
+    public static string UnSystemify(this string str, GeneratorOptions options)
+    {
+        const string Il2CppPrefix = "Il2Cpp";
+        return str.NameShouldBePrefixed(options) ? Il2CppPrefix + str : str;
     }
 
     public static string FilterInvalidInSourceChars(this string str)

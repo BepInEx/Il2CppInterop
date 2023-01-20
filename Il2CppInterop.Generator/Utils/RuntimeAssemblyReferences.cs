@@ -63,6 +63,7 @@ public class RuntimeAssemblyReferences
     public Lazy<MethodReference> IL2CPP_il2cpp_method_get_object { get; private set; }
     public Lazy<MethodReference> IL2CPP_PointerToValueGeneric { get; private set; }
     public Lazy<MethodReference> IL2CPP_RenderTypeName { get; private set; }
+    public Lazy<MethodReference> OriginalNameAttributector { get; private set; }
     public Lazy<MethodReference> ObfuscatedNameAttributector { get; private set; }
     public Lazy<MethodReference> CallerCountAttributector { get; private set; }
     public Lazy<MethodReference> CachedScanResultsAttributector { get; private set; }
@@ -553,6 +554,18 @@ public class RuntimeAssemblyReferences
             mr.HasThis = false;
             mr.Parameters.Add(new ParameterDefinition("", ParameterAttributes.None, ResolveType("System.Boolean")));
             return mr;
+        });
+
+        OriginalNameAttributector = new Lazy<MethodReference>(() => new MethodReference(".ctor",
+                Module.Void(),
+                Module.ImportReference(typeof(OriginalNameAttribute)))
+        {
+            HasThis = true,
+            Parameters = {
+                new ParameterDefinition(Module.String()),
+                new ParameterDefinition(Module.String()),
+                new ParameterDefinition(Module.String())
+            }
         });
 
         ObfuscatedNameAttributector = new Lazy<MethodReference>(() => new MethodReference(".ctor",
