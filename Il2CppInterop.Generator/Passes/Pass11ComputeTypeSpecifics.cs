@@ -1,6 +1,8 @@
 using AsmResolver.DotNet.Signatures;
+using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -12,6 +14,8 @@ public static class Pass11ComputeTypeSpecifics
             foreach (var typeContext in assemblyContext.Types)
                 ComputeSpecifics(typeContext);
     }
+
+    private static bool IsValueTypeOnly(GenericParameterSignature genericParameter) => genericParameter.Constraints.Any(constraint => constraint.ConstraintType.FullName == "System.ValueType");
 
     private static void ComputeSpecifics(TypeRewriteContext typeContext)
     {
@@ -30,8 +34,29 @@ public static class Pass11ComputeTypeSpecifics
             if (originalField.IsStatic) continue;
 
             var fieldType = originalField.Signature!.FieldType;
-            if (fieldType.IsPrimitive() || fieldType is PointerTypeSignature)
-                continue;
+            if (fieldType.IsPrimitive() || fieldType is PointerTypeSignature) continue;
+
+            //TODO ensure works
+            if (fieldType is GenericParameterSignature parameter &&
+                !IsValueTypeOnly(parameter))
+            {
+                typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
+                return;
+            }
+            if (fieldType.IsGenericParameter) continue;
+
+            if (fieldType is GenericInstanceTypeSignature genericInstance)
+            {
+                foreach (GenericInstanceTypeSignature genericParameter in genericInstance.GenericParameters)
+                {
+                    if (!IsValueTypeOnly(genericParameter))
+                    {
+                        typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
+                        return;
+                    }
+                }
+            }
+
             if (fieldType.FullName == "System.String" || fieldType.FullName == "System.Object"
                 || fieldType is ArrayBaseTypeSignature or ByReferenceTypeSignature or GenericParameterSignature or GenericInstanceTypeSignature)
             {
