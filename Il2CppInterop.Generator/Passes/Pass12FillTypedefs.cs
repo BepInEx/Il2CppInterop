@@ -61,7 +61,7 @@ public static class Pass12FillTypedefs
         if (attributeType != null)
             return attributeType;
 
-        attributeType = new TypeDefinition("System.Runtime.CompilerServices", "IsUnmanagedAttribute", TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.NotPublic | TypeAttributes.Sealed, assembly.MainModule.ImportReference(typeof(Attribute)));
+        attributeType = new TypeDefinition("System.Runtime.CompilerServices", "IsUnmanagedAttribute", TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.Public | TypeAttributes.Sealed, assembly.MainModule.ImportReference(typeof(Attribute)));
         assembly.MainModule.Types.Add(attributeType);
 
         var attributeCctr = new MethodDefinition(".ctor", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.RTSpecialName | MethodAttributes.SpecialName, assembly.MainModule.TypeSystem.Void);
