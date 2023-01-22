@@ -215,12 +215,13 @@ public static class ILGeneratorEx
         {
             body.AddLoadArgument(argumentIndex);
             body.Add(OpCodes.Call, imports.IL2CPP_ManagedStringToIl2Cpp.Value);
-        }else if (originalType.IsPointer)
+        }
+        else if (originalType.IsPointer)
         {
             body.AddLoadArgument(argumentIndex);
             //TODO ensure works
             body.Add(OpCodes.Call, new MethodReference("op_Explicit", imports.Module.IntPtr(), imports.Module.IntPtr())
-                { Parameters = { new ParameterDefinition(imports.Module.ImportReference(typeof(void*))) } });
+            { Parameters = { new ParameterDefinition(imports.Module.ImportReference(typeof(void*))) } });
         }
         else
         {
