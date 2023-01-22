@@ -54,8 +54,6 @@ public class TypeRewriteContext
             ComputedTypeSpecifics = TypeSpecifics.ReferenceType;
         else if (OriginalType.IsEnum)
             ComputedTypeSpecifics = TypeSpecifics.BlittableStruct;
-        //else if (OriginalType.HasGenericParameters())
-        //    ComputedTypeSpecifics = TypeSpecifics.NonBlittableStruct; // not reference type, covered by first if
     }
 
     // These are initialized in AddMembers, which is called from an early rewrite pass.

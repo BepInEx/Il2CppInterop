@@ -303,31 +303,6 @@ public static unsafe class IL2CPP
         return Il2CppObjectPool.Get<T>(objectPointer);
     }
 
-    public static ref T? PointerToValueGenericByRef<T>(IntPtr objectPointer, bool isFieldPointer, bool valueTypeWouldBeBoxed)
-    {
-        if (isFieldPointer)
-        {
-            if (il2cpp_class_is_valuetype(Il2CppClassPointerStore<T>.NativeClassPtr))
-                objectPointer = il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, objectPointer);
-            else
-                objectPointer = *(IntPtr*)objectPointer;
-        }
-
-        if (!valueTypeWouldBeBoxed && il2cpp_class_is_valuetype(Il2CppClassPointerStore<T>.NativeClassPtr))
-            objectPointer = il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, objectPointer);
-
-        if (typeof(T) == typeof(string))
-            throw new ArgumentException("Can't pass strings by reference!");
-
-        if (objectPointer == IntPtr.Zero)
-            return ref Unsafe.AsRef<T>((void*)0);
-
-        if (typeof(T).IsValueType)
-            return ref Unsafe.AsRef<T>((void*)objectPointer);
-
-        throw new ArgumentException("Can't pass classes by reference!");
-    }
-
     public static string RenderTypeName<T>(bool addRefMarker = false)
     {
         return RenderTypeName(typeof(T), addRefMarker);

@@ -67,7 +67,6 @@ public class RuntimeAssemblyReferences
     public Lazy<IMethodDefOrRef> IL2CPP_il2cpp_method_get_from_reflection { get; private set; }
     public Lazy<IMethodDefOrRef> IL2CPP_il2cpp_method_get_object { get; private set; }
     public Lazy<IMethodDefOrRef> IL2CPP_PointerToValueGeneric { get; private set; }
-    public Lazy<IMethodDefOrRef> IL2CPP_PointerToRefValueGeneric { get; private set; }
     public Lazy<IMethodDefOrRef> IL2CPP_RenderTypeName { get; private set; }
     public Lazy<IMethodDefOrRef> OriginalNameAttributector { get; private set; }
     public Lazy<IMethodDefOrRef> ObfuscatedNameAttributector { get; private set; }
@@ -473,14 +472,6 @@ public class RuntimeAssemblyReferences
             var gp0 = new GenericParameterSignature(GenericParameterType.Method, 0);
             var signature = MethodSignature.CreateStatic(gp0, 1, ResolveType("System.IntPtr"), ResolveType("System.Boolean"), ResolveType("System.Boolean"));
             var mr = new MemberReference(ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), "PointerToValueGeneric", signature);
-            return mr;
-        });
-
-        IL2CPP_PointerToRefValueGeneric = new Lazy<IMethodDefOrRef>(() =>
-        {
-            var gp0 = new GenericParameterSignature(GenericParameterType.Method, 0);
-            var signature = MethodSignature.CreateStatic(gp0.MakeByReferenceType(), 1, ResolveType("System.IntPtr"), ResolveType("System.Boolean"), ResolveType("System.Boolean"));
-            var mr = new MemberReference(ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), "PointerToValueGenericByRef", signature);
             return mr;
         });
 
