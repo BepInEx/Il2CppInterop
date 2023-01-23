@@ -16,6 +16,7 @@ public class TypeRewriteContext
         Computing,
         ReferenceType,
         BlittableStruct,
+        GenericBlittableStruct,
         NonBlittableStruct
     }
 
