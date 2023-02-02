@@ -5,7 +5,7 @@ using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Passes;
 
-public static class Pass13FillGenericConstraints
+public static class Pass14FillGenericConstraints
 {
     public static void DoPass(RewriteGlobalContext context)
     {
@@ -31,7 +31,7 @@ public static class Pass13FillGenericConstraints
 
                         newParameter.Constraints.Add(
                             new GenericParameterConstraint(
-                                assemblyContext.RewriteTypeRef(originalConstraint.Constraint!)));
+                                assemblyContext.RewriteTypeRef(originalConstraint.Constraint!, false)));
                     }
                 }
             }

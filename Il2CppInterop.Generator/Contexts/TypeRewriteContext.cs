@@ -3,6 +3,7 @@ using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Extensions;
+using Il2CppInterop.Generator.Passes;
 using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Contexts;
@@ -26,6 +27,8 @@ public class TypeRewriteContext
     private readonly Dictionary<MethodDefinition, MethodRewriteContext> myMethodContexts = new();
     private readonly Dictionary<string, MethodRewriteContext> myMethodContextsByName = new();
     public readonly TypeDefinition NewType;
+    public TypeRewriteContext BoxedTypeContext;
+    public bool isBoxedTypeVariant;
 
     public readonly bool OriginalNameWasObfuscated;
 #nullable disable
@@ -45,7 +48,8 @@ public class TypeRewriteContext
 
         if (OriginalType == null) return;
 
-        OriginalNameWasObfuscated = OriginalType.Name != NewType.Name;
+        OriginalNameWasObfuscated = OriginalType.Name != NewType.Name &&
+                                    Pass12CreateGenericNonBlittableTypes.GetNewName(originalType.Name) != NewType.Name;
         if (OriginalNameWasObfuscated)
             NewType.CustomAttributes.Add(new CustomAttribute(
                 (ICustomAttributeType)assemblyContext.Imports.ObfuscatedNameAttributector.Value,

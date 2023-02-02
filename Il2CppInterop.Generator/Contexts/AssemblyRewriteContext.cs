@@ -31,7 +31,7 @@ public class AssemblyRewriteContext
             mod => new RuntimeAssemblyReferences(mod, globalContext));
     }
 
-    public IEnumerable<TypeRewriteContext> Types => myOldTypeMap.Values;
+    public IEnumerable<TypeRewriteContext> Types => myNewTypeMap.Values;
 
     public TypeRewriteContext GetContextForOriginalType(TypeDefinition type)
     {
@@ -50,10 +50,12 @@ public class AssemblyRewriteContext
 
     public void RegisterTypeRewrite(TypeRewriteContext context)
     {
-        if (context.OriginalType != null)
+        var exists = context.OriginalType != null && myOldTypeMap.ContainsKey(context.OriginalType);
+        if (context.OriginalType != null && !exists)
             myOldTypeMap[context.OriginalType] = context;
         myNewTypeMap[context.NewType] = context;
-        myNameTypeMap[(context.OriginalType ?? context.NewType).FullName] = context;
+        if (!exists)
+            myNameTypeMap[(context.OriginalType ?? context.NewType).FullName] = context;
     }
 
     public IMethodDefOrRef RewriteMethodRef(IMethodDefOrRef methodRef)
@@ -63,7 +65,7 @@ public class AssemblyRewriteContext
         return NewAssembly.ManifestModule!.DefaultImporter.ImportMethod(newMethod);
     }
 
-    public ITypeDefOrRef RewriteTypeRef(ITypeDescriptor typeRef)
+    public TypeReference RewriteTypeRef(ITypeDescriptor typeRef, bool typeIsBoxed)
     {
         return RewriteTypeRef(typeRef?.ToTypeSignature()).ToTypeDefOrRef();
     }
@@ -84,7 +86,7 @@ public class AssemblyRewriteContext
             if (elementType.FullName == "System.String")
                 return Imports.Il2CppStringArray;
 
-            var convertedElementType = RewriteTypeRef(elementType);
+            var convertedElementType = RewriteTypeRef(elementType, typeIsBoxed);
             if (elementType is GenericParameterSignature)
                 return new GenericInstanceTypeSignature(Imports.Il2CppArrayBase.ToTypeDefOrRef(), false, convertedElementType);
 
@@ -95,23 +97,40 @@ public class AssemblyRewriteContext
 
         if (typeRef is GenericParameterSignature genericParameter)
         {
-            return new GenericParameterSignature(sourceModule, genericParameter.ParameterType, genericParameter.Index);
+            var genericParameterDeclaringType = genericParameter.DeclaringType;
+            if (genericParameterDeclaringType != null)
+                return RewriteTypeRef(genericParameterDeclaringType, typeIsBoxed).GenericParameters[genericParameter.Position];
+
+            return RewriteMethodRef(genericParameter.DeclaringMethod).GenericParameters[genericParameter.Position];
         }
 
         if (typeRef is ByReferenceTypeSignature byRef)
-            return new ByReferenceTypeSignature(RewriteTypeRef(byRef.BaseType));
+            return new ByReferenceTypeSignature(RewriteTypeRef(byRef.BaseType, typeIsBoxed));
 
         if (typeRef is PointerTypeSignature pointerType)
-            return new PointerTypeSignature(RewriteTypeRef(pointerType.BaseType));
+            return new PointerTypeSignature(RewriteTypeRef(pointerType.BaseType, typeIsBoxed));
 
         if (typeRef is GenericInstanceTypeSignature genericInstance)
         {
-            var genericType = RewriteTypeRef(genericInstance.GenericType.ToTypeSignature()).ToTypeDefOrRef();
-            var newRef = new GenericInstanceTypeSignature(genericType, genericType.IsValueType);
-            foreach (var originalParameter in genericInstance.TypeArguments)
-                newRef.TypeArguments.Add(RewriteTypeRef(originalParameter));
+            var genericTypeContext = GetTypeContext(genericInstance);
+            if (genericTypeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct && !IsUnmanaged(typeRef, typeIsBoxed))
+            {
+                var type = sourceModule.ImportReference(genericTypeContext.BoxedTypeContext.NewType);
+                var newRef = new GenericInstanceTypeSignature(type, type.IsValueType);
+                foreach (var originalParameter in genericInstance.TypeArguments)
+                    newRef.TypeArguments.Add(RewriteTypeRef(originalParameter, typeIsBoxed));
 
-            return newRef;
+                return newRef;
+            }
+            else
+            {
+                var genericType = RewriteTypeRef(genericInstance.GenericType.ToTypeSignature()).ToTypeDefOrRef();
+                var newRef = new GenericInstanceTypeSignature(genericType, genericType.IsValueType);
+                foreach (var originalParameter in genericInstance.TypeArguments)
+                    newRef.TypeArguments.Add(RewriteTypeRef(originalParameter, typeIsBoxed));
+
+                return newRef;
+            }
         }
 
         if (typeRef.IsPrimitive() || typeRef.FullName == "System.TypedReference")
@@ -131,11 +150,44 @@ public class AssemblyRewriteContext
             return sourceModule.DefaultImporter.ImportType(GlobalContext.GetAssemblyByName("mscorlib")
                 .GetTypeByName("System.Attribute").NewType).ToTypeSignature();
 
-        var originalTypeDef = typeRef.Resolve()!;
-        var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.Module!.Assembly!);
-        var target = targetAssembly.GetContextForOriginalType(originalTypeDef).NewType;
+        var target = GetTypeContext(typeRef);
 
-        return sourceModule.DefaultImporter.ImportType(target).ToTypeSignature();
+        if (typeIsBoxed && target.BoxedTypeContext != null)
+        {
+            target = target.BoxedTypeContext;
+        }
+
+        return sourceModule.DefaultImporter.ImportType(target.NewType).ToTypeSignature();
+    }
+
+    private TypeRewriteContext GetTypeContext(TypeReference typeRef)
+    {
+        var typeDef = typeRef.Resolve()!;
+        var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(typeDef.Module!.Assembly!);
+        var typeContext = targetAssembly.GetContextForOriginalType(typeDef);
+
+        return typeContext;
+    }
+
+    private bool IsUnmanaged(TypeReference originalType, bool typeIsBoxed)
+    {
+        if (originalType is GenericParameter genericParameter)
+        {
+            GenericParameter newGenericParameter = (GenericParameter)RewriteTypeRef(genericParameter, typeIsBoxed);
+            return newGenericParameter.CustomAttributes.Any(attribute => attribute.AttributeType.Name.Equals("IsUnmanagedAttribute"));
+        }
+
+        if (originalType is GenericInstanceType genericInstanceType)
+        {
+            foreach (TypeReference genericArgument in genericInstanceType.GenericArguments)
+            {
+                if (!IsUnmanaged(genericArgument, typeIsBoxed))
+                    return false;
+            }
+        }
+
+        var paramTypeContext = GetTypeContext(originalType);
+        return paramTypeContext.ComputedTypeSpecifics.IsBlittable();
     }
 
     public TypeRewriteContext GetTypeByName(string name)

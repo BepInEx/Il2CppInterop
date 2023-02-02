@@ -32,7 +32,7 @@ public static class Pass20GenerateStaticConstructors
         var ctorBuilder = staticCtorMethod.CilMethodBody!.Instructions;
         ctorBuilder.Clear();
 
-        if (newType.IsNested)
+        if (newType.IsNested && oldType.IsNested)
         {
             ctorBuilder.Add(OpCodes.Ldsfld,
                 assemblyContext.GlobalContext.GetNewTypeForOriginal(oldType.DeclaringType!).ClassPointerFieldRef);

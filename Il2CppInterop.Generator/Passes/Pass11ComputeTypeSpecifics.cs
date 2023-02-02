@@ -10,17 +10,15 @@ public static class Pass11ComputeTypeSpecifics
 {
     public static void DoPass(RewriteGlobalContext context)
     {
-        Logger.Instance.LogInformation("Stage 1 starting!");
+        typeUsageDictionary.Clear();
 
         foreach (var assemblyContext in context.Assemblies)
-        foreach (var typeContext in assemblyContext.Types)
-            ScanTypeUsage(typeContext);
-
-        Logger.Instance.LogInformation("Stage 2 starting!");
+            foreach (var typeContext in assemblyContext.Types)
+                ScanTypeUsage(typeContext);
 
         foreach (var assemblyContext in context.Assemblies)
-        foreach (var typeContext in assemblyContext.Types)
-            ComputeSpecifics(typeContext);
+            foreach (var typeContext in assemblyContext.Types)
+                ComputeSpecifics(typeContext);
     }
 
     internal static Dictionary<TypeDefinition, ParameterUsage> typeUsageDictionary = new Dictionary<TypeDefinition, ParameterUsage>(new TypeComparer());
@@ -102,17 +100,6 @@ public static class Pass11ComputeTypeSpecifics
         if (typeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.NotComputed) return;
         typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.Computing;
 
-        TypeRewriteContext.TypeSpecifics typeSpecifics = TypeRewriteContext.TypeSpecifics.BlittableStruct;
-
-        foreach (var genericParameter in typeContext.OriginalType.GenericParameters)
-        {
-            if (!IsValueTypeOnly(typeContext, genericParameter))
-            {
-                typeSpecifics = TypeRewriteContext.TypeSpecifics.GenericBlittableStruct;
-                break;
-            }
-        }
-
         foreach (var originalField in typeContext.OriginalType.Fields)
         {
             // Sometimes il2cpp metadata has invalid field offsets for some reason (https://github.com/SamboyCoding/Cpp2IL/issues/167)
@@ -160,7 +147,16 @@ public static class Pass11ComputeTypeSpecifics
             }
         }
 
-        typeContext.ComputedTypeSpecifics = typeSpecifics;
+        if (typeContext.OriginalType.GenericParameters.Count > 0)
+        {
+            typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.GenericBlittableStruct;
+            foreach (var genericParameter in typeContext.OriginalType.GenericParameters)
+            {
+                if (!IsValueTypeOnly(typeContext, genericParameter)) return;
+            }
+        }
+
+        typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.BlittableStruct;
     }
 
     internal class ParameterUsage

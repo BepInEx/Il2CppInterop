@@ -1,3 +1,4 @@
+using Il2CppInterop.Generator.Contexts;
 using AsmResolver.PE.DotNet.Metadata.Tables;
 
 namespace Il2CppInterop.Generator.Extensions;
@@ -15,5 +16,11 @@ public static class EnumEx
     {
         return parameterAttributes & ~(GenericParameterAttributes.NotNullableValueTypeConstraint |
                                        GenericParameterAttributes.VarianceMask);
+    }
+
+    public static bool IsBlittable(this TypeRewriteContext.TypeSpecifics typeSpecifics)
+    {
+        return typeSpecifics == TypeRewriteContext.TypeSpecifics.BlittableStruct ||
+               typeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct;
     }
 }

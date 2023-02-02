@@ -20,7 +20,7 @@ public static class Pass21GenerateValueTypeFields
 
             foreach (var typeContext in assemblyContext.Types)
             {
-                if (typeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.BlittableStruct ||
+                if (!typeContext.ComputedTypeSpecifics.IsBlittable() ||
                     typeContext.OriginalType.IsEnum) continue;
 
                 try
@@ -33,10 +33,20 @@ public static class Pass21GenerateValueTypeFields
                     else
                         newType.IsSequentialLayout = true;
 
-
-
-                    ILGeneratorEx.GenerateBoxMethod(assemblyContext.Imports, newType, typeContext.ClassPointerFieldRef,
-                        il2CppSystemTypeRef);
+                    if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct)
+                    {
+                        var boxedType = typeContext.BoxedTypeContext.NewType;
+                        var genericBoxedType = new GenericInstanceType(assemblyContext.Imports.Module.ImportReference(boxedType));
+                        foreach (GenericParameter parameter in newType.GenericParameters)
+                            genericBoxedType.GenericArguments.Add(parameter);
+                        ILGeneratorEx.GenerateBoxMethod(assemblyContext.Imports, newType, typeContext.ClassPointerFieldRef,
+                            genericBoxedType);
+                    }
+                    else
+                    {
+                        ILGeneratorEx.GenerateBoxMethod(assemblyContext.Imports, newType, typeContext.ClassPointerFieldRef,
+                            il2CppSystemTypeRef);
+                    }
 
                     foreach (var fieldContext in typeContext.Fields)
                     {
@@ -47,7 +57,7 @@ public static class Pass21GenerateValueTypeFields
                         if (!field.Signature!.FieldType.IsValueType && !field.FieldType.IsPointer)
                             rewriteTypeRef = assemblyContext.Imports.Module.IntPtr();
                         else
-                            rewriteTypeRef = assemblyContext.RewriteTypeRef(field.Signature.FieldType);
+                            rewriteTypeRef = assemblyContext.RewriteTypeRef(field.Signature.FieldType, false);
 
                         var newField = new FieldDefinition(fieldContext.UnmangledName, field.Attributes.ForcePublic(), rewriteTypeRef);
 
