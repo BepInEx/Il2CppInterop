@@ -118,12 +118,24 @@ public static class Pass50GenerateMethods
                         }
 
                         var newParam = newMethod.Parameters[i];
-                        bodyBuilder.EmitObjectToPointer(originalMethod.Parameters[i].ParameterType, newParam.ParameterType,
-                            methodRewriteContext.DeclaringType, argOffset + i, false, true, true, out var refVar);
+                        if (newParam.IsOut)
+                        {
+                            var outVar = new VariableDefinition(imports.Module.IntPtr());
+                            bodyBuilder.Body.Variables.Add(outVar);
+                            bodyBuilder.EmitLdcI4(0);
+                            bodyBuilder.Emit(OpCodes.Stloc, outVar);
+                            bodyBuilder.Emit(OpCodes.Ldloca, outVar);
+                            bodyBuilder.Emit(OpCodes.Conv_I);
+                            byRefParams.Add((i, outVar));
+                        } else
+                        {
+                            bodyBuilder.EmitObjectToPointer(originalMethod.Parameters[i].ParameterType, newParam.ParameterType,
+                                methodRewriteContext.DeclaringType, argOffset + i, false, true, true, out var refVar);
+                            if (refVar != null)
+                                byRefParams.Add((i, refVar));
+                        }
                         bodyBuilder.Emit(OpCodes.Stind_I);
 
-                        if (refVar != null)
-                            byRefParams.Add((i, refVar));
                     }
 
                     if (!originalMethod.DeclaringType.IsSealed && !originalMethod.IsFinal &&
