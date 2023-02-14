@@ -16,12 +16,14 @@ namespace Il2CppInterop.Generator.Passes
                 {
                     if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct)
                     {
-                        var newName = GetNewName(typeContext.NewType.Name);
+                        var typeName = typeContext.NewType.Name;
+                        // Append _unboxed to blittable type for compatibility
+                        typeContext.NewType.Name = GetNewName(typeName);
 
 
                         TypeDefinition newBoxedType = new TypeDefinition(
                             typeContext.NewType.Namespace,
-                            newName,
+                            typeName,
                             typeContext.NewType.Attributes);
 
                         var declaringType = typeContext.NewType.DeclaringType;
@@ -55,9 +57,9 @@ namespace Il2CppInterop.Generator.Passes
             var parts = originalName.Split('`');
 
             if (parts.Length == 2)
-                return $"{parts[0]}_Boxed`{parts[1]}";
+                return $"{parts[0]}_Unboxed`{parts[1]}";
 
-            return $"{parts[0]}_Boxed";
+            return $"{parts[0]}_Unboxed";
         }
     }
 }

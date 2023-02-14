@@ -72,7 +72,7 @@ internal class InteropAssemblyGeneratorRunner : IRunner
             Pass11ComputeTypeSpecifics.DoPass(rewriteContext);
         }
 
-        using (new TimingCookie("Creating Boxed struct types"))
+        using (new TimingCookie("Creating unboxed struct types"))
         {
             Pass12CreateGenericNonBlittableTypes.DoPass(rewriteContext);
         }
