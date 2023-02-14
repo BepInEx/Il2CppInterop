@@ -423,9 +423,20 @@ public static class ILGeneratorEx
             var stnop = body.Create(OpCodes.Nop);
             body.Emit(OpCodes.Brfalse_S, nullbr);
 
-            body.Emit(OpCodes.Newobj,
-                new MethodReference(".ctor", imports.Module.Void(), newMethodParameter.ParameterType.GetElementType())
-                { HasThis = true, Parameters = { new ParameterDefinition(imports.Module.IntPtr()) } });
+            if (newMethodParameter.ParameterType.GetElementType() is GenericParameter)
+            {
+                body.Emit(OpCodes.Ldc_I4_0);
+                body.Emit(OpCodes.Ldc_I4_0);
+                body.Emit(OpCodes.Call,
+                    imports.Module.ImportReference(new GenericInstanceMethod(imports.IL2CPP_PointerToValueGeneric.Value)
+                    { GenericArguments = { newMethodParameter.ParameterType.GetElementType() } }));
+            }
+            else
+            {
+                body.Emit(OpCodes.Newobj,
+                    new MethodReference(".ctor", imports.Module.Void(), newMethodParameter.ParameterType.GetElementType())
+                    { HasThis = true, Parameters = { new ParameterDefinition(imports.Module.IntPtr()) } });
+            }
             body.Emit(OpCodes.Br_S, stnop);
 
             body.Append(nullbr);
