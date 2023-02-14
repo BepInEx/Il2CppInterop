@@ -127,7 +127,8 @@ public static class Pass50GenerateMethods
                             bodyBuilder.Emit(OpCodes.Ldloca, outVar);
                             bodyBuilder.Emit(OpCodes.Conv_I);
                             byRefParams.Add((i, outVar));
-                        } else
+                        }
+                        else
                         {
                             bodyBuilder.EmitObjectToPointer(originalMethod.Parameters[i].ParameterType, newParam.ParameterType,
                                 methodRewriteContext.DeclaringType, argOffset + i, false, true, true, out var refVar);
