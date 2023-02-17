@@ -14,6 +14,8 @@ public interface INativeMethodInfoStruct : INativeStruct
     ref IntPtr Name { get; }
     ref ushort Slot { get; }
     ref IntPtr MethodPointer { get; }
+
+    ref IntPtr VirtualMethodPointer { get; }
     unsafe ref Il2CppClass* Class { get; }
     ref IntPtr InvokerMethod { get; }
     unsafe ref Il2CppTypeStruct* ReturnType { get; }

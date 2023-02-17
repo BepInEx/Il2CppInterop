@@ -61,6 +61,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
             public ref IntPtr Name => ref *(IntPtr*)&_->name;
             public ref ushort Slot => ref _->slot;
             public ref IntPtr MethodPointer => ref *(IntPtr*)&_->methodPointer;
+            public ref IntPtr VirtualMethodPointer => ref *(IntPtr*)&_->virtualMethodPointer;
             public ref Il2CppClass* Class => ref _->klass;
             public ref IntPtr InvokerMethod => ref *(IntPtr*)&_->invoker_method;
             public ref Il2CppTypeStruct* ReturnType => ref _->return_type;

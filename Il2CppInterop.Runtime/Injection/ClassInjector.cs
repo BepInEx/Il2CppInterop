@@ -681,6 +681,7 @@ public static unsafe partial class ClassInjector
         {
             converted.InvokerMethod = Marshal.GetFunctionPointerForDelegate(GetOrCreateInvoker(monoMethod));
             converted.MethodPointer = Marshal.GetFunctionPointerForDelegate(GetOrCreateTrampoline(monoMethod));
+            converted.VirtualMethodPointer = converted.MethodPointer;
         }
 
         converted.Slot = ushort.MaxValue;
