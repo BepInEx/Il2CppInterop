@@ -146,7 +146,8 @@ public static class Il2CppStructWrapperGenerator
                 classInternalsData = Regex.Replace(classInternalsData,
                     @"(union.{0,60}?genericMethod;.*?genericContainer(?:Handle)?;.*?});", "$1 generic_data;",
                     RegexOptions.Singleline);
-                if (File.Exists($"{classInternalsPath}_backup")) {
+                if (File.Exists($"{classInternalsPath}_backup"))
+                {
                     File.Delete($"{classInternalsPath}_backup");
                 }
                 File.Move(classInternalsPath, $"{classInternalsPath}_backup");
