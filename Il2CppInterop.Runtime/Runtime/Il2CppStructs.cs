@@ -79,6 +79,11 @@ public struct il2cpp_hresult_t
     private readonly int dummy;
 }
 
+public struct Il2CppGCHandle
+{
+    private readonly unsafe void* dummy;
+}
+
 [Flags]
 public enum Il2CppMethodImplFlags : ushort
 {
