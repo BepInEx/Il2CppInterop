@@ -138,16 +138,20 @@ public static class Il2CppStructWrapperGenerator
             var classInternalsIsTmp = true;
             // Graduated top of my class by the way
             {
-                var classInternalsData = File.ReadAllText(classInternalsPath);
-                // I have to do this because the lib I use doesn't recognize these unions, so I have to name them in the most disgusting way imaginable
-                classInternalsData = Regex.Replace(classInternalsData,
-                    @"(union.{0,60}?rgctx_data;.*?method(?:Definition|MetadataHandle);.*?});", "$1 runtime_data;",
-                    RegexOptions.Singleline);
-                classInternalsData = Regex.Replace(classInternalsData,
-                    @"(union.{0,60}?genericMethod;.*?genericContainer(?:Handle)?;.*?});", "$1 generic_data;",
-                    RegexOptions.Singleline);
-                File.Move(classInternalsPath, $"{classInternalsPath}_backup");
-                File.WriteAllText(classInternalsPath, classInternalsData);
+                if (!File.Exists($"{classInternalsPath}_backup"))
+                {
+                    var classInternalsData = File.ReadAllText(classInternalsPath);
+                    // I have to do this because the lib I use doesn't recognize these unions, so I have to name them in the most disgusting way imaginable
+                    classInternalsData = Regex.Replace(classInternalsData,
+                        @"(union.{0,60}?rgctx_data;.*?method(?:Definition|MetadataHandle);.*?});", "$1 runtime_data;",
+                        RegexOptions.Singleline);
+                    classInternalsData = Regex.Replace(classInternalsData,
+                        @"(union.{0,60}?genericMethod;.*?genericContainer(?:Handle)?;.*?});", "$1 generic_data;",
+                        RegexOptions.Singleline);
+
+                    File.Move(classInternalsPath, $"{classInternalsPath}_backup");
+                    File.WriteAllText(classInternalsPath, classInternalsData);
+                }
             }
             if (!SGenerators.ContainsKey(metadataVersion))
                 SGenerators[metadataVersion] = new List<VersionSpecificGenerator>();
