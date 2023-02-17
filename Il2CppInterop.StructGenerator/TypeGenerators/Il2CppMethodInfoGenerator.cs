@@ -29,6 +29,7 @@ internal class Il2CppMethodInfoGenerator : VersionSpecificGenerator
         new ByRefWrapper("IntPtr", "Name", new[] { "name" }),
         new ByRefWrapper("ushort", "Slot", new[] { "slot" }),
         new ByRefWrapper("IntPtr", "MethodPointer", new[] { "methodPointer", "method" }),
+        new ByRefWrapper("IntPtr", "VirtualMethodPointer", new[] { "virtualMethodPointer", "methodPointer", "method" }),
         new ByRefWrapper("Il2CppClass*", "Class", new[] { "declaring_type", "klass" }),
         new ByRefWrapper("IntPtr", "InvokerMethod", new[] { "invoker_method" }),
         new ByRefWrapper("Il2CppTypeStruct*", "ReturnType", new[] { "return_type" }),

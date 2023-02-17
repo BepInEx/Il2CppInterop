@@ -119,6 +119,7 @@ internal abstract class VersionSpecificGenerator
                         if (nativeField is null) continue;
                         nativeName = nativeField.Name;
                         nativeType = nativeField.Type;
+                        break;
                     }
 
                     if (nativeName == null || nativeType == null)
