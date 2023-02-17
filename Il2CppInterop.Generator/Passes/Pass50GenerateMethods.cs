@@ -66,7 +66,7 @@ public static class Pass50GenerateMethods
                     if (nextInstruction != null)
                         bodyBuilder.Append(nextInstruction);
 
-                    if (!originalMethod.DeclaringType.IsValueType)
+                    if (typeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.BlittableStruct)
                     {
                         if (originalMethod.IsConstructor)
                         {
