@@ -118,7 +118,9 @@ public static class Pass50GenerateMethods
                         }
 
                         var newParam = newMethod.Parameters[i];
-                        if (newParam.IsOut)
+                        // NOTE(Kas): out parameters of value type are passed directly as a pointer to the il2cpp method
+                        // since we don't need to perform any additional copies
+                        if (newParam.IsOut && !newParam.ParameterType.GetElementType().IsValueType)
                         {
                             var outVar = new VariableDefinition(imports.Module.IntPtr());
                             bodyBuilder.Body.Variables.Add(outVar);
