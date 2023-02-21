@@ -287,20 +287,9 @@ public static unsafe class IL2CPP
             else
                 objectPointer = *(IntPtr*)objectPointer;
         }
+
         if (!valueTypeWouldBeBoxed && il2cpp_class_is_valuetype(Il2CppClassPointerStore<T>.NativeClassPtr))
-        {
-            uint align = 0;
-            if (typeof(T).IsValueType && il2cpp_class_value_size(Il2CppClassPointerStore<T>.NativeClassPtr, ref align) <= sizeof(IntPtr))
-            {
-                // NOTE(Kas): This assumes that objectPointer isn't pointing to the data, but is the actual data
-                // which has only started ocurring since adding support for generic byrefs in method proxygen
-                return Unsafe.As<IntPtr, T>(ref objectPointer);
-            }
-            else
-            {
-                objectPointer = il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, objectPointer);
-            }
-        }
+            objectPointer = il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, objectPointer);
 
         if (typeof(T) == typeof(string))
             return (T)(object)Il2CppStringToManaged(objectPointer);
