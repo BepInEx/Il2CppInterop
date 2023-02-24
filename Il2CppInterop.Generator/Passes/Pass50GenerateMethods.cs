@@ -118,12 +118,61 @@ public static class Pass50GenerateMethods
                         }
 
                         var newParam = newMethod.Parameters[i];
-                        bodyBuilder.EmitObjectToPointer(originalMethod.Parameters[i].ParameterType, newParam.ParameterType,
-                            methodRewriteContext.DeclaringType, argOffset + i, false, true, true, out var refVar);
+                        // NOTE(Kas): out parameters of value type are passed directly as a pointer to the il2cpp method
+                        // since we don't need to perform any additional copies
+                        if (newParam.IsOut && !newParam.ParameterType.GetElementType().IsValueType)
+                        {
+                            var elementType = newParam.ParameterType.GetElementType();
+
+                            // Storage for the output Il2CppObjectBase pointer, it's
+                            // unused if there's a generic value type parameter
+                            var outVar = new VariableDefinition(imports.Module.IntPtr());
+                            bodyBuilder.Body.Variables.Add(outVar);
+
+                            if (elementType.IsGenericParameter)
+                            {
+                                bodyBuilder.Emit(OpCodes.Ldtoken, elementType);
+                                bodyBuilder.Emit(OpCodes.Call, imports.Module.TypeGetTypeFromHandle());
+                                bodyBuilder.Emit(OpCodes.Callvirt, imports.Module.TypeGetIsValueType());
+
+                                var valueTypeBlock = bodyBuilder.Create(OpCodes.Nop);
+                                var continueBlock = bodyBuilder.Create(OpCodes.Nop);
+
+                                bodyBuilder.Emit(OpCodes.Brtrue, valueTypeBlock);
+
+                                // The generic parameter is an Il2CppObjectBase => set the output storage to a nullptr
+                                bodyBuilder.EmitLdcI4(0);
+                                bodyBuilder.Emit(OpCodes.Stloc, outVar);
+                                bodyBuilder.Emit(OpCodes.Ldloca, outVar);
+                                bodyBuilder.Emit(OpCodes.Conv_I);
+
+                                bodyBuilder.Emit(OpCodes.Br_S, continueBlock);
+
+                                // Instruction block that handles generic value types, we only need to return a reference
+                                // to the output argument since it is already allocated for us
+                                bodyBuilder.Append(valueTypeBlock);
+                                bodyBuilder.Emit(OpCodes.Ldarg, argOffset + i);
+
+                                bodyBuilder.Append(continueBlock);
+                            }
+                            else
+                            {
+                                bodyBuilder.EmitLdcI4(0);
+                                bodyBuilder.Emit(OpCodes.Stloc, outVar);
+                                bodyBuilder.Emit(OpCodes.Ldloca, outVar);
+                                bodyBuilder.Emit(OpCodes.Conv_I);
+                            }
+                            byRefParams.Add((i, outVar));
+                        }
+                        else
+                        {
+                            bodyBuilder.EmitObjectToPointer(originalMethod.Parameters[i].ParameterType, newParam.ParameterType,
+                                methodRewriteContext.DeclaringType, argOffset + i, false, true, true, out var refVar);
+                            if (refVar != null)
+                                byRefParams.Add((i, refVar));
+                        }
                         bodyBuilder.Emit(OpCodes.Stind_I);
 
-                        if (refVar != null)
-                            byRefParams.Add((i, refVar));
                     }
 
                     if (!originalMethod.DeclaringType.IsSealed && !originalMethod.IsFinal &&
@@ -168,8 +217,33 @@ public static class Pass50GenerateMethods
                     {
                         var paramIndex = byRefParam.Item1;
                         var paramVariable = byRefParam.Item2;
-                        bodyBuilder.EmitUpdateRef(newMethod.Parameters[paramIndex], paramIndex + argOffset, paramVariable,
-                            imports);
+                        var methodParam = newMethod.Parameters[paramIndex];
+
+                        if (methodParam.IsOut && methodParam.ParameterType.GetElementType().IsGenericParameter)
+                        {
+                            bodyBuilder.Emit(OpCodes.Ldtoken, methodParam.ParameterType.GetElementType());
+                            bodyBuilder.Emit(OpCodes.Call, imports.Module.TypeGetTypeFromHandle());
+                            bodyBuilder.Emit(OpCodes.Callvirt, imports.Module.TypeGetIsValueType());
+
+                            var continueBlock = bodyBuilder.Create(OpCodes.Nop);
+
+                            bodyBuilder.Emit(OpCodes.Brtrue, continueBlock);
+
+                            // The generic parameter is an Il2CppObjectBase => update the reference appropriately
+                            bodyBuilder.EmitUpdateRef(newMethod.Parameters[paramIndex], paramIndex + argOffset, paramVariable,
+                                imports);
+
+                            bodyBuilder.Emit(OpCodes.Br_S, continueBlock);
+
+                            // There is no need to handle generic value types, they are already passed by reference
+
+                            bodyBuilder.Append(continueBlock);
+                        }
+                        else
+                        {
+                            bodyBuilder.EmitUpdateRef(newMethod.Parameters[paramIndex], paramIndex + argOffset, paramVariable,
+                                imports);
+                        }
                     }
 
                     bodyBuilder.EmitPointerToObject(originalMethod.ReturnType, newMethod.ReturnType, typeContext,
