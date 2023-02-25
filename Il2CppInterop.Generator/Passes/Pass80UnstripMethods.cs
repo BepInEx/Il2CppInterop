@@ -191,7 +191,7 @@ public static class Pass80UnstripMethods
 
         if (unityType is GenericInstanceType genericInstance)
         {
-            var baseRef = ResolveTypeInNewAssemblies(context, genericInstance.ElementType, imports);
+            var baseRef = ResolveTypeInNewAssembliesRaw(context, genericInstance.ElementType, imports);
             if (baseRef == null) return null;
             var newInstance = new GenericInstanceType(baseRef);
             foreach (var unityGenericArgument in genericInstance.GenericArguments)
