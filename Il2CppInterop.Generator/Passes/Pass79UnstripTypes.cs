@@ -39,6 +39,10 @@ public static class Pass79UnstripTypes
     {
         if (unityType.Name == "<Module>")
             return;
+
+        // Don't unstrip delegates, the il2cpp runtime methods are stripped and we cannot recover them
+        if (unityType.BaseType != null && unityType.BaseType.FullName == "System.MulticastDelegate")
+            return;
         var newModule = processedAssembly.NewAssembly.MainModule;
         var processedType = enclosingNewType == null
             ? processedAssembly.TryGetTypeByName(unityType.FullName)?.NewType
