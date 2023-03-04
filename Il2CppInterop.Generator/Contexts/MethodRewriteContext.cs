@@ -79,6 +79,8 @@ public class MethodRewriteContext
             Pass15GenerateMemberContexts.HasObfuscatedMethods = true;
 
         FileOffset = originalMethod.ExtractOffset();
+        // Workaround for garbage file offsets passed by Cpp2IL
+        if (FileOffset < 0) FileOffset = 0;
         Rva = originalMethod.ExtractRva();
         if (FileOffset != 0)
             declaringType.AssemblyContext.GlobalContext.MethodStartAddresses.Add(FileOffset);
