@@ -13,9 +13,14 @@ public static class Il2CppInteropUtils
         foreach (var (opCode, opArg) in MiniIlParser.Decode(body.GetILAsByteArray()))
         {
             if (opCode != OpCodes.Ldsfld) continue;
-            var fieldInfo = methodModule.ResolveField((int)opArg);
-            if (fieldInfo?.FieldType != typeof(IntPtr) || !fieldInfo.Name.StartsWith(prefix)) continue;
-            return fieldInfo;
+
+            var fieldInfo = methodModule.ResolveField((int)opArg, method.DeclaringType.GenericTypeArguments, method.GetGenericArguments());
+            if (fieldInfo?.FieldType != typeof(IntPtr)) continue;
+
+            if (fieldInfo.Name.StartsWith(prefix)) return fieldInfo;
+
+            // Resolve generic method info pointer fields
+            if (method.IsGenericMethod && fieldInfo.DeclaringType.Name.StartsWith("MethodInfoStoreGeneric_") && fieldInfo.Name == "Pointer") return fieldInfo;
         }
 
         return null;
