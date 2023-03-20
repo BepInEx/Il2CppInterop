@@ -69,7 +69,7 @@ public static class Pass16ScanMethodRefs
                     ? 1024 * 1024
                     : context.MethodStartAddresses[nextMethodStart] - address;
                 foreach (var callTargetGlobal in XrefScanner.XrefScanImpl(
-                             XrefScanner.DecoderForAddress(IntPtr.Add(gameAssemblyPtr, (int)address), (int)length),
+                             XrefScanner.DecoderForAddress(IntPtr.Add(gameAssemblyPtr, (int)address), (int)Math.Min(length, accessor.Capacity - address)),
                              true))
                 {
                     var callTarget = callTargetGlobal.RelativeToBase(gameAssemblyPtr + (nint)originalTypeMethod.FileOffset - (nint)originalTypeMethod.Rva);
