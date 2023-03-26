@@ -11,7 +11,7 @@
     <Platforms>AnyCPU</Platforms>
     <ImplicitUsings>false</ImplicitUsings>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Il2CppInterop.HarmonySupport</_Parameter1>
@@ -39,5 +39,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj"/>
+    <ProjectReference Include="..\Il2CppInterop.Analyzers\Il2CppInterop.Analyzers.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <OutputItemType>Analyzer</OutputItemType>
+    </ProjectReference>
   </ItemGroup>
 </Project>

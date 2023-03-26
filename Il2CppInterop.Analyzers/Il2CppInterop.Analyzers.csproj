@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>Il2CppInterop.Analyzers</PackageId>
+    <Authors>knah, BepInEx et al.</Authors>
+    <Version>1.0.0</Version>
+    <Description>C# analyzer that warns against improper usage of Il2Cpp objects</Description>
+    <TargetFramework>net6.0</TargetFramework>
+    <Configurations>Debug;Release</Configurations>
+    <Platforms>AnyCPU</Platforms>
+    <RootNamespace>Il2CppInterop.Analyzers</RootNamespace>
+
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    <BuildOutputTargetFolder>analyzers</BuildOutputTargetFolder>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.0.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
