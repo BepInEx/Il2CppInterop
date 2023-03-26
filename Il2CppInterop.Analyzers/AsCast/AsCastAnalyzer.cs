@@ -13,10 +13,10 @@ namespace Il2CppInterop.Analyzers.AsCast
 
         private static readonly LocalizableString s_title = "Cast to Il2CppSystem.Object detected";
         private static readonly LocalizableString s_messageFormat = "Il2Cpp objects must be casted using .Cast or .TryCast";
-        private static readonly LocalizableString s_description = "This analyzer warns when casting an object inheriting from Il2CppSystem.Object using a standard cast, and suggests using .Cast or .TryCast instead.";
+        private static readonly LocalizableString s_description = "Casting an object inheriting from Il2CppSystem.Object to a type also inheriting from Il2CppSystem.Object should be done with .Cast or .TryCast";
         private const string Category = "Casting";
 
-        private static readonly DiagnosticDescriptor s_rule = new(DiagnosticId, s_title, s_messageFormat, Category, DiagnosticSeverity.Warning, isEnabledByDefault: true, description: s_description);
+        private static readonly DiagnosticDescriptor s_rule = new(DiagnosticId, s_title, s_messageFormat, Category, DiagnosticSeverity.Warning, true, s_description);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(s_rule);
 
