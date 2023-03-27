@@ -4,12 +4,12 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
-namespace Il2CppInterop.Analyzers.AsCast
+namespace Il2CppInterop.Analyzers.IsCast
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class AsCastAnalyzer : DiagnosticAnalyzer
+    public sealed class IsCastAnalyzer : DiagnosticAnalyzer
     {
-        public const string DiagnosticId = "Interop0002";
+        public const string DiagnosticId = "Interop0003";
 
         private static readonly LocalizableString s_title = "Cast to Il2CppSystem.Object detected";
         private static readonly LocalizableString s_messageFormat = "Il2Cpp objects must be casted using .Cast or .TryCast";
@@ -24,22 +24,23 @@ namespace Il2CppInterop.Analyzers.AsCast
         {
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
-            context.RegisterSyntaxNodeAction(AnalyzeAs, SyntaxKind.AsExpression);
+            context.RegisterSyntaxNodeAction(AnalyzeIs, SyntaxKind.IsExpression);
         }
 
-        private static void AnalyzeAs(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeIs(SyntaxNodeAnalysisContext context)
         {
-            var asExpression = (BinaryExpressionSyntax)context.Node;
+            var isExpression = (BinaryExpressionSyntax)context.Node;
+            if (!isExpression.IsKind(SyntaxKind.IsExpression)) return;
 
-            var targetType = context.SemanticModel.GetTypeInfo(asExpression.Right).Type;
+            var targetType = context.SemanticModel.GetTypeInfo(isExpression.Right).Type;
             if (targetType == null || !Utilities.IsIl2CppObject(context, targetType)) return;
 
-            var sourceType = context.SemanticModel.GetTypeInfo(asExpression.Left).Type;
+            var sourceType = context.SemanticModel.GetTypeInfo(isExpression.Left).Type;
             if (sourceType == null || !Utilities.IsIl2CppObject(context, sourceType)) return;
 
             if (targetType.Equals(sourceType, SymbolEqualityComparer.Default)) return;
 
-            var diagnostic = Diagnostic.Create(s_rule, asExpression.GetLocation());
+            var diagnostic = Diagnostic.Create(s_rule, isExpression.GetLocation());
             context.ReportDiagnostic(diagnostic);
         }
     }

@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Composition;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
@@ -7,14 +7,14 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
 
-namespace Il2CppInterop.Analyzers.DirectCast
+namespace Il2CppInterop.Analyzers.IsCast
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(DirectCastCodeFixProvider)), Shared]
-    public sealed class DirectCastCodeFixProvider : CodeFixProvider
+    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(IsCastCodeFixProvider)), Shared]
+    public sealed class IsCastCodeFixProvider : CodeFixProvider
     {
-        private const string Title = "Replace with Cast";
+        private const string Title = "Add TryCast";
 
-        public override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(DirectCastAnalyzer.DiagnosticId);
+        public override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(IsCastAnalyzer.DiagnosticId);
 
         public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
@@ -25,29 +25,31 @@ namespace Il2CppInterop.Analyzers.DirectCast
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
 
-            var castExpression = root!.FindToken(diagnosticSpan.Start).Parent!.AncestorsAndSelf().OfType<CastExpressionSyntax>().First();
+            var isExpression = root!.FindToken(diagnosticSpan.Start).Parent!.AncestorsAndSelf().OfType<BinaryExpressionSyntax>().First();
 
             context.RegisterCodeFix(
                 CodeAction.Create(
                     title: Title,
-                    createChangedDocument: cancellationToken => ReplaceWithCastAsync(context.Document, castExpression, cancellationToken),
+                    createChangedDocument: cancellationToken => ReplaceWithTryCastAndPatternMatchingAsync(context.Document, isExpression, cancellationToken),
                     equivalenceKey: Title),
                 diagnostic);
         }
 
-        private static async Task<Document> ReplaceWithCastAsync(Document document, CastExpressionSyntax castExpression, CancellationToken cancellationToken)
+        private static async Task<Document> ReplaceWithTryCastAndPatternMatchingAsync(Document document, BinaryExpressionSyntax isExpression, CancellationToken cancellationToken)
         {
             var editor = await DocumentEditor.CreateAsync(document, cancellationToken).ConfigureAwait(false);
+
+            var targetType = (TypeSyntax)isExpression.Right;
 
             var tryCastInvocation = SyntaxFactory.InvocationExpression(
                 SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
-                    castExpression.Expression,
-                    SyntaxFactory.GenericName(SyntaxFactory.Identifier("Cast"))
-                        .WithTypeArgumentList(SyntaxFactory.TypeArgumentList(castExpression.Type.ToSeparatedSyntaxList()))))
+                    isExpression.Left,
+                    SyntaxFactory.GenericName(SyntaxFactory.Identifier("TryCast"))
+                        .WithTypeArgumentList(SyntaxFactory.TypeArgumentList(targetType.ToSeparatedSyntaxList()))))
                 .WithArgumentList(SyntaxFactory.ArgumentList());
 
-            editor.ReplaceNode(castExpression, tryCastInvocation);
+            editor.ReplaceNode(isExpression, isExpression.WithLeft(tryCastInvocation));
             return editor.GetChangedDocument();
         }
     }

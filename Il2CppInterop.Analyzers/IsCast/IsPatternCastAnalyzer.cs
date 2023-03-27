@@ -4,12 +4,12 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
-namespace Il2CppInterop.Analyzers.AsCast
+namespace Il2CppInterop.Analyzers.IsCast
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class AsCastAnalyzer : DiagnosticAnalyzer
+    public sealed class IsPatternCastAnalyzer : DiagnosticAnalyzer
     {
-        public const string DiagnosticId = "Interop0002";
+        public const string DiagnosticId = "Interop0004";
 
         private static readonly LocalizableString s_title = "Cast to Il2CppSystem.Object detected";
         private static readonly LocalizableString s_messageFormat = "Il2Cpp objects must be casted using .Cast or .TryCast";
@@ -24,22 +24,33 @@ namespace Il2CppInterop.Analyzers.AsCast
         {
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
-            context.RegisterSyntaxNodeAction(AnalyzeAs, SyntaxKind.AsExpression);
+            context.RegisterSyntaxNodeAction(AnalyzeIsPattern, SyntaxKind.IsPatternExpression);
         }
 
-        private static void AnalyzeAs(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeIsPattern(SyntaxNodeAnalysisContext context)
         {
-            var asExpression = (BinaryExpressionSyntax)context.Node;
+            var isExpression = (IsPatternExpressionSyntax)context.Node;
 
-            var targetType = context.SemanticModel.GetTypeInfo(asExpression.Right).Type;
-            if (targetType == null || !Utilities.IsIl2CppObject(context, targetType)) return;
-
-            var sourceType = context.SemanticModel.GetTypeInfo(asExpression.Left).Type;
+            var sourceType = context.SemanticModel.GetTypeInfo(isExpression.Expression).Type;
             if (sourceType == null || !Utilities.IsIl2CppObject(context, sourceType)) return;
+
+            ITypeSymbol? targetType = null;
+            if (isExpression.Pattern is DeclarationPatternSyntax declaration)
+            {
+                targetType = context.SemanticModel.GetTypeInfo(declaration.Type).Type;
+            }
+            else if (isExpression.Pattern is RecursivePatternSyntax recursive)
+            {
+                if (recursive.Type == null) return;
+                targetType = context.SemanticModel.GetTypeInfo(recursive.Type).Type;
+            }
+            else return;
+
+            if (targetType == null || !Utilities.IsIl2CppObject(context, targetType)) return;
 
             if (targetType.Equals(sourceType, SymbolEqualityComparer.Default)) return;
 
-            var diagnostic = Diagnostic.Create(s_rule, asExpression.GetLocation());
+            var diagnostic = Diagnostic.Create(s_rule, isExpression.GetLocation());
             context.ReportDiagnostic(diagnostic);
         }
     }
