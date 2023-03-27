@@ -2,16 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+
+    <Description>CLI tool for generating managed proxy assemblies for Il2Cpp</Description>
+
     <OutputType>Exe</OutputType>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>il2cppinterop</ToolCommandName>
-    <PackageOutputPath>../bin/NuGet</PackageOutputPath>
-    <PackageId>Il2CppInterop.CLI</PackageId>
-    <Authors>BepInEx</Authors>
-    <Description>CLI tool for generating managed proxy assemblies for Il2Cpp</Description>
-    <Configurations>Debug;Release</Configurations>
-    <Platforms>AnyCPU</Platforms>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
