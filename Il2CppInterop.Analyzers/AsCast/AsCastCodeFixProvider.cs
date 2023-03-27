@@ -7,51 +7,50 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
 
-namespace Il2CppInterop.Analyzers.AsCast
+namespace Il2CppInterop.Analyzers.AsCast;
+
+[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AsCastCodeFixProvider)), Shared]
+public sealed class AsCastCodeFixProvider : CodeFixProvider
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AsCastCodeFixProvider)), Shared]
-    public sealed class AsCastCodeFixProvider : CodeFixProvider
+    private const string Title = "Replace with TryCast";
+
+    public override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(AsCastAnalyzer.DiagnosticId);
+
+    public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
+
+    public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        private const string Title = "Replace with TryCast";
+        var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
 
-        public override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(AsCastAnalyzer.DiagnosticId);
+        var diagnostic = context.Diagnostics.First();
+        var diagnosticSpan = diagnostic.Location.SourceSpan;
 
-        public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
+        var asExpression = root!.FindToken(diagnosticSpan.Start).Parent!.AncestorsAndSelf().OfType<BinaryExpressionSyntax>().First();
 
-        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
-        {
-            var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
+        context.RegisterCodeFix(
+            CodeAction.Create(
+                title: Title,
+                createChangedDocument: cancellationToken => ReplaceWithTryCastAsync(context.Document, asExpression, cancellationToken),
+                equivalenceKey: Title),
+            diagnostic);
+    }
 
-            var diagnostic = context.Diagnostics.First();
-            var diagnosticSpan = diagnostic.Location.SourceSpan;
+    private static async Task<Document> ReplaceWithTryCastAsync(Document document, BinaryExpressionSyntax asExpression, CancellationToken cancellationToken)
+    {
+        var editor = await DocumentEditor.CreateAsync(document, cancellationToken).ConfigureAwait(false);
 
-            var asExpression = root!.FindToken(diagnosticSpan.Start).Parent!.AncestorsAndSelf().OfType<BinaryExpressionSyntax>().First();
+        var targetType = (TypeSyntax)asExpression.Right;
 
-            context.RegisterCodeFix(
-                CodeAction.Create(
-                    title: Title,
-                    createChangedDocument: cancellationToken => ReplaceWithTryCastAsync(context.Document, asExpression, cancellationToken),
-                    equivalenceKey: Title),
-                diagnostic);
-        }
-
-        private static async Task<Document> ReplaceWithTryCastAsync(Document document, BinaryExpressionSyntax asExpression, CancellationToken cancellationToken)
-        {
-            var editor = await DocumentEditor.CreateAsync(document, cancellationToken).ConfigureAwait(false);
-
-            var targetType = (TypeSyntax)asExpression.Right;
-
-            var tryCastInvocation = SyntaxFactory.InvocationExpression(
+        var tryCastInvocation = SyntaxFactory.InvocationExpression(
                 SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     asExpression.Left,
                     SyntaxFactory.GenericName(SyntaxFactory.Identifier("TryCast"))
                         .WithTypeArgumentList(SyntaxFactory.TypeArgumentList(targetType.ToSeparatedSyntaxList()))))
-                .WithArgumentList(SyntaxFactory.ArgumentList());
+            .WithArgumentList(SyntaxFactory.ArgumentList());
 
-            editor.ReplaceNode(asExpression, tryCastInvocation);
-            return editor.GetChangedDocument();
-        }
-
+        editor.ReplaceNode(asExpression, tryCastInvocation);
+        return editor.GetChangedDocument();
     }
+
 }
