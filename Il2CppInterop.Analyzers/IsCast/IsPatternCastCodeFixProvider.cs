@@ -39,16 +39,18 @@ namespace Il2CppInterop.Analyzers.IsCast
         {
             var editor = await DocumentEditor.CreateAsync(document, cancellationToken).ConfigureAwait(false);
 
-            TypeSyntax targetType = ((dynamic)isExpression.Pattern).Type;
-
-            // if (isExpression.Pattern is DeclarationPatternSyntax declaration)
-            // {
-            //     targetType = declaration.Type;
-            // }
-            // else if (isExpression.Pattern is RecursivePatternSyntax recursive)
-            // {
-            //     targetType = recursive.Type;
-            // }
+            TypeSyntax targetType;
+            switch (isExpression.Pattern)
+            {
+                case DeclarationPatternSyntax declaration:
+                    targetType = declaration.Type;
+                    break;
+                case RecursivePatternSyntax recursive:
+                    targetType = recursive.Type;
+                    break;
+                default:
+                    return editor.OriginalDocument;
+            }
 
             var tryCastInvocation = SyntaxFactory.InvocationExpression(
                 SyntaxFactory.MemberAccessExpression(
