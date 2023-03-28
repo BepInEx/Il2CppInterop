@@ -32,9 +32,6 @@ public sealed class IsCastAnalyzer : DiagnosticAnalyzer
         var isExpression = (BinaryExpressionSyntax)context.Node;
         if (!isExpression.IsKind(SyntaxKind.IsExpression)) return;
 
-        File.AppendAllText(@"C:\Users\alexe\Desktop\log.txt", $"{context.Node.GetType().Name} {context.Node}\n");
-        File.AppendAllText(@"C:\Users\alexe\Desktop\log.txt", $"{isExpression.Right.GetType().Name} {isExpression.Right}\n\n\n");
-
         var sourceType = context.SemanticModel.GetTypeInfo(isExpression.Left).Type;
         if (sourceType == null || !Utilities.IsIl2CppObject(context, sourceType)) return;
 

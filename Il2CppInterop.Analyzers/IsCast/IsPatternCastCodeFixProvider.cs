@@ -50,7 +50,7 @@ public sealed class IsPatternCastCodeFixProvider : CodeFixProvider
                         .WithTypeArgumentList(SyntaxFactory.TypeArgumentList(targetType.ToSeparatedSyntaxList()))))
             .WithArgumentList(SyntaxFactory.ArgumentList());
 
-        editor.ReplaceNode(isExpression, isExpression.WithExpression(tryCastInvocation));
+        editor.ReplaceNode(isExpression, isExpression.WithExpression(tryCastInvocation).WithPattern(Utilities.RemoveTypeFromPattern(isExpression.Pattern)!));
         return editor.GetChangedDocument();
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
@@ -14,13 +15,26 @@ public static class Utilities
 
     public static TypeSyntax? GetTypeFromPattern(ExpressionOrPatternSyntax pattern)
     {
-        File.AppendAllText(@"C:\Users\alexe\Desktop\log.txt", $"Testing for {pattern.GetType()} {pattern}\n");
         return pattern switch
         {
             ConstantPatternSyntax constant => constant.Expression as TypeSyntax,
             DeclarationPatternSyntax declaration => declaration.Type,
             RecursivePatternSyntax recursive => recursive.Type,
             UnaryPatternSyntax unary => GetTypeFromPattern(unary.Pattern),
+            _ => null
+        };
+    }
+
+    public static PatternSyntax? RemoveTypeFromPattern(ExpressionOrPatternSyntax pattern)
+    {
+        return pattern switch
+        {
+            ConstantPatternSyntax constant => SyntaxFactory.RecursivePattern()
+                .WithPropertyPatternClause(SyntaxFactory.PropertyPatternClause(SyntaxFactory.SeparatedList<SubpatternSyntax>())),
+            DeclarationPatternSyntax declaration => SyntaxFactory.RecursivePattern()
+                .WithPropertyPatternClause(SyntaxFactory.PropertyPatternClause(SyntaxFactory.SeparatedList<SubpatternSyntax>())).WithDesignation(declaration.Designation),
+            RecursivePatternSyntax recursive => recursive.WithType(null),
+            UnaryPatternSyntax unary => unary.WithPattern(RemoveTypeFromPattern(unary.Pattern)!),
             _ => null
         };
     }
