@@ -31,9 +31,6 @@ public sealed class IsPatternCastAnalyzer : DiagnosticAnalyzer
     {
         var isExpression = (IsPatternExpressionSyntax)context.Node;
 
-        File.AppendAllText(@"C:\Users\alexe\Desktop\log.txt", $"{context.Node.GetType().Name} {context.Node}\n");
-        File.AppendAllText(@"C:\Users\alexe\Desktop\log.txt", $"{isExpression.Pattern.GetType().Name} {isExpression.Pattern}\n\n\n");
-
         var sourceType = context.SemanticModel.GetTypeInfo(isExpression.Expression).Type;
         if (sourceType == null || !Utilities.IsIl2CppObject(context, sourceType)) return;
 
