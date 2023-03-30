@@ -69,7 +69,7 @@ public static unsafe partial class ClassInjector
     private static readonly HashSet<string> InjectedTypes = new();
 
     /// <summary> (method) : (method_inst, method) </summary>
-    private static readonly Dictionary<IntPtr, (MethodInfo, Dictionary<IntPtr, IntPtr>)>
+    internal static readonly Dictionary<IntPtr, (MethodInfo, Dictionary<IntPtr, IntPtr>)>
         InflatedMethodFromContextDictionary = new();
 
     private static readonly ConcurrentDictionary<string, Delegate> InvokerCache = new();
@@ -603,7 +603,7 @@ public static unsafe partial class ClassInjector
         return converted.MethodInfoPointer;
     }
 
-    private static Il2CppMethodInfo* ConvertMethodInfo(MethodInfo monoMethod, INativeClassStruct declaringClass)
+    internal static Il2CppMethodInfo* ConvertMethodInfo(MethodInfo monoMethod, INativeClassStruct declaringClass)
     {
         var converted = UnityVersionHandler.NewMethod();
         converted.Name = Marshal.StringToHGlobalAnsi(monoMethod.Name);
@@ -1114,34 +1114,11 @@ public static unsafe partial class ClassInjector
         return fullName.ToString();
     }
 
-    private static Type SystemTypeFromIl2CppType(Il2CppTypeStruct* typePointer)
+    internal static Type SystemTypeFromIl2CppType(Il2CppTypeStruct* typePointer)
     {
         var fullName = GetIl2CppTypeFullName(typePointer);
         var type = Type.GetType(fullName) ?? throw new NullReferenceException($"Couldn't find System.Type for Il2Cpp type: {fullName}");
         return RewriteType(type);
-    }
-
-    internal static Il2CppMethodInfo* hkGenericMethodGetMethod(Il2CppGenericMethod* gmethod, bool copyMethodPtr)
-    {
-        if (InflatedMethodFromContextDictionary.TryGetValue((IntPtr)gmethod->methodDefinition, out var methods))
-        {
-            var instancePointer = gmethod->context.method_inst;
-            if (methods.Item2.TryGetValue((IntPtr)instancePointer, out var inflatedMethodPointer))
-                return (Il2CppMethodInfo*)inflatedMethodPointer;
-
-            var typeArguments = new Type[instancePointer->type_argc];
-            for (var i = 0; i < instancePointer->type_argc; i++)
-                typeArguments[i] = SystemTypeFromIl2CppType(instancePointer->type_argv[i]);
-            var inflatedMethod = methods.Item1.MakeGenericMethod(typeArguments);
-            Logger.Instance.LogTrace("Inflated method: {InflatedMethod}", inflatedMethod.Name);
-            inflatedMethodPointer = (IntPtr)ConvertMethodInfo(inflatedMethod,
-                UnityVersionHandler.Wrap(UnityVersionHandler.Wrap(gmethod->methodDefinition).Class));
-            methods.Item2.Add((IntPtr)instancePointer, inflatedMethodPointer);
-
-            return (Il2CppMethodInfo*)inflatedMethodPointer;
-        }
-
-        return InjectorHelpers.GenericMethodGetMethodOriginal(gmethod, copyMethodPtr);
     }
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
