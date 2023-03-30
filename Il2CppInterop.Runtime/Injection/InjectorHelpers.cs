@@ -10,6 +10,7 @@ using System.Threading;
 using Il2CppInterop.Common;
 using Il2CppInterop.Common.Extensions;
 using Il2CppInterop.Common.XrefScans;
+using Il2CppInterop.Runtime.Injection.Hooks;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
@@ -61,15 +62,24 @@ namespace Il2CppInterop.Runtime.Injection
                 InjectedImage.NameNoExt = InjectedAssembly.Name.Name;
         }
 
+        internal static GenericMethod_GetMethod_Hook GenericMethodGetMethodHook = new GenericMethod_GetMethod_Hook();
+
+        internal static MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook GetTypeInfoFromTypeDefinitionIndexHook =
+            new MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook();
+
+        internal static Class_GetFieldDefaultValue_Hook GetFieldDefaultValueHook = new Class_GetFieldDefaultValue_Hook();
+        internal static Class_FromIl2CppType_Hook FromIl2CppTypeHook = new Class_FromIl2CppType_Hook();
+        internal static Class_FromName_Hook FromNameHook = new Class_FromName_Hook();
+
         internal static void Setup()
         {
             if (InjectedAssembly == null) CreateInjectedAssembly();
-            GenericMethodGetMethod ??= FindGenericMethodGetMethod();
-            GetTypeInfoFromTypeDefinitionIndex ??= FindGetTypeInfoFromTypeDefinitionIndex();
-            ClassGetFieldDefaultValue ??= FindClassGetFieldDefaultValue();
+            GenericMethodGetMethodHook.ApplyHook();
+            GetTypeInfoFromTypeDefinitionIndexHook.ApplyHook();
+            GetFieldDefaultValueHook.ApplyHook();
             ClassInit ??= FindClassInit();
-            ClassFromIl2CppType ??= FindClassFromIl2CppType();
-            ClassFromName ??= FindClassFromName();
+            FromIl2CppTypeHook.ApplyHook();
+            FromNameHook.ApplyHook();
         }
 
         internal static long CreateClassToken(IntPtr classPointer)
@@ -127,353 +137,9 @@ namespace Il2CppInterop.Runtime.Injection
         }
 
         private static long s_LastInjectedToken = -2;
-        private static readonly ConcurrentDictionary<long, IntPtr> s_InjectedClasses = new();
+        internal static readonly ConcurrentDictionary<long, IntPtr> s_InjectedClasses = new();
         /// <summary> (namespace, class, image) : class </summary>
-        private static readonly Dictionary<(string _namespace, string _class, IntPtr imagePtr), IntPtr> s_ClassNameLookup = new();
-        #region GenericMethod::GetMethod
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate Il2CppMethodInfo* d_GenericMethodGetMethod(Il2CppGenericMethod* gmethod, bool copyMethodPtr);
-        private static readonly d_GenericMethodGetMethod GenericMethodGetMethodDetour = new(ClassInjector.hkGenericMethodGetMethod);
-        internal static d_GenericMethodGetMethod GenericMethodGetMethod;
-        internal static d_GenericMethodGetMethod GenericMethodGetMethodOriginal;
-
-        private static readonly MemoryUtils.SignatureDefinition[] s_GenericMethodGetMethodSignatures =
-        {
-            // Unity 2021.2.5 (x64)
-            new MemoryUtils.SignatureDefinition
-            {
-                pattern = "\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x56\x57\x41\x54\x41\x56\x41\x57\x48\x81\xEC\xB0\x00",
-                mask = "xxxxxxxxxxxxxxxxxxxxxxx",
-                xref = false
-            }
-        };
-        private static d_GenericMethodGetMethod FindGenericMethodGetMethod()
-        {
-            // On Unity 2021.2+, the 3 parameter shim can be inlined and optimized by the compiler
-            // which moves the method we're looking for
-            var genericMethodGetMethod = s_GenericMethodGetMethodSignatures
-                .Select(s => MemoryUtils.FindSignatureInModule(Il2CppModule, s))
-                .FirstOrDefault(p => p != 0);
-
-            if (genericMethodGetMethod == 0)
-            {
-                var getVirtualMethodAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_object_get_virtual_method));
-                Logger.Instance.LogTrace("il2cpp_object_get_virtual_method: 0x{GetVirtualMethodApiAddress}", getVirtualMethodAPI.ToInt64().ToString("X2"));
-
-                var getVirtualMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethodAPI).Single();
-                Logger.Instance.LogTrace("Object::GetVirtualMethod: 0x{GetVirtualMethodAddress}", getVirtualMethod.ToInt64().ToString("X2"));
-
-                var getVirtualMethodXrefs = XrefScannerLowLevel.JumpTargets(getVirtualMethod).ToArray();
-
-                // If the game is built with IL2CPP Master setting, this will return 0 entries, so we do another xref scan with retn instructions ignored.
-                if (getVirtualMethodXrefs.Length == 0)
-                {
-                    genericMethodGetMethod = XrefScannerLowLevel.JumpTargets(getVirtualMethod, true).Last();
-                }
-                else
-                {
-                    genericMethodGetMethod = getVirtualMethodXrefs.Last();
-
-                    var targetTargets = XrefScannerLowLevel.JumpTargets(genericMethodGetMethod).Take(2).ToArray();
-                    if (targetTargets.Length == 1 && UnityVersionHandler.IsMetadataV29OrHigher) // U2021.2.0+, there's additional shim that takes 3 parameters
-                        genericMethodGetMethod = targetTargets[0];
-                }
-            }
-
-            Logger.Instance.LogTrace("GenericMethod::GetMethod: 0x{GenericMethodGetMethodAddress}", genericMethodGetMethod.ToString("X2"));
-            Detour.Apply(genericMethodGetMethod, GenericMethodGetMethodDetour, out GenericMethodGetMethodOriginal);
-            return Marshal.GetDelegateForFunctionPointer<d_GenericMethodGetMethod>(genericMethodGetMethod);
-        }
-        #endregion
-        #region Class::FromName
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate Il2CppClass* d_ClassFromName(Il2CppImage* image, IntPtr _namespace, IntPtr name);
-        private static Il2CppClass* hkClassFromName(Il2CppImage* image, IntPtr _namespace, IntPtr name)
-        {
-            Il2CppClass* classPtr = ClassFromNameOriginal(image, _namespace, name);
-
-            if (classPtr == null)
-            {
-                string namespaze = Marshal.PtrToStringAnsi(_namespace);
-                string className = Marshal.PtrToStringAnsi(name);
-                s_ClassNameLookup.TryGetValue((namespaze, className, (IntPtr)image), out IntPtr injectedClass);
-                classPtr = (Il2CppClass*)injectedClass;
-            }
-
-            return classPtr;
-        }
-        private static readonly d_ClassFromName ClassFromNameDetour = new(hkClassFromName);
-        internal static d_ClassFromName ClassFromName;
-        internal static d_ClassFromName ClassFromNameOriginal;
-        private static d_ClassFromName FindClassFromName()
-        {
-            var classFromNameAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_class_from_name));
-            Logger.Instance.LogTrace("il2cpp_class_from_name: 0x{ClassFromNameApiAddress}", classFromNameAPI.ToInt64().ToString("X2"));
-
-            var classFromName = XrefScannerLowLevel.JumpTargets(classFromNameAPI).Single();
-            Logger.Instance.LogTrace("Class::FromName: 0x{ClassFromNameAddress}", classFromName.ToInt64().ToString("X2"));
-
-            Detour.Apply(classFromName, ClassFromNameDetour, out ClassFromNameOriginal);
-            return Marshal.GetDelegateForFunctionPointer<d_ClassFromName>(classFromName);
-        }
-        #endregion
-
-        #region MetadataCache::GetTypeInfoFromTypeDefinitionIndex
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate Il2CppClass* d_GetTypeInfoFromTypeDefinitionIndex(int index);
-        private static Il2CppClass* hkGetTypeInfoFromTypeDefinitionIndex(int index)
-        {
-            if (s_InjectedClasses.TryGetValue(index, out IntPtr classPtr))
-                return (Il2CppClass*)classPtr;
-
-            return GetTypeInfoFromTypeDefinitionIndexOriginal(index);
-        }
-        private static readonly d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndexDetour = new(hkGetTypeInfoFromTypeDefinitionIndex);
-        internal static d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndex;
-        internal static d_GetTypeInfoFromTypeDefinitionIndex GetTypeInfoFromTypeDefinitionIndexOriginal;
-        private static d_GetTypeInfoFromTypeDefinitionIndex FindGetTypeInfoFromTypeDefinitionIndex(bool forceICallMethod = false)
-        {
-            IntPtr getTypeInfoFromTypeDefinitionIndex = IntPtr.Zero;
-
-            // il2cpp_image_get_class is added in 2018.3.0f1
-            if (Il2CppInteropRuntime.Instance.UnityVersion < new Version(2018, 3, 0) || forceICallMethod)
-            {
-                // (Kasuromi): RuntimeHelpers.InitializeArray calls an il2cpp icall, proxy function does some magic before it invokes it
-                // https://github.com/Unity-Technologies/mono/blob/unity-2018.2/mcs/class/corlib/System.Runtime.CompilerServices/RuntimeHelpers.cs#L53-L54
-                IntPtr runtimeHelpersInitializeArray = GetIl2CppMethodPointer(
-                    typeof(Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers)
-                        .GetMethod("InitializeArray", new Type[] { typeof(Il2CppSystem.Array), typeof(IntPtr) })
-                );
-                Logger.Instance.LogTrace("Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers::InitializeArray: 0x{RuntimeHelpersInitializeArrayAddress}", runtimeHelpersInitializeArray.ToInt64().ToString("X2"));
-
-                var runtimeHelpersInitializeArrayICall = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArray).Last();
-                if (XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).Count() == 1)
-                {
-                    // is a thunk function
-                    Logger.Instance.LogTrace("RuntimeHelpers::thunk_InitializeArray: 0x{RuntimeHelpersInitializeArrayICallAddress}", runtimeHelpersInitializeArrayICall.ToInt64().ToString("X2"));
-                    runtimeHelpersInitializeArrayICall = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).Single();
-                }
-
-                Logger.Instance.LogTrace("RuntimeHelpers::InitializeArray: 0x{RuntimeHelpersInitializeArrayICallAddress}", runtimeHelpersInitializeArrayICall.ToInt64().ToString("X2"));
-
-                var typeGetUnderlyingType = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).ElementAt(1);
-                Logger.Instance.LogTrace("Type::GetUnderlyingType: 0x{TypeGetUnderlyingTypeAddress}", typeGetUnderlyingType.ToInt64().ToString("X2"));
-
-                getTypeInfoFromTypeDefinitionIndex = XrefScannerLowLevel.JumpTargets(typeGetUnderlyingType).First();
-            }
-            else
-            {
-                var imageGetClassAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_image_get_class));
-                Logger.Instance.LogTrace("il2cpp_image_get_class: 0x{ImageGetClassApiAddress}", imageGetClassAPI.ToInt64().ToString("X2"));
-
-                var imageGetType = XrefScannerLowLevel.JumpTargets(imageGetClassAPI).Single();
-                Logger.Instance.LogTrace("Image::GetType: 0x{ImageGetTypeAddress}", imageGetType.ToInt64().ToString("X2"));
-
-                var imageGetTypeXrefs = XrefScannerLowLevel.JumpTargets(imageGetType).ToArray();
-
-                if (imageGetTypeXrefs.Length == 0)
-                {
-                    // (Kasuromi): Image::GetType appears to be inlined in il2cpp_image_get_class on some occasions,
-                    // if the unconditional xrefs are 0 then we are in the correct method (seen on unity 2019.3.15)
-                    getTypeInfoFromTypeDefinitionIndex = imageGetType;
-                }
-                else getTypeInfoFromTypeDefinitionIndex = imageGetTypeXrefs[0];
-                if ((getTypeInfoFromTypeDefinitionIndex.ToInt64() & 0xF) != 0)
-                {
-                    Logger.Instance.LogTrace("Image::GetType xref wasn't aligned, attempting to resolve from icall");
-                    return FindGetTypeInfoFromTypeDefinitionIndex(true);
-                }
-                if (imageGetTypeXrefs.Count() > 1 && UnityVersionHandler.IsMetadataV29OrHigher)
-                {
-                    // (Kasuromi): metadata v29 introduces handles and adds extra calls, a check for unity versions might be necessary in the future
-
-                    Logger.Instance.LogTrace($"imageGetTypeXrefs.Length: {imageGetTypeXrefs.Length}");
-
-                    // If the game is built as IL2CPP Master, GetAssemblyTypeHandle is inlined, xrefs length is 3 and it's the first function call,
-                    // if not, it's the last call.
-                    var getTypeInfoFromHandle = imageGetTypeXrefs.Length == 2 ? imageGetTypeXrefs.Last() : imageGetTypeXrefs.First();
-
-                    Logger.Instance.LogTrace($"getTypeInfoFromHandle: {getTypeInfoFromHandle:X2}");
-
-                    var getTypeInfoFromHandleXrefs = XrefScannerLowLevel.JumpTargets(getTypeInfoFromHandle).ToArray();
-
-                    // If getTypeInfoFromHandle xrefs is not a single call, it's the function we want, if not, we keep xrefing until we find it
-                    if (getTypeInfoFromHandleXrefs.Length != 1)
-                    {
-                        getTypeInfoFromTypeDefinitionIndex = getTypeInfoFromHandle;
-                        Logger.Instance.LogTrace($"Xrefs length was not 1, getTypeInfoFromTypeDefinitionIndex: {getTypeInfoFromTypeDefinitionIndex:X2}");
-                    }
-                    else
-                    {
-                        // Two calls, second one (GetIndexForTypeDefinitionInternal) is inlined
-                        getTypeInfoFromTypeDefinitionIndex = getTypeInfoFromHandleXrefs.Single();
-                        // Xref scanner is sometimes confused about getTypeInfoFromHandle so we walk all the thunks until we hit the big method we need
-                        while (XrefScannerLowLevel.JumpTargets(getTypeInfoFromTypeDefinitionIndex).ToArray().Length == 1)
-                        {
-                            getTypeInfoFromTypeDefinitionIndex = XrefScannerLowLevel.JumpTargets(getTypeInfoFromTypeDefinitionIndex).Single();
-                        }
-                    }
-                }
-            }
-
-            Logger.Instance.LogTrace("MetadataCache::GetTypeInfoFromTypeDefinitionIndex: 0x{GetTypeInfoFromTypeDefinitionIndexAddress}", getTypeInfoFromTypeDefinitionIndex.ToInt64().ToString("X2"));
-
-            Detour.Apply(
-                getTypeInfoFromTypeDefinitionIndex,
-                GetTypeInfoFromTypeDefinitionIndexDetour,
-                out GetTypeInfoFromTypeDefinitionIndexOriginal
-            );
-            return Marshal.GetDelegateForFunctionPointer<d_GetTypeInfoFromTypeDefinitionIndex>(getTypeInfoFromTypeDefinitionIndex);
-        }
-        #endregion
-
-        #region Class::FromIl2CppType
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate Il2CppClass* d_ClassFromIl2CppType(Il2CppType* type, bool throwOnError);
-
-        /// Common version of the Il2CppType, the only thing that changed between unity version are the bitfields values that we don't use
-        internal readonly struct Il2CppType
-        {
-            public readonly void* data;
-            public readonly ushort attrs;
-            public readonly Il2CppTypeEnum type;
-            private readonly byte _bitfield;
-        }
-
-        private static Il2CppClass* hkClassFromIl2CppType(Il2CppType* type, bool throwOnError)
-        {
-            if ((nint)type->data < 0 && (type->type == Il2CppTypeEnum.IL2CPP_TYPE_CLASS || type->type == Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE))
-            {
-                s_InjectedClasses.TryGetValue((nint)type->data, out var classPointer);
-                return (Il2CppClass*)classPointer;
-            }
-
-            return ClassFromIl2CppTypeOriginal(type, throwOnError);
-        }
-        private static d_ClassFromIl2CppType ClassFromIl2CppTypeDetour = new(hkClassFromIl2CppType);
-        internal static d_ClassFromIl2CppType ClassFromIl2CppType;
-        internal static d_ClassFromIl2CppType ClassFromIl2CppTypeOriginal;
-        private static d_ClassFromIl2CppType FindClassFromIl2CppType()
-        {
-            var classFromTypeAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_class_from_il2cpp_type));
-            Logger.Instance.LogTrace("il2cpp_class_from_il2cpp_type: 0x{ClassFromTypeApiAddress}", classFromTypeAPI.ToInt64().ToString("X2"));
-
-            var classFromType = XrefScannerLowLevel.JumpTargets(classFromTypeAPI).Single();
-            Logger.Instance.LogTrace("Class::FromIl2CppType: 0x{ClassFromTypeAddress}", classFromType.ToInt64().ToString("X2"));
-
-            Detour.Apply(classFromType, ClassFromIl2CppTypeDetour, out ClassFromIl2CppTypeOriginal);
-            return Marshal.GetDelegateForFunctionPointer<d_ClassFromIl2CppType>(classFromType);
-        }
-        #endregion
-
-        #region Class::GetFieldDefaultValue
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate byte* d_ClassGetFieldDefaultValue(Il2CppFieldInfo* field, out Il2CppTypeStruct* type);
-        private static byte* hkClassGetFieldDefaultValue(Il2CppFieldInfo* field, out Il2CppTypeStruct* type)
-        {
-            if (EnumInjector.GetDefaultValueOverride(field, out IntPtr newDefaultPtr))
-            {
-                INativeFieldInfoStruct wrappedField = UnityVersionHandler.Wrap(field);
-                INativeClassStruct wrappedParent = UnityVersionHandler.Wrap(wrappedField.Parent);
-                INativeClassStruct wrappedElementClass = UnityVersionHandler.Wrap(wrappedParent.ElementClass);
-                type = wrappedElementClass.ByValArg.TypePointer;
-                return (byte*)newDefaultPtr;
-            }
-            return ClassGetFieldDefaultValueOriginal(field, out type);
-        }
-        private static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueDetour = new(hkClassGetFieldDefaultValue);
-        internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValue;
-        internal static d_ClassGetFieldDefaultValue ClassGetFieldDefaultValueOriginal;
-
-        private static readonly MemoryUtils.SignatureDefinition[] s_ClassGetFieldDefaultValueSignatures =
-        {
-            // Test Game - Unity 2021.3.4 (x64)
-            new MemoryUtils.SignatureDefinition
-            {
-                pattern = "\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x48\x8B\x79\x10\x48\x8B\xD9\x48\x8B\xF2\x48\x2B\x9F",
-                mask = "xxxxxxxxxxxxxx?xxxxxxxxxxxxx",
-                xref = false
-            },
-            // GTFO - Unity 2019.4.21 (x64)
-            new MemoryUtils.SignatureDefinition
-            {
-                pattern = "\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\x41\x10\x48\x8B\xD9\x48\x8B",
-                mask = "xxxxxxxxxxxxxxxxxxx",
-                xref = false
-            },
-            // Evony - Unity 2018.4.0 (x86)
-            new MemoryUtils.SignatureDefinition
-            {
-                pattern = "\x55\x8B\xEC\x56\xFF\x75\x08\xE8\x00\x00\x00\x00\x8B\xF0\x83\xC4\x04\x85\xF6",
-                mask = "xxxxxxxx????xxxxxxx",
-                xref = false
-            },
-        };
-
-        private static nint FindClassGetFieldDefaultValueXref(bool forceICallMethod = false)
-        {
-            nint classGetDefaultFieldValue = 0;
-            if (forceICallMethod)
-            {
-                // MonoField isn't present on 2021.2.0+
-                var monoFieldType = Il2CppMscorlib.GetTypesSafe().SingleOrDefault((x) => x.Name is "MonoField");
-                if (monoFieldType == null)
-                    throw new Exception($"Unity {Il2CppInteropRuntime.Instance.UnityVersion} is not supported at the moment: MonoField isn't present in Il2Cppmscorlib.dll for unity version, unable to fetch icall");
-
-                var monoFieldGetValueInternalThunk = GetIl2CppMethodPointer(monoFieldType.GetMethod(nameof(Il2CppSystem.Reflection.MonoField.GetValueInternal)));
-                Logger.Instance.LogTrace("Il2CppSystem.Reflection.MonoField::thunk_GetValueInternal: 0x{MonoFieldGetValueInternalThunkAddress}", monoFieldGetValueInternalThunk.ToInt64().ToString("X2"));
-
-                var monoFieldGetValueInternal = XrefScannerLowLevel.JumpTargets(monoFieldGetValueInternalThunk).Single();
-                Logger.Instance.LogTrace("Il2CppSystem.Reflection.MonoField::GetValueInternal: 0x{MonoFieldGetValueInternalAddress}", monoFieldGetValueInternal.ToInt64().ToString("X2"));
-
-                // Field::GetValueObject could be inlined with Field::GetValueObjectForThread
-                var fieldGetValueObject = XrefScannerLowLevel.JumpTargets(monoFieldGetValueInternal).Single();
-                Logger.Instance.LogTrace("Field::GetValueObject: 0x{FieldGetValueObjectAddress}", fieldGetValueObject.ToInt64().ToString("X2"));
-
-                var fieldGetValueObjectForThread = XrefScannerLowLevel.JumpTargets(fieldGetValueObject).Last();
-                Logger.Instance.LogTrace("Field::GetValueObjectForThread: 0x{FieldGetValueObjectForThreadAddress}", fieldGetValueObjectForThread.ToInt64().ToString("X2"));
-
-                classGetDefaultFieldValue = XrefScannerLowLevel.JumpTargets(fieldGetValueObjectForThread).ElementAt(2);
-            }
-            else
-            {
-                var getStaticFieldValueAPI = GetIl2CppExport(nameof(IL2CPP.il2cpp_field_static_get_value));
-                Logger.Instance.LogTrace("il2cpp_field_static_get_value: 0x{GetStaticFieldValueApiAddress}", getStaticFieldValueAPI.ToInt64().ToString("X2"));
-
-                var getStaticFieldValue = XrefScannerLowLevel.JumpTargets(getStaticFieldValueAPI).Single();
-                Logger.Instance.LogTrace("Field::StaticGetValue: 0x{GetStaticFieldValueAddress}", getStaticFieldValue.ToInt64().ToString("X2"));
-
-                var getStaticFieldValueInternal = XrefScannerLowLevel.JumpTargets(getStaticFieldValue).Last();
-                Logger.Instance.LogTrace("Field::StaticGetValueInternal: 0x{GetStaticFieldValueInternalAddress}", getStaticFieldValueInternal.ToInt64().ToString("X2"));
-
-                var getStaticFieldValueInternalTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).ToArray();
-
-                if (getStaticFieldValueInternalTargets.Length == 0) return FindClassGetFieldDefaultValueXref(true);
-
-                classGetDefaultFieldValue = getStaticFieldValueInternalTargets.Length == 3 ? getStaticFieldValueInternalTargets.Last() : getStaticFieldValueInternalTargets.First();
-            }
-            return classGetDefaultFieldValue;
-        }
-        private static d_ClassGetFieldDefaultValue FindClassGetFieldDefaultValue(bool forceICallMethod = false)
-        {
-            // NOTE: In some cases this pointer will be MetadataCache::GetFieldDefaultValueForField due to Field::GetDefaultFieldValue being
-            // inlined but we'll treat it the same even though it doesn't receive the type parameter the RDX register
-            // doesn't get cleared so we still get the same parameters
-            var classGetDefaultFieldValue = s_ClassGetFieldDefaultValueSignatures
-                .Select(s => MemoryUtils.FindSignatureInModule(Il2CppModule, s))
-                .FirstOrDefault(p => p != 0);
-
-            if (classGetDefaultFieldValue == 0)
-            {
-                Logger.Instance.LogTrace("Couldn't fetch Class::GetDefaultFieldValue with signatures, using method traversal");
-                classGetDefaultFieldValue = FindClassGetFieldDefaultValueXref(forceICallMethod);
-            }
-            Logger.Instance.LogTrace("Class::GetDefaultFieldValue: 0x{ClassGetDefaultFieldValueAddress}", classGetDefaultFieldValue.ToString("X2"));
-
-            Detour.Apply(classGetDefaultFieldValue, ClassGetFieldDefaultValueDetour, out ClassGetFieldDefaultValueOriginal);
-            return Marshal.GetDelegateForFunctionPointer<d_ClassGetFieldDefaultValue>(classGetDefaultFieldValue);
-        }
-        #endregion
+        internal static readonly Dictionary<(string _namespace, string _class, IntPtr imagePtr), IntPtr> s_ClassNameLookup = new();
 
         #region Class::Init
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
