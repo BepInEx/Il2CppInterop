@@ -7,6 +7,9 @@ namespace Il2CppInterop.Analyzers;
 
 public static class Utilities
 {
+    private static readonly RecursivePatternSyntax s_formattedRecursive = SyntaxFactory.ParseExpression("o is { } ")
+        .DescendantNodes().OfType<RecursivePatternSyntax>().First();
+
     public static bool IsIl2CppObject(SyntaxNodeAnalysisContext context, ITypeSymbol typeSymbol)
     {
         var il2CppObjectType = context.Compilation.GetTypeByMetadataName("Il2CppSystem.Object");
@@ -29,10 +32,8 @@ public static class Utilities
     {
         return pattern switch
         {
-            ConstantPatternSyntax constant => SyntaxFactory.RecursivePattern()
-                .WithPropertyPatternClause(SyntaxFactory.PropertyPatternClause(SyntaxFactory.SeparatedList<SubpatternSyntax>())),
-            DeclarationPatternSyntax declaration => SyntaxFactory.RecursivePattern()
-                .WithPropertyPatternClause(SyntaxFactory.PropertyPatternClause(SyntaxFactory.SeparatedList<SubpatternSyntax>())).WithDesignation(declaration.Designation),
+            ConstantPatternSyntax => s_formattedRecursive,
+            DeclarationPatternSyntax declaration => s_formattedRecursive.WithDesignation(declaration.Designation),
             RecursivePatternSyntax recursive => recursive.WithType(null),
             UnaryPatternSyntax unary => unary.WithPattern(RemoveTypeFromPattern(unary.Pattern)!),
             _ => null
