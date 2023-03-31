@@ -22,7 +22,7 @@ namespace Il2CppInterop.Runtime.Injection
             if (isApplied) return;
 
             IntPtr methodPtr = FindTargetMethod();
-            Logger.Instance.LogTrace("{MethodName} found: 0x{MethodPtr}",TargetMethodName, methodPtr.ToInt64().ToString("X2"));
+            Logger.Instance.LogTrace("{MethodName} found: 0x{MethodPtr}", TargetMethodName, methodPtr.ToInt64().ToString("X2"));
 
             detour = GetDetour();
             Detour.Apply(methodPtr, detour, out original);
