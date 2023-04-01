@@ -11,7 +11,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
     internal unsafe class GenericMethod_GetMethod_Hook : Hook<GenericMethod_GetMethod_Hook.MethodDelegate>
     {
         public override string TargetMethodName => "GenericMethod::GetMethod";
-        public override MethodDelegate GetDetour() => new(Hook);
+        public override MethodDelegate GetDetour() => Hook;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate Il2CppMethodInfo* MethodDelegate(Il2CppGenericMethod* gmethod, bool copyMethodPtr);
@@ -36,7 +36,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 return (Il2CppMethodInfo*)inflatedMethodPointer;
             }
 
-            return original(gmethod, copyMethodPtr);
+            return Original(gmethod, copyMethodPtr);
         }
 
         private static readonly MemoryUtils.SignatureDefinition[] s_Signatures =
