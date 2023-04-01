@@ -15,7 +15,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
     internal unsafe class Class_GetFieldDefaultValue_Hook : Hook<Class_GetFieldDefaultValue_Hook.MethodDelegate>
     {
         public override string TargetMethodName => "Class::GetDefaultFieldValue";
-        public override MethodDelegate GetDetour() => new(Hook);
+        public override MethodDelegate GetDetour() => Hook;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate byte* MethodDelegate(Il2CppFieldInfo* field, out Il2CppTypeStruct* type);
@@ -30,7 +30,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 type = wrappedElementClass.ByValArg.TypePointer;
                 return (byte*)newDefaultPtr;
             }
-            return original(field, out type);
+            return Original(field, out type);
         }
 
         private static readonly MemoryUtils.SignatureDefinition[] s_Signatures =

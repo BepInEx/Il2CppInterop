@@ -13,7 +13,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
         Hook<MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook.MethodDelegate>
     {
         public override string TargetMethodName => "MetadataCache::GetTypeInfoFromTypeDefinitionIndex";
-        public override MethodDelegate GetDetour() => new(Hook);
+        public override MethodDelegate GetDetour() => Hook;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate Il2CppClass* MethodDelegate(int index);
@@ -23,7 +23,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             if (InjectorHelpers.s_InjectedClasses.TryGetValue(index, out IntPtr classPtr))
                 return (Il2CppClass*)classPtr;
 
-            return original(index);
+            return Original(index);
         }
 
         private IntPtr FindGetTypeInfoFromTypeDefinitionIndex(bool forceICallMethod = false)

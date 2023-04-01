@@ -11,14 +11,14 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
     internal unsafe class Class_FromName_Hook : Hook<Class_FromName_Hook.MethodDelegate>
     {
         public override string TargetMethodName => "Class::FromName";
-        public override MethodDelegate GetDetour() => new(Hook);
+        public override MethodDelegate GetDetour() => Hook;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate Il2CppClass* MethodDelegate(Il2CppImage* image, IntPtr _namespace, IntPtr name);
 
         private Il2CppClass* Hook(Il2CppImage* image, IntPtr _namespace, IntPtr name)
         {
-            Il2CppClass* classPtr = original(image, _namespace, name);
+            Il2CppClass* classPtr = Original(image, _namespace, name);
 
             if (classPtr == null)
             {
