@@ -10,22 +10,21 @@ using Microsoft.Extensions.Logging;
 namespace Il2CppInterop.Runtime.Injection.Hooks
 {
     internal unsafe class MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook :
-        Hook<MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook.d_GetTypeInfoFromTypeDefinitionIndex>
+        Hook<MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook.MethodDelegate>
     {
+        public override string TargetMethodName => "MetadataCache::GetTypeInfoFromTypeDefinitionIndex";
+        public override MethodDelegate GetDetour() => new(Hook);
+
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate Il2CppClass* d_GetTypeInfoFromTypeDefinitionIndex(int index);
+        internal delegate Il2CppClass* MethodDelegate(int index);
 
-
-        private Il2CppClass* hkGetTypeInfoFromTypeDefinitionIndex(int index)
+        private Il2CppClass* Hook(int index)
         {
             if (InjectorHelpers.s_InjectedClasses.TryGetValue(index, out IntPtr classPtr))
                 return (Il2CppClass*)classPtr;
 
             return original(index);
         }
-
-        public override d_GetTypeInfoFromTypeDefinitionIndex GetDetour() => new(hkGetTypeInfoFromTypeDefinitionIndex);
-        public override string TargetMethodName => "MetadataCache::GetTypeInfoFromTypeDefinitionIndex";
 
         private IntPtr FindGetTypeInfoFromTypeDefinitionIndex(bool forceICallMethod = false)
         {

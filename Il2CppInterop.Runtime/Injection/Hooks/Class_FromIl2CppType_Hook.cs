@@ -8,8 +8,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection.Hooks
 {
-    internal unsafe class Class_FromIl2CppType_Hook : Hook<Class_FromIl2CppType_Hook.d_ClassFromIl2CppType>
+    internal unsafe class Class_FromIl2CppType_Hook : Hook<Class_FromIl2CppType_Hook.MethodDelegate>
     {
+        public override string TargetMethodName => "Class::FromIl2CppType";
+        public override MethodDelegate GetDetour() => new(Hook);
+
         /// Common version of the Il2CppType, the only thing that changed between unity version are the bitfields values that we don't use
         internal readonly struct Il2CppType
         {
@@ -20,9 +23,9 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate Il2CppClass* d_ClassFromIl2CppType(Il2CppType* type, bool throwOnError);
+        internal delegate Il2CppClass* MethodDelegate(Il2CppType* type, bool throwOnError);
 
-        private Il2CppClass* hkClassFromIl2CppType(Il2CppType* type, bool throwOnError)
+        private Il2CppClass* Hook(Il2CppType* type, bool throwOnError)
         {
             if ((nint)type->data < 0 && (type->type == Il2CppTypeEnum.IL2CPP_TYPE_CLASS || type->type == Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE))
             {
@@ -32,10 +35,6 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
             return original(type, throwOnError);
         }
-
-
-        public override d_ClassFromIl2CppType GetDetour() => new(hkClassFromIl2CppType);
-        public override string TargetMethodName => "Class::FromIl2CppType";
 
         public override IntPtr FindTargetMethod()
         {

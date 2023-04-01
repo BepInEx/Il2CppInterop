@@ -8,12 +8,15 @@ using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection.Hooks
 {
-    internal unsafe class GenericMethod_GetMethod_Hook : Hook<GenericMethod_GetMethod_Hook.d_GenericMethodGetMethod>
+    internal unsafe class GenericMethod_GetMethod_Hook : Hook<GenericMethod_GetMethod_Hook.MethodDelegate>
     {
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate Il2CppMethodInfo* d_GenericMethodGetMethod(Il2CppGenericMethod* gmethod, bool copyMethodPtr);
+        public override string TargetMethodName => "GenericMethod::GetMethod";
+        public override MethodDelegate GetDetour() => new(Hook);
 
-        internal Il2CppMethodInfo* hkGenericMethodGetMethod(Il2CppGenericMethod* gmethod, bool copyMethodPtr)
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        internal delegate Il2CppMethodInfo* MethodDelegate(Il2CppGenericMethod* gmethod, bool copyMethodPtr);
+
+        private Il2CppMethodInfo* Hook(Il2CppGenericMethod* gmethod, bool copyMethodPtr)
         {
             if (ClassInjector.InflatedMethodFromContextDictionary.TryGetValue((IntPtr)gmethod->methodDefinition, out var methods))
             {
@@ -36,7 +39,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             return original(gmethod, copyMethodPtr);
         }
 
-        private static readonly MemoryUtils.SignatureDefinition[] s_GenericMethodGetMethodSignatures =
+        private static readonly MemoryUtils.SignatureDefinition[] s_Signatures =
         {
             // Unity 2021.2.5 (x64)
             new MemoryUtils.SignatureDefinition
@@ -47,14 +50,11 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             }
         };
 
-        public override d_GenericMethodGetMethod GetDetour() => new(hkGenericMethodGetMethod);
-        public override string TargetMethodName => "GenericMethod::GetMethod";
-
         public override IntPtr FindTargetMethod()
         {
             // On Unity 2021.2+, the 3 parameter shim can be inlined and optimized by the compiler
             // which moves the method we're looking for
-            var genericMethodGetMethod = s_GenericMethodGetMethodSignatures
+            var genericMethodGetMethod = s_Signatures
                 .Select(s => MemoryUtils.FindSignatureInModule(InjectorHelpers.Il2CppModule, s))
                 .FirstOrDefault(p => p != 0);
 

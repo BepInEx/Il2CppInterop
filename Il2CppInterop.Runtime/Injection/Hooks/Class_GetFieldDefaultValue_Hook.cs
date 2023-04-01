@@ -12,12 +12,15 @@ using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection.Hooks
 {
-    internal unsafe class Class_GetFieldDefaultValue_Hook : Hook<Class_GetFieldDefaultValue_Hook.d_ClassGetFieldDefaultValue>
+    internal unsafe class Class_GetFieldDefaultValue_Hook : Hook<Class_GetFieldDefaultValue_Hook.MethodDelegate>
     {
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate byte* d_ClassGetFieldDefaultValue(Il2CppFieldInfo* field, out Il2CppTypeStruct* type);
+        public override string TargetMethodName => "Class::GetDefaultFieldValue";
+        public override MethodDelegate GetDetour() => new(Hook);
 
-        private byte* hkClassGetFieldDefaultValue(Il2CppFieldInfo* field, out Il2CppTypeStruct* type)
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        internal delegate byte* MethodDelegate(Il2CppFieldInfo* field, out Il2CppTypeStruct* type);
+
+        private byte* Hook(Il2CppFieldInfo* field, out Il2CppTypeStruct* type)
         {
             if (EnumInjector.GetDefaultValueOverride(field, out IntPtr newDefaultPtr))
             {
@@ -30,10 +33,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             return original(field, out type);
         }
 
-        public override d_ClassGetFieldDefaultValue GetDetour() => new(hkClassGetFieldDefaultValue);
-        public override string TargetMethodName => "Class::GetDefaultFieldValue";
-
-        private static readonly MemoryUtils.SignatureDefinition[] s_ClassGetFieldDefaultValueSignatures =
+        private static readonly MemoryUtils.SignatureDefinition[] s_Signatures =
         {
             // Test Game - Unity 2021.3.4 (x64)
             new MemoryUtils.SignatureDefinition
@@ -108,7 +108,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             // NOTE: In some cases this pointer will be MetadataCache::GetFieldDefaultValueForField due to Field::GetDefaultFieldValue being
             // inlined but we'll treat it the same even though it doesn't receive the type parameter the RDX register
             // doesn't get cleared so we still get the same parameters
-            var classGetDefaultFieldValue = s_ClassGetFieldDefaultValueSignatures
+            var classGetDefaultFieldValue = s_Signatures
                 .Select(s => MemoryUtils.FindSignatureInModule(InjectorHelpers.Il2CppModule, s))
                 .FirstOrDefault(p => p != 0);
 
