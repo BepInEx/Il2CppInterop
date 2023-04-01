@@ -8,12 +8,15 @@ using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection.Hooks
 {
-    internal unsafe class Class_FromName_Hook : Hook<Class_FromName_Hook.d_ClassFromName>
+    internal unsafe class Class_FromName_Hook : Hook<Class_FromName_Hook.MethodDelegate>
     {
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate Il2CppClass* d_ClassFromName(Il2CppImage* image, IntPtr _namespace, IntPtr name);
+        public override string TargetMethodName => "Class::FromName";
+        public override MethodDelegate GetDetour() => new(Hook);
 
-        private Il2CppClass* hkClassFromName(Il2CppImage* image, IntPtr _namespace, IntPtr name)
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        internal delegate Il2CppClass* MethodDelegate(Il2CppImage* image, IntPtr _namespace, IntPtr name);
+
+        private Il2CppClass* Hook(Il2CppImage* image, IntPtr _namespace, IntPtr name)
         {
             Il2CppClass* classPtr = original(image, _namespace, name);
 
@@ -27,10 +30,6 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
             return classPtr;
         }
-
-
-        public override d_ClassFromName GetDetour() => new(hkClassFromName);
-        public override string TargetMethodName => "Class::FromName";
 
         public override IntPtr FindTargetMethod()
         {
