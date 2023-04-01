@@ -158,7 +158,7 @@ public static class ILGeneratorEx
 
     public static void EmitObjectToPointer(this ILProcessor body, TypeReference originalType, TypeReference newType,
         TypeRewriteContext enclosingType, int argumentIndex, bool valueTypeArgument0IsAPointer, bool allowNullable,
-        bool unboxNonBlittableType, out VariableDefinition? refVariable)
+        bool unboxNonBlittableType, bool unboxNonBlittableGeneric, out VariableDefinition? refVariable)
     {
         // input stack: not used
         // output stack: IntPtr to either Il2CppObject or IL2CPP value type
@@ -167,7 +167,7 @@ public static class ILGeneratorEx
         if (originalType is GenericParameter)
         {
             EmitObjectToPointerGeneric(body, originalType, newType, enclosingType, argumentIndex,
-                valueTypeArgument0IsAPointer, allowNullable, unboxNonBlittableType);
+                valueTypeArgument0IsAPointer, allowNullable, unboxNonBlittableGeneric);
             return;
         }
 

@@ -72,7 +72,7 @@ public static class UnstripGenerator
             else
             {
                 body.EmitObjectToPointer(param.ParameterType, param.ParameterType, enclosingType, i + argOffset, false,
-                    true, true, out var refVar);
+                    true, true, true, out var refVar);
                 if (refVar != null)
                 {
                     Logger.Instance.LogTrace("Method {NewMethod} has a reference-typed ref parameter, this will be ignored",
