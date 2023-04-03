@@ -49,6 +49,13 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 mask = "xxxxxxxxxxxxxxxxxxx",
                 xref = false
             },
+            // Idle Slayer - Unity 2021.3.17 (x64)
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\x40\x53\x48\x83\xEC\x20\x48\x8B\xDA\xE8\x00\x00\x00\x00\x4C\x8B\xC8\x48\x85\xC0",
+                mask = "xxxxxxxxxx????xxxxxx",
+                xref = false
+            },
             // Evony - Unity 2018.4.0 (x86)
             new MemoryUtils.SignatureDefinition
             {
