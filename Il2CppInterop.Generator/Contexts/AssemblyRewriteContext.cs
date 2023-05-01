@@ -36,7 +36,18 @@ public class AssemblyRewriteContext
 
     public TypeRewriteContext GetContextForOriginalType(TypeDefinition type)
     {
-        return myOldTypeMap[type];
+        try
+        {
+            return myOldTypeMap[type];
+        }
+        catch
+        {
+            foreach (var oldtype in myOldTypeMap.Keys)
+            {
+                if (type.Name == oldtype.Name) return myOldTypeMap[oldtype];
+            }
+            return myNewTypeMap[type];
+        }
     }
 
     public TypeRewriteContext? TryGetContextForOriginalType(TypeDefinition type)
@@ -125,11 +136,22 @@ public class AssemblyRewriteContext
             return sourceModule.ImportReference(GlobalContext.GetAssemblyByName("mscorlib")
                 .GetTypeByName("System.Object").NewType);
 
+        if (typeRef.FullName == "Il2CppSystem.Object")
+            return Imports.Module.Object();
+
         if (typeRef.FullName == "System.Attribute")
             return sourceModule.ImportReference(GlobalContext.GetAssemblyByName("mscorlib")
                 .GetTypeByName("System.Attribute").NewType);
 
-        var originalTypeDef = typeRef.Resolve();
+        TypeDefinition? originalTypeDef;
+        try
+        {
+            originalTypeDef = typeRef.Resolve();
+        }
+        catch
+        {
+            return Imports.Il2CppObjectBase;
+        }
         var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.Module.Assembly);
         var target = targetAssembly.GetContextForOriginalType(originalTypeDef).NewType;
 
@@ -138,7 +160,13 @@ public class AssemblyRewriteContext
 
     public TypeRewriteContext GetTypeByName(string name)
     {
-        return myNameTypeMap[name];
+        return myNameTypeMap.TryGetValue(name, out var result1) ?
+                result1 :
+                myNameTypeMap.TryGetValue(name.Replace("System", "Il2CppSystem"), out var result2) ?
+                result2 :
+                myNameTypeMap.TryGetValue(name.Replace("Il2CppSystem", "System"), out var result3) ?
+                result3 :
+                null;
     }
 
     public TypeRewriteContext? TryGetTypeByName(string name)
