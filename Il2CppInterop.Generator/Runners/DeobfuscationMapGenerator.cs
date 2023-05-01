@@ -151,7 +151,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
                 if (cleanType.Item1 == null) return;
 
                 if (!usedNames.TryGetValue(cleanType.Item1.NewType, out var existing) ||
-                    existing.Penalty < cleanType.Item2) 
+                    existing.Penalty < cleanType.Item2)
                     usedNames[cleanType.Item1.NewType] = (typeContext.NewType.GetNamespacePrefix() + "." + typeContext.NewType.Name, cleanType.Item2, typeContext.OriginalType.Namespace != cleanType.Item1.OriginalType.Namespace);
                 else
                     return;
