@@ -206,7 +206,7 @@ public static unsafe class EnumInjector
             UnityVersionHandler.Wrap(
                 (Il2CppClass*)Il2CppClassPointerStore.GetNativeClassPointer(Enum.GetUnderlyingType(type)));
 
-        il2cppEnum.Image = InjectorHelpers.InjectedImage.ImagePointer;
+        il2cppEnum.Image = InjectorHelpers.DefaultInjectedImage.ImagePointer;
         il2cppEnum.Class = il2cppEnum.CastClass = il2cppEnum.ElementClass = elementClass.ClassPointer;
         il2cppEnum.Parent = baseEnum.ClassPointer;
         il2cppEnum.ActualSize = il2cppEnum.InstanceSize =

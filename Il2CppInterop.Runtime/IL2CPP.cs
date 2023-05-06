@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Il2CppInterop.Common;
 using Il2CppInterop.Common.Attributes;
+using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppInterop.Runtime.Runtime;
@@ -18,7 +19,7 @@ namespace Il2CppInterop.Runtime;
 
 public static unsafe class IL2CPP
 {
-    private static readonly Dictionary<string, IntPtr> ourImagesMap = new();
+    private static readonly Dictionary<string, IntPtr> il2CppImagesMap = new();
 
     static IL2CPP()
     {
@@ -35,27 +36,31 @@ public static unsafe class IL2CPP
         {
             var image = il2cpp_assembly_get_image(assemblies[i]);
             var name = Marshal.PtrToStringAnsi(il2cpp_image_get_name(image));
-            ourImagesMap[name] = image;
+            il2CppImagesMap[name] = image;
         }
     }
 
     internal static IntPtr GetIl2CppImage(string name)
     {
-        if (ourImagesMap.ContainsKey(name)) return ourImagesMap[name];
+        if (il2CppImagesMap.ContainsKey(name)) return il2CppImagesMap[name];
+        if (InjectorHelpers.InjectedImages.ContainsKey(name)) return InjectorHelpers.InjectedImages[name];
         return IntPtr.Zero;
     }
 
     internal static IntPtr[] GetIl2CppImages()
     {
-        return ourImagesMap.Values.ToArray();
+        return il2CppImagesMap.Values.ToArray();
     }
 
     public static IntPtr GetIl2CppClass(string assemblyName, string namespaze, string className)
     {
-        if (!ourImagesMap.TryGetValue(assemblyName, out var image))
+        if (!il2CppImagesMap.TryGetValue(assemblyName, out var image))
         {
-            Logger.Instance.LogError("Assembly {AssemblyName} is not registered in il2cpp", assemblyName);
-            return IntPtr.Zero;
+            if (!InjectorHelpers.InjectedImages.TryGetValue(assemblyName, out image))
+            {
+                Logger.Instance.LogError("Assembly {AssemblyName} is not registered in il2cpp", assemblyName);
+                return IntPtr.Zero;
+            }
         }
 
         var clazz = il2cpp_class_from_name(image, namespaze, className);

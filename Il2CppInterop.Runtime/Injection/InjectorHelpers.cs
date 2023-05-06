@@ -25,8 +25,10 @@ namespace Il2CppInterop.Runtime.Injection
     internal static unsafe class InjectorHelpers
     {
         internal static Assembly Il2CppMscorlib = typeof(Il2CppSystem.Type).Assembly;
-        internal static INativeAssemblyStruct InjectedAssembly;
-        internal static INativeImageStruct InjectedImage;
+
+        internal static Dictionary<string, IntPtr> InjectedImages = new Dictionary<string, IntPtr>();
+        internal static INativeAssemblyStruct DefaultInjectedAssembly;
+        internal static INativeImageStruct DefaultInjectedImage;
         internal static ProcessModule Il2CppModule = Process.GetCurrentProcess()
             .Modules.OfType<ProcessModule>()
             .Single((x) => x.ModuleName is "GameAssembly.dll" or "GameAssembly.so" or "UserAssembly.dll");
@@ -48,18 +50,42 @@ namespace Il2CppInterop.Runtime.Injection
             [typeof(double)] = OpCodes.Stind_R8
         };
 
-        private static void CreateInjectedAssembly()
+        private static void CreateDefaultInjectedAssembly()
         {
-            InjectedAssembly = UnityVersionHandler.NewAssembly();
-            InjectedImage = UnityVersionHandler.NewImage();
+            DefaultInjectedImage = CreateInjectedImage("InjectedMonoTypes");
+            DefaultInjectedAssembly = UnityVersionHandler.Wrap(DefaultInjectedImage.Assembly);
+        }
 
-            InjectedAssembly.Name.Name = Marshal.StringToHGlobalAnsi("InjectedMonoTypes");
+        private static INativeImageStruct CreateInjectedImage(string name)
+        {
+            Logger.Instance.LogTrace($"Creating injected assembly {name}");
+            var assembly = UnityVersionHandler.NewAssembly();
+            var image = UnityVersionHandler.NewImage();
 
-            InjectedImage.Assembly = InjectedAssembly.AssemblyPointer;
-            InjectedImage.Dynamic = 1;
-            InjectedImage.Name = InjectedAssembly.Name.Name;
-            if (InjectedImage.HasNameNoExt)
-                InjectedImage.NameNoExt = InjectedAssembly.Name.Name;
+
+            assembly.Name.Name = Marshal.StringToHGlobalAnsi(name);
+
+            image.Assembly = assembly.AssemblyPointer;
+            image.Dynamic = 1;
+            image.Name = assembly.Name.Name;
+            if (image.HasNameNoExt)
+                image.NameNoExt = assembly.Name.Name;
+            assembly.Image = image.ImagePointer;
+            InjectedImages.Add(name, image.Pointer);
+            return image;
+        }
+
+        internal static IntPtr GetOrCreateInjectedImage(string name)
+        {
+            if (InjectedImages.TryGetValue(name, out var ptr))
+                return ptr;
+
+            return CreateInjectedImage(name).Pointer;
+        }
+
+        internal static bool TryGetInjectedImageForAssembly(Assembly assembly, out IntPtr ptr)
+        {
+            return InjectedImages.TryGetValue(assembly.GetName().Name, out ptr);
         }
 
         private static readonly GenericMethod_GetMethod_Hook GenericMethodGetMethodHook = new();
@@ -69,9 +95,13 @@ namespace Il2CppInterop.Runtime.Injection
         private static readonly Class_FromName_Hook FromNameHook = new();
         private static readonly GarbageCollector_RunFinalizer_Patch RunFinalizerPatch = new();
 
+        private static readonly Assembly_Load_Hook assemblyLoadHook = new();
+        private static readonly Assembly_GetLoadedAssembly_Hook AssemblyGetLoadedAssemblyHook = new();
+        private static readonly AppDomain_GetAssemblies_Hook AppDomainGetAssembliesHook = new();
+
         internal static void Setup()
         {
-            if (InjectedAssembly == null) CreateInjectedAssembly();
+            if (DefaultInjectedAssembly == null) CreateDefaultInjectedAssembly();
             GenericMethodGetMethodHook.ApplyHook();
             GetTypeInfoFromTypeDefinitionIndexHook.ApplyHook();
             GetFieldDefaultValueHook.ApplyHook();
@@ -79,6 +109,9 @@ namespace Il2CppInterop.Runtime.Injection
             FromIl2CppTypeHook.ApplyHook();
             FromNameHook.ApplyHook();
             RunFinalizerPatch.ApplyHook();
+            assemblyLoadHook.ApplyHook();
+            AssemblyGetLoadedAssemblyHook.ApplyHook();
+            AppDomainGetAssembliesHook.ApplyHook();
         }
 
         internal static long CreateClassToken(IntPtr classPointer)
