@@ -76,6 +76,7 @@ public static class UnityVersionHandler
     }
 
     public static bool HasGetMethodFromReflection { get; private set; }
+    public static bool HasShimForGetMethod { get; private set; }
     public static bool IsMetadataV29OrHigher { get; private set; }
 
     // Version since which extra_arg is set to invoke_multicast, necessitating constructor calls
@@ -84,17 +85,21 @@ public static class UnityVersionHandler
     internal static void RecalculateHandlers()
     {
         Handlers.Clear();
+        var unityVersion = Il2CppInteropRuntime.Instance.UnityVersion;
+
         foreach (var type in InterfacesOfInterest)
             foreach (var valueTuple in VersionedHandlers[type])
             {
-                if (valueTuple.Version > Il2CppInteropRuntime.Instance.UnityVersion) continue;
+                if (valueTuple.Version > unityVersion) continue;
 
                 Handlers[type] = valueTuple.Handler;
                 break;
             }
 
-        HasGetMethodFromReflection = Il2CppInteropRuntime.Instance.UnityVersion > new Version(2018, 1, 0);
-        IsMetadataV29OrHigher = Il2CppInteropRuntime.Instance.UnityVersion >= new Version(2021, 2, 0);
+        HasGetMethodFromReflection = unityVersion > new Version(2018, 1, 0);
+        IsMetadataV29OrHigher = unityVersion >= new Version(2021, 2, 0);
+
+        HasShimForGetMethod = unityVersion >= new Version(2020, 3, 41) || IsMetadataV29OrHigher;
 
         assemblyStructHandler = GetHandler<INativeAssemblyStructHandler>();
         assemblyNameStructHandler = GetHandler<INativeAssemblyNameStructHandler>();
