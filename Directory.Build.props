@@ -1,21 +1,24 @@
 <Project>
   <PropertyGroup>
-    <VersionPrefix>1.4.5</VersionPrefix>
-    <Authors>BepInEx</Authors>
-    <PackageOutputPath>../bin/NuGet</PackageOutputPath>
-    <OutputPath Condition="'$(Configuration)' == 'Release'">../bin/$(MSBuildProjectName)</OutputPath>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <RootNamespace>Il2CppInterop</RootNamespace>
-    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DebugType>embedded</DebugType>
+
+    <VersionPrefix>1.4.5</VersionPrefix>
+    <Authors>BepInEx</Authors>
+
     <PackageIcon>logo_icon.png</PackageIcon>
     <PackageLicenseExpression>LGPL-3.0-only</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <DebugType>embedded</DebugType>
-    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <OutputPath>../bin/$(MSBuildProjectName)</OutputPath>
+    <PackageOutputPath>../bin/NuGet</PackageOutputPath>
   </PropertyGroup>
 
   <ItemGroup>

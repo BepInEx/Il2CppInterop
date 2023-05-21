@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Module to allow using Harmony with Il2CppInterop assemblies</Description>
     <TargetFramework>net6.0</TargetFramework>
-    <RootNamespace>Il2CppInterop.HarmonySupport</RootNamespace>
+
+    <Description>Module to allow using Harmony with Il2CppInterop assemblies</Description>
   </PropertyGroup>
 
   <ItemGroup>
