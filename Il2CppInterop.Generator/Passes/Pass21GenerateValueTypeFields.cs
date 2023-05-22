@@ -54,7 +54,7 @@ public static class Pass21GenerateValueTypeFields
                         if (field.IsStatic) continue;
 
                         TypeReference rewriteTypeRef;
-                        if (!field.Signature!.FieldType.IsValueType && !field.FieldType.IsPointer)
+                        if (!field.Signature!.FieldType.IsValueType && !field.FieldType.IsPointer && !field.FieldType.IsGenericParameter)
                             rewriteTypeRef = assemblyContext.Imports.Module.IntPtr();
                         else
                             rewriteTypeRef = assemblyContext.RewriteTypeRef(field.Signature.FieldType, false);
