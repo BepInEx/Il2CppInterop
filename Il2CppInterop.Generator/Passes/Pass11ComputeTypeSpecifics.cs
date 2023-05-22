@@ -161,14 +161,14 @@ public static class Pass11ComputeTypeSpecifics
 
     internal class ParameterUsage
     {
-        public List<List<TypeReference>> usageData;
+        public List<TypeReference>[] usageData;
 
         public ParameterUsage(int paramCount)
         {
-            usageData = new List<List<TypeReference>>(paramCount);
+            usageData = new List<TypeReference>[paramCount];
             for (var i = 0; i < paramCount; i++)
             {
-                usageData.Add(new List<TypeReference>());
+                usageData[i] = new List<TypeReference>();
             }
         }
 
