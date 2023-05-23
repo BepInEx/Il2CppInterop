@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using Il2CppInterop.Runtime.InteropTypes;
 
 namespace Il2CppInterop.Runtime.Runtime;
@@ -8,14 +9,12 @@ public static class Il2CppObjectPool
 {
     private static readonly ConcurrentDictionary<IntPtr, WeakReference<Il2CppObjectBase>> s_cache = new();
 
-    // Invoked when Il2Cpp destroys the object
     internal static void Remove(IntPtr ptr)
     {
-        s_cache.TryRemove(ptr, out var obj);
+        s_cache.TryRemove(ptr, out _);
     }
 
-    // Invoked by generated assemblies when they want to do new T(ptr);
-    public static T Get<T>(IntPtr ptr) where T : Il2CppObjectBase
+    public static T Get<T>(IntPtr ptr)
     {
         var ownClass = IL2CPP.il2cpp_object_get_class(ptr);
         if (RuntimeSpecificsStore.IsInjected(ownClass))
@@ -27,12 +26,14 @@ public static class Il2CppObjectPool
         if (s_cache.TryGetValue(ptr, out var reference) && reference.TryGetTarget(out var cachedObject))
         {
             if (cachedObject is T cachedObjectT) return cachedObjectT;
+            // This leaves the case when you cast to an interface handled as if nothing was cached
         }
 
         var newObj = Il2CppObjectBase.InitializerStore<T>.Initializer(ptr);
 
-        s_cache[ptr] = new WeakReference<Il2CppObjectBase>(newObj);
-        newObj.pooledPtr = ptr;
+        var il2CppObjectBase = Unsafe.As<T, Il2CppObjectBase>(ref newObj);
+        s_cache[ptr] = new WeakReference<Il2CppObjectBase>(il2CppObjectBase);
+        il2CppObjectBase.pooledPtr = ptr;
 
         return newObj;
     }
