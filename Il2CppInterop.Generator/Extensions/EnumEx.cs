@@ -15,7 +15,8 @@ public static class EnumEx
         this GenericParameterAttributes parameterAttributes)
     {
         return parameterAttributes & ~(GenericParameterAttributes.NotNullableValueTypeConstraint |
-                                       GenericParameterAttributes.VarianceMask);
+                                       GenericParameterAttributes.VarianceMask |
+                                       GenericParameterAttributes.DefaultConstructorConstraint);
     }
 
     public static bool IsBlittable(this TypeRewriteContext.TypeSpecifics typeSpecifics)
