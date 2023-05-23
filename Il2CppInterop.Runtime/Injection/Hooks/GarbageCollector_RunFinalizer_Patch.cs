@@ -28,6 +28,13 @@ internal class GarbageCollector_RunFinalizer_Patch : Hook<GarbageCollector_RunFi
             pattern = "\x55\x8B\xEC\x51\x56\x8B\x75\x08\xC7\x45\x00\x00\x00\x00\x00",
             mask = "xxxxxxxxxx?????",
             xref = false
+        },
+        new()
+        {
+            // Test Game - 2021.3.22 (x64)
+            pattern = "\x40\x53\x48\x83\xEC\x20\x48\x8B\xD9\x48\xC7\x44\x24\x30\x00\x00\x00\x00\x48\x8B",
+            mask = "xxxxxxxxxxxxxxxxxxxx",
+            xref = false,
         }
     };
 
