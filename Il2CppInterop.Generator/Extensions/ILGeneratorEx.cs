@@ -357,17 +357,22 @@ public static class ILGeneratorEx
             var createRealObject = body.Create(OpCodes.Newobj,
                 new MethodReference(".ctor", imports.Module.Void(), convertedReturnType)
                 { Parameters = { new ParameterDefinition(imports.Module.IntPtr()) }, HasThis = true });
+
+            var createPoolObject = body.Create(OpCodes.Call,
+                imports.Module.ImportReference(new GenericInstanceMethod(imports.Il2CppObjectPool_Get.Value)
+                    { GenericArguments = { convertedReturnType } }));
+
             var endNop = body.Create(OpCodes.Nop);
 
             body.Append(loadPointer);
             if (extraDerefForNonValueTypes) body.Emit(OpCodes.Ldind_I);
             body.Emit(OpCodes.Dup);
-            body.Emit(OpCodes.Brtrue_S, createRealObject);
+            body.Emit(OpCodes.Brtrue_S, createPoolObject);
             body.Emit(OpCodes.Pop);
             body.Emit(OpCodes.Ldnull);
             body.Emit(OpCodes.Br, endNop);
 
-            body.Append(createRealObject);
+            body.Append(createPoolObject);
             body.Append(endNop);
         }
     }
