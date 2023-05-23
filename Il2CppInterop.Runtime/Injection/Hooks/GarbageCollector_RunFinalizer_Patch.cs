@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime;
-using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection.Hooks;
 
@@ -26,6 +24,7 @@ internal class GarbageCollector_RunFinalizer_Patch : Hook<GarbageCollector_RunFi
     {
         new()
         {
+            // Among Us - 2020.3.22 (x86)
             pattern = "\x55\x8B\xEC\x51\x56\x8B\x75\x08\xC7\x45\x00\x00\x00\x00\x00",
             mask = "xxxxxxxxxx?????",
             xref = false
