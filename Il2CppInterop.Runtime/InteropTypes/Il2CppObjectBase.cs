@@ -12,6 +12,7 @@ public class Il2CppObjectBase
 {
     private static readonly MethodInfo _unboxMethod = typeof(Il2CppObjectBase).GetMethod(nameof(Unbox));
     internal bool isWrapped;
+    internal IntPtr pooledPtr;
 
     private uint myGcHandle;
 
@@ -86,7 +87,7 @@ public class Il2CppObjectBase
     private static readonly MethodInfo _createGCHandle = typeof(Il2CppObjectBase).GetMethod(nameof(CreateGCHandle))!;
     private static readonly FieldInfo _isWrapped = typeof(Il2CppObjectBase).GetField(nameof(isWrapped))!;
 
-    private static class InitializerStore<T>
+    internal static class InitializerStore<T>
     {
         private static Func<IntPtr, T>? _initializer;
 
@@ -186,5 +187,8 @@ public class Il2CppObjectBase
     ~Il2CppObjectBase()
     {
         IL2CPP.il2cpp_gchandle_free(myGcHandle);
+
+        if (pooledPtr == IntPtr.Zero || WasCollected)  return;
+        Il2CppObjectPool.Remove(pooledPtr);
     }
 }

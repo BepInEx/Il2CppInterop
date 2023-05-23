@@ -19,7 +19,7 @@ internal class GarbageCollector_RunFinalizer_Patch : Hook<GarbageCollector_RunFi
     private void Hook(IntPtr obj, IntPtr data)
     {
         Original(obj, data);
-        Il2CppObjectPool.HandleIl2CppFinalize(obj);
+        Il2CppObjectPool.Remove(obj);
     }
 
     private static readonly MemoryUtils.SignatureDefinition[] s_signatures =
