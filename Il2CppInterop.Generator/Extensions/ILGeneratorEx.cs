@@ -357,7 +357,6 @@ public static class ILGeneratorEx
             var createPoolObject = body.Create(OpCodes.Call,
                 imports.Module.ImportReference(new GenericInstanceMethod(imports.Il2CppObjectPool_Get.Value)
                 { GenericArguments = { convertedReturnType } }));
-
             var endNop = body.Create(OpCodes.Nop);
 
             body.Append(loadPointer);
