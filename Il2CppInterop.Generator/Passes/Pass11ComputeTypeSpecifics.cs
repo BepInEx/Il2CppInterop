@@ -120,10 +120,12 @@ public static class Pass11ComputeTypeSpecifics
             var fieldType = originalField.FieldType;
             FindTypeGenericParameters(fieldType, parameter =>
             {
+                if (parameter.DeclaringType != typeContext.OriginalType) return;
+
                 typeContext.genericParameterUsage[parameter.Position] = fieldType.IsPointer ?
                     TypeRewriteContext.GenericParameterUsage.Pointers :
                     TypeRewriteContext.GenericParameterUsage.Used;
-            });
+            }, true);
 
             if (fieldType.IsPrimitive || fieldType.IsPointer || fieldType.IsGenericParameter) continue;
 
@@ -175,7 +177,7 @@ public static class Pass11ComputeTypeSpecifics
         typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.BlittableStruct;
     }
 
-    private static void FindTypeGenericParameters(TypeReference reference, Action<GenericParameter> onFound)
+    private static void FindTypeGenericParameters(TypeReference reference, Action<GenericParameter> onFound, bool checkNested = false)
     {
         if (reference is GenericParameter genericParameter)
         {
@@ -189,9 +191,10 @@ public static class Pass11ComputeTypeSpecifics
             return;
         }
 
+        var typeDef = reference.Resolve();
+
         if (reference is GenericInstanceType genericInstance)
         {
-            var typeDef = genericInstance.Resolve();
             for (var i = 0; i < genericInstance.GenericArguments.Count; i++)
             {
                 if (IsGenericParameterAtUsed(typeDef, i))
@@ -200,6 +203,22 @@ public static class Pass11ComputeTypeSpecifics
                     FindTypeGenericParameters(genericArgument, onFound);
                 }
             }
+        }
+
+        if (checkNested)
+            CheckNested(typeDef, onFound);
+    }
+
+    private static void CheckNested(TypeDefinition typeDef, Action<GenericParameter> onFound)
+    {
+        foreach (TypeDefinition nestedType in typeDef.NestedTypes)
+        {
+            foreach (FieldDefinition field in nestedType.Fields)
+            {
+                if (field.IsStatic) continue;
+                FindTypeGenericParameters(field.FieldType, onFound);
+            }
+            CheckNested(nestedType, onFound);
         }
     }
 
