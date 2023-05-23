@@ -112,6 +112,13 @@ public static class Pass11ComputeTypeSpecifics
             if (originalField.IsStatic) continue;
 
             var fieldType = originalField.FieldType;
+            FindTypeGenericParameters(fieldType, parameter =>
+            {
+                typeContext.genericParameterUsage[parameter.Position] = fieldType.IsPointer ?
+                    TypeRewriteContext.GenericParameterUsage.Pointers :
+                    TypeRewriteContext.GenericParameterUsage.Used;
+            });
+
             if (fieldType.IsPrimitive || fieldType.IsPointer || fieldType.IsGenericParameter) continue;
 
             if (fieldType.FullName == "System.String" || fieldType.FullName == "System.Object"
@@ -152,11 +159,63 @@ public static class Pass11ComputeTypeSpecifics
             typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.GenericBlittableStruct;
             foreach (var genericParameter in typeContext.OriginalType.GenericParameters)
             {
-                if (!IsValueTypeOnly(typeContext, genericParameter)) return;
+                if (typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterUsage.Used)
+                {
+                    if (!IsValueTypeOnly(typeContext, genericParameter)) return;
+                }
             }
         }
 
         typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.BlittableStruct;
+    }
+
+    private static void FindTypeGenericParameters(TypeReference reference, Action<GenericParameter> onFound)
+    {
+        if (reference is GenericParameter genericParameter)
+        {
+            onFound?.Invoke(genericParameter);
+            return;
+        }
+
+        if (reference.IsPointer || reference.IsArray || reference.IsByReference)
+        {
+            FindTypeGenericParameters(reference.GetElementType(), onFound);
+            return;
+        }
+
+        if (reference is GenericInstanceType genericInstance)
+        {
+            var typeDef = genericInstance.Resolve();
+            for (var i = 0; i < genericInstance.GenericArguments.Count; i++)
+            {
+                if (IsGenericParameterAtUsed(typeDef, i))
+                {
+                    var genericArgument = genericInstance.GenericArguments[i];
+                    FindTypeGenericParameters(genericArgument, onFound);
+                }
+            }
+        }
+    }
+
+    private static bool IsGenericParameterAtUsed(TypeDefinition typeDef, int i)
+    {
+        if (!typeDef.IsValueType) return true;
+
+        var isUsed = false;
+        foreach (FieldDefinition field in typeDef.Fields)
+        {
+            if (field.IsStatic) continue;
+
+            FindTypeGenericParameters(field.FieldType, parameter =>
+            {
+                if (parameter.Position == i)
+                    isUsed = true;
+            });
+            if (isUsed)
+                break;
+        }
+
+        return isUsed;
     }
 
     internal class ParameterUsage

@@ -21,6 +21,13 @@ public class TypeRewriteContext
         NonBlittableStruct
     }
 
+    public enum GenericParameterUsage
+    {
+        NotUsed,
+        Pointers,
+        Used
+    }
+
     public readonly AssemblyRewriteContext AssemblyContext;
 
     private readonly Dictionary<FieldDefinition, FieldRewriteContext> myFieldContexts = new();
@@ -38,6 +45,7 @@ public class TypeRewriteContext
 #nullable enable
 
     public TypeSpecifics ComputedTypeSpecifics;
+    public GenericParameterUsage[] genericParameterUsage;
 
     public TypeRewriteContext(AssemblyRewriteContext assemblyContext, TypeDefinition? originalType,
         TypeDefinition newType)
@@ -48,6 +56,7 @@ public class TypeRewriteContext
 
         if (OriginalType == null) return;
 
+        genericParameterUsage = new GenericParameterUsage[OriginalType.GenericParameters.Count];
         OriginalNameWasObfuscated = OriginalType.Name != NewType.Name &&
                                     Pass12CreateGenericNonBlittableTypes.GetNewName(originalType.Name) != NewType.Name;
         if (OriginalNameWasObfuscated)

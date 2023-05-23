@@ -23,7 +23,8 @@ public static class Pass13FillTypedefs
                     typeContext.NewType.GenericParameters.Add(newParameter);
 
                     //TODO ensure works
-                    if (!typeContext.ComputedTypeSpecifics.IsBlittable())
+                    if (!typeContext.ComputedTypeSpecifics.IsBlittable() ||
+                        typeContext.genericParameterUsage[originalParameter.Position] == TypeRewriteContext.GenericParameterUsage.NotUsed)
                         newParameter.Attributes = originalParameter.Attributes.StripValueTypeConstraint();
                     else
                     {
