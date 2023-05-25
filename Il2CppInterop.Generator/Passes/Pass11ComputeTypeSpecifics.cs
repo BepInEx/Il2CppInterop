@@ -106,6 +106,14 @@ public static class Pass11ComputeTypeSpecifics
             return;
         }
 
+        CheckNested(typeContext.OriginalType, parameter =>
+        {
+            var myParameter = typeContext.OriginalType.GenericParameters.FirstOrDefault(param => param.Name.Equals(parameter.Name));
+            if (myParameter == null) return;
+
+            typeContext.genericParameterUsage[myParameter.Position] = TypeRewriteContext.GenericParameterUsage.Used;
+        });
+
         foreach (var originalField in typeContext.OriginalType.Fields)
         {
             // Sometimes il2cpp metadata has invalid field offsets for some reason (https://github.com/SamboyCoding/Cpp2IL/issues/167)
@@ -120,12 +128,10 @@ public static class Pass11ComputeTypeSpecifics
             var fieldType = originalField.FieldType;
             FindTypeGenericParameters(fieldType, parameter =>
             {
-                if (parameter.DeclaringType != typeContext.OriginalType) return;
-
                 typeContext.genericParameterUsage[parameter.Position] = fieldType.IsPointer ?
                     TypeRewriteContext.GenericParameterUsage.Pointers :
                     TypeRewriteContext.GenericParameterUsage.Used;
-            }, true);
+            });
 
             if (fieldType.IsPrimitive || fieldType.IsPointer || fieldType.IsGenericParameter) continue;
 
@@ -177,7 +183,7 @@ public static class Pass11ComputeTypeSpecifics
         typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.BlittableStruct;
     }
 
-    private static void FindTypeGenericParameters(TypeReference reference, Action<GenericParameter> onFound, bool checkNested = false)
+    private static void FindTypeGenericParameters(TypeReference reference, Action<GenericParameter> onFound)
     {
         if (reference is GenericParameter genericParameter)
         {
@@ -204,9 +210,6 @@ public static class Pass11ComputeTypeSpecifics
                 }
             }
         }
-
-        if (checkNested)
-            CheckNested(typeDef, onFound);
     }
 
     private static void CheckNested(TypeDefinition typeDef, Action<GenericParameter> onFound)
