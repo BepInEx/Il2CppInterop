@@ -21,11 +21,11 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
         private Il2CppAssembly* Hook(IntPtr name)
         {
+            var assemblyName = Marshal.PtrToStringAnsi(name);
             Il2CppAssembly* assembly = Original(name);
 
             if (assembly == null)
             {
-                var assemblyName = Marshal.PtrToStringAnsi(name);
                 if (InjectorHelpers.InjectedImages.TryGetValue(assemblyName, out var ptr))
                 {
                     var image = UnityVersionHandler.Wrap((Il2CppImage*)ptr);

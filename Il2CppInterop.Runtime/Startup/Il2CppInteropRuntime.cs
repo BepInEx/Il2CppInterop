@@ -40,6 +40,7 @@ public sealed class Il2CppInteropRuntime : BaseHost
     public override void Start()
     {
         UnityVersionHandler.RecalculateHandlers();
+        InjectorHelpers.EarlySetup();
         base.Start();
     }
 }

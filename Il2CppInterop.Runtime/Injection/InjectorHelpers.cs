@@ -2,28 +2,26 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
+using System.Text.Json.Nodes;
 using System.Threading;
 using Il2CppInterop.Common;
-using Il2CppInterop.Common.Extensions;
-using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Runtime.Injection.Hooks;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly;
-using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
-using Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Image;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
-using Il2CppInterop.Runtime.Startup;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection
 {
     internal static unsafe class InjectorHelpers
     {
+        private const string InjectedMonoTypesAssemblyName = "InjectedMonoTypes.dll";
         internal static Assembly Il2CppMscorlib = typeof(Il2CppSystem.Type).Assembly;
 
         internal static Dictionary<string, IntPtr> InjectedImages = new Dictionary<string, IntPtr>();
@@ -52,7 +50,7 @@ namespace Il2CppInterop.Runtime.Injection
 
         private static void CreateDefaultInjectedAssembly()
         {
-            DefaultInjectedImage = CreateInjectedImage("InjectedMonoTypes");
+            DefaultInjectedImage = CreateInjectedImage(InjectedMonoTypesAssemblyName);
             DefaultInjectedAssembly = UnityVersionHandler.Wrap(DefaultInjectedImage.Assembly);
         }
 
@@ -69,7 +67,13 @@ namespace Il2CppInterop.Runtime.Injection
             image.Dynamic = 1;
             image.Name = assembly.Name.Name;
             if (image.HasNameNoExt)
-                image.NameNoExt = assembly.Name.Name;
+            {
+                if (name.EndsWith(".dll"))
+                    image.NameNoExt = Marshal.StringToHGlobalAnsi(name.Replace(".dll", ""));
+                else
+                    image.NameNoExt = assembly.Name.Name;
+            }
+
             assembly.Image = image.ImagePointer;
             InjectedImages.Add(name, image.Pointer);
             return image;
@@ -96,12 +100,13 @@ namespace Il2CppInterop.Runtime.Injection
         private static readonly GarbageCollector_RunFinalizer_Patch RunFinalizerPatch = new();
 
         private static readonly Assembly_Load_Hook assemblyLoadHook = new();
+        private static readonly API_il2cpp_domain_get_assemblies_hook api_get_assemblies = new();
+
         private static readonly Assembly_GetLoadedAssembly_Hook AssemblyGetLoadedAssemblyHook = new();
         private static readonly AppDomain_GetAssemblies_Hook AppDomainGetAssembliesHook = new();
 
         internal static void Setup()
         {
-            if (DefaultInjectedAssembly == null) CreateDefaultInjectedAssembly();
             GenericMethodGetMethodHook.ApplyHook();
             GetTypeInfoFromTypeDefinitionIndexHook.ApplyHook();
             GetFieldDefaultValueHook.ApplyHook();
@@ -114,7 +119,46 @@ namespace Il2CppInterop.Runtime.Injection
             AppDomainGetAssembliesHook.ApplyHook();
         }
 
-        internal static long CreateClassToken(IntPtr classPointer)
+        // Setup before unity loads assembly list
+        internal static void EarlySetup()
+        {
+            var executablePath = Environment.GetEnvironmentVariable("DOORSTOP_PROCESS_PATH");
+            var processPath = Path.GetFileNameWithoutExtension(executablePath);
+            var assemblyNamesFile = $"{processPath}_Data/ScriptingAssemblies.json";
+            var assemblyNamesFileBackup = $"{processPath}_Data/ScriptingAssemblies_BACKUP.json";
+            if (!File.Exists(assemblyNamesFileBackup))
+            {
+                File.Copy(assemblyNamesFile, assemblyNamesFileBackup);
+            }
+
+            var jsonNode = JsonNode.Parse(File.ReadAllText(assemblyNamesFileBackup));
+            var names = jsonNode["names"].AsArray();
+            var types = jsonNode["types"].AsArray();
+
+            names.Add(InjectedMonoTypesAssemblyName);
+            types.Add(16);
+            if (DefaultInjectedAssembly == null) CreateDefaultInjectedAssembly();
+            var allFiles = Directory.EnumerateFiles("BepInEx/plugins/", "*", SearchOption.AllDirectories);
+            foreach (var file in allFiles)
+            {
+                var extension = Path.GetExtension(file);
+                if (extension.Equals(".dll"))
+                {
+                    var assemblyName = Path.GetFileName(file);
+                    CreateInjectedImage(assemblyName);
+                    names.Add(assemblyName);
+                    types.Add(16);
+                }
+            }
+
+            var newJson = jsonNode.ToJsonString();
+            File.WriteAllText(assemblyNamesFile, newJson);
+
+            assemblyLoadHook.ApplyHook();
+            api_get_assemblies.ApplyHook();
+        }
+
+        internal static long CreateTypeToken(IntPtr classPointer)
         {
             long newToken = Interlocked.Decrement(ref s_LastInjectedToken);
             s_InjectedClasses[newToken] = classPointer;

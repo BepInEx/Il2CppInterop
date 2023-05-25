@@ -29,6 +29,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
         private IntPtr Hook(IntPtr thisPtr, byte refOnly)
         {
+            Logger.Instance.LogInformation("Using AppDomain.GetAssemblies()");
             IntPtr assemblyArrayPtr = Original(thisPtr, refOnly);
             Il2CppReferenceArray<Assembly> assemblyArray = new Il2CppReferenceArray<Assembly>(assemblyArrayPtr);
 
