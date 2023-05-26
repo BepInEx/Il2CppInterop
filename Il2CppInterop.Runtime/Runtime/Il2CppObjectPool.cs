@@ -26,6 +26,7 @@ public static class Il2CppObjectPool
         if (s_cache.TryGetValue(ptr, out var reference) && reference.TryGetTarget(out var cachedObject))
         {
             if (cachedObject is T cachedObjectT) return cachedObjectT;
+            cachedObject.pooledPtr = IntPtr.Zero;
             // This leaves the case when you cast to an interface handled as if nothing was cached
         }
 
