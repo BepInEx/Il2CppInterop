@@ -207,6 +207,12 @@ public static unsafe class EnumInjector
                 (Il2CppClass*)Il2CppClassPointerStore.GetNativeClassPointer(Enum.GetUnderlyingType(type)));
 
         il2cppEnum.Image = InjectorHelpers.DefaultInjectedImage.ImagePointer;
+
+        if (InjectorHelpers.TryGetInjectedImageForAssembly(type.Assembly, out var imagePtr))
+        {
+            il2cppEnum.Image = (Il2CppImage*)imagePtr;
+        }
+
         il2cppEnum.Class = il2cppEnum.CastClass = il2cppEnum.ElementClass = elementClass.ClassPointer;
         il2cppEnum.Parent = baseEnum.ClassPointer;
         il2cppEnum.ActualSize = il2cppEnum.InstanceSize =

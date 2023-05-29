@@ -26,7 +26,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
             if (assembly == null)
             {
-                if (InjectorHelpers.InjectedImages.TryGetValue(assemblyName, out var ptr))
+                if (InjectorHelpers.TryGetInjectedImage(assemblyName, out var ptr))
                 {
                     var image = UnityVersionHandler.Wrap((Il2CppImage*)ptr);
                     assembly = image.Assembly;

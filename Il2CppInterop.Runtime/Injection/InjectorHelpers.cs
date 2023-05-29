@@ -25,7 +25,6 @@ namespace Il2CppInterop.Runtime.Injection
         internal static Assembly Il2CppMscorlib = typeof(Il2CppSystem.Type).Assembly;
 
         internal static Dictionary<string, IntPtr> InjectedImages = new Dictionary<string, IntPtr>();
-        internal static INativeAssemblyStruct DefaultInjectedAssembly;
         internal static INativeImageStruct DefaultInjectedImage;
         internal static ProcessModule Il2CppModule = Process.GetCurrentProcess()
             .Modules.OfType<ProcessModule>()
@@ -51,7 +50,6 @@ namespace Il2CppInterop.Runtime.Injection
         private static void CreateDefaultInjectedAssembly()
         {
             DefaultInjectedImage = CreateInjectedImage(InjectedMonoTypesAssemblyName);
-            DefaultInjectedAssembly = UnityVersionHandler.Wrap(DefaultInjectedImage.Assembly);
         }
 
         private static INativeImageStruct CreateInjectedImage(string name)
@@ -60,36 +58,41 @@ namespace Il2CppInterop.Runtime.Injection
             var assembly = UnityVersionHandler.NewAssembly();
             var image = UnityVersionHandler.NewImage();
 
+            var nameNoExt = name;
+            if (nameNoExt.EndsWith(".dll"))
+                nameNoExt = name.Replace(".dll", "");
 
-            assembly.Name.Name = Marshal.StringToHGlobalAnsi(name);
+            assembly.Name.Name = Marshal.StringToHGlobalAnsi(nameNoExt);
 
             image.Assembly = assembly.AssemblyPointer;
             image.Dynamic = 1;
-            image.Name = assembly.Name.Name;
+            image.Name = Marshal.StringToHGlobalAnsi(name);
             if (image.HasNameNoExt)
-            {
-                if (name.EndsWith(".dll"))
-                    image.NameNoExt = Marshal.StringToHGlobalAnsi(name.Replace(".dll", ""));
-                else
-                    image.NameNoExt = assembly.Name.Name;
-            }
+                image.NameNoExt = assembly.Name.Name;
 
             assembly.Image = image.ImagePointer;
             InjectedImages.Add(name, image.Pointer);
             return image;
         }
 
-        internal static IntPtr GetOrCreateInjectedImage(string name)
+        internal static bool TryGetInjectedImage(string name, out IntPtr ptr)
         {
-            if (InjectedImages.TryGetValue(name, out var ptr))
-                return ptr;
-
-            return CreateInjectedImage(name).Pointer;
+            if (!name.EndsWith(".dll"))
+                name += ".dll";
+            return InjectedImages.TryGetValue(name, out ptr);
         }
 
         internal static bool TryGetInjectedImageForAssembly(Assembly assembly, out IntPtr ptr)
         {
-            return InjectedImages.TryGetValue(assembly.GetName().Name, out ptr);
+            return TryGetInjectedImage(assembly.GetName().Name, out ptr);
+        }
+
+        internal static IntPtr GetOrCreateInjectedImage(string name)
+        {
+            if (TryGetInjectedImage(name, out var ptr))
+                return ptr;
+
+            return CreateInjectedImage(name).Pointer;
         }
 
         private static readonly GenericMethod_GetMethod_Hook GenericMethodGetMethodHook = new();
@@ -114,7 +117,7 @@ namespace Il2CppInterop.Runtime.Injection
             FromIl2CppTypeHook.ApplyHook();
             FromNameHook.ApplyHook();
             RunFinalizerPatch.ApplyHook();
-            assemblyLoadHook.ApplyHook();
+
             AssemblyGetLoadedAssemblyHook.ApplyHook();
             AppDomainGetAssembliesHook.ApplyHook();
         }
@@ -146,7 +149,7 @@ namespace Il2CppInterop.Runtime.Injection
             api_get_assemblies.ApplyHook();
         }
 
-        internal static long CreateTypeToken(IntPtr classPointer)
+        internal static long CreateClassToken(IntPtr classPointer)
         {
             long newToken = Interlocked.Decrement(ref s_LastInjectedToken);
             s_InjectedClasses[newToken] = classPointer;
@@ -159,7 +162,8 @@ namespace Il2CppInterop.Runtime.Injection
             string klass = type.Name;
             if (klass == null) return;
             string namespaze = type.Namespace ?? string.Empty;
-            var attribute = Attribute.GetCustomAttribute(type, typeof(Il2CppInterop.Runtime.Attributes.ClassInjectionAssemblyTargetAttribute)) as Il2CppInterop.Runtime.Attributes.ClassInjectionAssemblyTargetAttribute;
+
+            var attribute = Attribute.GetCustomAttribute(type, typeof(Attributes.ClassInjectionAssemblyTargetAttribute)) as Attributes.ClassInjectionAssemblyTargetAttribute;
 
             foreach (IntPtr image in (attribute is null) ? IL2CPP.GetIl2CppImages() : attribute.GetImagePointers())
             {
