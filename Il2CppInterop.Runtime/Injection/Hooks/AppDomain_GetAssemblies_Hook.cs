@@ -9,7 +9,6 @@ using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Startup;
 using Microsoft.Extensions.Logging;
-using AppDomain = Il2CppSystem.AppDomain;
 using Assembly = Il2CppSystem.Reflection.Assembly;
 
 namespace Il2CppInterop.Runtime.Injection.Hooks
@@ -29,7 +28,6 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
         private IntPtr Hook(IntPtr thisPtr, byte refOnly)
         {
-            Logger.Instance.LogInformation("Using AppDomain.GetAssemblies()");
             IntPtr assemblyArrayPtr = Original(thisPtr, refOnly);
             Il2CppReferenceArray<Assembly> assemblyArray = new Il2CppReferenceArray<Assembly>(assemblyArrayPtr);
 

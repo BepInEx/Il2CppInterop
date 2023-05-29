@@ -122,37 +122,25 @@ namespace Il2CppInterop.Runtime.Injection
         // Setup before unity loads assembly list
         internal static void EarlySetup()
         {
-            var executablePath = Environment.GetEnvironmentVariable("DOORSTOP_PROCESS_PATH");
-            var processPath = Path.GetFileNameWithoutExtension(executablePath);
-            var assemblyNamesFile = $"{processPath}_Data/ScriptingAssemblies.json";
-            var assemblyNamesFileBackup = $"{processPath}_Data/ScriptingAssemblies_BACKUP.json";
-            if (!File.Exists(assemblyNamesFileBackup))
+            using (AssemblyListFile assemblyList = new())
             {
-                File.Copy(assemblyNamesFile, assemblyNamesFileBackup);
-            }
+                CreateDefaultInjectedAssembly();
+                assemblyList.AddAssembly(InjectedMonoTypesAssemblyName);
+                var coreFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                var pluginsFolder = Path.Combine(coreFolder, "../plugins/");
 
-            var jsonNode = JsonNode.Parse(File.ReadAllText(assemblyNamesFileBackup));
-            var names = jsonNode["names"].AsArray();
-            var types = jsonNode["types"].AsArray();
-
-            names.Add(InjectedMonoTypesAssemblyName);
-            types.Add(16);
-            if (DefaultInjectedAssembly == null) CreateDefaultInjectedAssembly();
-            var allFiles = Directory.EnumerateFiles("BepInEx/plugins/", "*", SearchOption.AllDirectories);
-            foreach (var file in allFiles)
-            {
-                var extension = Path.GetExtension(file);
-                if (extension.Equals(".dll"))
+                var allFiles = Directory.EnumerateFiles(pluginsFolder, "*", SearchOption.AllDirectories);
+                foreach (var file in allFiles)
                 {
-                    var assemblyName = Path.GetFileName(file);
-                    CreateInjectedImage(assemblyName);
-                    names.Add(assemblyName);
-                    types.Add(16);
+                    var extension = Path.GetExtension(file);
+                    if (extension.Equals(".dll"))
+                    {
+                        var assemblyName = Path.GetFileName(file);
+                        CreateInjectedImage(assemblyName);
+                        assemblyList.AddAssembly(assemblyName);
+                    }
                 }
             }
-
-            var newJson = jsonNode.ToJsonString();
-            File.WriteAllText(assemblyNamesFile, newJson);
 
             assemblyLoadHook.ApplyHook();
             api_get_assemblies.ApplyHook();
