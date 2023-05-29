@@ -60,7 +60,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             if (appDomain == null)
                 throw new Exception($"Unity {Il2CppInteropRuntime.Instance.UnityVersion} is not supported at the moment: System.AppDomain isn't present in Il2Cppmscorlib.dll for unity version, unable to fetch icall");
 
-            var GetAssembliesThunk = InjectorHelpers.GetIl2CppMethodPointer(appDomain.GetMethod("GetAssemblies", unchecked((BindingFlags)0xffffffff), new[]{typeof(bool)}));
+            var GetAssembliesThunk = InjectorHelpers.GetIl2CppMethodPointer(appDomain.GetMethod("GetAssemblies", unchecked((BindingFlags)0xffffffff), new[] { typeof(bool) }));
             Logger.Instance.LogTrace("Il2CppSystem.AppDomain::thunk_GetAssemblies: 0x{GetAssembliesThunk}", GetAssembliesThunk.ToInt64().ToString("X2"));
 
             var myMethod = XrefScannerLowLevel.JumpTargets(GetAssembliesThunk).Single();
