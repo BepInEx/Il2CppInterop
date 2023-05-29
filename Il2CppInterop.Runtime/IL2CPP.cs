@@ -43,7 +43,6 @@ public static unsafe class IL2CPP
     internal static IntPtr GetIl2CppImage(string name)
     {
         if (il2CppImagesMap.ContainsKey(name)) return il2CppImagesMap[name];
-        if (InjectorHelpers.InjectedImages.ContainsKey(name)) return InjectorHelpers.InjectedImages[name];
         return IntPtr.Zero;
     }
 
@@ -56,11 +55,8 @@ public static unsafe class IL2CPP
     {
         if (!il2CppImagesMap.TryGetValue(assemblyName, out var image))
         {
-            if (!InjectorHelpers.InjectedImages.TryGetValue(assemblyName, out image))
-            {
-                Logger.Instance.LogError("Assembly {AssemblyName} is not registered in il2cpp", assemblyName);
-                return IntPtr.Zero;
-            }
+            Logger.Instance.LogError("Assembly {AssemblyName} is not registered in il2cpp", assemblyName);
+            return IntPtr.Zero;
         }
 
         var clazz = il2cpp_class_from_name(image, namespaze, className);
