@@ -1,24 +1,31 @@
+using System.Diagnostics;
+using Il2CppInterop.Common;
 using AsmResolver.DotNet.Signatures;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Generator.Passes;
 
 public static class Pass11ComputeTypeSpecifics
 {
-    public static void DoPass(RewriteGlobalContext context)
+    public static unsafe void DoPass(RewriteGlobalContext context)
     {
         typeUsageDictionary.Clear();
 
         foreach (var assemblyContext in context.Assemblies)
-            foreach (var typeContext in assemblyContext.Types)
-                ScanTypeUsage(typeContext);
+        foreach (var typeContext in assemblyContext.Types)
+            ComputeGenericParameterUsageSpecifics(typeContext);
 
         foreach (var assemblyContext in context.Assemblies)
-            foreach (var typeContext in assemblyContext.Types)
-                ComputeSpecifics(typeContext);
+        foreach (var typeContext in assemblyContext.Types)
+            ScanTypeUsage(typeContext);
+
+        foreach (var assemblyContext in context.Assemblies)
+        foreach (var typeContext in assemblyContext.Types)
+            ComputeSpecifics(typeContext);
     }
 
     internal static Dictionary<TypeDefinition, ParameterUsage> typeUsageDictionary = new Dictionary<TypeDefinition, ParameterUsage>(new TypeComparer());
@@ -95,6 +102,115 @@ public static class Pass11ComputeTypeSpecifics
         return true;
     }
 
+    private static void ComputeGenericParameterUsageSpecifics(TypeRewriteContext typeContext)
+    {
+        if (typeContext.genericParameterUsageComputed) return;
+        typeContext.genericParameterUsageComputed = true;
+
+        var originalType = typeContext.OriginalType;
+        if (originalType.GenericParameters.Count == 0) return;
+
+        var globalContext = typeContext.AssemblyContext.GlobalContext;
+
+        void OnResult(GenericParameter parameter, TypeRewriteContext.GenericParameterSpecifics specific)
+        {
+            if (parameter.DeclaringType != originalType) return;
+
+            typeContext.SetGenericParameterUsageSpecifics(parameter.Position, specific);
+        }
+
+        foreach (var originalField in originalType.Fields)
+        {
+            // Sometimes il2cpp metadata has invalid field offsets for some reason (https://github.com/SamboyCoding/Cpp2IL/issues/167)
+            if (originalField.ExtractFieldOffset() >= 0x8000000) continue;
+            if (originalField.IsStatic) continue;
+
+            FindTypeGenericParameters(globalContext, originalField.FieldType,
+                TypeRewriteContext.GenericParameterSpecifics.Relaxed, OnResult);
+        }
+
+        foreach (var originalField in originalType.Fields)
+        {
+            // Sometimes il2cpp metadata has invalid field offsets for some reason (https://github.com/SamboyCoding/Cpp2IL/issues/167)
+            if (originalField.ExtractFieldOffset() >= 0x8000000) continue;
+            if (!originalField.IsStatic) continue;
+
+            FindTypeGenericParameters(globalContext, originalField.FieldType,
+                TypeRewriteContext.GenericParameterSpecifics.Relaxed, OnResult);
+        }
+
+        foreach (var originalMethod in originalType.Methods)
+        {
+            FindTypeGenericParameters(globalContext, originalMethod.ReturnType,
+                TypeRewriteContext.GenericParameterSpecifics.Relaxed, OnResult);
+
+            foreach (ParameterDefinition parameter in originalMethod.Parameters)
+            {
+                FindTypeGenericParameters(globalContext, parameter.ParameterType,
+                    TypeRewriteContext.GenericParameterSpecifics.Relaxed, OnResult);
+            }
+        }
+
+        foreach (TypeDefinition nestedType in originalType.NestedTypes)
+        {
+            var nestedContext = globalContext.GetNewTypeForOriginal(nestedType);
+            ComputeGenericParameterUsageSpecifics(nestedContext);
+
+            foreach (var parameter in nestedType.GenericParameters)
+            {
+                var myParameter = originalType.GenericParameters
+                    .FirstOrDefault(param => param.Name.Equals(parameter.Name));
+
+                if (myParameter == null) continue;
+
+                typeContext.SetGenericParameterUsageSpecifics(myParameter.Position,
+                    nestedContext.genericParameterUsage[parameter.Position]);
+            }
+        }
+    }
+
+    private static void FindTypeGenericParameters(RewriteGlobalContext globalContext,
+        TypeReference reference,
+        TypeRewriteContext.GenericParameterSpecifics currentConstraint,
+        Action<GenericParameter, TypeRewriteContext.GenericParameterSpecifics> onFound)
+    {
+        if (reference is GenericParameter genericParameter)
+        {
+            onFound?.Invoke(genericParameter, currentConstraint);
+            return;
+        }
+
+        if (reference.IsPointer)
+        {
+            FindTypeGenericParameters(globalContext, reference.GetElementType(),
+                TypeRewriteContext.GenericParameterSpecifics.Strict, onFound);
+            return;
+        }
+
+        if (reference.IsArray || reference.IsByReference)
+        {
+            FindTypeGenericParameters(globalContext, reference.GetElementType(),
+                currentConstraint, onFound);
+            return;
+        }
+
+        if (reference is GenericInstanceType genericInstance)
+        {
+            var typeContext = globalContext.GetNewTypeForOriginal(reference.Resolve());
+            ComputeGenericParameterUsageSpecifics(typeContext);
+            for (var i = 0; i < genericInstance.GenericArguments.Count; i++)
+            {
+                var myConstraint = typeContext.genericParameterUsage[i];
+                if (myConstraint == TypeRewriteContext.GenericParameterSpecifics.Relaxed)
+                    myConstraint = currentConstraint;
+
+                var genericArgument = genericInstance.GenericArguments[i];
+                FindTypeGenericParameters(globalContext, genericArgument, myConstraint, onFound);
+            }
+        }
+    }
+
+
     private static void ComputeSpecifics(TypeRewriteContext typeContext)
     {
         if (typeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.NotComputed) return;
@@ -105,14 +221,6 @@ public static class Pass11ComputeTypeSpecifics
             typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
             return;
         }
-
-        CheckNested(typeContext.OriginalType, parameter =>
-        {
-            var myParameter = typeContext.OriginalType.GenericParameters.FirstOrDefault(param => param.Name.Equals(parameter.Name));
-            if (myParameter == null) return;
-
-            typeContext.genericParameterUsage[myParameter.Position] = TypeRewriteContext.GenericParameterUsage.Used;
-        });
 
         foreach (var originalField in typeContext.OriginalType.Fields)
         {
@@ -126,12 +234,6 @@ public static class Pass11ComputeTypeSpecifics
             if (originalField.IsStatic) continue;
 
             var fieldType = originalField.FieldType;
-            FindTypeGenericParameters(fieldType, parameter =>
-            {
-                typeContext.genericParameterUsage[parameter.Position] = fieldType.IsPointer ?
-                    TypeRewriteContext.GenericParameterUsage.Pointers :
-                    TypeRewriteContext.GenericParameterUsage.Used;
-            });
 
             if (fieldType.IsPrimitive || fieldType.IsPointer || fieldType.IsGenericParameter) continue;
 
@@ -159,7 +261,6 @@ public static class Pass11ComputeTypeSpecifics
                         return;
                     }
                 }
-
             }
             else if (fieldTypeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.BlittableStruct)
             {
@@ -173,7 +274,7 @@ public static class Pass11ComputeTypeSpecifics
             typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.GenericBlittableStruct;
             foreach (var genericParameter in typeContext.OriginalType.GenericParameters)
             {
-                if (typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterUsage.Used)
+                if (typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterSpecifics.Relaxed)
                 {
                     if (!IsValueTypeOnly(typeContext, genericParameter)) return;
                 }
@@ -181,69 +282,6 @@ public static class Pass11ComputeTypeSpecifics
         }
 
         typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.BlittableStruct;
-    }
-
-    private static void FindTypeGenericParameters(TypeReference reference, Action<GenericParameter> onFound)
-    {
-        if (reference is GenericParameter genericParameter)
-        {
-            onFound?.Invoke(genericParameter);
-            return;
-        }
-
-        if (reference.IsPointer || reference.IsArray || reference.IsByReference)
-        {
-            FindTypeGenericParameters(reference.GetElementType(), onFound);
-            return;
-        }
-
-        var typeDef = reference.Resolve();
-
-        if (reference is GenericInstanceType genericInstance)
-        {
-            for (var i = 0; i < genericInstance.GenericArguments.Count; i++)
-            {
-                if (IsGenericParameterAtUsed(typeDef, i))
-                {
-                    var genericArgument = genericInstance.GenericArguments[i];
-                    FindTypeGenericParameters(genericArgument, onFound);
-                }
-            }
-        }
-    }
-
-    private static void CheckNested(TypeDefinition typeDef, Action<GenericParameter> onFound)
-    {
-        foreach (TypeDefinition nestedType in typeDef.NestedTypes)
-        {
-            foreach (FieldDefinition field in nestedType.Fields)
-            {
-                if (field.IsStatic) continue;
-                FindTypeGenericParameters(field.FieldType, onFound);
-            }
-            CheckNested(nestedType, onFound);
-        }
-    }
-
-    private static bool IsGenericParameterAtUsed(TypeDefinition typeDef, int i)
-    {
-        if (!typeDef.IsValueType) return true;
-
-        var isUsed = false;
-        foreach (FieldDefinition field in typeDef.Fields)
-        {
-            if (field.IsStatic) continue;
-
-            FindTypeGenericParameters(field.FieldType, parameter =>
-            {
-                if (parameter.Position == i)
-                    isUsed = true;
-            });
-            if (isUsed)
-                break;
-        }
-
-        return isUsed;
     }
 
     internal class ParameterUsage
@@ -303,6 +341,7 @@ public static class Pass11ComputeTypeSpecifics
                         return false;
                 }
             }
+
             return true;
         }
     }
