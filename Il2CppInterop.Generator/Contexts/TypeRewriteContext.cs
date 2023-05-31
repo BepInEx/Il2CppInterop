@@ -25,7 +25,8 @@ public class TypeRewriteContext
     {
         Unused,
         Relaxed,
-        Strict
+        UsedInFields,
+        Strict,
     }
 
     public readonly AssemblyRewriteContext AssemblyContext;

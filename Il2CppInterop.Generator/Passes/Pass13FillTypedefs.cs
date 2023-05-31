@@ -24,7 +24,7 @@ public static class Pass13FillTypedefs
 
                     var parameterSpecifics = typeContext.genericParameterUsage[originalParameter.Position];
                     if (parameterSpecifics == TypeRewriteContext.GenericParameterSpecifics.Strict ||
-                        (parameterSpecifics == TypeRewriteContext.GenericParameterSpecifics.Relaxed &&
+                        (parameterSpecifics.IsRelaxed() &&
                          typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct))
                     {
                         newParameter.Attributes = originalParameter.Attributes;
