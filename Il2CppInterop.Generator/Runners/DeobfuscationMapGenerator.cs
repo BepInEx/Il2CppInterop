@@ -69,29 +69,34 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
             Pass10CreateTypedefs.DoPass(rewriteContext);
         }
 
+        using (new TimingCookie("Computing generic parameter usage"))
+        {
+            Pass11ComputeGenericParameterSpecifics.DoPass(rewriteContext);
+        }
+
         using (new TimingCookie("Computing struct blittability"))
         {
-            Pass11ComputeTypeSpecifics.DoPass(rewriteContext);
+            Pass12ComputeTypeSpecifics.DoPass(rewriteContext);
         }
 
         using (new TimingCookie("Creating Boxed struct types"))
         {
-            Pass12CreateGenericNonBlittableTypes.DoPass(rewriteContext);
+            Pass13CreateGenericNonBlittableTypes.DoPass(rewriteContext);
         }
 
         using (new TimingCookie("Filling typedefs"))
         {
-            Pass13FillTypedefs.DoPass(rewriteContext);
+            Pass14FillTypedefs.DoPass(rewriteContext);
         }
 
         using (new TimingCookie("Filling generic constraints"))
         {
-            Pass14FillGenericConstraints.DoPass(rewriteContext);
+            Pass15FillGenericConstraints.DoPass(rewriteContext);
         }
 
         using (new TimingCookie("Creating members"))
         {
-            Pass15GenerateMemberContexts.DoPass(rewriteContext);
+            Pass16GenerateMemberContexts.DoPass(rewriteContext);
         }
 
 

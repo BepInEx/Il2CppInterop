@@ -9,15 +9,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Generator.Passes;
 
-public static class Pass11ComputeTypeSpecifics
+public static class Pass12ComputeTypeSpecifics
 {
-    public static unsafe void DoPass(RewriteGlobalContext context)
+    public static void DoPass(RewriteGlobalContext context)
     {
         typeUsageDictionary.Clear();
-
-        foreach (var assemblyContext in context.Assemblies)
-        foreach (var typeContext in assemblyContext.Types)
-            ComputeGenericParameterUsageSpecifics(typeContext);
 
         foreach (var assemblyContext in context.Assemblies)
         foreach (var typeContext in assemblyContext.Types)
@@ -101,115 +97,6 @@ public static class Pass11ComputeTypeSpecifics
 
         return true;
     }
-
-    private static void ComputeGenericParameterUsageSpecifics(TypeRewriteContext typeContext)
-    {
-        if (typeContext.genericParameterUsageComputed) return;
-        typeContext.genericParameterUsageComputed = true;
-
-        var originalType = typeContext.OriginalType;
-        if (originalType.GenericParameters.Count == 0) return;
-
-        var globalContext = typeContext.AssemblyContext.GlobalContext;
-
-        void OnResult(GenericParameter parameter, TypeRewriteContext.GenericParameterSpecifics specific)
-        {
-            if (parameter.DeclaringType != originalType) return;
-
-            typeContext.SetGenericParameterUsageSpecifics(parameter.Position, specific);
-        }
-
-        foreach (var originalField in originalType.Fields)
-        {
-            // Sometimes il2cpp metadata has invalid field offsets for some reason (https://github.com/SamboyCoding/Cpp2IL/issues/167)
-            if (originalField.ExtractFieldOffset() >= 0x8000000) continue;
-            if (originalField.IsStatic) continue;
-
-            FindTypeGenericParameters(globalContext, originalField.FieldType,
-                TypeRewriteContext.GenericParameterSpecifics.UsedInFields, OnResult);
-        }
-
-        foreach (var originalField in originalType.Fields)
-        {
-            // Sometimes il2cpp metadata has invalid field offsets for some reason (https://github.com/SamboyCoding/Cpp2IL/issues/167)
-            if (originalField.ExtractFieldOffset() >= 0x8000000) continue;
-            if (!originalField.IsStatic) continue;
-
-            FindTypeGenericParameters(globalContext, originalField.FieldType,
-                TypeRewriteContext.GenericParameterSpecifics.Relaxed, OnResult);
-        }
-
-        foreach (var originalMethod in originalType.Methods)
-        {
-            FindTypeGenericParameters(globalContext, originalMethod.ReturnType,
-                TypeRewriteContext.GenericParameterSpecifics.Relaxed, OnResult);
-
-            foreach (ParameterDefinition parameter in originalMethod.Parameters)
-            {
-                FindTypeGenericParameters(globalContext, parameter.ParameterType,
-                    TypeRewriteContext.GenericParameterSpecifics.Relaxed, OnResult);
-            }
-        }
-
-        foreach (TypeDefinition nestedType in originalType.NestedTypes)
-        {
-            var nestedContext = globalContext.GetNewTypeForOriginal(nestedType);
-            ComputeGenericParameterUsageSpecifics(nestedContext);
-
-            foreach (var parameter in nestedType.GenericParameters)
-            {
-                var myParameter = originalType.GenericParameters
-                    .FirstOrDefault(param => param.Name.Equals(parameter.Name));
-
-                if (myParameter == null) continue;
-
-                typeContext.SetGenericParameterUsageSpecifics(myParameter.Position,
-                    nestedContext.genericParameterUsage[parameter.Position]);
-            }
-        }
-    }
-
-    private static void FindTypeGenericParameters(RewriteGlobalContext globalContext,
-        TypeReference reference,
-        TypeRewriteContext.GenericParameterSpecifics currentConstraint,
-        Action<GenericParameter, TypeRewriteContext.GenericParameterSpecifics> onFound)
-    {
-        if (reference is GenericParameter genericParameter)
-        {
-            onFound?.Invoke(genericParameter, currentConstraint);
-            return;
-        }
-
-        if (reference.IsPointer)
-        {
-            FindTypeGenericParameters(globalContext, reference.GetElementType(),
-                TypeRewriteContext.GenericParameterSpecifics.Strict, onFound);
-            return;
-        }
-
-        if (reference.IsArray || reference.IsByReference)
-        {
-            FindTypeGenericParameters(globalContext, reference.GetElementType(),
-                currentConstraint, onFound);
-            return;
-        }
-
-        if (reference is GenericInstanceType genericInstance)
-        {
-            var typeContext = globalContext.GetNewTypeForOriginal(reference.Resolve());
-            ComputeGenericParameterUsageSpecifics(typeContext);
-            for (var i = 0; i < genericInstance.GenericArguments.Count; i++)
-            {
-                var myConstraint = typeContext.genericParameterUsage[i];
-                if (myConstraint.IsRelaxed())
-                    myConstraint = currentConstraint;
-
-                var genericArgument = genericInstance.GenericArguments[i];
-                FindTypeGenericParameters(globalContext, genericArgument, myConstraint, onFound);
-            }
-        }
-    }
-
 
     private static void ComputeSpecifics(TypeRewriteContext typeContext)
     {

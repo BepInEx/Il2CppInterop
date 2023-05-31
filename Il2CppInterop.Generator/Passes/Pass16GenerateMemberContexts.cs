@@ -2,7 +2,7 @@ using Il2CppInterop.Generator.Contexts;
 
 namespace Il2CppInterop.Generator.Passes;
 
-public static class Pass15GenerateMemberContexts
+public static class Pass16GenerateMemberContexts
 {
     public static bool HasObfuscatedMethods;
 

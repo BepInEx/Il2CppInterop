@@ -5,7 +5,7 @@ using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Passes;
 
-public static class Pass14FillGenericConstraints
+public static class Pass15FillGenericConstraints
 {
     public static void DoPass(RewriteGlobalContext context)
     {

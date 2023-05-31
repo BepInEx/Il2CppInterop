@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Generator.Passes;
 
-public static class Pass13FillTypedefs
+public static class Pass14FillTypedefs
 {
     public static void DoPass(RewriteGlobalContext context)
     {
