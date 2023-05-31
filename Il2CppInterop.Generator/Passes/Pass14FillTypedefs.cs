@@ -24,7 +24,7 @@ public static class Pass14FillTypedefs
 
                     var parameterSpecifics = typeContext.genericParameterUsage[originalParameter.Position];
                     if (parameterSpecifics == TypeRewriteContext.GenericParameterSpecifics.Strict ||
-                        (parameterSpecifics.IsRelaxed() &&
+                        (parameterSpecifics == TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability &&
                          typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct))
                     {
                         newParameter.Attributes = originalParameter.Attributes;

@@ -25,9 +25,4 @@ public static class EnumEx
                typeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct;
     }
 
-    public static bool IsRelaxed(this TypeRewriteContext.GenericParameterSpecifics parameterSpecifics)
-    {
-        return parameterSpecifics == TypeRewriteContext.GenericParameterSpecifics.Relaxed ||
-               parameterSpecifics == TypeRewriteContext.GenericParameterSpecifics.UsedInFields;
-    }
 }

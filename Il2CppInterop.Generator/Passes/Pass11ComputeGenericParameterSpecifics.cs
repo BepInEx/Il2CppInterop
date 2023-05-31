@@ -39,7 +39,7 @@ namespace Il2CppInterop.Generator.Passes
                 if (originalField.IsStatic) continue;
 
                 FindTypeGenericParameters(originalField.FieldType,
-                    TypeRewriteContext.GenericParameterSpecifics.UsedInFields, OnResult);
+                    TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability, OnResult);
             }
 
             foreach (var originalField in originalType.Fields)
@@ -76,8 +76,9 @@ namespace Il2CppInterop.Generator.Passes
 
                     if (myParameter == null) continue;
 
-                    typeContext.SetGenericParameterUsageSpecifics(myParameter.Position,
-                        nestedContext.genericParameterUsage[parameter.Position]);
+                    var otherParameterSpecific = nestedContext.genericParameterUsage[parameter.Position];
+                    if (otherParameterSpecific == TypeRewriteContext.GenericParameterSpecifics.Strict)
+                        typeContext.SetGenericParameterUsageSpecifics(myParameter.Position, otherParameterSpecific);
                 }
             }
         }
@@ -113,7 +114,7 @@ namespace Il2CppInterop.Generator.Passes
                 for (var i = 0; i < genericInstance.GenericArguments.Count; i++)
                 {
                     var myConstraint = typeContext.genericParameterUsage[i];
-                    if (myConstraint.IsRelaxed())
+                    if (myConstraint == TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability)
                         myConstraint = currentConstraint;
 
                     var genericArgument = genericInstance.GenericArguments[i];
