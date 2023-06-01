@@ -164,7 +164,13 @@ public static class Pass12ComputeTypeSpecifics
             {
                 if (typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability)
                 {
-                    if (!IsValueTypeOnly(typeContext, genericParameter)) return;
+                    if (IsValueTypeOnly(typeContext, genericParameter))
+                    {
+                        typeContext.SetGenericParameterUsageSpecifics(genericParameter.Position, TypeRewriteContext.GenericParameterSpecifics.Strict);
+                        continue;
+                    }
+
+                    return;
                 }
             }
         }

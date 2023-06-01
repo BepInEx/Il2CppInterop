@@ -201,10 +201,41 @@ public class TypeRewriteContext
     {
         if (position >= 0 && position < genericParameterUsage.Length)
         {
-            var currentUsage = genericParameterUsage[position];
-            if (specifics > currentUsage)
+            var genericParameter = OriginalType.GenericParameters[position];
+            SetGenericParameterSpecificsDown(genericParameter, specifics);
+        }
+    }
+
+    private void SetGenericParameterSpecificsDown(GenericParameter parameter, GenericParameterSpecifics specifics)
+    {
+        if (OriginalType.DeclaringType != null)
+        {
+            var declaringContext = AssemblyContext.GlobalContext.GetNewTypeForOriginal(OriginalType.DeclaringType);
+            var declaringTypeParameter = OriginalType.DeclaringType.GenericParameters
+                .FirstOrDefault(param => param.Name.Equals(parameter.Name));
+
+            if (declaringTypeParameter != null)
             {
-                genericParameterUsage[position] = specifics;
+                declaringContext.SetGenericParameterSpecificsDown(declaringTypeParameter, specifics);
+                return;
+            }
+        }
+
+        SetGenericParameterSpecificsUp(parameter, specifics);
+    }
+
+    private void SetGenericParameterSpecificsUp(GenericParameter parameter, GenericParameterSpecifics specifics)
+    {
+        if (specifics > genericParameterUsage[parameter.Position])
+        {
+            genericParameterUsage[parameter.Position] = specifics;
+            foreach (TypeDefinition nestedType in OriginalType.NestedTypes)
+            {
+                var nestedContext = AssemblyContext.GlobalContext.GetNewTypeForOriginal(nestedType);
+                var nestedTypeParameter = nestedType.GenericParameters
+                    .FirstOrDefault(param => param.Name.Equals(parameter.Name));
+                if (nestedTypeParameter != null)
+                    nestedContext.SetGenericParameterSpecificsUp(nestedTypeParameter, specifics);
             }
         }
     }
