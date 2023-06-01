@@ -16,12 +16,12 @@ public static class Pass12ComputeTypeSpecifics
         typeUsageDictionary.Clear();
 
         foreach (var assemblyContext in context.Assemblies)
-        foreach (var typeContext in assemblyContext.Types)
-            ScanTypeUsage(typeContext);
+            foreach (var typeContext in assemblyContext.Types)
+                ScanTypeUsage(typeContext);
 
         foreach (var assemblyContext in context.Assemblies)
-        foreach (var typeContext in assemblyContext.Types)
-            ComputeSpecifics(typeContext);
+            foreach (var typeContext in assemblyContext.Types)
+                ComputeSpecifics(typeContext);
     }
 
     internal static Dictionary<TypeDefinition, ParameterUsage> typeUsageDictionary = new Dictionary<TypeDefinition, ParameterUsage>(new TypeComparer());

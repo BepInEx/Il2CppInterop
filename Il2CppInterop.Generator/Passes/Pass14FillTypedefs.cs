@@ -43,8 +43,8 @@ public static class Pass14FillTypedefs
 
         // Second pass is explicitly done after first to account for rewriting of generic base types - value-typeness is important there
         foreach (var assemblyContext in context.Assemblies)
-        foreach (var typeContext in assemblyContext.Types)
-            if (!typeContext.OriginalType.IsEnum && !typeContext.ComputedTypeSpecifics.IsBlittable())
-                typeContext.NewType.BaseType = assemblyContext.RewriteTypeRef(typeContext.OriginalType.BaseType, false);
+            foreach (var typeContext in assemblyContext.Types)
+                if (!typeContext.OriginalType.IsEnum && !typeContext.ComputedTypeSpecifics.IsBlittable())
+                    typeContext.NewType.BaseType = assemblyContext.RewriteTypeRef(typeContext.OriginalType.BaseType, false);
     }
 }

@@ -13,8 +13,8 @@ namespace Il2CppInterop.Generator.Passes
             globalContext = context;
 
             foreach (var assemblyContext in context.Assemblies)
-            foreach (var typeContext in assemblyContext.Types)
-                ComputeGenericParameterUsageSpecifics(typeContext);
+                foreach (var typeContext in assemblyContext.Types)
+                    ComputeGenericParameterUsageSpecifics(typeContext);
         }
 
         private static void ComputeGenericParameterUsageSpecifics(TypeRewriteContext typeContext)
