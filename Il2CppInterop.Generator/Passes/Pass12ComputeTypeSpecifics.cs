@@ -22,6 +22,10 @@ public static class Pass12ComputeTypeSpecifics
         foreach (var assemblyContext in context.Assemblies)
             foreach (var typeContext in assemblyContext.Types)
                 ComputeSpecifics(typeContext);
+
+        foreach (var assemblyContext in context.Assemblies)
+            foreach (var typeContext in assemblyContext.Types)
+                ComputeSpecificsPass2(typeContext);
     }
 
     internal static Dictionary<TypeDefinition, ParameterUsage> typeUsageDictionary = new Dictionary<TypeDefinition, ParameterUsage>(new TypeComparer());
@@ -160,20 +164,29 @@ public static class Pass12ComputeTypeSpecifics
         if (typeContext.OriginalType.GenericParameters.Count > 0)
         {
             typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.GenericBlittableStruct;
-            foreach (var genericParameter in typeContext.OriginalType.GenericParameters)
+            return;
+        }
+
+        typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.BlittableStruct;
+    }
+
+    private static void ComputeSpecificsPass2(TypeRewriteContext typeContext)
+    {
+        if (typeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.GenericBlittableStruct) return;
+
+        foreach (var genericParameter in typeContext.OriginalType.GenericParameters)
+        {
+            if (typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability ||
+                typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterSpecifics.Strict)
+
             {
-                if (typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability ||
-                    typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterSpecifics.Strict)
-
+                if (IsValueTypeOnly(typeContext, genericParameter))
                 {
-                    if (IsValueTypeOnly(typeContext, genericParameter))
-                    {
-                        typeContext.SetGenericParameterUsageSpecifics(genericParameter.Position, TypeRewriteContext.GenericParameterSpecifics.Strict);
-                        continue;
-                    }
-
-                    return;
+                    typeContext.SetGenericParameterUsageSpecifics(genericParameter.Position, TypeRewriteContext.GenericParameterSpecifics.Strict);
+                    continue;
                 }
+
+                return;
             }
         }
 
