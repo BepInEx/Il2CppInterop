@@ -162,7 +162,9 @@ public static class Pass12ComputeTypeSpecifics
             typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.GenericBlittableStruct;
             foreach (var genericParameter in typeContext.OriginalType.GenericParameters)
             {
-                if (typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability)
+                if (typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability ||
+                    typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterSpecifics.Strict)
+
                 {
                     if (IsValueTypeOnly(typeContext, genericParameter))
                     {
