@@ -11,38 +11,48 @@ public static class Pass13CreateGenericNonBlittableTypes
             foreach (var typeContext in assemblyContext.OriginalTypes)
             {
                 if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct)
-                {
-                    var typeName = typeContext.NewType.Name;
-                    // Append _unboxed to blittable type for compatibility
-                    typeContext.NewType.Name = GetNewName(typeName);
-
-
-                    TypeDefinition newBoxedType = new TypeDefinition(
-                        typeContext.NewType.Namespace,
-                        typeName,
-                        typeContext.NewType.Attributes);
-
-                    var declaringType = typeContext.NewType.DeclaringType;
-                    if (declaringType == null)
-                    {
-                        assemblyContext.NewAssembly.MainModule.Types.Add(newBoxedType);
-                    }
-                    else
-                    {
-                        declaringType.NestedTypes.Add(newBoxedType);
-                        newBoxedType.DeclaringType = declaringType;
-                    }
-
-                    TypeRewriteContext boxedTypeContext = new TypeRewriteContext(assemblyContext, typeContext.OriginalType, newBoxedType);
-                    boxedTypeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
-                    boxedTypeContext.isBoxedTypeVariant = true;
-                    typeContext.BoxedTypeContext = boxedTypeContext;
-                    assemblyContext.RegisterTypeContext(boxedTypeContext);
-                }
+                    CreateBoxedType(typeContext);
             }
     }
 
-    internal static string GetNewName(string originalName)
+    private static void CreateBoxedType(TypeRewriteContext typeContext, TypeDefinition parentType = null)
+    {
+        AssemblyRewriteContext assemblyContext = typeContext.AssemblyContext;
+        var typeName = typeContext.NewType.Name;
+        // Append _unboxed to blittable type for compatibility
+        typeContext.NewType.Name = GetUnboxedName(typeName);
+
+
+        TypeDefinition newBoxedType = new TypeDefinition(
+            typeContext.NewType.Namespace,
+            typeName,
+            typeContext.NewType.Attributes);
+
+        var declaringType = parentType ?? typeContext.NewType.DeclaringType;
+        if (declaringType == null)
+        {
+            assemblyContext.NewAssembly.MainModule.Types.Add(newBoxedType);
+        }
+        else
+        {
+            declaringType.NestedTypes.Add(newBoxedType);
+            newBoxedType.DeclaringType = declaringType;
+        }
+
+        TypeRewriteContext boxedTypeContext = new TypeRewriteContext(assemblyContext, typeContext.OriginalType, newBoxedType);
+        boxedTypeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
+        boxedTypeContext.isBoxedTypeVariant = true;
+        typeContext.BoxedTypeContext = boxedTypeContext;
+        assemblyContext.RegisterTypeContext(boxedTypeContext);
+
+        foreach (TypeDefinition nestedType in typeContext.OriginalType.NestedTypes)
+        {
+            var nestedContext = assemblyContext.GetContextForOriginalType(nestedType);
+            CreateBoxedType(nestedContext, newBoxedType);
+        }
+    }
+
+    internal static string GetUnboxedName(string originalName)
     {
         var parts = originalName.Split('`');
 

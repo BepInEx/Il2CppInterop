@@ -60,7 +60,7 @@ public class TypeRewriteContext
 
         genericParameterUsage = new GenericParameterSpecifics[OriginalType.GenericParameters.Count];
         OriginalNameWasObfuscated = OriginalType.Name != NewType.Name &&
-                                    Pass13CreateGenericNonBlittableTypes.GetNewName(originalType.Name) != NewType.Name;
+                                    Pass13CreateGenericNonBlittableTypes.GetUnboxedName(originalType.Name) != NewType.Name;
         if (OriginalNameWasObfuscated)
             NewType.CustomAttributes.Add(new CustomAttribute(
                 (ICustomAttributeType)assemblyContext.Imports.ObfuscatedNameAttributector.Value,
