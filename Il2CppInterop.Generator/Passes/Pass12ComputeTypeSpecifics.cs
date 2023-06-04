@@ -140,9 +140,11 @@ public static class Pass12ComputeTypeSpecifics
             if (fieldTypeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct)
             {
                 var genericInstance = fieldType as GenericInstanceType;
-                foreach (TypeReference genericArgument in genericInstance.GenericArguments)
+                for (var i = 0; i < genericInstance.GenericArguments.Count; i++)
                 {
+                    var genericArgument = genericInstance.GenericArguments[i];
                     if (genericArgument.IsGenericParameter) continue;
+                    if (fieldTypeContext.genericParameterUsage[i] < TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability) continue;
 
                     var genericArgumentContext = typeContext.AssemblyContext.GlobalContext.GetNewTypeForOriginal(genericArgument.Resolve());
                     ComputeSpecifics(genericArgumentContext);
