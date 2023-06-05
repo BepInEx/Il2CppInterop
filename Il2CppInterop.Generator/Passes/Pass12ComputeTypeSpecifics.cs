@@ -107,12 +107,6 @@ public static class Pass12ComputeTypeSpecifics
         if (typeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.NotComputed) return;
         typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.Computing;
 
-        if (typeContext.OriginalType.FullName.Contains("System.Nullable"))
-        {
-            typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
-            return;
-        }
-
         foreach (var originalField in typeContext.OriginalType.Fields)
         {
             // Sometimes il2cpp metadata has invalid field offsets for some reason (https://github.com/SamboyCoding/Cpp2IL/issues/167)
