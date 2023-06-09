@@ -67,7 +67,16 @@ public static class Pass21GenerateValueTypeFields
 
                         // Special case: bools in Il2Cpp are bytes
                         if (newField.Signature!.FieldType.FullName == "System.Boolean")
-                            newField.MarshalDescriptor = new SimpleMarshalDescriptor(NativeType.U1);
+                        {
+                            if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct)
+                            {
+                                newField.FieldType = assemblyContext.Imports.NativeBoolean;
+                            }
+                            else
+                            {
+                                newField.MarshalDescriptor = new SimpleMarshalDescriptor(NativeType.U1);
+                            }
+                        }
 
                         newType.Fields.Add(newField);
                     }
