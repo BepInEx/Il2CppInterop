@@ -23,6 +23,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             if (assembly == null)
             {
                 var assemblyName = Marshal.PtrToStringAnsi(name);
+                Logger.Instance.LogInformation($"Load assembly called: {assemblyName}");
                 if (InjectorHelpers.TryGetInjectedImage(assemblyName, out var ptr))
                 {
                     var image = UnityVersionHandler.Wrap((Il2CppImage*)ptr);

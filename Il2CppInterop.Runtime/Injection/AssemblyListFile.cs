@@ -4,25 +4,17 @@ using System.Text.Json.Nodes;
 
 namespace Il2CppInterop.Runtime.Injection
 {
-    public class AssemblyListFile : IDisposable
+    public class AssemblyListFile
     {
-        private readonly string assemblyNamesFile;
         private readonly JsonNode node;
         private readonly JsonArray names;
         private readonly JsonArray types;
 
-        public AssemblyListFile()
-        {
-            var executablePath = Environment.GetEnvironmentVariable("DOORSTOP_PROCESS_PATH");
-            var processPath = Path.GetFileNameWithoutExtension(executablePath);
-            assemblyNamesFile = $"{processPath}_Data/ScriptingAssemblies.json";
-            var assemblyNamesFileBackup = $"{processPath}_Data/ScriptingAssemblies_BACKUP.json";
-            if (!File.Exists(assemblyNamesFileBackup))
-            {
-                File.Copy(assemblyNamesFile, assemblyNamesFileBackup);
-            }
+        private string newFile;
 
-            node = JsonNode.Parse(File.ReadAllText(assemblyNamesFileBackup));
+        public AssemblyListFile(string originalFilePath)
+        {
+            node = JsonNode.Parse(File.ReadAllText(originalFilePath));
             names = node["names"].AsArray();
             types = node["types"].AsArray();
         }
@@ -33,10 +25,15 @@ namespace Il2CppInterop.Runtime.Injection
             types.Add(16);
         }
 
-        public void Dispose()
+        public string GetTmpFile()
         {
+            if (!string.IsNullOrEmpty(newFile)) return newFile;
+
             var newJson = node.ToJsonString();
-            File.WriteAllText(assemblyNamesFile, newJson);
+            newFile = Path.GetTempFileName();
+
+            File.WriteAllText(newFile, newJson);
+            return newFile;
         }
     }
 }
