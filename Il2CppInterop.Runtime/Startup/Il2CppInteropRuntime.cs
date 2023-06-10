@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using Il2CppInterop.Common.Host;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Runtime.Injection;
@@ -40,7 +43,6 @@ public sealed class Il2CppInteropRuntime : BaseHost
     public override void Start()
     {
         UnityVersionHandler.RecalculateHandlers();
-        InjectorHelpers.EarlySetup();
         base.Start();
     }
 }

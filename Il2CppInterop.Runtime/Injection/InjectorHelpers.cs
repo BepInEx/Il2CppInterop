@@ -54,7 +54,7 @@ namespace Il2CppInterop.Runtime.Injection
 
         private static void CreateDefaultInjectedAssembly()
         {
-            DefaultInjectedImage = CreateInjectedImage(InjectedMonoTypesAssemblyName);
+            DefaultInjectedImage ??= CreateInjectedImage(InjectedMonoTypesAssemblyName);
         }
 
         private static INativeImageStruct CreateInjectedImage(string name)
@@ -115,6 +115,7 @@ namespace Il2CppInterop.Runtime.Injection
 
         internal static void Setup()
         {
+            CreateDefaultInjectedAssembly();
             GenericMethodGetMethodHook.ApplyHook();
             GetTypeInfoFromTypeDefinitionIndexHook.ApplyHook();
             GetFieldDefaultValueHook.ApplyHook();
@@ -168,10 +169,8 @@ namespace Il2CppInterop.Runtime.Injection
 
                 CreateDefaultInjectedAssembly();
                 assemblyList.AddAssembly(InjectedMonoTypesAssemblyName);
-                var coreFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                var pluginsFolder = Path.Combine(coreFolder, "../plugins/");
+                var allFiles = AssemblyInjectorComponent.ModAssemblies;
 
-                var allFiles = Directory.EnumerateFiles(pluginsFolder, "*", SearchOption.AllDirectories);
                 foreach (var file in allFiles)
                 {
                     var extension = Path.GetExtension(file);
