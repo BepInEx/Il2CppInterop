@@ -25,7 +25,7 @@ internal class HarmonySupportComponent : IHostComponent
         var declaringType = args.Original.DeclaringType;
         if (declaringType == null) return;
         if (Il2CppType.From(declaringType, false) == null ||
-            ClassInjector.IsTypeInjectedOnly(declaringType))
+            ClassInjector.IsManagedTypeInjected(declaringType))
         {
             return;
         }

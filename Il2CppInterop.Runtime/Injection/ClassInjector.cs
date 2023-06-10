@@ -128,12 +128,12 @@ public static unsafe partial class ClassInjector
         var currentPointer = Il2CppClassPointerStore.GetNativeClassPointer(type);
         if (currentPointer != IntPtr.Zero)
             return true;
-        if (IsTypeInjectedOnly(type)) return true;
+        if (IsManagedTypeInjected(type)) return true;
 
         return false;
     }
 
-    internal static bool IsTypeInjectedOnly(Type type)
+    internal static bool IsManagedTypeInjected(Type type)
     {
         lock (InjectedTypes)
         {
