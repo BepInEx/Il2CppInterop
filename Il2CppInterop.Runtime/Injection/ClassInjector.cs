@@ -305,7 +305,12 @@ public static unsafe partial class ClassInjector
 
         methodPointerArray[0] = ConvertStaticMethod(FinalizeDelegate, "Finalize", classPointer);
         var finalizeMethod = UnityVersionHandler.Wrap(methodPointerArray[0]);
-        if (!type.IsAbstract) methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type, fieldsToInject), ".ctor", classPointer);
+        var fieldsToInitialize = type
+            .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .Where(IsFieldEligible)
+            .ToArray();
+
+        if (!type.IsAbstract) methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type, fieldsToInitialize), ".ctor", classPointer);
         var infos = new Dictionary<(string, int, bool), int>(eligibleMethods.Length);
         for (var i = 0; i < eligibleMethods.Length; i++)
         {
