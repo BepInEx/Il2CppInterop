@@ -274,7 +274,7 @@ public static class DelegateSupport
                 throw new ArgumentException(
                     $"Parameter type at {i} has mismatched native type pointers; types: {nativeType.FullName} != {managedType.FullName}");
 
-            if (nativeType.IsByRef && managedType.IsByRef)
+            if (nativeType.IsByRef || managedType.IsByRef)
                 throw new ArgumentException($"Parameter at {i} is passed by reference, this is not supported");
         }
 
