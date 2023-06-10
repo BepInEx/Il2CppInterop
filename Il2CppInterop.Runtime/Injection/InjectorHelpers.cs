@@ -167,19 +167,9 @@ namespace Il2CppInterop.Runtime.Injection
 
                 var assemblyList = new AssemblyListFile(filePath);
 
-                CreateDefaultInjectedAssembly();
-                assemblyList.AddAssembly(InjectedMonoTypesAssemblyName);
-                var allFiles = AssemblyInjectorComponent.ModAssemblies;
-
-                foreach (var file in allFiles)
+                foreach (var assemblyName in InjectedImages.Keys)
                 {
-                    var extension = Path.GetExtension(file);
-                    if (extension.Equals(".dll"))
-                    {
-                        var assemblyName = Path.GetFileName(file);
-                        CreateInjectedImage(assemblyName);
-                        assemblyList.AddAssembly(assemblyName);
-                    }
+                    assemblyList.AddAssembly(assemblyName);
                 }
 
                 NewAssemblyListFile = assemblyList.GetTmpFile();
@@ -228,6 +218,19 @@ namespace Il2CppInterop.Runtime.Injection
         // Setup before unity loads assembly list
         internal static void EarlySetup()
         {
+            CreateDefaultInjectedAssembly();
+            var allFiles = AssemblyInjectorComponent.ModAssemblies;
+
+            foreach (var file in allFiles)
+            {
+                var extension = Path.GetExtension(file);
+                if (extension.Equals(".dll"))
+                {
+                    var assemblyName = Path.GetFileName(file);
+                    CreateInjectedImage(assemblyName);
+                }
+            }
+
             UnityPlayerIATHooker = new AssemblyIATHooker(UnityPlayerHandle);
             UnityPlayerIATHooker.CreateIATHook("KERNEL32.dll", "ReadFile", thunk =>
             {
