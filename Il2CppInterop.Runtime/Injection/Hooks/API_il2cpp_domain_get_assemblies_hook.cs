@@ -12,12 +12,8 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate IntPtr MethodDelegate(IntPtr domain, long* size);
 
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate IntPtr GetAssemblyObject(IntPtr thisPtr);
-
-        private GetAssemblyObject getAssemblyObjectDelegate;
-
         private IntPtr currentDataPtr = IntPtr.Zero;
+        private int lastAssemblyListSize = -1;
 
         private IntPtr Hook(IntPtr domain, long* size)
         {
@@ -25,34 +21,42 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
             if (InjectorHelpers.InjectedImages.Count > 0)
             {
-                Il2CppAssembly** oldArray = (Il2CppAssembly**)assemblyArrayPtr;
-                int origSize = (int)*size;
+                CreateCustomAssemblyList((int)*size, assemblyArrayPtr);
 
-                int newSize = origSize + InjectorHelpers.InjectedImages.Count;
-                if (currentDataPtr != IntPtr.Zero)
-                    Marshal.FreeHGlobal(currentDataPtr);
-
-                currentDataPtr = Marshal.AllocHGlobal(newSize * sizeof(Il2CppSystem.IntPtr));
-                Il2CppAssembly** newArray = (Il2CppAssembly**)currentDataPtr;
-
-                int i;
-
-                for (i = 0; i < origSize; i++)
-                    newArray[i] = oldArray[i];
-
-                i = origSize;
-                foreach (IntPtr imagePtr in InjectorHelpers.InjectedImages.Values)
-                {
-                    var image = UnityVersionHandler.Wrap((Il2CppImage*)imagePtr);
-                    newArray[i] = image.Assembly;
-                    i++;
-                }
-
-                *size = newSize;
+                *size = lastAssemblyListSize;
                 return currentDataPtr;
             }
 
             return assemblyArrayPtr;
+        }
+
+        private void CreateCustomAssemblyList(int origSize, IntPtr assemblyArrayPtr)
+        {
+            var newSize = origSize + InjectorHelpers.InjectedImages.Count;
+            if (lastAssemblyListSize == newSize) return;
+
+            Il2CppAssembly** oldArray = (Il2CppAssembly**)assemblyArrayPtr;
+
+            if (currentDataPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(currentDataPtr);
+
+            currentDataPtr = Marshal.AllocHGlobal(newSize * sizeof(Il2CppSystem.IntPtr));
+            Il2CppAssembly** newArray = (Il2CppAssembly**)currentDataPtr;
+
+            int i;
+
+            for (i = 0; i < origSize; i++)
+                newArray[i] = oldArray[i];
+
+            i = origSize;
+            foreach (IntPtr imagePtr in InjectorHelpers.InjectedImages.Values)
+            {
+                var image = UnityVersionHandler.Wrap((Il2CppImage*)imagePtr);
+                newArray[i] = image.Assembly;
+                i++;
+            }
+
+            lastAssemblyListSize = newSize;
         }
 
         public override IntPtr FindTargetMethod()
