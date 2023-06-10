@@ -557,6 +557,8 @@ public static unsafe partial class ClassInjector
 
     private static bool IsFieldEligible(FieldInfo field)
     {
+        if (field.CustomAttributes.Any(it => typeof(HideFromIl2CppAttribute).IsAssignableFrom(it.AttributeType)))
+            return false;
         if (field.DeclaringType.IsValueType)
             return IsTypeSupported(field.FieldType);
         if (!field.FieldType.IsGenericType) return field.FieldType == typeof(Il2CppStringField);
