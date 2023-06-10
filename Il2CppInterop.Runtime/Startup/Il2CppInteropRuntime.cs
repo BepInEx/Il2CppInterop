@@ -40,8 +40,20 @@ public sealed class Il2CppInteropRuntime : BaseHost
         return res;
     }
 
+    public class FakeListProvider : IAssemblyListProvider
+    {
+        public IEnumerable<string> GetAssemblyList()
+        {
+            var coreFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var pluginsFolder = Path.Combine(coreFolder, "../plugins/");
+
+            return Directory.EnumerateFiles(pluginsFolder, "*", SearchOption.AllDirectories);
+        }
+    }
+
     public override void Start()
     {
+        this.AddAssemblyInjector<BaseHost, FakeListProvider>();
         UnityVersionHandler.RecalculateHandlers();
         base.Start();
     }
