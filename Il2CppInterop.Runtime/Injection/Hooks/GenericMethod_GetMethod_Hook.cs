@@ -75,12 +75,26 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 }
                 else
                 {
-                    genericMethodGetMethod = getVirtualMethodXrefs.Last();
-
                     // U2021.2.0+, there's additional shim that takes 3 parameters
                     // On U2020.3.41+ there is also a shim, which gets inlined with one added in U2021.2.0+ in release builds
                     if (UnityVersionHandler.HasShimForGetMethod)
-                        genericMethodGetMethod = XrefScannerLowLevel.JumpTargets(genericMethodGetMethod).Take(2).Last();
+                    {
+                        var shim = getVirtualMethodXrefs.Last();
+
+                        var shimXrefs = XrefScannerLowLevel.JumpTargets(shim).ToArray();
+
+                        // If the xref count is 1, it probably means the target is after ret
+                        if (shimXrefs.Length == 1)
+                        {
+                            shimXrefs = XrefScannerLowLevel.JumpTargets(shim, true).ToArray();
+                        }
+
+                        genericMethodGetMethod = shimXrefs.Take(2).Last();
+                    }
+                    else
+                    {
+                        genericMethodGetMethod = getVirtualMethodXrefs.Last();
+                    }
                 }
             }
 
