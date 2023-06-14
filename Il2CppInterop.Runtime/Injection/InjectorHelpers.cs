@@ -35,7 +35,7 @@ namespace Il2CppInterop.Runtime.Injection
         internal static IntPtr Il2CppHandle = NativeLibrary.Load("GameAssembly", typeof(InjectorHelpers).Assembly, null);
         internal static IntPtr UnityPlayerHandle = NativeLibrary.Load("UnityPlayer", typeof(InjectorHelpers).Assembly, null);
         internal static AssemblyIATHooker UnityPlayerIATHooker;
-        internal static string NewAssemblyListFile;
+        internal static IAssemblyListFile AssemblyListFile;
 
         internal static readonly Dictionary<Type, OpCode> StIndOpcodes = new()
         {
@@ -124,8 +124,8 @@ namespace Il2CppInterop.Runtime.Injection
             FromNameHook.ApplyHook();
             RunFinalizerPatch.ApplyHook();
 
-            AssemblyGetLoadedAssemblyHook.ApplyHook();
-            AppDomainGetAssembliesHook.ApplyHook();
+            //AssemblyGetLoadedAssemblyHook.ApplyHook();
+            //AppDomainGetAssembliesHook.ApplyHook();
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -160,21 +160,19 @@ namespace Il2CppInterop.Runtime.Injection
         private static int GetFileAttributesExDetour(IntPtr lpFileName, int fInfoLevelId, IntPtr lpFileInformation)
         {
             var filePath = Marshal.PtrToStringUni(lpFileName);
+            filePath = filePath.Replace(@"\\?\", "");
 
-            if (filePath.Contains("ScriptingAssemblies.json"))
+            if (AssemblyListFile.IsTargetFile(filePath))
             {
-                filePath = filePath.Replace(@"\\?\", "");
-
-                var assemblyList = new AssemblyListFile(filePath);
-
+                AssemblyListFile.Setup(filePath);
                 foreach (var assemblyName in InjectedImages.Keys)
                 {
-                    assemblyList.AddAssembly(assemblyName);
+                    AssemblyListFile.AddAssembly(assemblyName);
                 }
 
-                NewAssemblyListFile = assemblyList.GetTmpFile();
-                Logger.Instance.LogInformation($"Forcing unity to read assembly list from {NewAssemblyListFile}");
-                var newlpFileName = Marshal.StringToHGlobalUni(NewAssemblyListFile);
+                var newFile = AssemblyListFile.GetOrCreateNewFile();
+                Logger.Instance.LogInformation($"Forcing unity to read assembly list from {newFile}");
+                var newlpFileName = Marshal.StringToHGlobalUni(newFile);
 
                 var result = GetFileAttributesEx(newlpFileName, fInfoLevelId, lpFileInformation);
                 Marshal.FreeHGlobal(newlpFileName);
@@ -197,10 +195,9 @@ namespace Il2CppInterop.Runtime.Injection
             if (res != 0)
             {
                 var filePath = sb.ToString();
-                if (filePath.Contains("ScriptingAssemblies.json"))
+                if (AssemblyListFile.IsTargetFile(filePath))
                 {
-                    IntPtr newHandle = CreateFile(NewAssemblyListFile, FileAccess.Read, FileShare.Read, IntPtr.Zero, FileMode.Open, FileAttributes.Normal, IntPtr.Zero);
-                    UnpatchIATHooks();
+                    IntPtr newHandle = CreateFile(AssemblyListFile.GetOrCreateNewFile(), FileAccess.Read, FileShare.Read, IntPtr.Zero, FileMode.Open, FileAttributes.Normal, IntPtr.Zero);
                     return ReadFile(newHandle, bytes, numBytesToRead, numBytesRead, overlapped);
                 }
             }
@@ -208,11 +205,14 @@ namespace Il2CppInterop.Runtime.Injection
             return ReadFile(handle, bytes, numBytesToRead, numBytesRead, overlapped);
         }
 
-        private static void UnpatchIATHooks()
+        internal static void UnpatchIATHooks()
         {
+            if (UnityPlayerIATHooker == null) return;
+
             Logger.Instance.LogInformation("Unpatching UnityPlayer IAT hooks");
             UnityPlayerIATHooker.UnpatchIATHook("KERNEL32.dll", "ReadFile");
             UnityPlayerIATHooker.UnpatchIATHook("KERNEL32.dll", "GetFileAttributesExW");
+            UnityPlayerIATHooker = null;
         }
 
         // Setup before unity loads assembly list
@@ -230,6 +230,8 @@ namespace Il2CppInterop.Runtime.Injection
                     CreateInjectedImage(assemblyName);
                 }
             }
+
+            AssemblyListFile = UnityVersionHandler.GetAssemblyListFile();
 
             UnityPlayerIATHooker = new AssemblyIATHooker(UnityPlayerHandle);
             UnityPlayerIATHooker.CreateIATHook("KERNEL32.dll", "ReadFile", thunk =>

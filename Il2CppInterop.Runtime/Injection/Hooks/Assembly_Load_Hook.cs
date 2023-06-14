@@ -19,10 +19,12 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
         private Il2CppAssembly* Hook(IntPtr name)
         {
             Il2CppAssembly* assembly = Original(name);
+            InjectorHelpers.UnpatchIATHooks();
+            var assemblyName = Marshal.PtrToStringAnsi(name);
 
+            Logger.Instance.LogInformation($"Assembly::Load {assemblyName}");
             if (assembly == null)
             {
-                var assemblyName = Marshal.PtrToStringAnsi(name);
                 if (InjectorHelpers.TryGetInjectedImage(assemblyName, out var ptr))
                 {
                     var image = UnityVersionHandler.Wrap((Il2CppImage*)ptr);

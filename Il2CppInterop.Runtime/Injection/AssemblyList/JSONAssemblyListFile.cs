@@ -4,19 +4,26 @@ using System.Text.Json.Nodes;
 
 namespace Il2CppInterop.Runtime.Injection
 {
-    public class AssemblyListFile
+    internal class JSONAssemblyListFile : IAssemblyListFile
     {
-        private readonly JsonNode node;
-        private readonly JsonArray names;
-        private readonly JsonArray types;
+        private JsonNode node;
+        private JsonArray names;
+        private JsonArray types;
 
         private string newFile;
 
-        public AssemblyListFile(string originalFilePath)
+        public void Setup(string originalFilePath)
         {
+            if (node != null) return;
+
             node = JsonNode.Parse(File.ReadAllText(originalFilePath));
             names = node["names"].AsArray();
             types = node["types"].AsArray();
+        }
+
+        public bool IsTargetFile(string originalFilePath)
+        {
+            return originalFilePath.Contains("ScriptingAssemblies.json");
         }
 
         public void AddAssembly(string name)
@@ -25,7 +32,7 @@ namespace Il2CppInterop.Runtime.Injection
             types.Add(16);
         }
 
-        public string GetTmpFile()
+        public string GetOrCreateNewFile()
         {
             if (!string.IsNullOrEmpty(newFile)) return newFile;
 
