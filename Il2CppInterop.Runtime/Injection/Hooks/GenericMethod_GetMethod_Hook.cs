@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Runtime.Runtime;
+using Il2CppInterop.Runtime.Startup;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection.Hooks
@@ -84,7 +85,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                         var shimXrefs = XrefScannerLowLevel.JumpTargets(shim).ToArray();
 
                         // If the xref count is 1, it probably means the target is after ret
-                        if (shimXrefs.Length == 1)
+                        if (Il2CppInteropRuntime.Instance.UnityVersion.Major == 2020 && shimXrefs.Length == 1)
                         {
                             shimXrefs = XrefScannerLowLevel.JumpTargets(shim, true).ToArray();
                         }
