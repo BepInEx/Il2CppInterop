@@ -188,7 +188,7 @@ public class Il2CppObjectBase
     {
         IL2CPP.il2cpp_gchandle_free(myGcHandle);
 
-        if (pooledPtr == IntPtr.Zero || WasCollected) return;
+        if (pooledPtr == IntPtr.Zero) return;
         Il2CppObjectPool.Remove(pooledPtr);
     }
 }

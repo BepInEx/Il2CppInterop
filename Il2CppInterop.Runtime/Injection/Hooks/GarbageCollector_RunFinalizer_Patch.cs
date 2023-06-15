@@ -16,7 +16,14 @@ internal class GarbageCollector_RunFinalizer_Patch : Hook<GarbageCollector_RunFi
 
     private void Hook(IntPtr obj, IntPtr data)
     {
-        Original(obj, data);
+        unsafe
+        {
+            var nativeClassStruct = UnityVersionHandler.Wrap((Il2CppClass*)IL2CPP.il2cpp_object_get_class(obj));
+            if (nativeClassStruct.HasFinalize)
+            {
+                Original(obj, data);
+            }
+        }
         Il2CppObjectPool.Remove(obj);
     }
 

@@ -31,7 +31,7 @@ public unsafe class Il2CppReferenceField<TRefObj> where TRefObj : Il2CppObjectBa
 
         if (isInjectedType.Value && ClassInjectorBase.GetMonoObjectFromIl2CppPointer(ptr) is TRefObj monoObject)
             return monoObject;
-        return (TRefObj)Activator.CreateInstance(typeof(TRefObj), ptr);
+        return Il2CppObjectPool.Get<TRefObj>(ptr);
     }
 
     public void Set(TRefObj value)
