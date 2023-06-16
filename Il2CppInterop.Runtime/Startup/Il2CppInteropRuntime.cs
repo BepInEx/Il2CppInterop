@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using Il2CppInterop.Common.Host;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Runtime.Injection;
