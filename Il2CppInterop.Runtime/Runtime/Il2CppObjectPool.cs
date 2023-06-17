@@ -26,7 +26,9 @@ public static class Il2CppObjectPool
             if (monoObject is T monoObjectT) return monoObjectT;
         }
 
-        if (!DisableCaching && s_cache.TryGetValue(ptr, out var reference) && reference.TryGetTarget(out var cachedObject))
+        if (DisableCaching) return Il2CppObjectBase.InitializerStore<T>.Initializer(ptr);
+
+        if (s_cache.TryGetValue(ptr, out var reference) && reference.TryGetTarget(out var cachedObject))
         {
             if (cachedObject is T cachedObjectT) return cachedObjectT;
             cachedObject.pooledPtr = IntPtr.Zero;
@@ -34,8 +36,6 @@ public static class Il2CppObjectPool
         }
 
         var newObj = Il2CppObjectBase.InitializerStore<T>.Initializer(ptr);
-        if (DisableCaching) return newObj;
-
         unsafe
         {
             var nativeClassStruct = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<T>.NativeClassPtr);
