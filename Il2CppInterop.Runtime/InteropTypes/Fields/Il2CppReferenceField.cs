@@ -5,9 +5,7 @@ namespace Il2CppInterop.Runtime.InteropTypes.Fields;
 
 public unsafe class Il2CppReferenceField<TRefObj> where TRefObj : Il2CppObjectBase
 {
-    private static bool? isInjectedType;
     private readonly IntPtr _fieldPtr;
-
     private readonly Il2CppObjectBase _obj;
 
     internal Il2CppReferenceField(Il2CppObjectBase obj, string fieldName)
