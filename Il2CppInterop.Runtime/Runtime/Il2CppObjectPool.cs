@@ -19,6 +19,8 @@ public static class Il2CppObjectPool
 
     public static T Get<T>(IntPtr ptr)
     {
+        if (ptr == IntPtr.Zero) return default;
+
         var ownClass = IL2CPP.il2cpp_object_get_class(ptr);
         if (RuntimeSpecificsStore.IsInjected(ownClass))
         {

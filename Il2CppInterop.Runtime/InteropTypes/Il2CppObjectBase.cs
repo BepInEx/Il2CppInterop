@@ -145,7 +145,7 @@ public class Il2CppObjectBase
 
         public static Func<IntPtr, T> Initializer => _initializer ??= Create();
     }
-    
+
     public T? TryCast<T>() where T : Il2CppObjectBase
     {
         var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;

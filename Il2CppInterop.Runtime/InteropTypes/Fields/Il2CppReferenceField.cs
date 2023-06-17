@@ -25,13 +25,7 @@ public unsafe class Il2CppReferenceField<TRefObj> where TRefObj : Il2CppObjectBa
     public TRefObj? Get()
     {
         var ptr = *GetPointerToData();
-        if (ptr == IntPtr.Zero) return null;
-        if (isInjectedType == null)
-            isInjectedType = RuntimeSpecificsStore.IsInjected(Il2CppClassPointerStore<TRefObj>.NativeClassPtr);
-
-        if (isInjectedType.Value && ClassInjectorBase.GetMonoObjectFromIl2CppPointer(ptr) is TRefObj monoObject)
-            return monoObject;
-        return Il2CppObjectPool.Get<TRefObj>(ptr);
+        return ptr == IntPtr.Zero ? null : Il2CppObjectPool.Get<TRefObj>(ptr);
     }
 
     public void Set(TRefObj value)
