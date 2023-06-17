@@ -11,7 +11,6 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
     internal unsafe class Class_FromIl2CppType_Hook : Hook<Class_FromIl2CppType_Hook.MethodDelegate>
     {
         public override string TargetMethodName => "Class::FromIl2CppType";
-        public virtual bool Required => true;
         public override MethodDelegate GetDetour() => Hook;
 
         /// Common version of the Il2CppType, the only thing that changed between unity version are the bitfields values that we don't use

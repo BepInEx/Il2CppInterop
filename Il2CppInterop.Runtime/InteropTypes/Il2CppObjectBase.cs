@@ -145,27 +145,7 @@ public class Il2CppObjectBase
 
         public static Func<IntPtr, T> Initializer => _initializer ??= Create();
     }
-
-    internal static Il2CppObjectBase CreateUnsafe<T>(IntPtr pointer)
-    {
-        var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
-        if (nestedTypeClassPointer == IntPtr.Zero)
-            throw new ArgumentException($"{typeof(T)} is not an Il2Cpp reference type");
-
-        var ownClass = IL2CPP.il2cpp_object_get_class(pointer);
-        if (!IL2CPP.il2cpp_class_is_assignable_from(nestedTypeClassPointer, ownClass))
-            return null;
-
-        if (RuntimeSpecificsStore.IsInjected(ownClass))
-        {
-            var monoObject = ClassInjectorBase.GetMonoObjectFromIl2CppPointer(pointer);
-            if (monoObject is T) return (Il2CppObjectBase)monoObject;
-        }
-
-        var il2CppObjectBase = InitializerStore<T>.Initializer(pointer);
-        return Unsafe.As<T, Il2CppObjectBase>(ref il2CppObjectBase);
-    }
-
+    
     public T? TryCast<T>() where T : Il2CppObjectBase
     {
         var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;

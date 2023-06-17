@@ -11,7 +11,6 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
     internal unsafe class Class_FromName_Hook : Hook<Class_FromName_Hook.MethodDelegate>
     {
         public override string TargetMethodName => "Class::FromName";
-        public virtual bool Required => true;
         public override MethodDelegate GetDetour() => Hook;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

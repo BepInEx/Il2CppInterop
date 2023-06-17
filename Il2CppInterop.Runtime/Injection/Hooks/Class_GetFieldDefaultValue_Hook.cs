@@ -15,7 +15,6 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
     internal unsafe class Class_GetFieldDefaultValue_Hook : Hook<Class_GetFieldDefaultValue_Hook.MethodDelegate>
     {
         public override string TargetMethodName => "Class::GetDefaultFieldValue";
-        public virtual bool Required => true;
         public override MethodDelegate GetDetour() => Hook;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

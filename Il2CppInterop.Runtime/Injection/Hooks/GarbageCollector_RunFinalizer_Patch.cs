@@ -10,7 +10,6 @@ namespace Il2CppInterop.Runtime.Injection.Hooks;
 internal class GarbageCollector_RunFinalizer_Patch : Hook<GarbageCollector_RunFinalizer_Patch.MethodDelegate>
 {
     public override string TargetMethodName => "GarbageCollector::RunFinalizer";
-    public virtual bool Required => false;
     public override MethodDelegate GetDetour() => Hook;
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
