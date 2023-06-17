@@ -11,7 +11,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
     internal unsafe class GenericMethod_GetMethod_Hook : Hook<GenericMethod_GetMethod_Hook.MethodDelegate>
     {
         public override string TargetMethodName => "GenericMethod::GetMethod";
-        public override bool Required => true;
+        public virtual bool Required => true;
         public override MethodDelegate GetDetour() => Hook;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

@@ -15,14 +15,12 @@ namespace Il2CppInterop.Runtime.Injection
         public T Original => _original;
 
         public abstract string TargetMethodName { get; }
-        public abstract bool Required { get; }
         public abstract T GetDetour();
         public abstract IntPtr FindTargetMethod();
 
         public virtual void TargetMethodNotFound()
         {
-            if (Required) throw new Exception($"Required target method {TargetMethodName} not found");
-            Logger.Instance.LogWarning("{MethodName} not found", TargetMethodName);
+            throw new Exception($"Required target method {TargetMethodName} not found");
         }
 
         public void ApplyHook()
