@@ -23,6 +23,13 @@ namespace Il2CppInterop.Runtime.Injection
             if (_isApplied) return;
 
             var methodPtr = FindTargetMethod();
+
+            if (methodPtr == IntPtr.Zero)
+            {
+                Logger.Instance.LogWarning("{MethodName} not found", TargetMethodName);
+                return;
+            }
+
             Logger.Instance.LogTrace("{MethodName} found: 0x{MethodPtr}", TargetMethodName, methodPtr.ToInt64().ToString("X2"));
 
             _detour = GetDetour();

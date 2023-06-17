@@ -8,6 +8,8 @@ namespace Il2CppInterop.Runtime.Runtime;
 
 public static class Il2CppObjectPool
 {
+    internal static bool DisableCaching { get; set; }
+
     private static readonly ConcurrentDictionary<IntPtr, WeakReference<Il2CppObjectBase>> s_cache = new();
 
     internal static void Remove(IntPtr ptr)
@@ -24,7 +26,7 @@ public static class Il2CppObjectPool
             if (monoObject is T monoObjectT) return monoObjectT;
         }
 
-        if (s_cache.TryGetValue(ptr, out var reference) && reference.TryGetTarget(out var cachedObject))
+        if (!DisableCaching && s_cache.TryGetValue(ptr, out var reference) && reference.TryGetTarget(out var cachedObject))
         {
             if (cachedObject is T cachedObjectT) return cachedObjectT;
             cachedObject.pooledPtr = IntPtr.Zero;
@@ -32,6 +34,8 @@ public static class Il2CppObjectPool
         }
 
         var newObj = Il2CppObjectBase.InitializerStore<T>.Initializer(ptr);
+        if (DisableCaching) return newObj;
+
         unsafe
         {
             var nativeClassStruct = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<T>.NativeClassPtr);

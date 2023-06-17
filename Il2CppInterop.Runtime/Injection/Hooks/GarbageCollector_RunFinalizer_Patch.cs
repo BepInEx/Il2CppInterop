@@ -45,7 +45,16 @@ internal class GarbageCollector_RunFinalizer_Patch : Hook<GarbageCollector_RunFi
         }
     };
 
-    public override IntPtr FindTargetMethod() => s_signatures
-        .Select(s => MemoryUtils.FindSignatureInModule(InjectorHelpers.Il2CppModule, s))
-        .FirstOrDefault(p => p != 0);
+    public override IntPtr FindTargetMethod()
+    {
+        var methodPtr =  s_signatures
+            .Select(s => MemoryUtils.FindSignatureInModule(InjectorHelpers.Il2CppModule, s))
+            .FirstOrDefault(p => p != 0);
+
+        if (methodPtr == IntPtr.Zero)
+        {
+            Il2CppObjectPool.DisableCaching = true;
+        }
+        return methodPtr;
+    }
 }
