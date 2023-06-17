@@ -47,7 +47,7 @@ internal class GarbageCollector_RunFinalizer_Patch : Hook<GarbageCollector_RunFi
 
     public override IntPtr FindTargetMethod()
     {
-        var methodPtr =  s_signatures
+        var methodPtr = s_signatures
             .Select(s => MemoryUtils.FindSignatureInModule(InjectorHelpers.Il2CppModule, s))
             .FirstOrDefault(p => p != 0);
 
