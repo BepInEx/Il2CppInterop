@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection.Hooks;
 
 internal class GarbageCollector_RunFinalizer_Patch : Hook<GarbageCollector_RunFinalizer_Patch.MethodDelegate>
 {
     public override string TargetMethodName => "GarbageCollector::RunFinalizer";
-
+    public override bool Required => false;
     public override MethodDelegate GetDetour() => Hook;
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -47,14 +49,14 @@ internal class GarbageCollector_RunFinalizer_Patch : Hook<GarbageCollector_RunFi
 
     public override IntPtr FindTargetMethod()
     {
-        var methodPtr = s_signatures
+        return s_signatures
             .Select(s => MemoryUtils.FindSignatureInModule(InjectorHelpers.Il2CppModule, s))
             .FirstOrDefault(p => p != 0);
+    }
 
-        if (methodPtr == IntPtr.Zero)
-        {
-            Il2CppObjectPool.DisableCaching = true;
-        }
-        return methodPtr;
+    public override void TargetMethodNotFound()
+    {
+        Il2CppObjectPool.DisableCaching = true;
+        Logger.Instance.LogWarning("{MethodName} not found, disabling Il2CppObjectPool", TargetMethodName);
     }
 }
