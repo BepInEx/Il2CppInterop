@@ -11,7 +11,7 @@
     <Platforms>AnyCPU</Platforms>
     <ImplicitUsings>false</ImplicitUsings>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Il2CppInterop.HarmonySupport</_Parameter1>

@@ -300,8 +300,7 @@ public static unsafe class IL2CPP
         if (typeof(T).IsValueType)
             return Il2CppObjectBase.UnboxUnsafe<T>(objectPointer);
 
-        var il2CppObjectBase = Il2CppObjectBase.CreateUnsafe<T>(objectPointer);
-        return Unsafe.As<Il2CppObjectBase, T>(ref il2CppObjectBase);
+        return Il2CppObjectPool.Get<T>(objectPointer);
     }
 
     public static string RenderTypeName<T>(bool addRefMarker = false)

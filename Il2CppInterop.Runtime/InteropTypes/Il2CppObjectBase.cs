@@ -12,6 +12,7 @@ public class Il2CppObjectBase
 {
     private static readonly MethodInfo _unboxMethod = typeof(Il2CppObjectBase).GetMethod(nameof(Unbox));
     internal bool isWrapped;
+    internal IntPtr pooledPtr;
 
     private uint myGcHandle;
 
@@ -86,7 +87,7 @@ public class Il2CppObjectBase
     private static readonly MethodInfo _createGCHandle = typeof(Il2CppObjectBase).GetMethod(nameof(CreateGCHandle))!;
     private static readonly FieldInfo _isWrapped = typeof(Il2CppObjectBase).GetField(nameof(isWrapped))!;
 
-    private static class InitializerStore<T>
+    internal static class InitializerStore<T>
     {
         private static Func<IntPtr, T>? _initializer;
 
@@ -145,26 +146,6 @@ public class Il2CppObjectBase
         public static Func<IntPtr, T> Initializer => _initializer ??= Create();
     }
 
-    internal static Il2CppObjectBase CreateUnsafe<T>(IntPtr pointer)
-    {
-        var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
-        if (nestedTypeClassPointer == IntPtr.Zero)
-            throw new ArgumentException($"{typeof(T)} is not an Il2Cpp reference type");
-
-        var ownClass = IL2CPP.il2cpp_object_get_class(pointer);
-        if (!IL2CPP.il2cpp_class_is_assignable_from(nestedTypeClassPointer, ownClass))
-            return null;
-
-        if (RuntimeSpecificsStore.IsInjected(ownClass))
-        {
-            var monoObject = ClassInjectorBase.GetMonoObjectFromIl2CppPointer(pointer);
-            if (monoObject is T) return (Il2CppObjectBase)monoObject;
-        }
-
-        var il2CppObjectBase = InitializerStore<T>.Initializer(pointer);
-        return Unsafe.As<T, Il2CppObjectBase>(ref il2CppObjectBase);
-    }
-
     public T? TryCast<T>() where T : Il2CppObjectBase
     {
         var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
@@ -186,5 +167,8 @@ public class Il2CppObjectBase
     ~Il2CppObjectBase()
     {
         IL2CPP.il2cpp_gchandle_free(myGcHandle);
+
+        if (pooledPtr == IntPtr.Zero) return;
+        Il2CppObjectPool.Remove(pooledPtr);
     }
 }
