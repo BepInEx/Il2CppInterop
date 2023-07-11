@@ -26,10 +26,10 @@ public static class Pass70GenerateProperties
                         propertyCountsByName);
 
                     var property = new PropertyDefinition(unmangledPropertyName, oldProperty.Attributes,
-                        assemblyContext.RewriteTypeRef(oldProperty.PropertyType));
+                        assemblyContext.RewriteTypeRef(oldProperty.PropertyType, typeContext.isBoxedTypeVariant));
                     foreach (var oldParameter in oldProperty.Parameters)
                         property.Parameters.Add(new ParameterDefinition(oldParameter.Name, oldParameter.Attributes,
-                            assemblyContext.RewriteTypeRef(oldParameter.ParameterType)));
+                            assemblyContext.RewriteTypeRef(oldParameter.ParameterType, typeContext.isBoxedTypeVariant)));
 
                     typeContext.NewType.Properties.Add(property);
 
@@ -77,7 +77,7 @@ public static class Pass70GenerateProperties
         if (assemblyContext.GlobalContext.Options.PassthroughNames ||
             !prop.Name.IsObfuscated(assemblyContext.GlobalContext.Options)) return prop.Name;
 
-        var baseName = "prop_" + assemblyContext.RewriteTypeRef(prop.PropertyType).GetUnmangledName();
+        var baseName = "prop_" + assemblyContext.RewriteTypeRef(prop.PropertyType, false).GetUnmangledName();
 
         countsByBaseName.TryGetValue(baseName, out var index);
         countsByBaseName[baseName] = index + 1;

@@ -223,6 +223,12 @@ public static class ILGeneratorEx
             body.Emit(OpCodes.Ldarg, argumentIndex);
             body.Emit(OpCodes.Call, imports.IL2CPP_ManagedStringToIl2Cpp.Value);
         }
+        else if (originalType.IsPointer)
+        {
+            body.Emit(OpCodes.Ldarg, argumentIndex);
+            body.Emit(OpCodes.Call, new MethodReference("op_Explicit", imports.Module.IntPtr(), imports.Module.IntPtr())
+            { Parameters = { new ParameterDefinition(imports.Module.ImportReference(typeof(void*))) } });
+        }
         else
         {
             body.Emit(OpCodes.Ldarg, argumentIndex);
@@ -352,6 +358,13 @@ public static class ILGeneratorEx
             { HasThis = false, Parameters = { new ParameterDefinition(imports.Module.IntPtr()) } };
             body.Emit(OpCodes.Call, methodRef);
         }
+        else if (originalReturnType.IsPointer)
+        {
+            body.Append(loadPointer);
+            body.Emit(OpCodes.Call,
+                new MethodReference("op_Explicit", imports.Module.ImportReference(typeof(void*)), imports.Module.IntPtr())
+                { Parameters = { new ParameterDefinition(imports.Module.IntPtr()) } });
+        }
         else
         {
             var createPoolObject = body.Create(OpCodes.Call,
@@ -383,6 +396,7 @@ public static class ILGeneratorEx
 
         body.Emit(extraDerefForNonValueTypes ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
         body.Emit(unboxValueType ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
+
         body.Emit(OpCodes.Call,
             imports.Module.ImportReference(new GenericInstanceMethod(imports.IL2CPP_PointerToValueGeneric.Value)
             { GenericArguments = { newReturnType } }));

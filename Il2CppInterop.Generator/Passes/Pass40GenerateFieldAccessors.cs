@@ -1,4 +1,5 @@
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
 using Mono.Cecil;
 
@@ -12,14 +13,14 @@ public static class Pass40GenerateFieldAccessors
             foreach (var typeContext in assemblyContext.Types)
                 foreach (var fieldContext in typeContext.Fields)
                 {
-                    if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.BlittableStruct &&
+                    if (typeContext.ComputedTypeSpecifics.IsBlittable() &&
                         !fieldContext.OriginalField.IsStatic) continue;
 
                     var field = fieldContext.OriginalField;
                     var unmangleFieldName = fieldContext.UnmangledName;
 
                     var property = new PropertyDefinition(unmangleFieldName, PropertyAttributes.None,
-                        assemblyContext.RewriteTypeRef(fieldContext.OriginalField.FieldType));
+                        assemblyContext.RewriteTypeRef(fieldContext.OriginalField.FieldType, typeContext.isBoxedTypeVariant));
                     typeContext.NewType.Properties.Add(property);
 
                     FieldAccessorGenerator.MakeGetter(field, fieldContext, property, assemblyContext.Imports);

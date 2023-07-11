@@ -37,7 +37,8 @@ public static class Pass79UnstripTypes
     private static void ProcessType(AssemblyRewriteContext processedAssembly, TypeDefinition unityType,
         TypeDefinition? enclosingNewType, RuntimeAssemblyReferences imports, ref int typesUnstripped)
     {
-        if (unityType.Name == "<Module>")
+        if (unityType.Name == "<Module>" ||
+            unityType.Name == "IsUnmanagedAttribute")
             return;
 
         // Don't unstrip delegates, the il2cpp runtime methods are stripped and we cannot recover them

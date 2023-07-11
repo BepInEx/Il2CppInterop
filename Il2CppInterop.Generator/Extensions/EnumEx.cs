@@ -1,3 +1,4 @@
+using Il2CppInterop.Generator.Contexts;
 using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Extensions;
@@ -14,6 +15,14 @@ public static class EnumEx
         this GenericParameterAttributes parameterAttributes)
     {
         return parameterAttributes & ~(GenericParameterAttributes.NotNullableValueTypeConstraint |
-                                       GenericParameterAttributes.VarianceMask);
+                                       GenericParameterAttributes.VarianceMask |
+                                       GenericParameterAttributes.DefaultConstructorConstraint);
     }
+
+    public static bool IsBlittable(this TypeRewriteContext.TypeSpecifics typeSpecifics)
+    {
+        return typeSpecifics == TypeRewriteContext.TypeSpecifics.BlittableStruct ||
+               typeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct;
+    }
+
 }

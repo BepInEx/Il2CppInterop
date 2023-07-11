@@ -6,6 +6,7 @@ using System.Linq;
 using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Generator.Contexts;
 using Mono.Cecil;
+using Mono.Cecil.Rocks;
 
 namespace Il2CppInterop.Generator.Utils;
 
@@ -88,6 +89,8 @@ public class RuntimeAssemblyReferences
     public TypeReference DelegateSupport { get; private set; }
     public TypeReference Il2CppException { get; private set; }
 
+    public TypeReference NativeBoolean { get; private set; }
+
     private TypeReference ResolveType(string typeName)
     {
         return allTypes[typeName];
@@ -145,6 +148,9 @@ public class RuntimeAssemblyReferences
 
         Il2CppException = new TypeReference("Il2CppInterop.Runtime", "Il2CppException", Module, assemblyRef);
 
+        NativeBoolean = new TypeReference("Il2CppInterop.Runtime", "NativeBoolean", Module, assemblyRef);
+        NativeBoolean.IsValueType = true;
+
         allTypes["Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"] = Il2CppObjectBase;
         allTypes["Il2CppInterop.Runtime.Runtime.Il2CppObjectPool"] = Il2CppObjectPool;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray"] = Il2CppStringArray;
@@ -152,6 +158,7 @@ public class RuntimeAssemblyReferences
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<T>"] = Il2CppStructArray;
         allTypes["Il2CppInterop.Runtime.Il2CppException"] = Il2CppException;
         allTypes["Il2CppInterop.Runtime.IL2CPP"] = Il2Cpp;
+        allTypes["Il2CppInterop.Runtime.NativeBoolean"] = NativeBoolean;
     }
 
     private void InitMethodRefs()

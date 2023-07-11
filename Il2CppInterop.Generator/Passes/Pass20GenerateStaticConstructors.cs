@@ -35,7 +35,7 @@ public static class Pass20GenerateStaticConstructors
 
         var ctorBuilder = staticCtorMethod.Body.GetILProcessor();
 
-        if (newType.IsNested)
+        if (newType.IsNested && oldType.IsNested)
         {
             ctorBuilder.Emit(OpCodes.Ldsfld,
                 assemblyContext.GlobalContext.GetNewTypeForOriginal(oldType.DeclaringType).ClassPointerFieldRef);

@@ -73,7 +73,7 @@ public static class Pass89GenerateMethodXrefCache
                     var refEnd = 0;
 
                     if (address != 0)
-                        if (Pass16ScanMethodRefs.MapOfCallers.TryGetValue(address, out var callerMap))
+                        if (Pass17ScanMethodRefs.MapOfCallers.TryGetValue(address, out var callerMap))
                         {
                             refStart = data.Count;
                             foreach (var xrefInstance in callerMap)

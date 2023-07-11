@@ -45,7 +45,7 @@ public static class Pass22GenerateEnums
                         fieldName = newName;
 
                     var newDef = new FieldDefinition(fieldName, fieldDefinition.Attributes | FieldAttributes.HasDefault,
-                        assemblyContext.RewriteTypeRef(fieldDefinition.FieldType));
+                        assemblyContext.RewriteTypeRef(fieldDefinition.FieldType, false));
                     newType.Fields.Add(newDef);
 
                     newDef.Constant = fieldDefinition.Constant;

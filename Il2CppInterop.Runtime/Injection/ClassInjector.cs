@@ -96,16 +96,20 @@ public static unsafe partial class ClassInjector
     {
         if (objectBase.isWrapped)
             return;
-        var fields = objectBase.GetType()
-            .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
-            .Where(IsFieldEligible)
-            .ToArray();
-        foreach (var field in fields)
-            field.SetValue(objectBase, field.FieldType.GetConstructor(
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
-                    new[] { typeof(Il2CppObjectBase), typeof(string) }, Array.Empty<ParameterModifier>())
-                .Invoke(new object[] { objectBase, field.Name })
-            );
+        if (!objectBase.GetType().IsValueType)
+        {
+            var fields = objectBase.GetType()
+                .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                .Where(IsFieldEligible)
+                .ToArray();
+            foreach (var field in fields)
+                field.SetValue(objectBase, field.FieldType.GetConstructor(
+                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
+                        new[] { typeof(Il2CppObjectBase), typeof(string) }, Array.Empty<ParameterModifier>())
+                    .Invoke(new object[] { objectBase, field.Name })
+                );
+        }
+
         var ownGcHandle = GCHandle.Alloc(objectBase, GCHandleType.Normal);
         AssignGcHandle(objectBase.Pointer, ownGcHandle);
     }
@@ -118,7 +122,7 @@ public static unsafe partial class ClassInjector
     }
 
 
-    public static bool IsTypeRegisteredInIl2Cpp<T>() where T : class
+    public static bool IsTypeRegisteredInIl2Cpp<T>()
     {
         return IsTypeRegisteredInIl2Cpp(typeof(T));
     }
@@ -137,7 +141,7 @@ public static unsafe partial class ClassInjector
         return false;
     }
 
-    public static void RegisterTypeInIl2Cpp<T>() where T : class
+    public static void RegisterTypeInIl2Cpp<T>()
     {
         RegisterTypeInIl2Cpp(typeof(T));
     }
@@ -147,7 +151,7 @@ public static unsafe partial class ClassInjector
         RegisterTypeInIl2Cpp(type, RegisterTypeOptions.Default);
     }
 
-    public static void RegisterTypeInIl2Cpp<T>(RegisterTypeOptions options) where T : class
+    public static void RegisterTypeInIl2Cpp<T>(RegisterTypeOptions options)
     {
         RegisterTypeInIl2Cpp(typeof(T), options);
     }
@@ -173,6 +177,9 @@ public static unsafe partial class ClassInjector
             return; //already registered in il2cpp
 
         var baseType = type.BaseType;
+        if (type.IsValueType)
+            baseType = typeof(ValueType);
+
         if (baseType == null)
             throw new ArgumentException($"Class {type} does not inherit from a class registered in il2cpp");
 
@@ -190,8 +197,8 @@ public static unsafe partial class ClassInjector
         // Initialize the vtable of all base types (Class::Init is recursive internally)
         InjectorHelpers.ClassInit(baseClassPointer.ClassPointer);
 
-        if (baseClassPointer.ValueType || baseClassPointer.EnumType)
-            throw new ArgumentException($"Base class {baseType} is value type and can't be inherited from");
+        if (baseClassPointer.EnumType)
+            throw new ArgumentException($"Base class {baseType} is a enum type and can't be inherited from");
 
         if (baseClassPointer.IsGeneric)
             throw new ArgumentException($"Base class {baseType} is generic and can't be inherited from");
@@ -226,6 +233,7 @@ public static unsafe partial class ClassInjector
         classPointer.SizeInited = true;
         classPointer.HasFinalize = true;
         classPointer.IsVtableInitialized = true;
+        classPointer.ValueType = type.IsValueType;
 
         classPointer.Name = Marshal.StringToHGlobalAnsi(type.Name);
         classPointer.Namespace = Marshal.StringToHGlobalAnsi(type.Namespace ?? string.Empty);
@@ -253,9 +261,18 @@ public static unsafe partial class ClassInjector
             fieldInfo.Parent = classPointer.ClassPointer;
             fieldInfo.Offset = fieldOffset;
 
-            var fieldType = fieldsToInject[i].FieldType == typeof(Il2CppStringField)
-                ? typeof(string)
-                : fieldsToInject[i].FieldType.GenericTypeArguments[0];
+            Type fieldType;
+            if (type.IsValueType)
+            {
+                fieldType = fieldsToInject[i].FieldType;
+            }
+            else
+            {
+                fieldType = fieldsToInject[i].FieldType == typeof(Il2CppStringField)
+                    ? typeof(string)
+                    : fieldsToInject[i].FieldType.GenericTypeArguments[0];
+            }
+
             var fieldAttributes = fieldsToInject[i].Attributes;
             var fieldInfoClass = Il2CppClassPointerStore.GetNativeClassPointer(fieldType);
             if (!_injectedFieldTypes.TryGetValue((fieldType, fieldAttributes), out var fieldTypePtr))
@@ -295,8 +312,9 @@ public static unsafe partial class ClassInjector
         classPointer.InstanceSize = (uint)(fieldOffset + sizeof(InjectedClassData));
         classPointer.ActualSize = classPointer.InstanceSize;
 
-        var eligibleMethods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).Where(IsMethodEligible).ToArray();
-        var methodsOffset = type.IsAbstract ? 1 : 2; // 1 is the finalizer, 1 is empty ctor
+        var eligibleMethods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+            .Where(IsMethodEligible).ToArray();
+        var methodsOffset = (type.IsAbstract || type.IsValueType) ? 1 : 2; // 1 is the finalizer, 1 is empty ctor
         var methodCount = methodsOffset + eligibleMethods.Length;
 
         classPointer.MethodCount = (ushort)methodCount;
@@ -305,7 +323,7 @@ public static unsafe partial class ClassInjector
 
         methodPointerArray[0] = ConvertStaticMethod(FinalizeDelegate, "Finalize", classPointer);
         var finalizeMethod = UnityVersionHandler.Wrap(methodPointerArray[0]);
-        if (!type.IsAbstract) methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type, fieldsToInject), ".ctor", classPointer);
+        if (!type.IsAbstract && !type.IsValueType) methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type, fieldsToInject), ".ctor", classPointer);
         var infos = new Dictionary<(string, int, bool), int>(eligibleMethods.Length);
         for (var i = 0; i < eligibleMethods.Length; i++)
         {
@@ -515,6 +533,10 @@ public static unsafe partial class ClassInjector
 
     private static bool IsFieldEligible(FieldInfo field)
     {
+        if (field.CustomAttributes.Any(it => typeof(HideFromIl2CppAttribute).IsAssignableFrom(it.AttributeType)))
+            return false;
+        if (field.DeclaringType.IsValueType)
+            return IsTypeSupported(field.FieldType);
         if (!field.FieldType.IsGenericType) return field.FieldType == typeof(Il2CppStringField);
         var genericTypeDef = field.FieldType.GetGenericTypeDefinition();
         if (genericTypeDef != typeof(Il2CppReferenceField<>) && genericTypeDef != typeof(Il2CppValueField<>))

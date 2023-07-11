@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Il2CppInterop.Common.XrefScans;
@@ -69,14 +67,23 @@ public class MethodRewriteContext
             foreach (var oldParameter in genericParams)
             {
                 var genericParameter = new GenericParameter(oldParameter.Name, newMethod);
-                genericParameter.Attributes = oldParameter.Attributes.StripValueTypeConstraint();
+                if (ShouldParameterBeBlittable(originalMethod, oldParameter))
+                {
+                    genericParameter.Attributes = oldParameter.Attributes;
+                    genericParameter.MakeUnmanaged(DeclaringType.AssemblyContext);
+                }
+                else
+                {
+                    genericParameter.Attributes = oldParameter.Attributes.StripValueTypeConstraint();
+                }
+
                 newMethod.GenericParameters.Add(genericParameter);
             }
         }
 
-        if (!Pass15GenerateMemberContexts.HasObfuscatedMethods && !passthroughNames &&
+        if (!Pass16GenerateMemberContexts.HasObfuscatedMethods && !passthroughNames &&
             originalMethod.Name.IsObfuscated(declaringType.AssemblyContext.GlobalContext.Options))
-            Pass15GenerateMemberContexts.HasObfuscatedMethods = true;
+            Pass16GenerateMemberContexts.HasObfuscatedMethods = true;
 
         FileOffset = originalMethod.ExtractOffset();
         // Workaround for garbage file offsets passed by Cpp2IL
@@ -84,6 +91,38 @@ public class MethodRewriteContext
         Rva = originalMethod.ExtractRva();
         if (FileOffset != 0)
             declaringType.AssemblyContext.GlobalContext.MethodStartAddresses.Add(FileOffset);
+    }
+
+    private bool ShouldParameterBeBlittable(MethodDefinition method, GenericParameter genericParameter)
+    {
+        if (HasGenericParameter(method.ReturnType, genericParameter, out GenericParameter parameter))
+        {
+            return parameter.IsUnmanaged();
+        }
+
+        foreach (ParameterDefinition methodParameter in method.Parameters)
+        {
+            if (HasGenericParameter(methodParameter.ParameterType, genericParameter, out parameter))
+            {
+                return parameter.IsUnmanaged();
+            }
+        }
+
+        return false;
+    }
+
+    private bool HasGenericParameter(TypeReference typeReference, GenericParameter inputGenericParameter, out GenericParameter typeGenericParameter)
+    {
+        typeGenericParameter = null;
+        if (typeReference is not GenericInstanceType genericInstance) return false;
+
+        var index = genericInstance.GenericArguments.IndexOf(inputGenericParameter);
+        if (index < 0) return false;
+
+        var globalContext = DeclaringType.AssemblyContext.GlobalContext;
+        var returnTypeContext = globalContext.GetNewTypeForOriginal(typeReference.Resolve());
+        typeGenericParameter = returnTypeContext.NewType.GenericParameters[index];
+        return true;
     }
 
     public string UnmangledName { get; private set; }
@@ -102,7 +141,7 @@ public class MethodRewriteContext
         UnmangledNameWithSignature = UnmangleMethodNameWithSignature();
 
         NewMethod.Name = UnmangledName;
-        NewMethod.ReturnType = DeclaringType.AssemblyContext.RewriteTypeRef(OriginalMethod.ReturnType);
+        NewMethod.ReturnType = DeclaringType.AssemblyContext.RewriteTypeRef(OriginalMethod.ReturnType, DeclaringType.isBoxedTypeVariant);
 
         var nonGenericMethodInfoPointerField = new FieldDefinition(
             "NativeMethodInfoPtr_" + UnmangledNameWithSignature,
@@ -142,7 +181,7 @@ public class MethodRewriteContext
                         oldConstraint.ConstraintType.Resolve()?.IsInterface == true) continue;
 
                     newParameter.Constraints.Add(new GenericParameterConstraint(
-                        DeclaringType.AssemblyContext.RewriteTypeRef(oldConstraint.ConstraintType)));
+                        DeclaringType.AssemblyContext.RewriteTypeRef(oldConstraint.ConstraintType, DeclaringType.isBoxedTypeVariant)));
                 }
             }
 
@@ -222,17 +261,17 @@ public class MethodRewriteContext
                 builder.Append(str);
 
         builder.Append('_');
-        builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(method.ReturnType).GetUnmangledName());
+        builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(method.ReturnType, DeclaringType.isBoxedTypeVariant).GetUnmangledName());
 
         foreach (var param in method.Parameters)
         {
             builder.Append('_');
-            builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(param.ParameterType).GetUnmangledName());
+            builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(param.ParameterType, DeclaringType.isBoxedTypeVariant).GetUnmangledName());
         }
 
         var address = Rva;
-        if (address != 0 && Pass15GenerateMemberContexts.HasObfuscatedMethods &&
-            !Pass16ScanMethodRefs.NonDeadMethods.Contains(address)) builder.Append("_PDM");
+        if (address != 0 && Pass16GenerateMemberContexts.HasObfuscatedMethods &&
+            !Pass17ScanMethodRefs.NonDeadMethods.Contains(address)) builder.Append("_PDM");
 
         return builder.ToString();
     }
@@ -278,13 +317,13 @@ public class MethodRewriteContext
             if (a[i].ParameterType.FullName != b[i].ParameterType.FullName)
                 return false;
 
-        if (Pass15GenerateMemberContexts.HasObfuscatedMethods)
+        if (Pass16GenerateMemberContexts.HasObfuscatedMethods)
         {
             var addressA = otherRewriteContext.Rva;
             var addressB = Rva;
             if (addressA != 0 && addressB != 0)
-                if (Pass16ScanMethodRefs.NonDeadMethods.Contains(addressA) !=
-                    Pass16ScanMethodRefs.NonDeadMethods.Contains(addressB))
+                if (Pass17ScanMethodRefs.NonDeadMethods.Contains(addressA) !=
+                    Pass17ScanMethodRefs.NonDeadMethods.Contains(addressB))
                     return false;
         }
 

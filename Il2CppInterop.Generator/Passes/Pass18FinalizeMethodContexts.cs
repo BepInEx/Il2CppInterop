@@ -23,10 +23,10 @@ public static class Pass18FinalizeMethodContexts
                 {
                     methodContext.CtorPhase2();
 
-                    if (Pass15GenerateMemberContexts.HasObfuscatedMethods)
+                    if (Pass16GenerateMemberContexts.HasObfuscatedMethods)
                     {
                         var callerCount = 0;
-                        if (Pass16ScanMethodRefs.MapOfCallers.TryGetValue(methodContext.Rva, out var callers))
+                        if (Pass17ScanMethodRefs.MapOfCallers.TryGetValue(methodContext.Rva, out var callers))
                             callerCount = callers.Count;
 
                         methodContext.NewMethod.CustomAttributes.Add(
@@ -36,7 +36,7 @@ public static class Pass18FinalizeMethodContexts
                                     {new CustomAttributeArgument(assemblyContext.Imports.Module.Int(), callerCount)}
                             });
 
-                        if (!Pass15GenerateMemberContexts.HasObfuscatedMethods) continue;
+                        if (!Pass16GenerateMemberContexts.HasObfuscatedMethods) continue;
                         if (!methodContext.UnmangledName.Contains("_PDM_")) continue;
                         TotalPotentiallyDeadMethods++;
 
@@ -58,7 +58,7 @@ public static class Pass18FinalizeMethodContexts
                     }
                 }
 
-        if (Pass15GenerateMemberContexts.HasObfuscatedMethods)
+        if (Pass16GenerateMemberContexts.HasObfuscatedMethods)
         {
             Logger.Instance.LogTrace("Dead method statistics: 0t={Top0Caller} mt={TopNZCaller} 0n={Nested0Caller} mn={NestedNZCaller}", pdmTop0Caller, pdmTopNZCaller, pdmNested0Caller, pdmNestedNZCaller);
         }
