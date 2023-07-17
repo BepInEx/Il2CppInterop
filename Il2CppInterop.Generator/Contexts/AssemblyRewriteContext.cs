@@ -130,7 +130,8 @@ public class AssemblyRewriteContext
             return Imports.Module.Void();
 
         if (typeRef.FullName == "System.String")
-            return Imports.Module.String();
+            return sourceModule.ImportReference(GlobalContext.GetAssemblyByName("mscorlib")
+                .GetTypeByName("System.String").NewType);
 
         if (typeRef.FullName == "System.Object")
             return sourceModule.ImportReference(GlobalContext.GetAssemblyByName("mscorlib")
