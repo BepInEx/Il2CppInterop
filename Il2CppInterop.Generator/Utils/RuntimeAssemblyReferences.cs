@@ -36,6 +36,7 @@ public class RuntimeAssemblyReferences
     public Lazy<MethodReference> IL2CPP_ManagedStringToIl2Cpp { get; private set; }
     public Lazy<MethodReference> Il2CppObjectBase_Cast { get; private set; }
     public Lazy<MethodReference> Il2CppObjectBase_TryCast { get; private set; }
+    public Lazy<MethodReference> Il2CppObjectPool_Get { get; private set; }
     public Lazy<MethodReference> IL2CPP_ResolveICall { get; private set; }
     public Lazy<MethodReference> IL2CPP_il2cpp_gc_wbarrier_set_field { get; private set; }
     public Lazy<MethodReference> IL2CPP_FieldWriteWbarrierStub { get; private set; }
@@ -76,6 +77,7 @@ public class RuntimeAssemblyReferences
         : IL2CPP_FieldWriteWbarrierStub.Value;
 
     public TypeReference Il2CppObjectBase { get; private set; }
+    public TypeReference Il2CppObjectPool { get; private set; }
     public TypeReference Il2CppStringArray { get; private set; }
     public TypeReference Il2CppArrayBase { get; private set; }
     public TypeReference Il2CppStructArray { get; private set; }
@@ -112,6 +114,8 @@ public class RuntimeAssemblyReferences
         Il2CppObjectBase =
             new TypeReference("Il2CppInterop.Runtime.InteropTypes", "Il2CppObjectBase", Module, assemblyRef);
 
+        Il2CppObjectPool = new TypeReference("Il2CppInterop.Runtime.Runtime", "Il2CppObjectPool", Module, assemblyRef);
+
         Il2CppStringArray = new TypeReference("Il2CppInterop.Runtime.InteropTypes.Arrays", "Il2CppStringArray", Module,
             assemblyRef);
 
@@ -142,6 +146,7 @@ public class RuntimeAssemblyReferences
         Il2CppException = new TypeReference("Il2CppInterop.Runtime", "Il2CppException", Module, assemblyRef);
 
         allTypes["Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"] = Il2CppObjectBase;
+        allTypes["Il2CppInterop.Runtime.Runtime.Il2CppObjectPool"] = Il2CppObjectPool;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray"] = Il2CppStringArray;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<T>"] = Il2CppReferenceArray;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<T>"] = Il2CppStructArray;
@@ -278,6 +283,18 @@ public class RuntimeAssemblyReferences
             mr.GenericParameters.Add(gp0);
             mr.ReturnType = gp0;
             mr.HasThis = true;
+            return mr;
+        });
+
+        Il2CppObjectPool_Get = new Lazy<MethodReference>(() =>
+        {
+            var mr = new MethodReference("Get", Module.Void(),
+                ResolveType("Il2CppInterop.Runtime.Runtime.Il2CppObjectPool"));
+            var gp0 = new GenericParameter("T", mr);
+            mr.GenericParameters.Add(gp0);
+            mr.ReturnType = gp0;
+            mr.HasThis = false;
+            mr.Parameters.Add(new ParameterDefinition("ptr", ParameterAttributes.None, ResolveType("System.IntPtr")));
             return mr;
         });
 

@@ -18,11 +18,23 @@ namespace Il2CppInterop.Runtime.Injection
         public abstract T GetDetour();
         public abstract IntPtr FindTargetMethod();
 
+        public virtual void TargetMethodNotFound()
+        {
+            throw new Exception($"Required target method {TargetMethodName} not found");
+        }
+
         public void ApplyHook()
         {
             if (_isApplied) return;
 
             var methodPtr = FindTargetMethod();
+
+            if (methodPtr == IntPtr.Zero)
+            {
+                TargetMethodNotFound();
+                return;
+            }
+
             Logger.Instance.LogTrace("{MethodName} found: 0x{MethodPtr}", TargetMethodName, methodPtr.ToInt64().ToString("X2"));
 
             _detour = GetDetour();
