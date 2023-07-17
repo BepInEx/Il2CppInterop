@@ -153,7 +153,7 @@ public class AssemblyRewriteContext
         {
             return Imports.Il2CppObjectBase;
         }
-        if(originalTypeDef == null)
+        if (originalTypeDef == null)
             return Imports.Il2CppObjectBase;
         var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.Module.Assembly);
         var target = targetAssembly.GetContextForOriginalType(originalTypeDef).NewType;
