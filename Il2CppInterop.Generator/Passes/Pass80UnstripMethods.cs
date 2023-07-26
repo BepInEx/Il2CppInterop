@@ -130,7 +130,8 @@ public static class Pass80UnstripMethods
             unityMethod.DeclaringType.Properties.Single(
                 it => it.SetMethod == unityMethod || it.GetMethod == unityMethod);
         var newProperty = newMethod.DeclaringType.Properties.SingleOrDefault(it =>
-            it.Name == unityProperty.Name && it.Parameters.Count == unityProperty.Parameters.Count);
+            it.Name == unityProperty.Name && it.Parameters.Count == unityProperty.Parameters.Count &&
+            it.Parameters.SequenceEqual(unityProperty.Parameters, new TypeComparer()));
         if (newProperty == null)
         {
             newProperty = new PropertyDefinition(unityProperty.Name, PropertyAttributes.None,
@@ -227,5 +228,24 @@ public static class Pass80UnstripMethods
         var newType = targetAssembly?.TryGetTypeByName(unityType.FullName)?.NewType;
 
         return newType;
+    }
+
+    //Stolen from: https://github.com/kremnev8/Il2CppInterop/blob/2c4a31f95f8aa6afe910aca0f8044efb80259d20/Il2CppInterop.Generator/Passes/Pass11ComputeTypeSpecifics.cs#L223
+    internal sealed class TypeComparer : IEqualityComparer<ParameterDefinition>
+    {
+        public bool Equals(ParameterDefinition x, ParameterDefinition y)
+        {
+            if (x == null)
+                return y == null;
+            if (y == null)
+                return false;
+
+            return x.ParameterType.FullName.Equals(y.ParameterType.FullName);
+        }
+
+        public int GetHashCode(ParameterDefinition obj)
+        {
+            return obj.ParameterType.FullName.GetHashCode();
+        }
     }
 }
