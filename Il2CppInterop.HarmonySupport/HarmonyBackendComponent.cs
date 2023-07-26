@@ -1,6 +1,7 @@
 ﻿using HarmonyLib.Public.Patching;
 using Il2CppInterop.Common.Host;
-using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.Injection;
 
 namespace Il2CppInterop.HarmonySupport;
 
@@ -21,7 +22,10 @@ internal class HarmonySupportComponent : IHostComponent
 
     private static void TryResolve(object sender, PatchManager.PatcherResolverEventArgs args)
     {
-        if (args.Original.DeclaringType?.IsSubclassOf(typeof(Il2CppObjectBase)) != true)
+        var declaringType = args.Original.DeclaringType;
+        if (declaringType == null) return;
+        if (Il2CppType.From(declaringType, false) == null ||
+            ClassInjector.IsManagedTypeInjected(declaringType))
         {
             return;
         }

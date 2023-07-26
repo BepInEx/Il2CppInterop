@@ -37,9 +37,11 @@ public static class DelegateSupport
 
     private static Type CreateDelegateType(MethodInfo managedMethodInner, MethodSignature signature)
     {
-        var newType = ModuleBuilder.DefineType(
-            "Il2CppToManagedDelegate_" + managedMethodInner.DeclaringType.FullName + "_" + signature.GetHashCode() + (signature.HasThis ? "HasThis" : "") +
-            (signature.ConstructedFromNative ? "FromNative" : ""), TypeAttributes.Sealed | TypeAttributes.Public,
+        var typeName = "Il2CppToManagedDelegate_" + managedMethodInner.DeclaringType + "_" + signature.GetHashCode() +
+                       (signature.HasThis ? "HasThis" : "") +
+                       (signature.ConstructedFromNative ? "FromNative" : "");
+
+        var newType = ModuleBuilder.DefineType(typeName, TypeAttributes.Sealed | TypeAttributes.Public,
             typeof(MulticastDelegate));
         newType.SetCustomAttribute(new CustomAttributeBuilder(
             typeof(UnmanagedFunctionPointerAttribute).GetConstructor(new[] { typeof(CallingConvention) })!,
