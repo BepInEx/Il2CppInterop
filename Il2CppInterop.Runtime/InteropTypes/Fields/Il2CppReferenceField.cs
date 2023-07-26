@@ -28,7 +28,7 @@ public unsafe class Il2CppReferenceField<TRefObj> where TRefObj : Il2CppObjectBa
 
     public void Set(TRefObj value)
     {
-        *GetPointerToData() = value.Pointer;
+        *GetPointerToData() = value != null ? value.Pointer : IntPtr.Zero;
     }
 
     public static implicit operator TRefObj(Il2CppReferenceField<TRefObj> _this)

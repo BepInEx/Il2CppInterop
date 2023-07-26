@@ -128,6 +128,13 @@ public static unsafe partial class ClassInjector
         var currentPointer = Il2CppClassPointerStore.GetNativeClassPointer(type);
         if (currentPointer != IntPtr.Zero)
             return true;
+        if (IsManagedTypeInjected(type)) return true;
+
+        return false;
+    }
+
+    internal static bool IsManagedTypeInjected(Type type)
+    {
         lock (InjectedTypes)
         {
             if (InjectedTypes.Contains(type.FullName))
@@ -305,7 +312,12 @@ public static unsafe partial class ClassInjector
 
         methodPointerArray[0] = ConvertStaticMethod(FinalizeDelegate, "Finalize", classPointer);
         var finalizeMethod = UnityVersionHandler.Wrap(methodPointerArray[0]);
-        if (!type.IsAbstract) methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type, fieldsToInject), ".ctor", classPointer);
+        var fieldsToInitialize = type
+            .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .Where(IsFieldEligible)
+            .ToArray();
+
+        if (!type.IsAbstract) methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type, fieldsToInitialize), ".ctor", classPointer);
         var infos = new Dictionary<(string, int, bool), int>(eligibleMethods.Length);
         for (var i = 0; i < eligibleMethods.Length; i++)
         {
@@ -372,6 +384,18 @@ public static unsafe partial class ClassInjector
         }
 
         var abstractV = 0;
+
+        INativeMethodInfoStruct HandleAbstractMethod(int position)
+        {
+            if (!extendsAbstract) throw new NullReferenceException("VTable method was null even though base type isn't abstract");
+
+            var nativeMethodInfoStruct = abstractBaseMethods[abstractV++];
+
+            vTablePointer[position].method = nativeMethodInfoStruct.MethodInfoPointer;
+            vTablePointer[position].methodPtr = nativeMethodInfoStruct.MethodPointer;
+            return nativeMethodInfoStruct;
+        }
+
         for (var i = 0; i < baseClassPointer.VtableCount; i++)
         {
             vTablePointer[i] = baseVTablePointer[i];
@@ -380,16 +404,16 @@ public static unsafe partial class ClassInjector
 
             if (baseVTablePointer[i].method == default)
             {
-                if (!extendsAbstract) throw new NullReferenceException("VTable method was null even though base type isn't abstract");
-
-                baseMethod = abstractBaseMethods[abstractV++];
-
-                vTablePointer[i].method = baseMethod.MethodInfoPointer;
-                vTablePointer[i].methodPtr = baseMethod.MethodPointer;
+                baseMethod = HandleAbstractMethod(i);
             }
             else
             {
                 baseMethod = UnityVersionHandler.Wrap(vTablePointer[i].method);
+            }
+
+            if (baseMethod.Name == IntPtr.Zero)
+            {
+                baseMethod = HandleAbstractMethod(i);
             }
 
             var methodName = Marshal.PtrToStringAnsi(baseMethod.Name);
