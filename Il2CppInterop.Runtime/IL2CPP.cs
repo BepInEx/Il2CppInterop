@@ -474,7 +474,7 @@ public static unsafe class IL2CPP
     public static extern IntPtr il2cpp_class_from_il2cpp_type(IntPtr type);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_class_from_name(IntPtr image, IntPtr namespaze,IntPtr name);
+    public static extern IntPtr il2cpp_class_from_name(IntPtr image, IntPtr namespaze, IntPtr name);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_class_from_system_type(IntPtr type);
