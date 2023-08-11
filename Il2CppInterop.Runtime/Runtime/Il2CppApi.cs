@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 
 namespace Il2CppInterop.Runtime.Runtime;
@@ -198,7 +198,7 @@ internal static unsafe class Il2CppApi
     public static IntPtr il2cpp_class_from_name(IntPtr image, [MarshalAs(UnmanagedType.LPStr)] string namespaze,
         [MarshalAs(UnmanagedType.LPStr)] string name)
     {
-        return IL2CPP.il2cpp_class_from_name(image, namespaze, name);
+        return IL2CPP.il2cpp_class_from_name(image, Marshal.StringToCoTaskMemUTF8(namespaze), Marshal.StringToCoTaskMemUTF8(name));
     }
 
     public static IntPtr il2cpp_class_from_system_type(IntPtr type)
@@ -243,7 +243,7 @@ internal static unsafe class Il2CppApi
 
     public static IntPtr il2cpp_class_get_field_from_name(IntPtr klass, [MarshalAs(UnmanagedType.LPStr)] string name)
     {
-        return IL2CPP.il2cpp_class_get_field_from_name(klass, name);
+        return IL2CPP.il2cpp_class_get_field_from_name(klass, Marshal.StringToCoTaskMemUTF8(name));
     }
 
     public static IntPtr il2cpp_class_get_methods(IntPtr klass, ref IntPtr iter)
