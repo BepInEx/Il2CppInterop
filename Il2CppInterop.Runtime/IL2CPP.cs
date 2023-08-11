@@ -58,7 +58,7 @@ public static unsafe class IL2CPP
             return IntPtr.Zero;
         }
 
-        var clazz = il2cpp_class_from_name(image, namespaze, className);
+        var clazz = il2cpp_class_from_name(image, Marshal.StringToCoTaskMemUTF8(namespaze), Marshal.StringToCoTaskMemUTF8(className));
         return clazz;
     }
 
@@ -66,7 +66,7 @@ public static unsafe class IL2CPP
     {
         if (clazz == IntPtr.Zero) return IntPtr.Zero;
 
-        var field = il2cpp_class_get_field_from_name(clazz, fieldName);
+        var field = il2cpp_class_get_field_from_name(clazz, Marshal.StringToCoTaskMemUTF8(fieldName));
         if (field == IntPtr.Zero)
             Logger.Instance.LogError(
                 "Field {FieldName} was not found on class {ClassName}", fieldName, Marshal.PtrToStringUTF8(il2cpp_class_get_name(clazz)));
@@ -474,8 +474,7 @@ public static unsafe class IL2CPP
     public static extern IntPtr il2cpp_class_from_il2cpp_type(IntPtr type);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_class_from_name(IntPtr image, [MarshalAs(UnmanagedType.LPStr)] string namespaze,
-        [MarshalAs(UnmanagedType.LPStr)] string name);
+    public static extern IntPtr il2cpp_class_from_name(IntPtr image, IntPtr namespaze,IntPtr name);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_class_from_system_type(IntPtr type);
@@ -502,8 +501,7 @@ public static unsafe class IL2CPP
     public static extern IntPtr il2cpp_class_get_property_from_name(IntPtr klass, IntPtr name);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_class_get_field_from_name(IntPtr klass,
-        [MarshalAs(UnmanagedType.LPStr)] string name);
+    public static extern IntPtr il2cpp_class_get_field_from_name(IntPtr klass, IntPtr name);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_class_get_methods(IntPtr klass, ref IntPtr iter);
