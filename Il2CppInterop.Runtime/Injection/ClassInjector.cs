@@ -1142,6 +1142,11 @@ public static unsafe partial class ClassInjector
     {
         var fullName = GetIl2CppTypeFullName(typePointer);
         var type = Type.GetType(fullName) ?? throw new NullReferenceException($"Couldn't find System.Type for Il2Cpp type: {fullName}");
+
+        var il2cppType = UnityVersionHandler.Wrap(typePointer);
+        if (il2cppType.ByRef)
+            type = type.MakeByRefType();
+
         return RewriteType(type);
     }
 
