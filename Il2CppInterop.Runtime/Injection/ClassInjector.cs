@@ -534,7 +534,7 @@ public static unsafe partial class ClassInjector
         if (type.IsValueType ||
             type == typeof(string) ||
             type.IsGenericParameter) return true;
-        if (type.IsByRef) return IsTypeSupported(type.GetElementType());
+        if (type.IsByRef || type.IsPointer) return IsTypeSupported(type.GetElementType());
 
         return typeof(Il2CppObjectBase).IsAssignableFrom(type);
     }
@@ -655,7 +655,7 @@ public static unsafe partial class ClassInjector
                 var parameterType = parameterInfo.ParameterType;
                 if (!parameterType.IsGenericParameter)
                 {
-                    if (parameterType.IsByRef)
+                    if (parameterType.IsByRef || parameterType.IsPointer)
                     {
                         var elementType = parameterType.GetElementType();
                         if (!elementType.IsGenericParameter)
@@ -1083,7 +1083,7 @@ public static unsafe partial class ClassInjector
         if (type.IsValueType && !type.IsEnum)
             return type;
 
-        if (type == typeof(string))
+        if (type == typeof(string) || type == typeof(void*))
             return type;
 
         if (type.IsArray)
