@@ -522,7 +522,8 @@ public static unsafe partial class ClassInjector
         RuntimeSpecificsStore.SetClassInfo(classPointer.Pointer, true);
         Il2CppClassPointerStore.SetNativeClassPointer(type, classPointer.Pointer);
 
-        InjectorHelpers.AddTypeToLookup(type, classPointer.Pointer);
+        var classTypePtr = IL2CPP.il2cpp_class_get_type(classPointer.Pointer);
+        InjectorHelpers.AddTypeToLookup(type, classTypePtr);
 
         if (options.LogSuccess)
             Logger.Instance.LogInformation("Registered mono type {Type} in il2cpp domain", type);
@@ -1147,10 +1148,16 @@ public static unsafe partial class ClassInjector
 
     internal static Type SystemTypeFromIl2CppType(Il2CppTypeStruct* typePointer)
     {
-        var fullName = GetIl2CppTypeFullName(typePointer);
-        var type = Type.GetType(fullName) ?? throw new NullReferenceException($"Couldn't find System.Type for Il2Cpp type: {fullName}");
-
         INativeTypeStruct wrappedType = UnityVersionHandler.Wrap(typePointer);
+
+        if (InjectorHelpers.TryGetType((IntPtr)wrappedType.TypePointer, out var type))
+        {
+            return RewriteType(type);
+        }
+
+        var fullName = GetIl2CppTypeFullName(typePointer);
+        type = Type.GetType(fullName) ?? throw new NullReferenceException($"Couldn't find System.Type for Il2Cpp type: {fullName}");
+
         if (wrappedType.Type == Il2CppTypeEnum.IL2CPP_TYPE_GENERICINST)
         {
             Il2CppGenericClass* genericClass = (Il2CppGenericClass*)wrappedType.Data;
