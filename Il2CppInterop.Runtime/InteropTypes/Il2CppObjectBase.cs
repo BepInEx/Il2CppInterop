@@ -14,7 +14,7 @@ public class Il2CppObjectBase
     internal bool isWrapped;
     internal IntPtr pooledPtr;
 
-    private uint myGcHandle;
+    private nint myGcHandle;
 
     public Il2CppObjectBase(IntPtr pointer)
     {

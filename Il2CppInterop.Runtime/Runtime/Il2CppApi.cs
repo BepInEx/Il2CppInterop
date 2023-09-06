@@ -600,22 +600,22 @@ internal static unsafe class Il2CppApi
 
     #region GC Handles
 
-    public static uint il2cpp_gchandle_new(IntPtr obj, bool pinned)
+    public static nint il2cpp_gchandle_new(IntPtr obj, bool pinned)
     {
         return IL2CPP.il2cpp_gchandle_new(obj, pinned);
     }
 
-    public static uint il2cpp_gchandle_new_weakref(IntPtr obj, bool track_resurrection)
+    public static nint il2cpp_gchandle_new_weakref(IntPtr obj, bool track_resurrection)
     {
         return IL2CPP.il2cpp_gchandle_new_weakref(obj, track_resurrection);
     }
 
-    public static IntPtr il2cpp_gchandle_get_target(uint gchandle)
+    public static IntPtr il2cpp_gchandle_get_target(nint gchandle)
     {
         return IL2CPP.il2cpp_gchandle_get_target(gchandle);
     }
 
-    public static void il2cpp_gchandle_free(uint gchandle)
+    public static void il2cpp_gchandle_free(nint gchandle)
     {
         IL2CPP.il2cpp_gchandle_free(gchandle);
     }

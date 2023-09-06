@@ -685,17 +685,17 @@ public static unsafe class IL2CPP
     public static extern void il2cpp_gc_wbarrier_set_field(IntPtr obj, IntPtr targetAddress, IntPtr gcObj);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern uint il2cpp_gchandle_new(IntPtr obj, [MarshalAs(UnmanagedType.I1)] bool pinned);
+    public static extern nint il2cpp_gchandle_new(IntPtr obj, [MarshalAs(UnmanagedType.I1)] bool pinned);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern uint il2cpp_gchandle_new_weakref(IntPtr obj,
+    public static extern nint il2cpp_gchandle_new_weakref(IntPtr obj,
         [MarshalAs(UnmanagedType.I1)] bool track_resurrection);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_gchandle_get_target(uint gchandle);
+    public static extern IntPtr il2cpp_gchandle_get_target(nint gchandle);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void il2cpp_gchandle_free(uint gchandle);
+    public static extern void il2cpp_gchandle_free(nint gchandle);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_unity_liveness_calculation_begin(IntPtr filter, int max_object_count,
