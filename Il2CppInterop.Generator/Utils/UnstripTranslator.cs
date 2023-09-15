@@ -250,6 +250,18 @@ public class UnstripTranslator
             return Result.OK;
         }
 
+        if (ins.OpCode == OpCodes.Box)
+        {
+            if (targetType.IsPrimitive || targetType.FullName == "System.String")
+            {
+                _targetBuilder.Emit(OpCodes.Call, _imports.Il2CppObject_op_Implicit.Get(targetType));
+                return Result.OK;
+            }
+
+            // TODO implement (blittable?) struct boxing
+            return Result.Unimplemented(ins);
+        }
+
         _targetBuilder.Emit(ins.OpCode, targetType);
         return Result.OK;
     }

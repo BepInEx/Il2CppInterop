@@ -71,6 +71,8 @@ public class RuntimeAssemblyReferences
     public Lazy<MethodReference> Il2CppSystemDelegateCombine { get; private set; }
     public Lazy<MethodReference> Il2CppSystemDelegateRemove { get; private set; }
     public Lazy<MethodReference> Il2CppSystemRuntimeTypeHandleGetRuntimeTypeHandle { get; private set; }
+    public Lazy<TypeDefinition> Il2CppObject { get; private set; }
+    public Memoize<TypeReference, MethodReference> Il2CppObject_op_Implicit { get; private set; }
 
     public MethodReference WriteFieldWBarrier => globalCtx.HasGcWbarrierFieldWrite
         ? IL2CPP_il2cpp_gc_wbarrier_set_field.Value
@@ -619,5 +621,12 @@ public class RuntimeAssemblyReferences
             methodReference.GenericParameters.Add(new GenericParameter("T", methodReference));
             return Module.ImportReference(methodReference);
         });
+
+        Il2CppObject = new(() => globalCtx.GetAssemblyByName("mscorlib")
+            .NewAssembly.MainModule.GetType("Il2CppSystem.Object"));
+
+        Il2CppObject_op_Implicit = new((param) =>
+            Module.ImportReference(Il2CppObject.Value.Methods.Single(m => m.Name == "op_Implicit" &&
+                m.Parameters[0].ParameterType.FullName == param.FullName)));
     }
 }
