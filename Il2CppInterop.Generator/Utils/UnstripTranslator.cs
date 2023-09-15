@@ -145,8 +145,11 @@ public class UnstripTranslator
         if (methodDeclarer == null)
             return new(ErrorType.Unresolved, ins, $"Could not resolve declaring type {methodArg.DeclaringType}");
 
-        var newReturnType =
-            Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext, methodArg.ReturnType, _imports);
+        var newReturnType = methodArg.ReturnType switch
+        {
+            GenericParameter genericParam => genericParam,
+            _ => Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext, methodArg.ReturnType, _imports),
+        };
         if (newReturnType == null)
             return new(ErrorType.Unresolved, ins, $"Could not resolve return type {methodArg.ReturnType}");
 
@@ -154,8 +157,12 @@ public class UnstripTranslator
         newMethod.HasThis = methodArg.HasThis;
         foreach (var methodArgParameter in methodArg.Parameters)
         {
-            var newParamType = Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext,
-                methodArgParameter.ParameterType, _imports);
+            var newParamType = methodArgParameter.ParameterType switch
+            {
+                GenericParameter genericParam => genericParam,
+                _ => Pass80UnstripMethods.ResolveTypeInNewAssemblies(
+                    _globalContext, methodArgParameter.ParameterType, _imports),
+            };
             if (newParamType == null)
                 return new(ErrorType.Unresolved, ins, $"Could not resolve parameter #{methodArgParameter.Index} {methodArgParameter.ParameterType} {methodArgParameter.Name}");
 
