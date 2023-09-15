@@ -112,14 +112,32 @@ public class UnstripTranslator
             return Result.OK;
         }
 
-        if (ins.OpCode == OpCodes.Ldfld || ins.OpCode == OpCodes.Ldsfld)
+        if (ins.OpCode == OpCodes.Ldfld || ins.OpCode == OpCodes.Ldsfld ||
+            ins.OpCode == OpCodes.Ldflda || ins.OpCode == OpCodes.Ldsflda)
         {
             var getterMethod = fieldDeclarer.Resolve().Properties
                 .SingleOrDefault(it => it.Name == fieldArg.Name)?.GetMethod;
             if (getterMethod == null)
                 return new(ErrorType.FieldProxy, ins, $"Could not find getter for proxy property {fieldArg}");
-
             _targetBuilder.Emit(OpCodes.Call, _imports.Module.ImportReference(getterMethod));
+
+            if (ins.OpCode == OpCodes.Ldflda || ins.OpCode == OpCodes.Ldsflda)
+            {
+                TypeReference variableType;
+                if (getterMethod.ReturnType is GenericParameter genReturnType
+                    && genReturnType.Type == GenericParameterType.Type
+                    && getterMethod.MethodReturnType.Method is MemberReference getterMethodRef
+                    && getterMethodRef.DeclaringType is IGenericInstance genGetterMethod)
+                    variableType = genGetterMethod.GenericArguments[genReturnType.Position];
+                else
+                    variableType = getterMethod.ReturnType;
+
+                var varDef = new VariableDefinition(variableType);
+                _target.Body.Variables.Add(varDef);
+
+                _targetBuilder.Emit(OpCodes.Stloc, varDef);
+                _targetBuilder.Emit(OpCodes.Ldloca, varDef);
+            }
             return Result.OK;
         }
 
