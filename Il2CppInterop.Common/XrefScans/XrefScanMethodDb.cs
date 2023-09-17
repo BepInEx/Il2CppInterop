@@ -12,7 +12,8 @@ public static class XrefScanMethodDb
     private static readonly MethodXrefScanCache XrefScanCache;
     private static readonly long GameAssemblyBase;
 
-    private static XrefScanUtil.InitMetadataForMethod ourMetadataInitForMethodDelegate;
+    private static XrefScanUtil.InitMetadataForMethodToken ourMetadataInitForMethodTokenDelegate;
+    private static XrefScanUtil.InitMetadataForMethodPointer ourMetadataInitForMethodPointerDelegate;
 
     static XrefScanMethodDb()
     {
@@ -47,20 +48,33 @@ public static class XrefScanMethodDb
 
     internal static void CallMetadataInitForMethod(CachedScanResultsAttribute attribute)
     {
-        if (attribute.MetadataInitFlagRva == 0 || attribute.MetadataInitTokenRva == 0)
+        if (attribute.MetadataInitFlagRva == 0 || !(attribute.MetadataInitTokenRvas?.Any() ?? false))
             return;
 
         if (Marshal.ReadByte((IntPtr)(GameAssemblyBase + attribute.MetadataInitFlagRva)) != 0)
             return;
 
-        if (ourMetadataInitForMethodDelegate == null)
-            ourMetadataInitForMethodDelegate =
-                Marshal.GetDelegateForFunctionPointer<XrefScanUtil.InitMetadataForMethod>(
+        if (ourMetadataInitForMethodTokenDelegate == null)
+            ourMetadataInitForMethodTokenDelegate =
+                Marshal.GetDelegateForFunctionPointer<XrefScanUtil.InitMetadataForMethodToken>(
+                    (IntPtr)(GameAssemblyBase + XrefScanCache.Header.InitMethodMetadataRva));
+        if (ourMetadataInitForMethodPointerDelegate == null)
+            ourMetadataInitForMethodPointerDelegate =
+                Marshal.GetDelegateForFunctionPointer<XrefScanUtil.InitMetadataForMethodPointer>(
                     (IntPtr)(GameAssemblyBase + XrefScanCache.Header.InitMethodMetadataRva));
 
-        var token = Marshal.ReadInt32((IntPtr)(GameAssemblyBase + attribute.MetadataInitTokenRva));
+        foreach (var tokenRva in attribute.MetadataInitTokenRvas) {
+            var token = (IntPtr)(GameAssemblyBase + tokenRva);
 
-        ourMetadataInitForMethodDelegate(token);
+            if (false)
+            {
+                ourMetadataInitForMethodTokenDelegate(Marshal.ReadInt32(token));
+            }
+            else
+            {
+                ourMetadataInitForMethodPointerDelegate(token);
+            }
+        }
 
         Marshal.WriteByte((IntPtr)(GameAssemblyBase + attribute.MetadataInitFlagRva), 1);
     }
