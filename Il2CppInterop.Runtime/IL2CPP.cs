@@ -236,7 +236,7 @@ public static unsafe class IL2CPP
         }
 
         while ((nestedTypePtr = il2cpp_class_get_nested_types(enclosingType, ref iter)) != IntPtr.Zero)
-            if (Marshal.PtrToStringAnsi(il2cpp_class_get_name(nestedTypePtr)) == nestedTypeName)
+            if (Marshal.PtrToStringUTF8(il2cpp_class_get_name(nestedTypePtr)) == nestedTypeName)
                 return nestedTypePtr;
 
         Logger.Instance.LogError(
