@@ -60,7 +60,7 @@ public static class Pass16ScanMethodRefs
                 {
                     var pair = XrefScanMetadataGenerationUtil.FindMetadataInitForMethod(originalTypeMethod, gameAssemblyPtr);
                     originalTypeMethod.MetadataInitFlagRva = pair.FlagRva;
-                    originalTypeMethod.MetadataInitTokenRva = pair.TokenRva;
+                    originalTypeMethod.MetadataInitTokenRvas = pair.TokenRvas;
                 }
 
                 var nextMethodStart = context.MethodStartAddresses.BinarySearch(address + 1);

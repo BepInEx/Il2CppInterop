@@ -2,32 +2,20 @@
 using System.Linq;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common.XrefScans;
-using Il2CppInterop.Runtime.InteropTypes.Arrays;
-using Il2CppSystem.Reflection;
-using BindingFlags = System.Reflection.BindingFlags;
+using Il2CppMono.Xml;
 
 namespace Il2CppInterop.Runtime.XrefScans;
 
 internal class XrefScanImpl : IXrefScannerImpl
 {
-    private static Func<AppDomain, Il2CppReferenceArray<Assembly>>? getAssemblies;
-
-    public unsafe (XrefScanUtil.InitMetadataForMethod, IntPtr)? GetMetadataResolver()
+    public unsafe IntPtr? GetMetadataResolver()
     {
-        getAssemblies ??=
-            typeof(AppDomain).GetMethod("GetAssemblies", BindingFlags.Public | BindingFlags.Static)
-                    ?.CreateDelegate(typeof(Func<AppDomain, Il2CppReferenceArray<Assembly>>)) as
-                Func<AppDomain, Il2CppReferenceArray<Assembly>>;
-
-        var unityObjectCctor = getAssemblies(AppDomain.CurrentDomain)
-            .Single(it => it.GetName().Name == "UnityEngine.CoreModule").GetType("UnityEngine.Object")
-            .GetConstructors(Il2CppSystem.Reflection.BindingFlags.Static |
-                             Il2CppSystem.Reflection.BindingFlags.NonPublic).Single();
+        var unityObjectCctor = Il2CppType.Of<SmallXmlParser>()
+            .GetConstructors(Il2CppSystem.Reflection.BindingFlags.Instance |
+                             Il2CppSystem.Reflection.BindingFlags.Public).Single();
         var nativeMethodInfo = IL2CPP.il2cpp_method_get_from_reflection(unityObjectCctor.Pointer);
         var ourMetadataInitForMethodPointer = XrefScannerLowLevel.JumpTargets(*(IntPtr*)nativeMethodInfo).First();
-        var ourMetadataInitForMethodDelegate =
-            Marshal.GetDelegateForFunctionPointer<XrefScanUtil.InitMetadataForMethod>(ourMetadataInitForMethodPointer);
-        return (ourMetadataInitForMethodDelegate, ourMetadataInitForMethodPointer);
+        return ourMetadataInitForMethodPointer;
     }
 
     public bool XrefGlobalClassFilter(IntPtr movTarget)

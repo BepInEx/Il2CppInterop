@@ -37,7 +37,7 @@ public class MethodRewriteContext
     public readonly List<XrefInstance> XrefScanResults = new();
 
     public long MetadataInitFlagRva;
-    public long MetadataInitTokenRva;
+    public long[] MetadataInitTokenRvas;
 
     public MethodRewriteContext(TypeRewriteContext declaringType, MethodDefinition originalMethod)
     {

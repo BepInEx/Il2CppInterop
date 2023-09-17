@@ -70,10 +70,10 @@ public static class XrefScanner
             if (instruction.FlowControl == FlowControl.Return)
                 yield break;
 
-            if (instruction.Mnemonic == Mnemonic.Int || instruction.Mnemonic == Mnemonic.Int1)
+            if (instruction.Mnemonic is Mnemonic.Int or Mnemonic.Int1 or Mnemonic.Int3)
                 yield break;
 
-            if (instruction.Mnemonic == Mnemonic.Call || instruction.Mnemonic == Mnemonic.Jmp)
+            if (instruction.Mnemonic is Mnemonic.Call or Mnemonic.Jmp)
             {
                 var targetAddress = ExtractTargetAddress(instruction);
                 if (targetAddress != 0)

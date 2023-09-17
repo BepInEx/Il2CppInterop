@@ -2,7 +2,7 @@
 
 internal interface IXrefScannerImpl
 {
-    (XrefScanUtil.InitMetadataForMethod, IntPtr)? GetMetadataResolver();
+    IntPtr? GetMetadataResolver();
 
     bool XrefGlobalClassFilter(IntPtr movTarget);
 }

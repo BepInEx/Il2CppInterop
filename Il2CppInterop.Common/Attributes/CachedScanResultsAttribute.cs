@@ -5,7 +5,7 @@ public class CachedScanResultsAttribute : Attribute
 {
     // Data for metadata init call
     public long MetadataInitFlagRva;
-    public long MetadataInitTokenRva;
+    public long[] MetadataInitTokenRvas;
     public int RefRangeEnd;
 
     // Methods that call this method
