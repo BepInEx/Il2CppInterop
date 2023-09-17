@@ -3,6 +3,7 @@ using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Passes;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using static Il2CppInterop.Generator.Contexts.TypeRewriteContext;
 
 namespace Il2CppInterop.Generator.Utils;
 
@@ -34,6 +35,7 @@ public class UnstripTranslator
         Unimplemented,
         Unresolved,
         FieldProxy,
+        NonBlittableStruct,
     }
 
     public static Result TranslateMethod(MethodDefinition original, MethodDefinition target,
@@ -196,25 +198,32 @@ public class UnstripTranslator
     private Result InlineType(Instruction ins)
     {
         var targetType = (TypeReference)ins.Operand;
+        TypeRewriteContext rwContext;
         if (targetType is GenericParameter genericParam)
         {
-            if (genericParam.Owner is TypeReference paramOwner)
+            if (genericParam.Owner is TypeReference paramTypeOwner)
             {
-                var newTypeOwner =
-                    Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext, paramOwner, _imports);
-                if (newTypeOwner == null)
-                    return new(ErrorType.Unresolved, ins, $"Could not resolve owner type {paramOwner}");
-                targetType = newTypeOwner.GenericParameters.Single(it => it.Name == targetType.Name);
+                targetType = paramTypeOwner.GenericParameters.Single(it => it.Name == genericParam.Name);
+                targetType =
+                    Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext, targetType, _imports, out rwContext);
+                if (targetType == null)
+                    return new(ErrorType.Unresolved, ins, $"Could not resolve generic {genericParam.Name} in type owner {paramTypeOwner}");
+            }
+            else if (genericParam.Owner is MethodDefinition paramMethodOwner)
+            {
+                targetType = paramMethodOwner.GenericParameters.Single(it => it.Name == genericParam.Name);
+                targetType =
+                    Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext, targetType, _imports, out rwContext);
+                if (targetType == null)
+                    return new(ErrorType.Unresolved, ins, $"Could not resolve generic {genericParam.Name} in method owner {paramMethodOwner}");
             }
             else
-            {
-                targetType = _target.GenericParameters.Single(it => it.Name == targetType.Name);
-            }
+                return new(ErrorType.Unresolved, ins, $"Could not resolve generic {genericParam.Name}, unknown owner {genericParam.Owner.GetType().Name}");
         }
         else
         {
             var oldTargetType = targetType;
-            targetType = Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext, targetType, _imports);
+            targetType = Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext, targetType, _imports, out rwContext);
             if (targetType == null)
                 return new(ErrorType.Unresolved, ins, $"Could not resolve type {oldTargetType}");
         }
@@ -235,18 +244,24 @@ public class UnstripTranslator
             return Result.OK;
         }
 
-        if (ins.OpCode == OpCodes.Newarr && !targetType.IsValueType)
+        if (ins.OpCode == OpCodes.Newarr)
         {
-            _targetBuilder.Emit(OpCodes.Conv_I8);
+            MethodReference il2cppArrayctor_size;
+            if (targetType.IsValueType)
+            {
+                if (rwContext != null && // primitives does not have a rewrite context but are blittable
+                    rwContext.ComputedTypeSpecifics != TypeSpecifics.BlittableStruct)
+                    return new(ErrorType.NonBlittableStruct, ins, $"Expected {nameof(TypeSpecifics.BlittableStruct)} but found {Enum.GetName(typeof(TypeSpecifics), rwContext.ComputedTypeSpecifics)}");
+                il2cppArrayctor_size = _imports.Il2CppStructArrayctor_size.Get(targetType);
+            }
+            else if (targetType.FullName == "System.String")
+                il2cppArrayctor_size = _imports.Il2CppStringArrayctor_size.Value;
+            else
+                il2cppArrayctor_size = _imports.Il2CppRefrenceArrayctor_size.Get(targetType);
 
-            var il2cppTypeArray = new GenericInstanceType(_imports.Il2CppReferenceArray)
-            { GenericArguments = { targetType } };
+            _targetBuilder.Emit(OpCodes.Conv_I8);
             _targetBuilder.Emit(OpCodes.Newobj, _imports.Module.ImportReference(
-                new MethodReference(".ctor", _imports.Module.Void(), il2cppTypeArray)
-                {
-                    HasThis = true,
-                    Parameters = { new ParameterDefinition(_imports.Module.Long()) }
-                }));
+                il2cppArrayctor_size));
             return Result.OK;
         }
 
