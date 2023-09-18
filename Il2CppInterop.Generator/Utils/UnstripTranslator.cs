@@ -36,6 +36,7 @@ public class UnstripTranslator
         Unresolved,
         FieldProxy,
         NonBlittableStruct,
+        Stack,
     }
 
     public static Result TranslateMethod(MethodDefinition original, MethodDefinition target,
@@ -95,6 +96,7 @@ public class UnstripTranslator
             OperandType.InlineType => InlineType(ins),
             OperandType.InlineSig => InlineSig(ins),
             OperandType.InlineTok => InlineTok(ins),
+            OperandType.InlineNone => InlineNone(ins),
             _ => Copy(ins),
         };
     }
@@ -320,6 +322,49 @@ public class UnstripTranslator
             _imports.Module.ImportReference(
                 new GenericInstanceMethod(_imports.Il2CppSystemRuntimeTypeHandleGetRuntimeTypeHandle.Value)
                 { GenericArguments = { targetTok } }));
+        return Result.OK;
+    }
+
+    private Result InlineNone(Instruction ins)
+    {
+        var code = ins.OpCode.Code;
+        var stackTarget = code switch
+        {
+            _ when code.IsStelem() => 2,
+            _ when code.IsLdelem() => 1,
+            Code.Ldlen => 0,
+            _ => -1,
+        };
+        if (stackTarget >= 0)
+        {
+            if (!StackWalker.TryWalkStack(_imports, _target, stackTarget, out var il2cppArray))
+            {
+                // TODO follow branches in StackWalker
+                // We're probably here because of our naive stack walking
+                return new(ErrorType.Stack, ins, $"Unable to find target of {ins.OpCode.Name}");
+            }
+
+            TypeReference genericArg;
+            if (il2cppArray == _imports.Il2CppStringArray)
+                genericArg = _imports.Module.String();
+            else if (il2cppArray is GenericInstanceType il2cppArrayInstance && (
+                il2cppArrayInstance.ElementType == _imports.Il2CppReferenceArray ||
+                il2cppArrayInstance.ElementType == _imports.Il2CppStructArray))
+                genericArg = il2cppArrayInstance.GenericArguments[0];
+            else
+                return new(ErrorType.Stack, ins, $"Unexpected target of {ins.OpCode.Name} is {il2cppArray}");
+
+            var mRef = stackTarget switch
+            {
+                2 => _imports.Il2CppArrayBase_set_Item.Get(genericArg),
+                1 => _imports.Il2CppArrayBase_get_Item.Get(genericArg),
+                _ => _imports.Il2CppArrayBase_get_Length.Get(genericArg),
+            };
+            _targetBuilder.Emit(OpCodes.Callvirt, _imports.Module.ImportReference(mRef));
+            return Result.OK;
+        }
+
+        _targetBuilder.Append(ins);
         return Result.OK;
     }
 
