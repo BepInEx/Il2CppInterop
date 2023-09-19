@@ -72,9 +72,11 @@ public class UnstripTranslator
 
         foreach (var variableDefinition in _original.Body.Variables)
         {
-            var variableType =
-                Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext, variableDefinition.VariableType,
-                    _imports);
+            var variableType = variableDefinition.VariableType switch
+            {
+                GenericParameter genericParam => genericParam,
+                _ => Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext, variableDefinition.VariableType, _imports),
+            };
             if (variableType == null)
                 return new(ErrorType.Unresolved, null, $"Could not resolve variable #{variableDefinition.Index} {variableDefinition.VariableType}");
             _target.Body.Variables.Add(new VariableDefinition(variableType));
@@ -211,6 +213,7 @@ public class UnstripTranslator
         {
             var newParamType = methodArgParameter.ParameterType switch
             {
+                ByReferenceType byRef when byRef.ElementType is GenericParameter => byRef,
                 GenericParameter genericParam => genericParam,
                 _ => Pass80UnstripMethods.ResolveTypeInNewAssemblies(
                     _globalContext, methodArgParameter.ParameterType, _imports),
