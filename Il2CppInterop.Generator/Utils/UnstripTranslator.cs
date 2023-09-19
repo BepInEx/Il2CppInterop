@@ -3,6 +3,7 @@ using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Passes;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Cecil.Rocks;
 using static Il2CppInterop.Generator.Contexts.TypeRewriteContext;
 
 namespace Il2CppInterop.Generator.Utils;
@@ -96,6 +97,9 @@ public class UnstripTranslator
             return new(ErrorType.Retargeting, null, $"Incomplete branch retargeting:\n\t{branches}");
         }
 
+        // Retargeter uses long branches everywhere for convenience
+        // but it is safe to optimize them when everything is translated
+        _target.Body.Optimize();
         return Result.OK;
     }
 
