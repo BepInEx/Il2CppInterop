@@ -37,6 +37,7 @@ public class UnstripTranslator
         FieldProxy,
         NonBlittableStruct,
         Stack,
+        Retargeting,
     }
 
     public static Result TranslateMethod(MethodDefinition original, MethodDefinition target,
@@ -50,7 +51,8 @@ public class UnstripTranslator
     private readonly RuntimeAssemblyReferences _imports;
 
     private readonly RewriteGlobalContext _globalContext;
-    private readonly ILProcessor _targetBuilder;
+    private readonly RetargetingILProcessor _retargeter;
+    private RetargetingILProcessor.Builder _targetBuilder;
 
     private UnstripTranslator(MethodDefinition original, MethodDefinition target,
         TypeRewriteContext typeRewriteContext, RuntimeAssemblyReferences imports)
@@ -60,7 +62,7 @@ public class UnstripTranslator
         _imports = imports;
 
         _globalContext = typeRewriteContext.AssemblyContext.GlobalContext;
-        _targetBuilder = target.Body.GetILProcessor();
+        _retargeter = new RetargetingILProcessor(target);
     }
 
     private Result Translate()
@@ -78,10 +80,20 @@ public class UnstripTranslator
         }
 
         foreach (var bodyInstruction in _original.Body.Instructions)
+            using (_targetBuilder = _retargeter.Track(bodyInstruction))
+            {
+                var result = Translate(bodyInstruction);
+                if (result.IsError)
+                    return result;
+            }
+
+        if (_retargeter.NeedsRetargeting)
         {
-            var result = Translate(bodyInstruction);
-            if (result.IsError)
-                return result;
+            // This is most likely due to not translating some instructions,
+            // i.e. the original instruction results in zero instructions in the new method,
+            // which doesn't really make sense, so something is probably broken
+            var branches = string.Join("\n\t", _retargeter.IncompleteBranches.Values.SelectMany(x => x));
+            return new(ErrorType.Retargeting, null, $"Incomplete branch retargeting:\n\t{branches}");
         }
 
         return Result.OK;
