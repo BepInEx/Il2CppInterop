@@ -178,6 +178,19 @@ public class UnstripTranslator
     private Result InlineMethod(Instruction ins)
     {
         var methodArg = (MethodReference)ins.Operand;
+        if (ins.OpCode == OpCodes.Callvirt &&
+            ins.Previous?.OpCode == OpCodes.Constrained &&
+            ins.Previous.Operand is TypeReference constrainedType &&
+            constrainedType.Resolve().IsEnum)
+        {
+            // Keep virtual enum calls as they are, they can't (and don't need to) be translated into il2cpp
+            // E.g:
+            //   constrained. Some.EnumType
+            //   callvirt     instance string System.Object::ToString()
+            _targetBuilder.Emit(ins.OpCode, _imports.Module.ImportReference(methodArg));
+            return Result.OK;
+        }
+
         var methodDeclarer =
             Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext, methodArg.DeclaringType, _imports);
         if (methodDeclarer == null)
