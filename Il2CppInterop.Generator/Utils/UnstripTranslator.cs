@@ -347,6 +347,15 @@ public class UnstripTranslator
             return Result.Unimplemented(ins);
         }
 
+        if (ins.OpCode == OpCodes.Ldelema ||
+            ins.OpCode == OpCodes.Ldelem_Any)
+        {
+            // TODO implement Ldelema with Stloc & Ldloca
+            // TODO implement Ldelem_Any
+            // Can probably share code with Stelem/Ldelem/Ldlen
+            return Result.Unimplemented(ins);
+        }
+
         _targetBuilder.Emit(ins.OpCode, targetType);
         return Result.OK;
     }
