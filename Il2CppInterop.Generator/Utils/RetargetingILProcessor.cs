@@ -94,17 +94,42 @@ internal class RetargetingILProcessor
             _targetBuilder.Append(instruction);
         }
 
-        // Add whatever equivalent _targetBuilder.Emit you need below
+        public void InsertAfter(Instruction target, Instruction instruction)
+        {
+			var index = _targetBuilder.Body.Instructions.IndexOf (target);
+            _targetBuilder.InsertAfter(index, instruction);
+        }
+
+        public void InsertAfter(int index, Instruction instruction)
+        {
+            _processor.TrackBranch(instruction);
+            _targetBuilder.InsertAfter(index, instruction);
+            if (index < _processor._trackedIdx)
+                _processor._trackedIdx++;
+        }
+
+        // Add whatever equivalent _targetBuilder.Emit/Create you need below
 
         public void Emit(OpCode opCode) =>
-            Append(_targetBuilder.Create(opCode));
+            Append(Create(opCode));
         public void Emit(OpCode opCode, FieldReference field) =>
-            Append(_targetBuilder.Create(opCode, field));
+            Append(Create(opCode, field));
         public void Emit(OpCode opCode, MethodReference method) =>
-            Append(_targetBuilder.Create(opCode, method));
+            Append(Create(opCode, method));
         public void Emit(OpCode opCode, TypeReference type) =>
-            Append(_targetBuilder.Create(opCode, type));
+            Append(Create(opCode, type));
         public void Emit(OpCode opCode, VariableDefinition variable) =>
-            Append(_targetBuilder.Create(opCode, variable));
+            Append(Create(opCode, variable));
+
+        public Instruction Create(OpCode opCode) =>
+            _targetBuilder.Create(opCode);
+        public Instruction Create(OpCode opCode, FieldReference field) =>
+            _targetBuilder.Create(opCode, field);
+        public Instruction Create(OpCode opCode, MethodReference method) =>
+            _targetBuilder.Create(opCode, method);
+        public Instruction Create(OpCode opCode, TypeReference type) =>
+            _targetBuilder.Create(opCode, type);
+        public Instruction Create(OpCode opCode, VariableDefinition variable) =>
+            _targetBuilder.Create(opCode, variable);
     }
 }
