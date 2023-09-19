@@ -192,7 +192,7 @@ public class UnstripTranslator
         }
 
         var methodDeclarer =
-            Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext, methodArg.DeclaringType, _imports);
+            Pass80UnstripMethods.ResolveTypeInNewAssemblies(_globalContext, methodArg.DeclaringType, _imports, resolveValueTypes: true);
         if (methodDeclarer == null)
             return new(ErrorType.Unresolved, ins, $"Could not resolve declaring type {methodArg.DeclaringType}");
 
