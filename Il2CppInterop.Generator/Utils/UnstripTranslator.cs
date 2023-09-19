@@ -206,6 +206,7 @@ public class UnstripTranslator
 
         var newMethod = new MethodReference(methodArg.Name, newReturnType, methodDeclarer);
         newMethod.HasThis = methodArg.HasThis;
+        List<ParameterDefinition> objectParamIndices = null;
         foreach (var methodArgParameter in methodArg.Parameters)
         {
             var newParamType = methodArgParameter.ParameterType switch
@@ -217,9 +218,29 @@ public class UnstripTranslator
             if (newParamType == null)
                 return new(ErrorType.Unresolved, ins, $"Could not resolve parameter #{methodArgParameter.Index} {methodArgParameter.ParameterType} {methodArgParameter.Name}");
 
+            if (newParamType.FullName == _imports.Il2CppObject.Value.FullName)
+                (objectParamIndices ??= new())
+                    .Add(methodArgParameter);
+
             var newParam = new ParameterDefinition(methodArgParameter.Name, methodArgParameter.Attributes,
                 newParamType);
             newMethod.Parameters.Add(newParam);
+        }
+
+        if (objectParamIndices != null)
+        {
+            var stackIndices = objectParamIndices.Select(x => methodArg.Parameters.Count - 1 - x.Index);
+            if (!StackWalker.TryWalkStack(_imports, _target, stackIndices, out var results))
+                return new(ErrorType.Stack, ins, $"Unable to find targets of {objectParamIndices.Count} parameters #" +
+                    string.Join(", #", objectParamIndices.Select(x => x.Index)) +
+                    $" in {ins.OpCode.Name} instruction");
+
+            foreach (var (targetType, targetInstruction, _) in results)
+                if (targetType.IsPrimitive || targetType.FullName == "System.String")
+                {
+                    var box = _targetBuilder.Create(OpCodes.Call, _imports.Il2CppObject_op_Implicit.Get(targetType));
+                    _targetBuilder.InsertAfter(targetInstruction, box);
+                }
         }
 
         _targetBuilder.Emit(ins.OpCode, _imports.Module.ImportReference(newMethod));
