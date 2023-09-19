@@ -164,9 +164,9 @@ public static class Pass80UnstripMethods
     internal static TypeReference? ResolveTypeInNewAssembliesRaw(RewriteGlobalContext context, TypeReference unityType,
         RuntimeAssemblyReferences imports, out TypeRewriteContext rwContext, bool resolveValueTypes = false)
     {
-        if (unityType is ByReferenceType)
+        if (unityType is ByReferenceType unityRefType)
         {
-            var resolvedElementType = ResolveTypeInNewAssemblies(context, unityType.GetElementType(), imports, out rwContext);
+            var resolvedElementType = ResolveTypeInNewAssemblies(context, unityRefType.ElementType, imports, out rwContext);
             return resolvedElementType == null ? null : new ByReferenceType(resolvedElementType);
         }
 
