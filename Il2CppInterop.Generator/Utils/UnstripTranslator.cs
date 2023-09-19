@@ -280,11 +280,16 @@ public class UnstripTranslator
                 return new(ErrorType.Unresolved, ins, $"Could not resolve type {oldTargetType}");
         }
 
-        if (ins.OpCode == OpCodes.Castclass && !targetType.IsValueType)
+        if ((ins.OpCode == OpCodes.Castclass || ins.OpCode == OpCodes.Unbox_Any) &&
+            !targetType.IsValueType)
         {
-            _targetBuilder.Emit(OpCodes.Call,
-                _imports.Module.ImportReference(new GenericInstanceMethod(_imports.Il2CppObjectBase_Cast.Value)
-                { GenericArguments = { targetType } }));
+            // unbox.any T where T is a reference is equivalent to castclass
+            if (targetType.FullName == "System.String")
+                _targetBuilder.Emit(OpCodes.Call, _imports.Il2CppString_op_Implicit.Value);
+            else
+                _targetBuilder.Emit(OpCodes.Call,
+                    _imports.Module.ImportReference(new GenericInstanceMethod(_imports.Il2CppObjectBase_Cast.Value)
+                    { GenericArguments = { targetType } }));
             return Result.OK;
         }
 
@@ -326,6 +331,19 @@ public class UnstripTranslator
             }
 
             // TODO implement (blittable?) struct boxing
+            return Result.Unimplemented(ins);
+        }
+
+        if (ins.OpCode == OpCodes.Unbox || ins.OpCode == OpCodes.Unbox_Any)
+        {
+            if (targetType.FullName == "System.String")
+            {
+                _targetBuilder.Emit(OpCodes.Call, _imports.Il2CppString_op_Implicit.Value);
+                return Result.OK;
+            }
+
+            // TODO implement unboxing
+            // The type on the stack is not System.Object, it is Il2CppSystem.Object
             return Result.Unimplemented(ins);
         }
 
