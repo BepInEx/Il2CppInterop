@@ -22,7 +22,7 @@ public class UnstripTranslator
         public readonly string reason;
         public bool IsError => type != ErrorType.None;
 
-        public Result(ErrorType type, Instruction offendingInstruction,  string reason)
+        public Result(ErrorType type, Instruction offendingInstruction, string reason)
         {
             this.type = type;
             this.offendingInstruction = offendingInstruction;

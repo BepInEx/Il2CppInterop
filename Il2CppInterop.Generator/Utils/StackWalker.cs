@@ -83,7 +83,7 @@ internal static class StackWalker
                 return false;
             }
 
-            var nPush = ins.PushAmount() ;
+            var nPush = ins.PushAmount();
             if (stackPos == stackTarget && nPush > 0)
             {
                 results[stackTargetIdx].source ??= ins;

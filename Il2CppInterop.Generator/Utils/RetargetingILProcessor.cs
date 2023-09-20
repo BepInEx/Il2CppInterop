@@ -96,7 +96,7 @@ internal class RetargetingILProcessor
 
         public void InsertAfter(Instruction target, Instruction instruction)
         {
-			var index = _targetBuilder.Body.Instructions.IndexOf (target);
+            var index = _targetBuilder.Body.Instructions.IndexOf(target);
             _targetBuilder.InsertAfter(index, instruction);
         }
 

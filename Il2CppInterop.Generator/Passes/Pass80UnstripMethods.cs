@@ -178,7 +178,7 @@ public static class Pass80UnstripMethods
 
         if (unityType is ArrayType arrayType)
         {
-            if (arrayType.Rank != 1) { rwContext = null;  return null; }
+            if (arrayType.Rank != 1) { rwContext = null; return null; }
             var resolvedElementType = ResolveTypeInNewAssemblies(context, unityType.GetElementType(), imports, out rwContext, resolveValueTypes);
             if (resolvedElementType == null) { rwContext = null; return null; }
             if (resolvedElementType.FullName == "System.String")
