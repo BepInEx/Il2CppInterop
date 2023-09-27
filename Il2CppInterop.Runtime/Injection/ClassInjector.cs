@@ -15,6 +15,7 @@ using Il2CppInterop.Runtime.InteropTypes.Fields;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
 using Microsoft.Extensions.Logging;
 using ValueType = Il2CppSystem.ValueType;
 using Void = Il2CppSystem.Void;
@@ -1075,7 +1076,13 @@ public static unsafe partial class ClassInjector
 
     private static Type RewriteType(Type type)
     {
+        if (type.IsByRef)
+            return RewriteType(type.GetElementType()).MakeByRefType();
+
         if (type.IsValueType && !type.IsEnum)
+            return type;
+
+        if (type == typeof(string))
             return type;
 
         if (type.IsArray)
@@ -1142,6 +1149,23 @@ public static unsafe partial class ClassInjector
     {
         var fullName = GetIl2CppTypeFullName(typePointer);
         var type = Type.GetType(fullName) ?? throw new NullReferenceException($"Couldn't find System.Type for Il2Cpp type: {fullName}");
+
+        INativeTypeStruct wrappedType = UnityVersionHandler.Wrap(typePointer);
+        if (wrappedType.Type == Il2CppTypeEnum.IL2CPP_TYPE_GENERICINST)
+        {
+            Il2CppGenericClass* genericClass = (Il2CppGenericClass*)wrappedType.Data;
+            uint argc = genericClass->context.class_inst->type_argc;
+            Il2CppTypeStruct** argv = genericClass->context.class_inst->type_argv;
+            Type[] genericArguments = new Type[argc];
+
+            for (int i = 0; i < argc; i++)
+            {
+                genericArguments[i] = SystemTypeFromIl2CppType(argv[i]);
+            }
+            type = type.MakeGenericType(genericArguments);
+        }
+        if (wrappedType.ByRef)
+            type = type.MakeByRefType();
         return RewriteType(type);
     }
 
