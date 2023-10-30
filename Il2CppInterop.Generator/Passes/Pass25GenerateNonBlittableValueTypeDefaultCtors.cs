@@ -21,21 +21,12 @@ public static class Pass25GenerateNonBlittableValueTypeDefaultCtors
 
                 typeContext.NewType.Methods.Add(emptyCtor);
 
-                var local0 = new VariableDefinition(assemblyContext.Imports.Module.IntPtr());
-                emptyCtor.Body.Variables.Add(local0);
-
+                // NOTE(Kas): This used to stackalloc data of the valuetype's size and box it into an object
+                // but it seems like it caused issues on certain games. If more issues arise - revert this.
                 var bodyBuilder = emptyCtor.Body.GetILProcessor();
-                bodyBuilder.Emit(OpCodes.Ldsfld, typeContext.ClassPointerFieldRef);
-                bodyBuilder.Emit(OpCodes.Ldc_I4_0);
-                bodyBuilder.Emit(OpCodes.Conv_U);
-                bodyBuilder.Emit(OpCodes.Call, assemblyContext.Imports.IL2CPP_il2cpp_class_value_size.Value);
-                bodyBuilder.Emit(OpCodes.Conv_U);
-                bodyBuilder.Emit(OpCodes.Localloc);
-                bodyBuilder.Emit(OpCodes.Stloc_0);
                 bodyBuilder.Emit(OpCodes.Ldarg_0);
                 bodyBuilder.Emit(OpCodes.Ldsfld, typeContext.ClassPointerFieldRef);
-                bodyBuilder.Emit(OpCodes.Ldloc_0);
-                bodyBuilder.Emit(OpCodes.Call, assemblyContext.Imports.IL2CPP_il2cpp_value_box.Value);
+                bodyBuilder.Emit(OpCodes.Call, assemblyContext.Imports.IL2CPP_il2cpp_object_new.Value);
                 bodyBuilder.Emit(OpCodes.Call,
                     new MethodReference(".ctor", assemblyContext.Imports.Module.Void(), typeContext.NewType.BaseType)
                     {
