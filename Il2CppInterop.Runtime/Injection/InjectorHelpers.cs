@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
+using System.IO;
 using System.Threading;
 using Il2CppInterop.Common;
 using Il2CppInterop.Common.Extensions;
@@ -29,7 +30,14 @@ namespace Il2CppInterop.Runtime.Injection
         internal static INativeImageStruct InjectedImage;
         internal static ProcessModule Il2CppModule = Process.GetCurrentProcess()
             .Modules.OfType<ProcessModule>()
-            .Single((x) => x.ModuleName is "GameAssembly.dll" or "GameAssembly.so" or "UserAssembly.dll");
+            .Single((x) =>
+            {
+                // Get assembly name without extension
+                string name = Path.GetFileNameWithoutExtension(x.ModuleName);
+
+                // Check if it matches
+                return name == "GameAssembly" || name == "UserAssembly";
+            });
 
         internal static IntPtr Il2CppHandle = NativeLibrary.Load("GameAssembly", typeof(InjectorHelpers).Assembly, null);
 
