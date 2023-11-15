@@ -278,6 +278,14 @@ public unsafe struct Il2CppGenericContext
 }
 
 [StructLayout(LayoutKind.Sequential)]
+public unsafe struct Il2CppGenericClass
+{
+    public int typeDefinitionIndex;
+    public Il2CppGenericContext context;
+    public Il2CppClass* cached_class;
+}
+
+[StructLayout(LayoutKind.Sequential)]
 public unsafe struct Il2CppGenericMethod
 {
     public Il2CppMethodInfo* methodDefinition;

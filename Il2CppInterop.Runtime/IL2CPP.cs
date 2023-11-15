@@ -474,8 +474,8 @@ public static unsafe class IL2CPP
     public static extern IntPtr il2cpp_class_from_il2cpp_type(IntPtr type);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_class_from_name(IntPtr image, [MarshalAs(UnmanagedType.LPStr)] string namespaze,
-        [MarshalAs(UnmanagedType.LPStr)] string name);
+    public static extern IntPtr il2cpp_class_from_name(IntPtr image, [MarshalAs(UnmanagedType.LPUTF8Str)] string namespaze,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_class_from_system_type(IntPtr type);
@@ -503,7 +503,7 @@ public static unsafe class IL2CPP
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_class_get_field_from_name(IntPtr klass,
-        [MarshalAs(UnmanagedType.LPStr)] string name);
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_class_get_methods(IntPtr klass, ref IntPtr iter);
@@ -685,17 +685,17 @@ public static unsafe class IL2CPP
     public static extern void il2cpp_gc_wbarrier_set_field(IntPtr obj, IntPtr targetAddress, IntPtr gcObj);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern uint il2cpp_gchandle_new(IntPtr obj, [MarshalAs(UnmanagedType.I1)] bool pinned);
+    public static extern nint il2cpp_gchandle_new(IntPtr obj, [MarshalAs(UnmanagedType.I1)] bool pinned);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern uint il2cpp_gchandle_new_weakref(IntPtr obj,
+    public static extern nint il2cpp_gchandle_new_weakref(IntPtr obj,
         [MarshalAs(UnmanagedType.I1)] bool track_resurrection);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_gchandle_get_target(uint gchandle);
+    public static extern IntPtr il2cpp_gchandle_get_target(nint gchandle);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void il2cpp_gchandle_free(uint gchandle);
+    public static extern void il2cpp_gchandle_free(nint gchandle);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_unity_liveness_calculation_begin(IntPtr filter, int max_object_count,
