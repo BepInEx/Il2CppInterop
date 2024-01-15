@@ -60,7 +60,8 @@ internal static class XrefScanUtil
 
         if (Marshal.ReadByte(initFlagPointer) == 0)
         {
-            foreach (var token in tokenPointer) {
+            foreach (var token in tokenPointer)
+            {
                 if (false)
                 {
                     ourMetadataInitForMethodTokenDelegate(Marshal.ReadInt32(token));

@@ -63,7 +63,8 @@ public static class XrefScanMethodDb
                 Marshal.GetDelegateForFunctionPointer<XrefScanUtil.InitMetadataForMethodPointer>(
                     (IntPtr)(GameAssemblyBase + XrefScanCache.Header.InitMethodMetadataRva));
 
-        foreach (var tokenRva in attribute.MetadataInitTokenRvas) {
+        foreach (var tokenRva in attribute.MetadataInitTokenRvas)
+        {
             var token = (IntPtr)(GameAssemblyBase + tokenRva);
 
             if (false)
