@@ -21,7 +21,7 @@ public static class XrefScanMethodDb
         XrefScanCache = new MethodXrefScanCache(GeneratedDatabasesUtil.GetDatabasePath(MethodXrefScanCache.FileName));
 
         foreach (ProcessModule module in Process.GetCurrentProcess().Modules)
-            if (module.ModuleName == "GameAssembly.dll")
+            if (module.ModuleName is "GameAssembly.dll" or "GameAssembly_plus.dll")
             {
                 GameAssemblyBase = (long)module.BaseAddress;
                 break;
