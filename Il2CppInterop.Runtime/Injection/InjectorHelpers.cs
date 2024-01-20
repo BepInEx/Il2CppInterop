@@ -8,30 +8,34 @@ using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Il2CppInterop.Common;
-using Il2CppInterop.Common.Extensions;
-using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Runtime.Injection.Hooks;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly;
-using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
-using Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Image;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
-using Il2CppInterop.Runtime.Startup;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection
 {
     internal static unsafe class InjectorHelpers
     {
+        private static readonly string[] s_assemblies = ["GameAssembly.dll", "GameAssembly_plus.dll", "GameAssembly.so", "GameAssembly_plus.so", "UserAssembly.dll", "UserAssembly_plus.dll"];
+
         internal static Assembly Il2CppMscorlib = typeof(Il2CppSystem.Type).Assembly;
         internal static INativeAssemblyStruct InjectedAssembly;
         internal static INativeImageStruct InjectedImage;
         internal static ProcessModule Il2CppModule = Process.GetCurrentProcess()
             .Modules.OfType<ProcessModule>()
-            .Single((x) => x.ModuleName is "GameAssembly.dll" or "GameAssembly.so" or "UserAssembly.dll");
+            .Single(x => s_assemblies.Contains(x.ModuleName, StringComparer.OrdinalIgnoreCase));
 
-        internal static IntPtr Il2CppHandle = NativeLibrary.Load("GameAssembly", typeof(InjectorHelpers).Assembly, null);
+        internal static IntPtr Il2CppHandle
+        {
+            get
+            {
+                var assembly = Il2CppModule.ModuleName != null && Il2CppModule.ModuleName.Contains("_plus") ? "GameAssembly_plus" : "GameAssembly";
+                return NativeLibrary.Load(assembly, typeof(InjectorHelpers).Assembly, null);
+            }
+        }
 
         internal static readonly Dictionary<Type, OpCode> StIndOpcodes = new()
         {
