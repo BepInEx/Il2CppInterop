@@ -19,7 +19,15 @@ namespace Il2CppInterop.Runtime.Injection
 {
     internal static unsafe class InjectorHelpers
     {
-        private static readonly string[] s_assemblies = {"GameAssembly.dll", "GameAssembly_plus.dll", "GameAssembly.so", "GameAssembly_plus.so", "UserAssembly.dll", "UserAssembly_plus.dll"};
+        private static readonly string[] s_assemblies =
+        {
+            "GameAssembly.dll",
+            "GameAssembly_plus.dll",
+            "GameAssembly.so",
+            "GameAssembly_plus.so",
+            "UserAssembly.dll",
+            "UserAssembly_plus.dll"
+        };
 
         internal static Assembly Il2CppMscorlib = typeof(Il2CppSystem.Type).Assembly;
         internal static INativeAssemblyStruct InjectedAssembly;
