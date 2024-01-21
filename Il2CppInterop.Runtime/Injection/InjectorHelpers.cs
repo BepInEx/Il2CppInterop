@@ -154,8 +154,21 @@ namespace Il2CppInterop.Runtime.Injection
 
         internal static d_ClassInit ClassInit;
 
-        private static readonly MemoryUtils.SignatureDefinition[] s_ClassInitSignatures = {new MemoryUtils.SignatureDefinition {pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x28\x83", mask = "x????xxxxx", xref = true}, new MemoryUtils.SignatureDefinition {pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x48\x48", mask = "x????xxxxx", xref = true}};
-
+        private static readonly MemoryUtils.SignatureDefinition[] s_ClassInitSignatures =
+        {
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x28\x83",
+                mask = "x????xxxxx",
+                xref = true
+            },
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x48\x48",
+                mask = "x????xxxxx",
+                xref = true
+            }
+        };
         private static d_ClassInit FindClassInit()
         {
             static nint GetClassInitSubstitute()
