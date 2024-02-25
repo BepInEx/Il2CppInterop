@@ -85,8 +85,16 @@ public static class Pass70GenerateProperties
         var unmanglePropertyName = baseName + "_" + index;
 
         if (assemblyContext.GlobalContext.Options.RenameMap.TryGetValue(
-                declaringType.GetNamespacePrefix() + "::" + unmanglePropertyName, out var newName))
+                declaringType.GetNamespacePrefix() + "." + declaringType.Name + "::" + unmanglePropertyName, out var newNameByType))
+        {
+            unmanglePropertyName = newNameByType;
+        }
+        else if (assemblyContext.GlobalContext.Options.RenameMap.TryGetValue(
+                       declaringType.GetNamespacePrefix() + "::" + unmanglePropertyName, out var newName))
+        {
             unmanglePropertyName = newName;
+        }
+
 
         return unmanglePropertyName;
     }
