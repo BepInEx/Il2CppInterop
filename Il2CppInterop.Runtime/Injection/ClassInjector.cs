@@ -818,6 +818,16 @@ public static unsafe partial class ClassInjector
         return CreateTrampoline(monoMethod);
     }
 
+    private static Type[] GetNativeParameterTypes(MethodInfo monoMethod)
+    {
+        var nativeParameterTypes = new List<Type>();
+        if (!monoMethod.IsStatic)
+            nativeParameterTypes.Add(typeof(IntPtr));
+        nativeParameterTypes.AddRange(monoMethod.GetParameters().Select(it => it.ParameterType.NativeType()));
+        nativeParameterTypes.Add(typeof(Il2CppMethodInfo*));
+        return nativeParameterTypes.ToArray();
+    }
+
     private static Delegate CreateInvoker(MethodInfo monoMethod)
     {
         DynamicMethod method;
@@ -841,11 +851,11 @@ public static unsafe partial class ClassInjector
         var body = method.GetILGenerator();
 
         if (!monoMethod.IsStatic)
-            body.Emit(OpCodes.Ldarg_2);
+            body.Emit(OpCodes.Ldarg_2); // obj
         for (var i = 0; i < monoMethod.GetParameters().Length; i++)
         {
             var parameterInfo = monoMethod.GetParameters()[i];
-            body.Emit(OpCodes.Ldarg_3);
+            body.Emit(OpCodes.Ldarg_3); // args
             body.Emit(OpCodes.Ldc_I4, i * IntPtr.Size);
             body.Emit(OpCodes.Add_Ovf_Un);
             var nativeType = parameterInfo.ParameterType.NativeType();
@@ -854,10 +864,9 @@ public static unsafe partial class ClassInjector
                 body.Emit(OpCodes.Ldobj, nativeType);
         }
 
-        body.Emit(OpCodes.Ldarg_0);
-        body.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, monoMethod.ReturnType.NativeType(),
-            new[] { typeof(IntPtr) }.Concat(monoMethod.GetParameters().Select(it => it.ParameterType.NativeType()))
-                .ToArray());
+        body.Emit(OpCodes.Ldarg_1); // methodMetadata
+        body.Emit(OpCodes.Ldarg_0); // methodPointer
+        body.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, monoMethod.ReturnType.NativeType(), GetNativeParameterTypes(monoMethod));
 
         if (UnityVersionHandler.IsMetadataV29OrHigher)
         {
@@ -923,12 +932,6 @@ public static unsafe partial class ClassInjector
 
     private static Delegate CreateTrampoline(MethodInfo monoMethod)
     {
-        var nativeParameterTypes = new List<Type>();
-        if (!monoMethod.IsStatic)
-            nativeParameterTypes.Add(typeof(IntPtr));
-        nativeParameterTypes.AddRange(monoMethod.GetParameters().Select(it => it.ParameterType.NativeType()));
-        nativeParameterTypes.Add(typeof(Il2CppMethodInfo*));
-
         var managedParameters = new List<Type>();
         if (!monoMethod.IsStatic)
             managedParameters.Add(monoMethod.DeclaringType);
@@ -937,7 +940,7 @@ public static unsafe partial class ClassInjector
         var method = new DynamicMethod(
             "Trampoline_" + ExtractSignature(monoMethod) + monoMethod.DeclaringType + monoMethod.Name,
             MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard,
-            monoMethod.ReturnType.NativeType(), nativeParameterTypes.ToArray(),
+            monoMethod.ReturnType.NativeType(), GetNativeParameterTypes(monoMethod),
             monoMethod.DeclaringType, true);
 
         var signature = new DelegateSupport.MethodSignature(monoMethod, !monoMethod.IsStatic);
@@ -957,7 +960,9 @@ public static unsafe partial class ClassInjector
 
         var indirectVariables = new LocalBuilder[managedParameters.Count];
 
-        for (var i = 1; i < managedParameters.Count; i++)
+        var argOffset = method.IsStatic ? 0 : 1;
+
+        for (var i = argOffset; i < managedParameters.Count; i++)
         {
             var parameter = managedParameters[i];
             if (parameter.IsSubclassOf(typeof(ValueType)))
@@ -1027,7 +1032,7 @@ public static unsafe partial class ClassInjector
             body.Emit(OpCodes.Stloc, managedReturnVariable);
         }
 
-        for (var i = 1; i < managedParameters.Count; i++)
+        for (var i = argOffset; i < managedParameters.Count; i++)
         {
             var variable = indirectVariables[i];
             if (variable == null)
