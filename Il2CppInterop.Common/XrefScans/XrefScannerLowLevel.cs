@@ -4,6 +4,41 @@ namespace Il2CppInterop.Common.XrefScans;
 
 public static class XrefScannerLowLevel
 {
+    /// <summary>
+    /// Returns start and end of a conditional code block. This is used in il2cpp-Functions that have initializers.
+    /// If other flow
+    /// </summary>
+    public static (IntPtr, IntPtr) ConditionalBlock(IntPtr codeStart)
+    {
+        var decoder = XrefScanner.DecoderForAddress(codeStart);
+
+        var blockStart = IntPtr.Zero;
+        var blockEnd = IntPtr.Zero;
+
+        while (true)
+        {
+            decoder.Decode(out var instruction);
+
+            /* Invalid block */
+            if (decoder.LastError == DecoderError.NoMoreBytes) break;
+            if (instruction.Mnemonic == Mnemonic.Int3) break;
+            if (instruction.FlowControl == FlowControl.Return) break;
+
+            /* Reached end of block without branches */
+            if (blockEnd != IntPtr.Zero && instruction.IP >= (ulong)blockEnd) return (blockStart, blockEnd);
+
+            if (instruction.FlowControl == FlowControl.ConditionalBranch && instruction.IsJccShort)
+            {
+                if (blockStart != IntPtr.Zero || blockEnd != IntPtr.Zero) break;
+
+                blockStart = (IntPtr)decoder.IP;
+                blockEnd = (IntPtr)instruction.IPRelativeMemoryAddress;
+            }
+        }
+
+        return (IntPtr.Zero, IntPtr.Zero);
+    }
+
     public static IEnumerable<IntPtr> JumpTargets(IntPtr codeStart, bool ignoreRetn = false)
     {
         return JumpTargetsImpl(XrefScanner.DecoderForAddress(codeStart), ignoreRetn);

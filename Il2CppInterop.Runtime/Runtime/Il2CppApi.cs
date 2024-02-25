@@ -257,12 +257,12 @@ internal static unsafe class Il2CppApi
         return IL2CPP.il2cpp_class_get_method_from_name(klass, name, argsCount);
     }
 
-    public static IntPtr il2cpp_class_get_name(IntPtr klass)
+    public static string il2cpp_class_get_name(IntPtr klass)
     {
         return IL2CPP.il2cpp_class_get_name(klass);
     }
 
-    public static IntPtr il2cpp_class_get_namespace(IntPtr klass)
+    public static string il2cpp_class_get_namespace(IntPtr klass)
     {
         return IL2CPP.il2cpp_class_get_namespace(klass);
     }
@@ -357,7 +357,7 @@ internal static unsafe class Il2CppApi
         return IL2CPP.il2cpp_class_get_image(klass);
     }
 
-    public static IntPtr il2cpp_class_get_assemblyname(IntPtr klass)
+    public static string il2cpp_class_get_assemblyname(IntPtr klass)
     {
         return IL2CPP.il2cpp_class_get_assemblyname(klass);
     }
@@ -629,12 +629,12 @@ internal static unsafe class Il2CppApi
         return IL2CPP.il2cpp_image_get_assembly(image);
     }
 
-    public static IntPtr il2cpp_image_get_name(IntPtr image)
+    public static string il2cpp_image_get_name(IntPtr image)
     {
         return IL2CPP.il2cpp_image_get_name(image);
     }
 
-    public static IntPtr il2cpp_image_get_filename(IntPtr image)
+    public static string il2cpp_image_get_filename(IntPtr image)
     {
         return IL2CPP.il2cpp_image_get_filename(image);
     }
@@ -742,7 +742,7 @@ internal static unsafe class Il2CppApi
         return UnityVersionHandler.Wrap((Il2CppMethodInfo*)method).Token;
     }
 
-    public static IntPtr il2cpp_method_get_param_name(IntPtr method, uint index)
+    public static string il2cpp_method_get_param_name(IntPtr method, uint index)
     {
         return IL2CPP.il2cpp_method_get_param_name(method, index);
     }
@@ -1050,7 +1050,7 @@ internal static unsafe class Il2CppApi
         return IL2CPP.il2cpp_type_get_class_or_element_class(type);
     }
 
-    public static IntPtr il2cpp_type_get_name(IntPtr type)
+    public static string il2cpp_type_get_name(IntPtr type)
     {
         return IL2CPP.il2cpp_type_get_name(type);
     }

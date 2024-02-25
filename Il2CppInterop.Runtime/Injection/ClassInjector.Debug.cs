@@ -23,7 +23,7 @@ public unsafe partial class ClassInjector
     private static string ToString(Il2CppTypeStruct* il2CppType)
     {
         if (il2CppType == default) return "null";
-        return Marshal.PtrToStringAnsi(IL2CPP.il2cpp_type_get_name((IntPtr)il2CppType));
+        return IL2CPP.il2cpp_type_get_name((IntPtr)il2CppType);
     }
 
     public static void Dump(Il2CppClass* il2CppClass)
