@@ -1,7 +1,7 @@
-using System.Linq;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
+using Il2CppInterop.Generator.Utils;
 using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 
@@ -13,10 +13,8 @@ public static class Pass10CreateTypedefs
     {
         foreach (var assemblyContext in context.Assemblies)
             foreach (var type in assemblyContext.OriginalAssembly.MainModule.Types)
-                if (!IsCpp2ILInjectedType(type) && type.Name != "<Module>")
+                if (!Cpp2ILUtil.IsCpp2ILType(type) && type.Name != "<Module>")
                     ProcessType(type, assemblyContext, null);
-
-        static bool IsCpp2ILInjectedType(TypeDefinition type) => type.Namespace?.StartsWith("Cpp2ILInjected", StringComparison.Ordinal) ?? false;
     }
 
     private static void ProcessType(TypeDefinition type, AssemblyRewriteContext assemblyContext,
