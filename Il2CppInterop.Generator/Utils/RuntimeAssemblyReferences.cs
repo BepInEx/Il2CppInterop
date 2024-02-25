@@ -24,6 +24,9 @@ public class RuntimeAssemblyReferences
 
     public ModuleDefinition Module { get; }
 
+    public Memoize<TypeReference, MethodReference> Il2CppArrayBase_set_Item { get; private set; }
+    public Memoize<TypeReference, MethodReference> Il2CppArrayBase_get_Item { get; private set; }
+    public Memoize<TypeReference, MethodReference> Il2CppArrayBase_get_Length { get; private set; }
     public Memoize<TypeReference, MethodReference> Il2CppRefrenceArrayctor { get; private set; }
     public Lazy<MethodReference> Il2CppStringArrayctor { get; private set; }
     public Memoize<TypeReference, MethodReference> Il2CppStructArrayctor { get; private set; }
@@ -71,6 +74,9 @@ public class RuntimeAssemblyReferences
     public Lazy<MethodReference> Il2CppSystemDelegateCombine { get; private set; }
     public Lazy<MethodReference> Il2CppSystemDelegateRemove { get; private set; }
     public Lazy<MethodReference> Il2CppSystemRuntimeTypeHandleGetRuntimeTypeHandle { get; private set; }
+    public Lazy<TypeDefinition> Il2CppObject { get; private set; }
+    public Memoize<TypeReference, MethodReference> Il2CppObject_op_Implicit { get; private set; }
+    public Lazy<MethodReference> Il2CppString_op_Implicit { get; private set; }
 
     public MethodReference WriteFieldWBarrier => globalCtx.HasGcWbarrierFieldWrite
         ? IL2CPP_il2cpp_gc_wbarrier_set_field.Value
@@ -148,6 +154,7 @@ public class RuntimeAssemblyReferences
         allTypes["Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"] = Il2CppObjectBase;
         allTypes["Il2CppInterop.Runtime.Runtime.Il2CppObjectPool"] = Il2CppObjectPool;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray"] = Il2CppStringArray;
+        allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppArrayBase<T>"] = Il2CppArrayBase;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<T>"] = Il2CppReferenceArray;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<T>"] = Il2CppStructArray;
         allTypes["Il2CppInterop.Runtime.Il2CppException"] = Il2CppException;
@@ -156,6 +163,44 @@ public class RuntimeAssemblyReferences
 
     private void InitMethodRefs()
     {
+        Il2CppArrayBase_set_Item = new((param) =>
+        {
+            var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppArrayBase<T>");
+            var gp = owner.GenericParameters[0];
+            var giOwner = new GenericInstanceType(owner);
+            giOwner.GenericArguments.Add(param);
+            var mr = new MethodReference("set_Item", ResolveType("System.Void"),
+                giOwner)
+            { HasThis = true };
+            mr.Parameters.Add(new ParameterDefinition("", ParameterAttributes.None, ResolveType("System.Int32")));
+            mr.Parameters.Add(new ParameterDefinition("", ParameterAttributes.None, gp));
+            return mr;
+        });
+
+        Il2CppArrayBase_get_Item = new((param) =>
+        {
+            var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppArrayBase<T>");
+            var gp = owner.GenericParameters[0];
+            var giOwner = new GenericInstanceType(owner);
+            giOwner.GenericArguments.Add(param);
+            var mr = new MethodReference("get_Item", gp,
+                giOwner)
+            { HasThis = true };
+            mr.Parameters.Add(new ParameterDefinition("", ParameterAttributes.None, ResolveType("System.Int32")));
+            return mr;
+        });
+
+        Il2CppArrayBase_get_Length = new((param) =>
+        {
+            var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppArrayBase<T>");
+            var giOwner = new GenericInstanceType(owner);
+            giOwner.GenericArguments.Add(param);
+            var mr = new MethodReference("get_Length", ResolveType("System.Int32"),
+                giOwner)
+            { HasThis = true };
+            return mr;
+        });
+
         Il2CppRefrenceArrayctor = new((param) =>
         {
             var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<T>");
@@ -619,5 +664,17 @@ public class RuntimeAssemblyReferences
             methodReference.GenericParameters.Add(new GenericParameter("T", methodReference));
             return Module.ImportReference(methodReference);
         });
+
+        Il2CppObject = new(() => globalCtx.GetAssemblyByName("mscorlib")
+            .NewAssembly.MainModule.GetType("Il2CppSystem.Object"));
+
+        Il2CppObject_op_Implicit = new((param) =>
+            Module.ImportReference(Il2CppObject.Value.Methods.Single(m => m.Name == "op_Implicit" &&
+                m.Parameters[0].ParameterType.FullName == param.FullName)));
+
+        Il2CppString_op_Implicit = new(() =>
+            Module.ImportReference(globalCtx.GetAssemblyByName("mscorlib").NewAssembly.MainModule
+                .GetType("Il2CppSystem.String").Methods.Single(m => m.Name == "op_Implicit" &&
+                m.ReturnType.FullName == "System.String")));
     }
 }
