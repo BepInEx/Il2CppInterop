@@ -242,9 +242,18 @@ public class MethodRewriteContext
     {
         var unmangleMethodNameWithSignature = ProduceMethodSignatureBase() + "_" + DeclaringType.Methods
             .Where(ParameterSignatureMatchesThis).TakeWhile(it => it != this).Count();
+
         if (DeclaringType.AssemblyContext.GlobalContext.Options.RenameMap.TryGetValue(
+                DeclaringType.NewType.GetNamespacePrefix() + "." + DeclaringType.NewType.Name + "::" + unmangleMethodNameWithSignature, out var newNameByType))
+        {
+            unmangleMethodNameWithSignature = newNameByType;
+        }
+        else if (DeclaringType.AssemblyContext.GlobalContext.Options.RenameMap.TryGetValue(
                 DeclaringType.NewType.GetNamespacePrefix() + "::" + unmangleMethodNameWithSignature, out var newName))
+        {
             unmangleMethodNameWithSignature = newName;
+        }
+
         return unmangleMethodNameWithSignature;
     }
 
