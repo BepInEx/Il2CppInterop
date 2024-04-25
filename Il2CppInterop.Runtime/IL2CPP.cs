@@ -22,7 +22,7 @@ public static unsafe class IL2CPP
 
     static IL2CPP()
     {
-        var domain = il2cpp_domain_get();
+        var domain = il2cpp_domain_get();//mendapatkan domain IL2CPP
         if (domain == IntPtr.Zero)
         {
             Logger.Instance.LogError("No il2cpp domain found; sad!");
