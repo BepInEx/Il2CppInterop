@@ -132,11 +132,11 @@ public static class StringEx
         }
         else
         {
-            if (typeRef.Namespace == "Il2CppInterop.Runtime" && typeRef.Name.StartsWith("Il2Cpp") &&
+            if (typeRef.Namespace == "Il2CppInterop.Runtime" && (typeRef.Name?.StartsWith("Il2Cpp") ?? false) &&
                 typeRef.Name.Contains("Array"))
                 builder.Append("ArrayOf");
             else
-                builder.Append(typeRef.Name.Replace('`', '_'));
+                builder.Append(typeRef.Name?.Replace('`', '_'));
         }
 
         return builder.ToString();

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Code.Cil;
 using AsmResolver.DotNet.Collections;
@@ -72,7 +73,7 @@ public static class ILGeneratorEx
                 var classPointerTypeRef = new GenericInstanceTypeSignature(imports.Il2CppClassPointerStore.ToTypeDefOrRef(), imports.Il2CppClassPointerStore.IsValueType, newType);
                 var classPointerFieldRef =
                     CecilAdapter.CreateFieldReference("NativeClassPtr", imports.Module.IntPtr(), classPointerTypeRef.ToTypeDefOrRef());
-                body.Add(OpCodes.Ldsfld, enclosingType.NewType.Module.DefaultImporter.ImportField(classPointerFieldRef));
+                body.Add(OpCodes.Ldsfld, enclosingType.NewType.Module!.DefaultImporter.ImportField(classPointerFieldRef));
                 body.Add(OpCodes.Ldc_I4_0);
                 body.Add(OpCodes.Conv_U);
                 body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_class_value_size.Value);
@@ -96,6 +97,7 @@ public static class ILGeneratorEx
 
         var imports = enclosingType.AssemblyContext.Imports;
 
+        Debug.Assert(enclosingType.NewType.Module is not null);
         body.Add(OpCodes.Ldtoken, newType.ToTypeDefOrRef());
         body.Add(OpCodes.Call, enclosingType.NewType.Module.TypeGetTypeFromHandle());
         body.Add(OpCodes.Dup);
@@ -243,6 +245,7 @@ public static class ILGeneratorEx
     {
         var imports = enclosingType.AssemblyContext.Imports;
 
+        Debug.Assert(enclosingType.NewType.Module is not null);
         body.Add(OpCodes.Ldtoken, newType.ToTypeDefOrRef());
         body.Add(OpCodes.Call, enclosingType.NewType.Module.TypeGetTypeFromHandle());
         body.Add(OpCodes.Callvirt, enclosingType.NewType.Module.TypeGetIsValueType());
@@ -323,6 +326,7 @@ public static class ILGeneratorEx
                 }
                 else
                 {
+                    Debug.Assert(enclosingType.NewType.Module is not null);
                     var classPointerTypeRef = new GenericInstanceTypeSignature(imports.Il2CppClassPointerStore.ToTypeDefOrRef(), imports.Il2CppClassPointerStore.IsValueType, convertedReturnType);
                     var classPointerFieldRef =
                         CecilAdapter.CreateFieldReference("NativeClassPtr", imports.Module.IntPtr(),
@@ -390,6 +394,7 @@ public static class ILGeneratorEx
     public static void GenerateBoxMethod(RuntimeAssemblyReferences imports, TypeDefinition targetType,
         IFieldDescriptor classHandle, TypeSignature il2CppObjectTypeDef)
     {
+        Debug.Assert(targetType.Module is not null);
         var method = new MethodDefinition("BoxIl2CppObject", MethodAttributes.Public | MethodAttributes.HideBySig,
             MethodSignature.CreateInstance(targetType.Module.DefaultImporter.ImportTypeSignature(il2CppObjectTypeDef)));
         targetType.Methods.Add(method);

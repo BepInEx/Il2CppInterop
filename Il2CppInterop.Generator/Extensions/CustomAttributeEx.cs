@@ -31,9 +31,7 @@ public static class CustomAttributeEx
         var attribute = originalMethod.CustomAttributes.SingleOrDefault(it => it.Constructor?.DeclaringType?.Name == attributeName);
         var field = attribute?.Signature?.NamedArguments.SingleOrDefault(it => it.MemberName == parameterName);
 
-        if (field?.MemberName is null) return null;
-
-        return (Utf8String?)field.Argument.Element;
+        return (Utf8String?)field?.Argument.Element;
     }
 
     private static long ExtractLong(this IHasCustomAttribute originalMethod, string attributeName, string parameterName)

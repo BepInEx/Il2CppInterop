@@ -61,7 +61,7 @@ public class AssemblyRewriteContext
     {
         var newType = GlobalContext.GetNewTypeForOriginal(methodRef.DeclaringType.Resolve());
         var newMethod = newType.GetMethodByOldMethod(methodRef.Resolve()).NewMethod;
-        return this.NewAssembly.ManifestModule.DefaultImporter.ImportMethod(newMethod);
+        return NewAssembly.ManifestModule!.DefaultImporter.ImportMethod(newMethod);
     }
 
     public ITypeDefOrRef RewriteTypeRef(ITypeDescriptor typeRef)
@@ -71,9 +71,10 @@ public class AssemblyRewriteContext
 
     public TypeSignature RewriteTypeRef(TypeSignature? typeRef)
     {
-        if (typeRef == null) return Imports.Il2CppObjectBase;
+        if (typeRef == null)
+            return Imports.Il2CppObjectBase;
 
-        var sourceModule = NewAssembly.ManifestModule;
+        var sourceModule = NewAssembly.ManifestModule!;
 
         if (typeRef is ArrayBaseTypeSignature arrayType)
         {
