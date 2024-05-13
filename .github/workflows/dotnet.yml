@@ -11,12 +11,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 6.0.202
+          dotnet-version: 6.0.x
 
       - name: Extract Release Version
         id: get_version
@@ -32,7 +32,7 @@ jobs:
         run: ./build.sh --target=Pack --build_version ${{ steps.get_version.outputs.version }} --build_tag ${{ steps.get_version.outputs.build_tag }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: ./bin/zip/*.zip
           name: Il2CppInterop
