@@ -41,6 +41,49 @@ public static class UnstripTranslator
         {
             if (bodyInstruction.Operand is null)
             {
+                switch (bodyInstruction.OpCode.Code)
+                {
+                    case CilCode.Ldlen:
+                        //This is Il2CppArrayBase.Length
+                        return false;
+
+                    case CilCode.Ldelema:
+                        //This is Il2CppArrayBase<T>.Pointer + index * sizeof(T) but the T is not known because the operand is null.
+                        return false;
+
+                    case CilCode.Ldelem:
+                        //This is Il2CppArrayBase<T>.set_Item but the T is not known because the operand is null.
+                        return false;
+
+                    case CilCode.Stelem:
+                        //This is Il2CppArrayBase<T>.set_Item but the T is not known because the operand is null.
+                        return false;
+
+                    case CilCode.Ldelem_Ref:
+                        //This is Il2CppReferenceArray<T>.get_Item but the T is not known because the operand is null.
+                        return false;
+
+                    case CilCode.Stelem_Ref:
+                        //This is Il2CppReferenceArray<T>.set_Item but the T is not known because the operand is null.
+                        return false;
+
+                    case >= CilCode.Ldelem_I1 and <= CilCode.Ldelem_R8:
+                        //This is Il2CppStructArray<T>.get_Item
+                        return false;
+
+                    case >= CilCode.Stelem_I and <= CilCode.Stelem_R8:
+                        //This is Il2CppStructArray<T>.set_Item
+                        return false;
+
+                    case >= CilCode.Ldind_I1 and <= CilCode.Ldind_Ref:
+                        //This is for by ref parameters
+                        break;
+
+                    case >= CilCode.Stind_Ref and <= CilCode.Stind_R8:
+                        //This is for by ref parameters
+                        break;
+                }
+
                 var newInstruction = targetBuilder.Add(bodyInstruction.OpCode);
                 instructionMap.Add(bodyInstruction, newInstruction);
             }
@@ -81,6 +124,7 @@ public static class UnstripTranslator
                     }
                     else
                     {
+                        //Ldflda, Ldsflda
                         return false;
                     }
                 }
