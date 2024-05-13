@@ -232,7 +232,7 @@ public static class Pass80UnstripMethods
         if ((targetAssemblyName == "mscorlib" || targetAssemblyName == "netstandard") &&
             (unityType.IsValueType || unityType.FullName == "System.String" ||
              unityType.FullName == "System.Void") && unityType.FullName != "System.RuntimeTypeHandle")
-            return imports.Module.ImportCorlibReference(unityType.Namespace, unityType.Name);
+            return imports.Module.ImportCorlibReference(unityType.FullName);
 
         if (targetAssemblyName == "UnityEngine")
             foreach (var assemblyRewriteContext in context.Assemblies)

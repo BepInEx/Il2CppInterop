@@ -115,7 +115,7 @@ public class AssemblyRewriteContext
         }
 
         if (typeRef.IsPrimitive() || typeRef.FullName == "System.TypedReference")
-            return sourceModule.ImportCorlibReference(typeRef.Namespace, typeRef.Name);
+            return sourceModule.ImportCorlibReference(typeRef.FullName);
 
         if (typeRef.FullName == "System.Void")
             return Imports.Module.Void();
