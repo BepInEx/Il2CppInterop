@@ -198,7 +198,19 @@ public static class UnstripTranslator
                 {
                     var newInstruction = targetBuilder.Add(OpCodes.Conv_I8);
 
-                    var il2cppTypeArray = imports.Il2CppReferenceArray.MakeGenericInstanceType(targetType).ToTypeDefOrRef();
+                    ITypeDefOrRef il2cppTypeArray;
+                    if (targetType.IsValueType)
+                    {
+                        return false;
+                    }
+                    else if (targetType.FullName == "System.String")
+                    {
+                        il2cppTypeArray = imports.Il2CppStringArray.ToTypeDefOrRef();
+                    }
+                    else
+                    {
+                        il2cppTypeArray = imports.Il2CppReferenceArray.MakeGenericInstanceType(targetType).ToTypeDefOrRef();
+                    }
                     targetBuilder.Add(OpCodes.Newobj, imports.Module.DefaultImporter.ImportMethod(
                         CecilAdapter.CreateInstanceMethodReference(".ctor", imports.Module.Void(), il2cppTypeArray, imports.Module.Long())));
                     instructionMap.Add(bodyInstruction, newInstruction);
