@@ -38,33 +38,24 @@ internal static class CecilAdapter
                 instructions.Add(CilOpCodes.Ldarg_3);
                 break;
             default:
-                {
-                    var method = instructions.Owner.Owner;
-                    var parameterIndex = method.IsStatic ? argumentIndex : argumentIndex - 1;
-                    instructions.Add(CilOpCodes.Ldarg, method.Parameters[parameterIndex]);
-                }
+                instructions.Add(CilOpCodes.Ldarg, instructions.GetArgument(argumentIndex));
                 break;
         }
     }
 
     public static void AddLoadArgumentAddress(this CilInstructionCollection instructions, int argumentIndex)
     {
-        var method = instructions.Owner.Owner;
-        int parameterIndex;
-        if (method.IsStatic)
-        {
-            parameterIndex = argumentIndex;
-        }
-        else
-        {
-            if (argumentIndex == 0)
-            {
-                throw new NotSupportedException("Cannot load address of 'this' argument.");
-            }
-            parameterIndex = argumentIndex - 1;
-        }
+        instructions.Add(CilOpCodes.Ldarga, instructions.GetArgument(argumentIndex));
+    }
 
-        instructions.Add(CilOpCodes.Ldarga, method.Parameters[parameterIndex]);
+    private static Parameter GetArgument(this CilInstructionCollection instructions, int argumentIndex)
+    {
+        var method = instructions.Owner.Owner;
+        return method.IsStatic
+            ? method.Parameters[argumentIndex]
+            : argumentIndex == 0
+                ? method.Parameters.ThisParameter!
+                : method.Parameters[argumentIndex - 1];
     }
 
     public static bool HasGenericParameters(this TypeDefinition type) => type.GenericParameters.Count > 0;

@@ -1,5 +1,7 @@
+using AsmResolver;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Code.Cil;
+using AsmResolver.DotNet.Collections;
 using AsmResolver.DotNet.Signatures.Types;
 using AsmResolver.PE.DotNet.Cil;
 using Il2CppInterop.Generator.Contexts;
@@ -12,32 +14,48 @@ public static class UnstripTranslator
     public static bool TranslateMethod(MethodDefinition original, MethodDefinition target,
         TypeRewriteContext typeRewriteContext, RuntimeAssemblyReferences imports)
     {
-        if (original.CilMethodBody is null) return true;
+        if (original.CilMethodBody is null)
+            return true;
 
         target.CilMethodBody = new(target);
 
         var globalContext = typeRewriteContext.AssemblyContext.GlobalContext;
+        Dictionary<CilLocalVariable, CilLocalVariable> localVariableMap = new();
         foreach (var variableDefinition in original.CilMethodBody.LocalVariables)
         {
             var variableType =
                 Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, variableDefinition.VariableType,
                     imports);
-            if (variableType == null) return false;
-            target.CilMethodBody.LocalVariables.Add(new CilLocalVariable(variableType));
+            if (variableType == null)
+                return false;
+            var newVariableDefinition = new CilLocalVariable(variableType);
+            target.CilMethodBody.LocalVariables.Add(newVariableDefinition);
+            localVariableMap.Add(variableDefinition, newVariableDefinition);
         }
+
+        List<KeyValuePair<CilInstructionLabel, CilInstructionLabel>> labelMap = new();
+        Dictionary<CilInstruction,  CilInstruction> instructionMap = new();
 
         var targetBuilder = target.CilMethodBody.Instructions;
         foreach (var bodyInstruction in original.CilMethodBody.Instructions)
-            if (bodyInstruction.OpCode.OperandType == CilOperandType.InlineField)
+        {
+            if (bodyInstruction.Operand is null)
             {
-                var fieldArg = (IFieldDescriptor?)bodyInstruction.Operand;
+                var newInstruction = targetBuilder.Add(bodyInstruction.OpCode);
+                instructionMap.Add(bodyInstruction, newInstruction);
+            }
+            else if (bodyInstruction.OpCode.OperandType == CilOperandType.InlineField)
+            {
+                var fieldArg = (IFieldDescriptor)bodyInstruction.Operand;
                 var fieldDeclarer =
                     Pass80UnstripMethods.ResolveTypeInNewAssembliesRaw(globalContext, fieldArg.DeclaringType.ToTypeSignature(), imports);
-                if (fieldDeclarer == null) return false;
+                if (fieldDeclarer == null)
+                    return false;
                 var newField = fieldDeclarer.Resolve().Fields.SingleOrDefault(it => it.Name == fieldArg.Name);
                 if (newField != null)
                 {
-                    targetBuilder.Add(bodyInstruction.OpCode, imports.Module.DefaultImporter.ImportField(newField));
+                    var newInstruction = targetBuilder.Add(bodyInstruction.OpCode, imports.Module.DefaultImporter.ImportField(newField));
+                    instructionMap.Add(bodyInstruction, newInstruction);
                 }
                 else
                 {
@@ -45,17 +63,21 @@ public static class UnstripTranslator
                     {
                         var getterMethod = fieldDeclarer.Resolve().Properties
                             .SingleOrDefault(it => it.Name == fieldArg.Name)?.GetMethod;
-                        if (getterMethod == null) return false;
+                        if (getterMethod == null)
+                            return false;
 
-                        targetBuilder.Add(OpCodes.Call, imports.Module.DefaultImporter.ImportMethod(getterMethod));
+                        var newInstruction = targetBuilder.Add(OpCodes.Call, imports.Module.DefaultImporter.ImportMethod(getterMethod));
+                        instructionMap.Add(bodyInstruction, newInstruction);
                     }
                     else if (bodyInstruction.OpCode == OpCodes.Stfld || bodyInstruction.OpCode == OpCodes.Stsfld)
                     {
                         var setterMethod = fieldDeclarer.Resolve().Properties
                             .SingleOrDefault(it => it.Name == fieldArg.Name)?.SetMethod;
-                        if (setterMethod == null) return false;
+                        if (setterMethod == null)
+                            return false;
 
-                        targetBuilder.Add(OpCodes.Call, imports.Module.DefaultImporter.ImportMethod(setterMethod));
+                        var newInstruction = targetBuilder.Add(OpCodes.Call, imports.Module.DefaultImporter.ImportMethod(setterMethod));
+                        instructionMap.Add(bodyInstruction, newInstruction);
                     }
                     else
                     {
@@ -68,11 +90,13 @@ public static class UnstripTranslator
                 var methodArg = (IMethodDescriptor)bodyInstruction.Operand;
                 var methodDeclarer =
                     Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArg.DeclaringType.ToTypeSignature(), imports);
-                if (methodDeclarer == null) return false; // todo: generic methods
+                if (methodDeclarer == null)
+                    return false; // todo: generic methods
 
                 var newReturnType =
                     Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArg.Signature.ReturnType, imports);
-                if (newReturnType == null) return false;
+                if (newReturnType == null)
+                    return false;
 
                 var newMethodSignature = CecilAdapter.CreateMethodSignature(!methodArg.Signature.HasThis, newReturnType);
                 var newMethod = new MemberReference(methodDeclarer.ToTypeDefOrRef(), methodArg.Name, newMethodSignature);
@@ -80,12 +104,14 @@ public static class UnstripTranslator
                 {
                     var newParamType = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext,
                         methodArgParameter, imports);
-                    if (newParamType == null) return false;
+                    if (newParamType == null)
+                        return false;
 
                     newMethodSignature.ParameterTypes.Add(newParamType);
                 }
 
-                targetBuilder.Add(bodyInstruction.OpCode, imports.Module.DefaultImporter.ImportMethod(newMethod));
+                var newInstruction = targetBuilder.Add(bodyInstruction.OpCode, imports.Module.DefaultImporter.ImportMethod(newMethod));
+                instructionMap.Add(bodyInstruction, newInstruction);
             }
             else if (bodyInstruction.OpCode.OperandType == CilOperandType.InlineType)
             {
@@ -96,7 +122,8 @@ public static class UnstripTranslator
                     {
                         var newTypeOwner =
                             Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, original.DeclaringType?.ToTypeSignature(), imports)?.Resolve();
-                        if (newTypeOwner == null) return false;
+                        if (newTypeOwner == null)
+                            return false;
                         targetType = newTypeOwner.GenericParameters.Single(it => it.Name == targetType.Name).ToTypeSignature();
                     }
                     else
@@ -107,30 +134,35 @@ public static class UnstripTranslator
                 else
                 {
                     targetType = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, targetType, imports);
-                    if (targetType == null) return false;
+                    if (targetType == null)
+                        return false;
                 }
 
                 if (bodyInstruction.OpCode == OpCodes.Castclass && !targetType.IsValueType)
                 {
-                    targetBuilder.Add(OpCodes.Call,
+                    var newInstruction = targetBuilder.Add(OpCodes.Call,
                         imports.Module.DefaultImporter.ImportMethod(imports.Il2CppObjectBase_Cast.Value.MakeGenericInstanceMethod(targetType)));
+                    instructionMap.Add(bodyInstruction, newInstruction);
                 }
                 else if (bodyInstruction.OpCode == OpCodes.Isinst && !targetType.IsValueType)
                 {
-                    targetBuilder.Add(OpCodes.Call,
+                    var newInstruction = targetBuilder.Add(OpCodes.Call,
                         imports.Module.DefaultImporter.ImportMethod(imports.Il2CppObjectBase_TryCast.Value.MakeGenericInstanceMethod(targetType)));
+                    instructionMap.Add(bodyInstruction, newInstruction);
                 }
                 else if (bodyInstruction.OpCode == OpCodes.Newarr && !targetType.IsValueType)
                 {
-                    targetBuilder.Add(OpCodes.Conv_I8);
+                    var newInstruction = targetBuilder.Add(OpCodes.Conv_I8);
 
                     var il2cppTypeArray = imports.Il2CppReferenceArray.MakeGenericInstanceType(targetType).ToTypeDefOrRef();
                     targetBuilder.Add(OpCodes.Newobj, imports.Module.DefaultImporter.ImportMethod(
                         CecilAdapter.CreateInstanceMethodReference(".ctor", imports.Module.Void(), il2cppTypeArray, imports.Module.Long())));
+                    instructionMap.Add(bodyInstruction, newInstruction);
                 }
                 else
                 {
-                    targetBuilder.Add(bodyInstruction.OpCode, targetType.ToTypeDefOrRef());
+                    var newInstruction = targetBuilder.Add(bodyInstruction.OpCode, targetType.ToTypeDefOrRef());
+                    instructionMap.Add(bodyInstruction, newInstruction);
                 }
             }
             else if (bodyInstruction.OpCode.OperandType == CilOperandType.InlineSig)
@@ -163,20 +195,48 @@ public static class UnstripTranslator
                 else
                 {
                     targetTok = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, targetTok, imports);
-                    if (targetTok == null) return false;
+                    if (targetTok == null)
+                        return false;
                 }
 
-                targetBuilder.Add(OpCodes.Call,
+                var newInstruction = targetBuilder.Add(OpCodes.Call,
                     imports.Module.DefaultImporter.ImportMethod(imports.Il2CppSystemRuntimeTypeHandleGetRuntimeTypeHandle.Value.MakeGenericInstanceMethod(targetTok)));
+                instructionMap.Add(bodyInstruction, newInstruction);
             }
-            else if (bodyInstruction.Operand is null)
+            else if (bodyInstruction.Operand is string or Utf8String
+                || bodyInstruction.Operand.GetType().IsPrimitive)
             {
-                targetBuilder.Add(bodyInstruction.OpCode);
+                var newInstruction = new CilInstruction(bodyInstruction.OpCode, bodyInstruction.Operand);
+                targetBuilder.Add(newInstruction);
+                instructionMap.Add(bodyInstruction, newInstruction);
+            }
+            else if (bodyInstruction.Operand is Parameter parameter)
+            {
+                var newInstruction = targetBuilder.Add(bodyInstruction.OpCode, target.Parameters.GetBySignatureIndex(parameter.MethodSignatureIndex));
+                instructionMap.Add(bodyInstruction, newInstruction);
+            }
+            else if (bodyInstruction.Operand is CilLocalVariable localVariable)
+            {
+                var newInstruction = targetBuilder.Add(bodyInstruction.OpCode, localVariableMap[localVariable]);
+                instructionMap.Add(bodyInstruction, newInstruction);
+            }
+            else if (bodyInstruction.Operand is CilInstructionLabel label)
+            {
+                var newLabel = new CilInstructionLabel();
+                labelMap.Add(new(label, newLabel));
+                var newInstruction = targetBuilder.Add(bodyInstruction.OpCode, newLabel);
+                instructionMap.Add(bodyInstruction, newInstruction);
             }
             else
             {
                 return false;
             }
+        }
+
+        foreach ((var oldLabel, var newLabel) in labelMap)
+        {
+            newLabel.Instruction = instructionMap[oldLabel.Instruction!];
+        }
 
         return true;
     }
@@ -191,5 +251,12 @@ public static class UnstripTranslator
         processor.Add(OpCodes.Newobj, imports.Module.NotSupportedExceptionCtor());
         processor.Add(OpCodes.Throw);
         processor.Add(OpCodes.Ret);
+    }
+
+    //Required for deconstruction on net472
+    private static void Deconstruct(this KeyValuePair<CilInstructionLabel, CilInstructionLabel> pair, out CilInstructionLabel key, out CilInstructionLabel value)
+    {
+        key = pair.Key;
+        value = pair.Value;
     }
 }
