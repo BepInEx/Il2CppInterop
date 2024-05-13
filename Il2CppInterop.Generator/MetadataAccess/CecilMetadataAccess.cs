@@ -1,22 +1,19 @@
-using System.Collections.Generic;
-using System.Linq;
-using Mono.Cecil;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures.Types;
+using AsmResolver.IO;
 
 namespace Il2CppInterop.Generator.MetadataAccess;
 
 public class CecilMetadataAccess : IIl2CppMetadataAccess
 {
+    private readonly Il2CppAssemblyResolver myAssemblyResolver = new();
     private readonly List<AssemblyDefinition> myAssemblies = new();
     private readonly Dictionary<string, AssemblyDefinition> myAssembliesByName = new();
-    private readonly Resolver myAssemblyResolver = new();
     private readonly Dictionary<(string AssemblyName, string TypeName), TypeDefinition> myTypesByName = new();
 
     public CecilMetadataAccess(IEnumerable<string> assemblyPaths)
     {
-        var metadataResolver = new MetadataResolver(myAssemblyResolver);
-
-        Load(assemblyPaths.Select(path => AssemblyDefinition.ReadAssembly(path,
-            new ReaderParameters(ReadingMode.Deferred) { MetadataResolver = metadataResolver })));
+        Load(assemblyPaths.Select(AssemblyDefinition.FromFile));
     }
 
     public CecilMetadataAccess(IEnumerable<AssemblyDefinition> assemblies)
@@ -28,12 +25,9 @@ public class CecilMetadataAccess : IIl2CppMetadataAccess
 
     public void Dispose()
     {
-        foreach (var assemblyDefinition in myAssemblies)
-            assemblyDefinition.Dispose();
-
+        myAssemblyResolver.ClearCache();
         myAssemblies.Clear();
         myAssembliesByName.Clear();
-        myAssemblyResolver.Dispose();
     }
 
     public AssemblyDefinition? GetAssemblyBySimpleName(string name)
@@ -48,7 +42,7 @@ public class CecilMetadataAccess : IIl2CppMetadataAccess
 
     public IList<AssemblyDefinition> Assemblies => myAssemblies;
 
-    public IList<GenericInstanceType>? GetKnownInstantiationsFor(TypeDefinition genericDeclaration)
+    public IList<GenericInstanceTypeSignature>? GetKnownInstantiationsFor(TypeDefinition genericDeclaration)
     {
         return null;
     }
@@ -58,7 +52,7 @@ public class CecilMetadataAccess : IIl2CppMetadataAccess
         return null;
     }
 
-    public MethodReference? GetMethodRefStoredAt(long offsetInMemory)
+    public MemberReference? GetMethodRefStoredAt(long offsetInMemory)
     {
         return null;
     }
@@ -67,25 +61,27 @@ public class CecilMetadataAccess : IIl2CppMetadataAccess
     {
         foreach (var sourceAssembly in assemblies)
         {
-            myAssemblyResolver.Register(sourceAssembly);
             myAssemblies.Add(sourceAssembly);
-            myAssembliesByName[sourceAssembly.Name.Name] = sourceAssembly;
+            myAssembliesByName[sourceAssembly.Name] = sourceAssembly;
+            sourceAssembly.ManifestModule.MetadataResolver = new DefaultMetadataResolver(myAssemblyResolver);
+            myAssemblyResolver.AddToCache(sourceAssembly, sourceAssembly);
         }
 
         foreach (var sourceAssembly in myAssemblies)
         {
-            var sourceAssemblyName = sourceAssembly.Name.Name;
-            foreach (var type in sourceAssembly.MainModule.Types)
+            var sourceAssemblyName = sourceAssembly.Name;
+            foreach (var type in sourceAssembly.ManifestModule.TopLevelTypes)
                 // todo: nested types?
                 myTypesByName[(sourceAssemblyName, type.FullName)] = type;
         }
     }
 
-    private class Resolver : DefaultAssemblyResolver
+    private sealed class Il2CppAssemblyResolver : AssemblyResolverBase
     {
-        public void Register(AssemblyDefinition ass)
+        public Il2CppAssemblyResolver() : base(new ByteArrayFileService())
         {
-            RegisterAssembly(ass);
         }
+
+        protected override string? ProbeRuntimeDirectories(AssemblyDescriptor assembly) => null;
     }
 }

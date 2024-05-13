@@ -1,3 +1,4 @@
+using AsmResolver.DotNet.Signatures.Types;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
 
@@ -28,10 +29,11 @@ public static class Pass11ComputeTypeSpecifics
 
             if (originalField.IsStatic) continue;
 
-            var fieldType = originalField.FieldType;
-            if (fieldType.IsPrimitive || fieldType.IsPointer) continue;
-            if (fieldType.FullName == "System.String" || fieldType.FullName == "System.Object" || fieldType.IsArray ||
-                fieldType.IsByReference || fieldType.IsGenericParameter || fieldType.IsGenericInstance)
+            var fieldType = originalField.Signature.FieldType;
+            if (fieldType.IsPrimitive() || fieldType is PointerTypeSignature)
+                continue;
+            if (fieldType.FullName == "System.String" || fieldType.FullName == "System.Object"
+                || fieldType is ArrayBaseTypeSignature or ByReferenceTypeSignature or GenericParameterSignature or GenericInstanceTypeSignature)
             {
                 typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
                 return;

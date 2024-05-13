@@ -1,7 +1,8 @@
+using AsmResolver.DotNet;
+using AsmResolver.PE.DotNet.Metadata.Tables.Rows;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Microsoft.Extensions.Logging;
-using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -16,20 +17,17 @@ public static class Pass89GenerateForwarders
             return;
         }
 
-        var targetModule = targetAssembly.NewAssembly.MainModule;
+        var targetModule = targetAssembly.NewAssembly.ManifestModule;
 
         foreach (var assemblyRewriteContext in context.Assemblies)
         {
-            if (!assemblyRewriteContext.NewAssembly.Name.Name.StartsWith("UnityEngine.")) continue;
-            foreach (var mainModuleType in assemblyRewriteContext.NewAssembly.MainModule.Types)
+            if (!assemblyRewriteContext.NewAssembly.Name.Value.StartsWith("UnityEngine.")) continue;
+            foreach (var mainModuleType in assemblyRewriteContext.NewAssembly.ManifestModule.TopLevelTypes)
             {
                 if (mainModuleType.Name == "<Module>")
                     continue;
 
-                var importedType = targetModule.ImportReference(mainModuleType);
-                var exportedType =
-                    new ExportedType(mainModuleType.Namespace, mainModuleType.Name, importedType.Module,
-                        importedType.Scope)
+                var exportedType = new ExportedType(null, mainModuleType.Namespace, mainModuleType.Name)
                     { Attributes = TypeAttributes.Forwarder };
                 targetModule.ExportedTypes.Add(exportedType);
 
@@ -45,11 +43,10 @@ public static class Pass89GenerateForwarders
         {
             if ((nested.Attributes & TypeAttributes.VisibilityMask) != TypeAttributes.NestedPublic) continue;
 
-            var nestedImport = targetModule.ImportReference(nested);
-            var nestedExport =
-                new ExportedType(nestedImport.Namespace, nestedImport.Name, nestedImport.Module, nestedImport.Scope)
+            var nestedImport = targetModule.DefaultImporter.ImportType(nested);
+            var nestedExport = new ExportedType(importedType, nestedImport.Namespace, nestedImport.Name)
                 { Attributes = TypeAttributes.Forwarder };
-            nestedExport.DeclaringType = importedType;
+
             targetModule.ExportedTypes.Add(nestedExport);
 
             AddNestedTypes(nested, nestedExport, targetModule);

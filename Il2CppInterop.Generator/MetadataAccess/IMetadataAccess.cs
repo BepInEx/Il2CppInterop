@@ -1,6 +1,4 @@
-using System;
-using System.Collections.Generic;
-using Mono.Cecil;
+using AsmResolver.DotNet;
 
 namespace Il2CppInterop.Generator.MetadataAccess;
 

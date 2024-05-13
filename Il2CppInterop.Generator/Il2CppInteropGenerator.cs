@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Il2CppInterop.Common;
+﻿using Il2CppInterop.Common;
 using Il2CppInterop.Common.Host;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Generator.Runners;

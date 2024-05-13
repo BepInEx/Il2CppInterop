@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Il2CppInterop.Generator.Runners;
+﻿namespace Il2CppInterop.Generator.Runners;
 
 internal interface IRunner : IDisposable
 {
