@@ -203,6 +203,25 @@ public static class UnstripTranslator
                     imports.Module.DefaultImporter.ImportMethod(imports.Il2CppSystemRuntimeTypeHandleGetRuntimeTypeHandle.Value.MakeGenericInstanceMethod(targetTok)));
                 instructionMap.Add(bodyInstruction, newInstruction);
             }
+            else if (bodyInstruction.OpCode.OperandType is CilOperandType.InlineSwitch && bodyInstruction.Operand is IReadOnlyList<ICilLabel> labels)
+            {
+                List<ICilLabel> newLabels = new(labels.Count);
+                for (var i = 0; i < labels.Count; i++)
+                {
+                    if (labels[i] is CilInstructionLabel oldLabel)
+                    {
+                        var newLabel = new CilInstructionLabel();
+                        labelMap.Add(new(oldLabel, newLabel));
+                        newLabels.Add(newLabel);
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                var newInstruction = targetBuilder.Add(bodyInstruction.OpCode, newLabels);
+                instructionMap.Add(bodyInstruction, newInstruction);
+            }
             else if (bodyInstruction.Operand is string or Utf8String
                 || bodyInstruction.Operand.GetType().IsPrimitive)
             {
