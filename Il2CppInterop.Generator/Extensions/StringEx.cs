@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using AsmResolver;
 using AsmResolver.DotNet.Signatures.Types;
@@ -106,6 +107,11 @@ public static class StringEx
     public static ulong StableHash(this Utf8String? str)
     {
         return StableHash(str?.Value ?? "");
+    }
+
+    public static bool StartsWith([NotNullWhen(true)] this Utf8String? str, string value)
+    {
+        return str is not null && str.Value.StartsWith(value, StringComparison.Ordinal);
     }
 
     public static string GetUnmangledName(this TypeSignature typeRef)

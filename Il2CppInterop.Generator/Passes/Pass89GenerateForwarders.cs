@@ -2,6 +2,7 @@ using AsmResolver.DotNet;
 using AsmResolver.PE.DotNet.Metadata.Tables.Rows;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Generator.Passes;
@@ -21,7 +22,7 @@ public static class Pass89GenerateForwarders
 
         foreach (var assemblyRewriteContext in context.Assemblies)
         {
-            if (!assemblyRewriteContext.NewAssembly.Name.Value.StartsWith("UnityEngine.")) continue;
+            if (!assemblyRewriteContext.NewAssembly.Name.StartsWith("UnityEngine.")) continue;
             foreach (var mainModuleType in assemblyRewriteContext.NewAssembly.ManifestModule.TopLevelTypes)
             {
                 if (mainModuleType.Name == "<Module>")
