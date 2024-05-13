@@ -34,7 +34,7 @@ public static class UnstripTranslator
         }
 
         List<KeyValuePair<CilInstructionLabel, CilInstructionLabel>> labelMap = new();
-        Dictionary<CilInstruction,  CilInstruction> instructionMap = new();
+        Dictionary<CilInstruction, CilInstruction> instructionMap = new();
 
         var targetBuilder = target.CilMethodBody.Instructions;
         foreach (var bodyInstruction in original.CilMethodBody.Instructions)
