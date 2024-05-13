@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace Il2CppInterop.Generator.Utils;
+﻿namespace Il2CppInterop.Generator.Utils;
 
 public class Memoize<TParam, TResult>
 {

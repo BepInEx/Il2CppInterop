@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics;
 using Il2CppInterop.Common;
 using Microsoft.Extensions.Logging;

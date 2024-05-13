@@ -1,9 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Text;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures.Types;
+using AsmResolver.PE.DotNet.Metadata.Tables.Rows;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
@@ -11,7 +10,6 @@ using Il2CppInterop.Generator.MetadataAccess;
 using Il2CppInterop.Generator.Passes;
 using Il2CppInterop.Generator.Utils;
 using Microsoft.Extensions.Logging;
-using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Runners;
 
@@ -140,10 +138,10 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
         foreach (var assemblyContext in rewriteContext.Assemblies)
         {
             if (options.DeobfuscationGenerationAssemblies.Count > 0 &&
-                !options.DeobfuscationGenerationAssemblies.Contains(assemblyContext.NewAssembly.Name.Name))
+                !options.DeobfuscationGenerationAssemblies.Contains(assemblyContext.NewAssembly.Name))
                 continue;
 
-            var cleanAssembly = cleanContext.GetAssemblyByName(assemblyContext.OriginalAssembly.Name.Name);
+            var cleanAssembly = cleanContext.GetAssemblyByName(assemblyContext.OriginalAssembly.Name);
 
             void DoType(TypeRewriteContext typeContext, TypeRewriteContext? enclosingType)
             {
@@ -213,10 +211,10 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
 
         foreach (var candidateCleanType in source)
         {
-            if (obfType.OriginalType.HasMethods != candidateCleanType.OriginalType.HasMethods)
+            if (obfType.OriginalType.HasMethods() != candidateCleanType.OriginalType.HasMethods())
                 continue;
 
-            if (obfType.OriginalType.HasFields != candidateCleanType.OriginalType.HasFields)
+            if (obfType.OriginalType.HasFields() != candidateCleanType.OriginalType.HasFields())
                 continue;
 
             if (obfType.OriginalType.IsEnum)
@@ -262,7 +260,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
                 if (obfuscatedField.Name.IsObfuscated(options))
                 {
                     var bestFieldScore = candidateCleanType.OriginalType.Fields.Max(it =>
-                        TypeMatchWeight(obfuscatedField.FieldType, it.FieldType, options));
+                        TypeMatchWeight(obfuscatedField.Signature.FieldType, it.Signature.FieldType, options));
                     currentPenalty += bestFieldScore * (bestFieldScore < 0 ? 10 : 2);
                     continue;
                 }
@@ -305,7 +303,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
         return (bestMatch, bestPenalty);
     }
 
-    private static int TypeMatchWeight(TypeReference a, TypeReference b, GeneratorOptions options)
+    private static int TypeMatchWeight(TypeSignature a, TypeSignature b, GeneratorOptions options)
     {
         if (a.GetType() != b.GetType())
             return -1;
@@ -322,36 +320,36 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
 
         switch (a)
         {
-            case ArrayType arr:
-                if (!(b is ArrayType brr))
+            case ArrayBaseTypeSignature arr:
+                if (b is not ArrayBaseTypeSignature brr)
                     return -1;
-                return TypeMatchWeight(arr.ElementType, brr.ElementType, options) * 5;
-            case ByReferenceType abr:
-                if (!(b is ByReferenceType bbr))
+                return TypeMatchWeight(arr.BaseType, brr.BaseType, options) * 5;
+            case ByReferenceTypeSignature abr:
+                if (b is not ByReferenceTypeSignature bbr)
                     return -1;
-                return TypeMatchWeight(abr.ElementType, bbr.ElementType, options) * 5;
-            case GenericInstanceType agi:
-                if (!(b is GenericInstanceType bgi))
+                return TypeMatchWeight(abr.BaseType, bbr.BaseType, options) * 5;
+            case GenericInstanceTypeSignature agi:
+                if (b is not GenericInstanceTypeSignature bgi)
                     return -1;
-                if (agi.GenericArguments.Count != bgi.GenericArguments.Count) return -1;
-                Accumulate(TypeMatchWeight(agi.ElementType, bgi.ElementType, options));
-                for (var i = 0; i < agi.GenericArguments.Count; i++)
-                    Accumulate(TypeMatchWeight(agi.GenericArguments[i], bgi.GenericArguments[i], options));
+                if (agi.TypeArguments.Count != bgi.TypeArguments.Count) return -1;
+                Accumulate(TypeMatchWeight(agi.GenericType.ToTypeSignature(), bgi.GenericType.ToTypeSignature(), options));
+                for (var i = 0; i < agi.TypeArguments.Count; i++)
+                    Accumulate(TypeMatchWeight(agi.TypeArguments[i], bgi.TypeArguments[i], options));
                 return runningSum * 5;
-            case GenericParameter:
-                if (!(b is GenericParameter))
+            case GenericParameterSignature:
+                if (b is not GenericParameterSignature)
                     return -1;
                 return 5;
             default:
-                if (a.IsNested)
+                if (a.IsNested())
                 {
-                    if (!b.IsNested)
+                    if (!b.IsNested())
                         return -1;
 
                     if (a.Name.IsObfuscated(options))
                         return 0;
 
-                    var declMatch = TypeMatchWeight(a.DeclaringType, b.DeclaringType, options);
+                    var declMatch = TypeMatchWeight(a.DeclaringType.ToTypeSignature(), b.DeclaringType.ToTypeSignature(), options);
                     if (declMatch == -1 || a.Name != b.Name)
                         return -1;
 
@@ -371,7 +369,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
             (b.Attributes & MethodAttributes.MemberAccessMask))
             return -1;
 
-        var runningSum = TypeMatchWeight(a.ReturnType, b.ReturnType, options);
+        var runningSum = TypeMatchWeight(a.Signature.ReturnType, b.Signature.ReturnType, options);
         if (runningSum == -1)
             return -1;
 

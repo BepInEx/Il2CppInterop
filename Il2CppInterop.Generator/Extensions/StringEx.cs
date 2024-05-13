@@ -1,5 +1,6 @@
 using System.Text;
-using Mono.Cecil;
+using AsmResolver;
+using AsmResolver.DotNet.Signatures.Types;
 
 namespace Il2CppInterop.Generator.Extensions;
 
@@ -23,10 +24,21 @@ public static class StringEx
             return true;
         }
     }
+
+    public static bool NameShouldBePrefixed(this Utf8String? str, GeneratorOptions options)
+    {
+        return NameShouldBePrefixed(str?.Value ?? "", options);
+    }
+
     public static string UnSystemify(this string str, GeneratorOptions options)
     {
         const string Il2CppPrefix = "Il2Cpp";
         return str.NameShouldBePrefixed(options) ? Il2CppPrefix + str : str;
+    }
+
+    public static string UnSystemify(this Utf8String? str, GeneratorOptions options)
+    {
+        return UnSystemify(str?.Value ?? "", options);
     }
 
     public static string FilterInvalidInSourceChars(this string str)
@@ -42,6 +54,11 @@ public static class StringEx
         return new string(chars);
     }
 
+    public static string FilterInvalidInSourceChars(this Utf8String? str)
+    {
+        return str?.Value.FilterInvalidInSourceChars() ?? "";
+    }
+
     public static bool IsInvalidInSource(this string str)
     {
         for (var i = 0; i < str.Length; i++)
@@ -52,6 +69,11 @@ public static class StringEx
         }
 
         return false;
+    }
+
+    public static bool IsInvalidInSource(this Utf8String? str)
+    {
+        return IsInvalidInSource(str?.Value ?? "");
     }
 
     public static bool IsObfuscated(this string str, GeneratorOptions options)
@@ -67,6 +89,11 @@ public static class StringEx
         return false;
     }
 
+    public static bool IsObfuscated(this Utf8String? str, GeneratorOptions options)
+    {
+        return IsObfuscated(str?.Value ?? "", options);
+    }
+
     public static ulong StableHash(this string str)
     {
         ulong hash = 0;
@@ -76,27 +103,32 @@ public static class StringEx
         return hash;
     }
 
-    public static string GetUnmangledName(this TypeReference typeRef)
+    public static ulong StableHash(this Utf8String? str)
+    {
+        return StableHash(str?.Value ?? "");
+    }
+
+    public static string GetUnmangledName(this TypeSignature typeRef)
     {
         var builder = new StringBuilder();
-        if (typeRef is GenericInstanceType genericInstance)
+        if (typeRef is GenericInstanceTypeSignature genericInstance)
         {
-            builder.Append(genericInstance.ElementType.GetUnmangledName());
-            foreach (var genericArgument in genericInstance.GenericArguments)
+            builder.Append(genericInstance.GenericType.ToTypeSignature().GetUnmangledName());
+            foreach (var genericArgument in genericInstance.TypeArguments)
             {
                 builder.Append("_");
                 builder.Append(genericArgument.GetUnmangledName());
             }
         }
-        else if (typeRef is ByReferenceType byRef)
+        else if (typeRef is ByReferenceTypeSignature byRef)
         {
             builder.Append("byref_");
-            builder.Append(byRef.ElementType.GetUnmangledName());
+            builder.Append(byRef.BaseType.GetUnmangledName());
         }
-        else if (typeRef is PointerType pointer)
+        else if (typeRef is PointerTypeSignature pointer)
         {
             builder.Append("ptr_");
-            builder.Append(pointer.ElementType.GetUnmangledName());
+            builder.Append(pointer.BaseType.GetUnmangledName());
         }
         else
         {

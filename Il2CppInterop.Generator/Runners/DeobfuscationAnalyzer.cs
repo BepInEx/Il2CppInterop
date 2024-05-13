@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using Il2CppInterop.Generator.Contexts;
+﻿using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.MetadataAccess;
 using Il2CppInterop.Generator.Passes;
 using Il2CppInterop.Generator.Utils;

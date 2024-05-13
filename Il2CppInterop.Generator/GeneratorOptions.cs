@@ -1,7 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
-using Mono.Cecil;
+using AsmResolver.DotNet;
 
 namespace Il2CppInterop.Generator;
 
