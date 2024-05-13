@@ -28,7 +28,9 @@ public static class Pass89GenerateForwarders
                     continue;
 
                 var exportedType = new ExportedType(null, mainModuleType.Namespace, mainModuleType.Name)
-                    { Attributes = TypeAttributes.Forwarder };
+                {
+                    Attributes = TypeAttributes.Forwarder
+                };
                 targetModule.ExportedTypes.Add(exportedType);
 
                 AddNestedTypes(mainModuleType, exportedType, targetModule);
@@ -45,7 +47,9 @@ public static class Pass89GenerateForwarders
 
             var nestedImport = targetModule.DefaultImporter.ImportType(nested);
             var nestedExport = new ExportedType(importedType, nestedImport.Namespace, nestedImport.Name)
-                { Attributes = TypeAttributes.Forwarder };
+            {
+                Attributes = TypeAttributes.Forwarder
+            };
 
             targetModule.ExportedTypes.Add(nestedExport);
 
