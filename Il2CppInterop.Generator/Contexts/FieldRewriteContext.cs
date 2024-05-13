@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables.Rows;
@@ -31,12 +32,14 @@ public class FieldRewriteContext
 
         declaringType.NewType.Fields.Add(pointerField);
 
+        Debug.Assert(pointerField.Signature is not null);
         PointerField = new MemberReference(DeclaringType.SelfSubstitutedRef, pointerField.Name, new FieldSignature(pointerField.Signature.FieldType));
     }
 
     private string UnmangleFieldNameBase(FieldDefinition field, GeneratorOptions options)
     {
-        if (options.PassthroughNames) return field.Name;
+        if (options.PassthroughNames)
+            return field.Name;
 
         if (!field.Name.IsObfuscated(options))
         {
@@ -45,6 +48,7 @@ public class FieldRewriteContext
             return field.Name.FilterInvalidInSourceChars();
         }
 
+        Debug.Assert(field.Signature is not null);
         var accessModString = MethodAccessTypeLabels[(int)(field.Attributes & FieldAttributes.FieldAccessMask)];
         var staticString = field.IsStatic ? "_Static" : "";
         return "field_" + accessModString + staticString + "_" +
@@ -54,7 +58,8 @@ public class FieldRewriteContext
     private string UnmangleFieldName(FieldDefinition field, GeneratorOptions options,
         Dictionary<string, int>? renamedFieldCounts)
     {
-        if (options.PassthroughNames) return field.Name;
+        if (options.PassthroughNames)
+            return field.Name;
 
         if (!field.Name.IsObfuscated(options))
         {

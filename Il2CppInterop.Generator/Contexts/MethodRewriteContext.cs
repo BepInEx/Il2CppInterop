@@ -48,7 +48,7 @@ public class MethodRewriteContext
         var passthroughNames = declaringType.AssemblyContext.GlobalContext.Options.PassthroughNames;
 
         OriginalNameObfuscated = !passthroughNames &&
-                                 (OriginalMethod?.Name?.IsObfuscated(declaringType.AssemblyContext.GlobalContext
+                                 (OriginalMethod.Name?.IsObfuscated(declaringType.AssemblyContext.GlobalContext
                                      .Options) ?? false);
 
         var newAttributes = AdjustAttributes(originalMethod.Attributes, originalMethod.Name == "Finalize");
