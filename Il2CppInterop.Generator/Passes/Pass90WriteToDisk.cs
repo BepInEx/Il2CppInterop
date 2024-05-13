@@ -14,8 +14,9 @@ public static class Pass90WriteToDisk
             var module = asmContext.NewAssembly.ManifestModule;
             foreach (var reference in module.AssemblyReferences)
             {
-                // TODO: Instead of a hack, set correctly initially via source generator
-                if (reference.Name == "System.Private.CoreLib")
+                // System.Private.CoreLib needs rewriting because references can get created during the rewrite process.
+                // mscorlib needs rewriting because we initially set 2.0.0.0 as the version for resolving references.
+                if (reference.Name?.Value is "System.Private.CoreLib" or "mscorlib")
                 {
                     CorlibReferences.RewriteReferenceToMscorlib(reference);
                     continue;
