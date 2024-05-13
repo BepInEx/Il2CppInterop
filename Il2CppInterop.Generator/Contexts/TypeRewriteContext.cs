@@ -80,7 +80,7 @@ public class TypeRewriteContext
                 AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType);
             if (OriginalType.ToTypeSignature().IsPrimitive() || OriginalType.FullName == "System.String")
                 genericTypeRef.TypeArguments.Add(
-                    NewType.Module.ImportCorlibReference(OriginalType.Namespace, OriginalType.Name));
+                    NewType.Module.ImportCorlibReference(OriginalType.FullName));
             else
                 genericTypeRef.TypeArguments.Add(SelfSubstitutedRef.ToTypeSignature());
             ClassPointerFieldRef = CecilAdapter.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),

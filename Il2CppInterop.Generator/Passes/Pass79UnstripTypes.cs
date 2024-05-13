@@ -107,7 +107,7 @@ public static class Pass79UnstripTypes
         foreach (var sourceEnumField in sourceEnum.Fields)
         {
             TypeSignature fieldType = sourceEnumField.Name == "value__"
-                ? imports.Module.ImportCorlibReference(sourceEnumField.Signature.FieldType.Namespace, sourceEnumField.Signature.FieldType.Name)
+                ? imports.Module.ImportCorlibReference(sourceEnumField.Signature.FieldType.FullName)
                 : newType.ToTypeSignature();
             var newField = new FieldDefinition(sourceEnumField.Name, sourceEnumField.Attributes, new FieldSignature(fieldType));
             newField.Constant = sourceEnumField.Constant;

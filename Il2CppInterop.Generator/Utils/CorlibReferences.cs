@@ -16,9 +16,9 @@ internal static class CorlibReferences
         assemblyNameReference.Culture = "";
     }
 
-    public static TypeSignature ImportCorlibReference(this ModuleDefinition module, string @namespace, string type)
+    public static TypeSignature ImportCorlibReference(this ModuleDefinition module, string fullName)
     {
-        return module.DefaultImporter.ImportTypeSignature(typeof(string).Assembly.GetType($"{@namespace}.{type}"));
+        return module.DefaultImporter.ImportTypeSignature(typeof(string).Assembly.GetType(fullName));
     }
 
     public static TypeSignature Void(this ModuleDefinition module)
@@ -170,9 +170,9 @@ internal static class CorlibReferences
     {
         return n switch
         {
-            0 => module.ImportCorlibReference("System", "Action"),
-            1 => module.ImportCorlibReference("System", "Action`1"),
-            _ => module.ImportCorlibReference("System", $"Action`{n}")
+            0 => module.ImportCorlibReference("System.Action"),
+            1 => module.ImportCorlibReference("System.Action`1"),
+            _ => module.ImportCorlibReference($"System.Action`{n}")
         };
     }
 
@@ -180,9 +180,9 @@ internal static class CorlibReferences
     {
         return n switch
         {
-            0 => module.ImportCorlibReference("System", "Func`1"),
-            1 => module.ImportCorlibReference("System", "Func`2"),
-            _ => module.ImportCorlibReference("System", $"Func`{n + 1}")
+            0 => module.ImportCorlibReference("System.Func`1"),
+            1 => module.ImportCorlibReference("System.Func`2"),
+            _ => module.ImportCorlibReference($"System.Func`{n + 1}")
         };
     }
 
