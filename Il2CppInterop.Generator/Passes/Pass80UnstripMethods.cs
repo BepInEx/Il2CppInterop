@@ -4,6 +4,7 @@ using AsmResolver.DotNet.Signatures.Types;
 using AsmResolver.PE.DotNet.Metadata.Tables.Rows;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -237,7 +238,7 @@ public static class Pass80UnstripMethods
         if (targetAssemblyName == "UnityEngine")
             foreach (var assemblyRewriteContext in context.Assemblies)
             {
-                if (!assemblyRewriteContext.NewAssembly.Name.Value.StartsWith("UnityEngine"))
+                if (!assemblyRewriteContext.NewAssembly.Name.StartsWith("UnityEngine"))
                     continue;
 
                 var newTypeInAnyUnityAssembly =

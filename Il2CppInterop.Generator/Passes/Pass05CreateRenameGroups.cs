@@ -72,7 +72,7 @@ public static class Pass05CreateRenameGroups
         var accessName = ClassAccessNames[(int)(typeDefinition.Attributes & TypeAttributes.VisibilityMask)];
 
         var classifier = typeDefinition.IsInterface ? "Interface" : typeDefinition.IsValueType ? "Struct" : "Class";
-        var compilerGenertaedString = typeDefinition.Name.Value.StartsWith("<") ? "CompilerGenerated" : "";
+        var compilerGenertaedString = typeDefinition.Name.StartsWith("<") ? "CompilerGenerated" : "";
         var abstractString = typeDefinition.IsAbstract ? "Abstract" : "";
         var sealedString = typeDefinition.IsSealed ? "Sealed" : "";
         var specialNameString = typeDefinition.IsSpecialName ? "SpecialName" : "";
