@@ -61,7 +61,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 var imageGetClassAPI = InjectorHelpers.GetIl2CppExport(nameof(IL2CPP.il2cpp_image_get_class));
                 Logger.Instance.LogTrace("il2cpp_image_get_class: 0x{ImageGetClassApiAddress}", imageGetClassAPI.ToInt64().ToString("X2"));
 
-                var imageGetType = XrefScannerLowLevel.JumpTargets(imageGetClassAPI).Single();
+                var imageGetType = XrefScannerLowLevel.JumpTargets(imageGetClassAPI).First();
                 Logger.Instance.LogTrace("Image::GetType: 0x{ImageGetTypeAddress}", imageGetType.ToInt64().ToString("X2"));
 
                 var imageGetTypeXrefs = XrefScannerLowLevel.JumpTargets(imageGetType).ToArray();
