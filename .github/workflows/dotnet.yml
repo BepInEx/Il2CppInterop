@@ -11,28 +11,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 6.0.202
+          global-json-file: global.json
 
       - name: Extract Release Version
         id: get_version
         shell: bash
         run: |
           if [ "${GITHUB_REF#refs/tags/v}" != "$GITHUB_REF" ]; then
-          echo ::set-output name=version::${GITHUB_REF#refs/tags/v}
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
           else
-          echo ::set-output name=build_tag::ci.${GITHUB_RUN_NUMBER}
+            echo "build_tag=ci.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build
         run: ./build.sh --target=Pack --build_version ${{ steps.get_version.outputs.version }} --build_tag ${{ steps.get_version.outputs.build_tag }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: ./bin/zip/*.zip
           name: Il2CppInterop
@@ -50,7 +50,7 @@ jobs:
           dotnet nuget push --skip-duplicate -s "$push_source" -k "$push_api_key" ./bin/NuGet/*.nupkg
 
       - name: Publish a release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: ./bin/zip/*.zip
