@@ -80,10 +80,14 @@ public class MethodRewriteContext
 
         FileOffset = originalMethod.ExtractOffset();
         // Workaround for garbage file offsets passed by Cpp2IL
-        if (FileOffset < 0) FileOffset = 0;
-        Rva = originalMethod.ExtractRva();
-        if (FileOffset != 0)
+        if (FileOffset <= 0)
+            FileOffset = 0;
+        else
             declaringType.AssemblyContext.GlobalContext.MethodStartAddresses.Add(FileOffset);
+
+        Rva = originalMethod.ExtractRva();
+
+        newMethod.CustomAttributes.Add(GetIl2CppMethodAttribute());
     }
 
     public string UnmangledName { get; private set; }
@@ -298,5 +302,18 @@ public class MethodRewriteContext
         }
 
         return true;
+    }
+
+    private CustomAttribute GetIl2CppMethodAttribute()
+    {
+        var imports = DeclaringType.AssemblyContext.Imports;
+
+        var attribute = new CustomAttribute(
+            new MethodReference(".ctor", imports.Module.Void(),
+            new("Il2CppInterop.Runtime.Attributes", "Il2CppMethodAttribute", imports.Module, imports.Il2CppInteropAssemblyRef)));
+
+        attribute.Properties.Add(new("RVA", new(imports.Module.Long(), Rva)));
+
+        return attribute;
     }
 }
