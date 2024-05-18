@@ -23,9 +23,9 @@ jobs:
         shell: bash
         run: |
           if [ "${GITHUB_REF#refs/tags/v}" != "$GITHUB_REF" ]; then
-          echo ::set-output name=version::${GITHUB_REF#refs/tags/v}
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
           else
-          echo ::set-output name=build_tag::ci.${GITHUB_RUN_NUMBER}
+            echo "build_tag=ci.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build
