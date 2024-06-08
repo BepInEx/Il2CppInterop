@@ -34,7 +34,7 @@ public static unsafe class IL2CPP
         for (var i = 0; i < assembliesCount; i++)
         {
             var image = il2cpp_assembly_get_image(assemblies[i]);
-            var name = Marshal.PtrToStringAnsi(il2cpp_image_get_name(image));
+            var name = il2cpp_image_get_name(image);
             ourImagesMap[name] = image;
         }
     }
@@ -69,7 +69,7 @@ public static unsafe class IL2CPP
         var field = il2cpp_class_get_field_from_name(clazz, fieldName);
         if (field == IntPtr.Zero)
             Logger.Instance.LogError(
-                "Field {FieldName} was not found on class {ClassName}", fieldName, Marshal.PtrToStringUTF8(il2cpp_class_get_name(clazz)));
+                "Field {FieldName} was not found on class {ClassName}", fieldName, il2cpp_class_get_name(clazz));
         return field;
     }
 
@@ -84,7 +84,7 @@ public static unsafe class IL2CPP
             if (il2cpp_method_get_token(method) == token)
                 return method;
 
-        var className = Marshal.PtrToStringAnsi(il2cpp_class_get_name(clazz));
+        var className = il2cpp_class_get_name(clazz);
         Logger.Instance.LogTrace("Unable to find method {ClassName}::{Token}", className, token);
 
         return NativeStructUtils.GetMethodInfoForMissingMethod(className + "::" + token);
@@ -110,7 +110,7 @@ public static unsafe class IL2CPP
         IntPtr method;
         while ((method = il2cpp_class_get_methods(clazz, ref iter)) != IntPtr.Zero)
         {
-            if (Marshal.PtrToStringAnsi(il2cpp_method_get_name(method)) != methodName)
+            if (il2cpp_method_get_name(method) != methodName)
                 continue;
 
             if (il2cpp_method_get_param_count(method) != argTypes.Length)
@@ -120,7 +120,7 @@ public static unsafe class IL2CPP
                 continue;
 
             var returnType = il2cpp_method_get_return_type(method);
-            var returnTypeNameActual = Marshal.PtrToStringAnsi(il2cpp_type_get_name(returnType));
+            var returnTypeNameActual = il2cpp_type_get_name(returnType);
             if (returnTypeNameActual != returnTypeName)
                 continue;
 
@@ -131,7 +131,7 @@ public static unsafe class IL2CPP
             for (var i = 0; i < argTypes.Length; i++)
             {
                 var paramType = il2cpp_method_get_param(method, (uint)i);
-                var typeName = Marshal.PtrToStringAnsi(il2cpp_type_get_name(paramType));
+                var typeName = il2cpp_type_get_name(paramType);
                 if (typeName != argTypes[i])
                 {
                     badType = true;
@@ -144,19 +144,19 @@ public static unsafe class IL2CPP
             return method;
         }
 
-        var className = Marshal.PtrToStringAnsi(il2cpp_class_get_name(clazz));
+        var className = il2cpp_class_get_name(clazz);
 
         if (methodsSeen == 1)
         {
             Logger.Instance.LogTrace(
                 "Method {ClassName}::{MethodName} was stubbed with a random matching method of the same name", className, methodName);
             Logger.Instance.LogTrace(
-                "Stubby return type/target: {LastMethod} / {ReturnTypeName}", Marshal.PtrToStringUTF8(il2cpp_type_get_name(il2cpp_method_get_return_type(lastMethod))), returnTypeName);
+                "Stubby return type/target: {LastMethod} / {ReturnTypeName}", il2cpp_type_get_name(il2cpp_method_get_return_type(lastMethod)), returnTypeName);
             Logger.Instance.LogTrace("Stubby parameter types/targets follow:");
             for (var i = 0; i < argTypes.Length; i++)
             {
                 var paramType = il2cpp_method_get_param(lastMethod, (uint)i);
-                var typeName = Marshal.PtrToStringAnsi(il2cpp_type_get_name(paramType));
+                var typeName = il2cpp_type_get_name(paramType);
                 Logger.Instance.LogTrace("    {TypeName} / {ArgType}", typeName, argTypes[i]);
             }
 
@@ -171,17 +171,17 @@ public static unsafe class IL2CPP
         iter = IntPtr.Zero;
         while ((method = il2cpp_class_get_methods(clazz, ref iter)) != IntPtr.Zero)
         {
-            if (Marshal.PtrToStringAnsi(il2cpp_method_get_name(method)) != methodName)
+            if (il2cpp_method_get_name(method) != methodName)
                 continue;
 
             var nParams = il2cpp_method_get_param_count(method);
             Logger.Instance.LogTrace("Method starts");
             Logger.Instance.LogTrace(
-                "     return {MethodTypeName}", Marshal.PtrToStringUTF8(il2cpp_type_get_name(il2cpp_method_get_return_type(method))));
+                "     return {MethodTypeName}", il2cpp_type_get_name(il2cpp_method_get_return_type(method)));
             for (var i = 0; i < nParams; i++)
             {
                 var paramType = il2cpp_method_get_param(method, (uint)i);
-                var typeName = Marshal.PtrToStringAnsi(il2cpp_type_get_name(paramType));
+                var typeName = il2cpp_type_get_name(paramType);
                 Logger.Instance.LogTrace("    {TypeName}", typeName);
             }
 
@@ -236,11 +236,11 @@ public static unsafe class IL2CPP
         }
 
         while ((nestedTypePtr = il2cpp_class_get_nested_types(enclosingType, ref iter)) != IntPtr.Zero)
-            if (Marshal.PtrToStringAnsi(il2cpp_class_get_name(nestedTypePtr)) == nestedTypeName)
+            if (il2cpp_class_get_name(nestedTypePtr) == nestedTypeName)
                 return nestedTypePtr;
 
         Logger.Instance.LogError(
-            "Nested type {NestedTypeName} on {EnclosingTypeName} not found!", nestedTypeName, Marshal.PtrToStringUTF8(il2cpp_class_get_name(enclosingType)));
+            "Nested type {NestedTypeName} on {EnclosingTypeName} not found!", nestedTypeName, il2cpp_class_get_name(enclosingType));
 
         return IntPtr.Zero;
     }
@@ -510,13 +510,15 @@ public static unsafe class IL2CPP
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_class_get_method_from_name(IntPtr klass,
-        [MarshalAs(UnmanagedType.LPStr)] string name, int argsCount);
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string name, int argsCount);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_class_get_name(IntPtr klass);
+    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    public static extern string il2cpp_class_get_name(IntPtr klass);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_class_get_namespace(IntPtr klass);
+    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    public static extern string il2cpp_class_get_namespace(IntPtr klass);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_class_get_parent(IntPtr klass);
@@ -580,7 +582,8 @@ public static unsafe class IL2CPP
     public static extern IntPtr il2cpp_class_get_image(IntPtr klass);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_class_get_assemblyname(IntPtr klass);
+    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    public static extern string il2cpp_class_get_assemblyname(IntPtr klass);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern int il2cpp_class_get_rank(IntPtr klass);
@@ -626,7 +629,8 @@ public static unsafe class IL2CPP
     public static extern int il2cpp_field_get_flags(IntPtr field);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_field_get_name(IntPtr field);
+    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    public static extern string il2cpp_field_get_name(IntPtr field);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_field_get_parent(IntPtr field);
@@ -717,7 +721,8 @@ public static unsafe class IL2CPP
     public static extern IntPtr il2cpp_method_get_declaring_type(IntPtr method);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_method_get_name(IntPtr method);
+    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    public static extern string il2cpp_method_get_name(IntPtr method);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IntPtr il2cpp_method_get_from_reflection(IntPtr method)
@@ -765,7 +770,8 @@ public static unsafe class IL2CPP
     public static extern uint il2cpp_method_get_token(IntPtr method);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_method_get_param_name(IntPtr method, uint index);
+    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    public static extern string il2cpp_method_get_param_name(IntPtr method, uint index);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern void il2cpp_profiler_install(IntPtr prof, IntPtr shutdown_callback);
@@ -797,7 +803,8 @@ public static unsafe class IL2CPP
     public static extern IntPtr il2cpp_property_get_set_method(IntPtr prop);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_property_get_name(IntPtr prop);
+    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    public static extern string il2cpp_property_get_name(IntPtr prop);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_property_get_parent(IntPtr prop);
@@ -940,7 +947,8 @@ public static unsafe class IL2CPP
     public static extern IntPtr il2cpp_type_get_class_or_element_class(IntPtr type);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_type_get_name(IntPtr type);
+    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    public static extern string il2cpp_type_get_name(IntPtr type);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     [return: MarshalAs(UnmanagedType.I1)]
@@ -960,10 +968,12 @@ public static unsafe class IL2CPP
     public static extern IntPtr il2cpp_image_get_assembly(IntPtr image);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_image_get_name(IntPtr image);
+    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    public static extern string il2cpp_image_get_name(IntPtr image);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_image_get_filename(IntPtr image);
+    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    public static extern string il2cpp_image_get_filename(IntPtr image);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_image_get_entry_point(IntPtr image);

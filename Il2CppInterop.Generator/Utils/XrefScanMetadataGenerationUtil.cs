@@ -42,24 +42,31 @@ internal static class XrefScanMetadataGenerationUtil
         throw new ApplicationException("Unable to find a method with metadata init reference");
     }
 
-    internal static (long FlagRva, long TokenRva) FindMetadataInitForMethod(MethodRewriteContext method,
+    internal static (long FlagRva, long[] TokenRvas) FindMetadataInitForMethod(MethodRewriteContext method,
         long gameAssemblyBase)
     {
         if (MetadataInitForMethodRva == 0)
             FindMetadataInitForMethod(method.DeclaringType.AssemblyContext.GlobalContext, gameAssemblyBase);
 
         var codeStart = (IntPtr)(gameAssemblyBase + method.FileOffset);
-        var firstCall = XrefScannerLowLevel.JumpTargets(codeStart).FirstOrDefault();
-        if (firstCall != MetadataInitForMethodFileOffset || firstCall == IntPtr.Zero) return (0, 0);
+        if (!XrefScannerLowLevel.JumpTargets(codeStart).Any(call => call == MetadataInitForMethodFileOffset)) return (0, Array.Empty<long>());
 
-        var tokenPointer =
-            XrefScanUtilFinder.FindLastRcxReadAddressBeforeCallTo(codeStart, MetadataInitForMethodFileOffset);
         var initFlagPointer =
             XrefScanUtilFinder.FindByteWriteTargetRightAfterCallTo(codeStart, MetadataInitForMethodFileOffset);
 
-        if (tokenPointer == IntPtr.Zero || initFlagPointer == IntPtr.Zero) return (0, 0);
+        // var (initStart, initEnd) = XrefScannerLowLevel.ConditionalBlock(codeStart);
+
+        // if (initStart == IntPtr.Zero || initEnd == IntPtr.Zero) return (0, Array.Empty<long>());
+
+        // var tokenPointer =
+        //     XrefScanUtilFinder.FindLastRcxReadAddressesBeforeCallTo(initStart, (int)((ulong)initEnd - (ulong)initStart), MetadataInitForMethodFileOffset);
+
+        var tokenPointer =
+            XrefScanUtilFinder.FindLastRcxReadAddressesBeforeCallTo(codeStart, MetadataInitForMethodFileOffset);
+
+        if (!tokenPointer.Any() || initFlagPointer == IntPtr.Zero) return (0, Array.Empty<long>());
 
         return ((long)initFlagPointer - gameAssemblyBase - method.FileOffset + method.Rva,
-            (long)tokenPointer - gameAssemblyBase - method.FileOffset + method.Rva);
+            tokenPointer.Select(pointer => (long)pointer - gameAssemblyBase - method.FileOffset + method.Rva).ToArray());
     }
 }

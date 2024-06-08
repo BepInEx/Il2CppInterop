@@ -4,42 +4,40 @@ namespace Il2CppInterop.Common.XrefScans;
 
 internal static class XrefScanUtilFinder
 {
-    public static IntPtr FindLastRcxReadAddressBeforeCallTo(IntPtr codeStart, IntPtr callTarget)
+    public static IEnumerable<IntPtr> FindLastRcxReadAddressesBeforeCallTo(IntPtr codeStart, IntPtr callTarget)
     {
         var decoder = XrefScanner.DecoderForAddress(codeStart);
+        var readList = new List<IntPtr>();
         var lastRcxRead = IntPtr.Zero;
 
         while (true)
         {
             decoder.Decode(out var instruction);
-            if (decoder.LastError == DecoderError.NoMoreBytes) return IntPtr.Zero;
+            if (decoder.LastError == DecoderError.NoMoreBytes) return readList;
 
             if (instruction.FlowControl == FlowControl.Return)
-                return IntPtr.Zero;
+                return readList;
 
             if (instruction.FlowControl == FlowControl.UnconditionalBranch)
                 continue;
 
-            if (instruction.Mnemonic == Mnemonic.Int || instruction.Mnemonic == Mnemonic.Int1)
-                return IntPtr.Zero;
+            if (instruction.Mnemonic is Mnemonic.Int or Mnemonic.Int1 or Mnemonic.Int3)
+                return readList;
 
             if (instruction.Mnemonic == Mnemonic.Call)
             {
                 var target = ExtractTargetAddress(instruction);
                 if ((IntPtr)target == callTarget)
-                    return lastRcxRead;
+                {
+                    readList.Add(lastRcxRead);
+                }
             }
 
-            if (instruction.Mnemonic == Mnemonic.Mov)
-                if (instruction.Op0Kind == OpKind.Register && instruction.Op0Register == Register.ECX &&
-                    instruction.Op1Kind == OpKind.Memory && instruction.IsIPRelativeMemoryOperand)
-                {
-                    var movTarget = (IntPtr)instruction.IPRelativeMemoryAddress;
-                    if (instruction.MemorySize != MemorySize.UInt32 && instruction.MemorySize != MemorySize.Int32)
-                        continue;
-
-                    lastRcxRead = movTarget;
-                }
+            if (instruction.Mnemonic == Mnemonic.Lea && instruction.Op0Register == Register.RCX &&
+                instruction.MemoryBase == Register.RIP && instruction.IsIPRelativeMemoryOperand)
+            {
+                lastRcxRead = (IntPtr)instruction.IPRelativeMemoryAddress;
+            }
         }
     }
 
@@ -59,7 +57,7 @@ internal static class XrefScanUtilFinder
             if (instruction.FlowControl == FlowControl.UnconditionalBranch)
                 continue;
 
-            if (instruction.Mnemonic == Mnemonic.Int || instruction.Mnemonic == Mnemonic.Int1)
+            if (instruction.Mnemonic is Mnemonic.Int or Mnemonic.Int1 or Mnemonic.Int3)
                 return IntPtr.Zero;
 
             if (instruction.Mnemonic == Mnemonic.Call)

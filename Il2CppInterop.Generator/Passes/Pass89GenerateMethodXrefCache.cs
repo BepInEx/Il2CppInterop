@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Common.Maps;
@@ -7,6 +5,7 @@ using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
 using Mono.Cecil;
+using Mono.Cecil.Rocks;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -37,7 +36,7 @@ public static class Pass89GenerateMethodXrefCache
                         methodRewriteContext.NewMethod.CustomAttributes.Add(
                             new CustomAttribute(imports.CachedScanResultsAttributector.Value)
                             {
-                                Fields =
+                                Properties =
                                 {
                                 new CustomAttributeNamedArgument(
                                     nameof(CachedScanResultsAttribute.RefRangeStart),
@@ -52,8 +51,11 @@ public static class Pass89GenerateMethodXrefCache
                                     nameof(CachedScanResultsAttribute.XrefRangeEnd),
                                     new CustomAttributeArgument(imports.Module.Int(), attribute.RefRangeEnd)),
                                 new CustomAttributeNamedArgument(
-                                    nameof(CachedScanResultsAttribute.MetadataInitTokenRva),
-                                    new CustomAttributeArgument(imports.Module.Long(), attribute.MetadataInitTokenRva)),
+                                    nameof(CachedScanResultsAttribute.MetadataInitTokenRvas),
+                                    new CustomAttributeArgument(imports.Module.Long().MakeArrayType(),
+                                        attribute.MetadataInitTokenRvas
+                                            .Select(rva => new CustomAttributeArgument(imports.Module.Long(), rva))
+                                            .ToArray())),
                                 new CustomAttributeNamedArgument(
                                     nameof(CachedScanResultsAttribute.MetadataInitFlagRva),
                                     new CustomAttributeArgument(imports.Module.Long(), attribute.MetadataInitFlagRva))
@@ -87,7 +89,7 @@ public static class Pass89GenerateMethodXrefCache
                         methodRewriteContext.NewMethod.CustomAttributes.Add(
                             new CustomAttribute(imports.CachedScanResultsAttributector.Value)
                             {
-                                Fields =
+                                Properties =
                                 {
                                 new CustomAttributeNamedArgument(
                                     nameof(CachedScanResultsAttribute.RefRangeStart),
@@ -102,9 +104,11 @@ public static class Pass89GenerateMethodXrefCache
                                     nameof(CachedScanResultsAttribute.XrefRangeEnd),
                                     new CustomAttributeArgument(imports.Module.Int(), xrefEnd)),
                                 new CustomAttributeNamedArgument(
-                                    nameof(CachedScanResultsAttribute.MetadataInitTokenRva),
-                                    new CustomAttributeArgument(imports.Module.Long(),
-                                        methodRewriteContext.MetadataInitTokenRva)),
+                                    nameof(CachedScanResultsAttribute.MetadataInitTokenRvas),
+                                    new CustomAttributeArgument(imports.Module.Long().MakeArrayType(),
+                                        methodRewriteContext.MetadataInitTokenRvas
+                                            .Select(rva => new CustomAttributeArgument(imports.Module.Long(), rva))
+                                            .ToArray())),
                                 new CustomAttributeNamedArgument(
                                     nameof(CachedScanResultsAttribute.MetadataInitFlagRva),
                                     new CustomAttributeArgument(imports.Module.Long(),
@@ -119,7 +123,7 @@ public static class Pass89GenerateMethodXrefCache
                             XrefRangeStart = xrefStart,
                             XrefRangeEnd = xrefEnd,
                             MetadataInitFlagRva = methodRewriteContext.MetadataInitFlagRva,
-                            MetadataInitTokenRva = methodRewriteContext.MetadataInitTokenRva
+                            MetadataInitTokenRvas = methodRewriteContext.MetadataInitTokenRvas
                         };
                     }
                 }

@@ -5,7 +5,7 @@ namespace Il2CppInterop.Generator.XrefScans;
 
 internal class XrefScanImpl : IXrefScannerImpl
 {
-    public (XrefScanUtil.InitMetadataForMethod, IntPtr)? GetMetadataResolver()
+    public IntPtr? GetMetadataResolver()
     {
         return null;
     }
