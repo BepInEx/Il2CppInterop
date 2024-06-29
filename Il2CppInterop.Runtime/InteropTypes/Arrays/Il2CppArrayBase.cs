@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-public abstract class Il2CppArrayBase<T> : Il2CppObjectBase, IList<T>
+public abstract class Il2CppArrayBase : Il2CppObjectBase, IEnumerable
 {
     protected Il2CppArrayBase(IntPtr pointer) : base(pointer)
     {
@@ -12,12 +12,20 @@ public abstract class Il2CppArrayBase<T> : Il2CppObjectBase, IList<T>
 
     public int Length => (int)IL2CPP.il2cpp_array_length(Pointer);
 
-    IEnumerator IEnumerable.GetEnumerator()
+    public abstract IEnumerator GetEnumerator();
+
+    private protected static bool ThrowImmutableLength()
     {
-        return GetEnumerator();
+        throw new NotSupportedException("Arrays have immutable length");
+    }
+}
+public abstract class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyList<T>
+{
+    protected Il2CppArrayBase(IntPtr pointer) : base(pointer)
+    {
     }
 
-    public IEnumerator<T> GetEnumerator()
+    public sealed override IEnumerator<T> GetEnumerator()
     {
         return new IndexEnumerator(this);
     }
@@ -54,8 +62,9 @@ public abstract class Il2CppArrayBase<T> : Il2CppObjectBase, IList<T>
         return ThrowImmutableLength();
     }
 
+    public new int Length => base.Length;// For binary compatibility
     public int Count => Length;
-    public bool IsReadOnly => false;
+    bool ICollection<T>.IsReadOnly => false;
 
     public int IndexOf(T item)
     {
@@ -91,11 +100,6 @@ public abstract class Il2CppArrayBase<T> : Il2CppObjectBase, IList<T>
         Il2CppClassPointerStore.SetNativeClassPointer(ownType, targetClassType);
         Il2CppClassPointerStore.SetNativeClassPointer(typeof(Il2CppArrayBase<T>), targetClassType);
         Il2CppClassPointerStore<Il2CppArrayBase<T>>.CreatedTypeRedirect = ownType;
-    }
-
-    private static bool ThrowImmutableLength()
-    {
-        throw new NotSupportedException("Arrays have immutable length");
     }
 
     public static implicit operator T[](Il2CppArrayBase<T> il2CppArray)
