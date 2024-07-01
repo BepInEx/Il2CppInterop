@@ -111,12 +111,12 @@ public static class Pass80UnstripMethods
                     if (unityMethod.IsGetMethod)
                     {
                         var property = GetOrCreateProperty(unityMethod, newMethod);
-                        property.SetSemanticMethods(newMethod, property.SetMethod);
+                        property.GetMethod = newMethod;
                     }
                     else if (unityMethod.IsSetMethod)
                     {
                         var property = GetOrCreateProperty(unityMethod, newMethod);
-                        property.SetSemanticMethods(property.GetMethod, newMethod);
+                        property.SetMethod = newMethod;
                     }
 
                     var paramsMethod = context.CreateParamsMethod(unityMethod, newMethod, imports,
