@@ -42,11 +42,14 @@ public static class UnstripTranslator
         {
             if (bodyInstruction.Operand is null)
             {
+                CilInstruction newInstruction;
                 switch (bodyInstruction.OpCode.Code)
                 {
                     case CilCode.Ldlen:
                         //This is Il2CppArrayBase.Length
-                        return false;
+                        newInstruction = targetBuilder.Add(OpCodes.Callvirt,
+                            imports.Module.DefaultImporter.ImportMethod(imports.Il2CppArrayBase_get_Length.Value));
+                        break;
 
                     case CilCode.Ldelema:
                         //This is Il2CppArrayBase<T>.Pointer + index * sizeof(T) but the T is not known because the operand is null.
@@ -78,14 +81,18 @@ public static class UnstripTranslator
 
                     case >= CilCode.Ldind_I1 and <= CilCode.Ldind_Ref:
                         //This is for by ref parameters
-                        break;
+                        goto default;
 
                     case >= CilCode.Stind_Ref and <= CilCode.Stind_R8:
                         //This is for by ref parameters
+                        goto default;
+
+                    default:
+                        //Noop, ldnull, ldarg_0, mul, add, etc.
+                        newInstruction = targetBuilder.Add(bodyInstruction.OpCode);
                         break;
                 }
 
-                var newInstruction = targetBuilder.Add(bodyInstruction.OpCode);
                 instructionMap.Add(bodyInstruction, newInstruction);
             }
             else if (bodyInstruction.OpCode.OperandType == CilOperandType.InlineField)
