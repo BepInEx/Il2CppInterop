@@ -16,7 +16,7 @@ public static class Pass05CreateRenameGroups
     public static void DoPass(RewriteGlobalContext context)
     {
         foreach (var assemblyContext in context.Assemblies)
-            foreach (var originalType in assemblyContext.OriginalAssembly.ManifestModule.TopLevelTypes)
+            foreach (var originalType in assemblyContext.OriginalAssembly.ManifestModule!.TopLevelTypes)
                 ProcessType(context, originalType, false);
 
         var typesToRemove = context.RenameGroups.Where(it => it.Value.Count > 1).ToList();
@@ -31,7 +31,7 @@ public static class Pass05CreateRenameGroups
             context.PreviousRenamedTypes[contextRenamedType.Key] = contextRenamedType.Value;
 
         foreach (var assemblyContext in context.Assemblies)
-            foreach (var originalType in assemblyContext.OriginalAssembly.ManifestModule.TopLevelTypes)
+            foreach (var originalType in assemblyContext.OriginalAssembly.ManifestModule!.TopLevelTypes)
                 ProcessType(context, originalType, true);
     }
 
@@ -63,12 +63,12 @@ public static class Pass05CreateRenameGroups
         var firstUnobfuscatedType = typeDefinition.BaseType;
         while (firstUnobfuscatedType != null && firstUnobfuscatedType.Name.IsObfuscated(context.Options))
         {
-            firstUnobfuscatedType = firstUnobfuscatedType.Resolve().BaseType?.Resolve();
+            firstUnobfuscatedType = firstUnobfuscatedType.Resolve()?.BaseType?.Resolve();
             inheritanceDepth++;
         }
 
-        var unobfuscatedInterfacesList = typeDefinition.Interfaces.Select(it => it.Interface)
-            .Where(it => !it.Name.IsObfuscated(context.Options));
+        var unobfuscatedInterfacesList = typeDefinition.Interfaces.Select(it => it.Interface!)
+            .Where(it => !it!.Name.IsObfuscated(context.Options));
         var accessName = ClassAccessNames[(int)(typeDefinition.Attributes & TypeAttributes.VisibilityMask)];
 
         var classifier = typeDefinition.IsInterface ? "Interface" : typeDefinition.IsValueType ? "Struct" : "Class";
@@ -93,9 +93,9 @@ public static class Pass05CreateRenameGroups
         foreach (var fieldDef in typeDefinition.Fields)
         {
             if (!typeDefinition.IsEnum)
-                uniqContext.Push(fieldDef.Signature.FieldType.GenericNameToStrings(context));
+                uniqContext.Push(fieldDef.Signature!.FieldType.GenericNameToStrings(context));
 
-            uniqContext.Push(fieldDef.Name);
+            uniqContext.Push(fieldDef.Name!);
 
             if (uniqContext.CheckFull()) break;
         }
@@ -105,8 +105,8 @@ public static class Pass05CreateRenameGroups
 
         foreach (var propertyDef in typeDefinition.Properties)
         {
-            uniqContext.Push(propertyDef.Signature.ReturnType.GenericNameToStrings(context));
-            uniqContext.Push(propertyDef.Name);
+            uniqContext.Push(propertyDef.Signature!.ReturnType.GenericNameToStrings(context));
+            uniqContext.Push(propertyDef.Name!);
 
             if (uniqContext.CheckFull()) break;
         }
@@ -116,7 +116,7 @@ public static class Pass05CreateRenameGroups
             var invokeMethod = typeDefinition.Methods.SingleOrDefault(it => it.Name == "Invoke");
             if (invokeMethod != null)
             {
-                uniqContext.Push(invokeMethod.Signature.ReturnType.GenericNameToStrings(context));
+                uniqContext.Push(invokeMethod.Signature!.ReturnType.GenericNameToStrings(context));
 
                 foreach (var parameterDef in invokeMethod.Parameters)
                 {
@@ -130,8 +130,8 @@ public static class Pass05CreateRenameGroups
             allowExtraHeuristics) // method order on non-interface types appears to be unstable
             foreach (var methodDefinition in typeDefinition.Methods)
             {
-                uniqContext.Push(methodDefinition.Name);
-                uniqContext.Push(methodDefinition.Signature.ReturnType.GenericNameToStrings(context));
+                uniqContext.Push(methodDefinition.Name!);
+                uniqContext.Push(methodDefinition.Signature!.ReturnType.GenericNameToStrings(context));
 
                 foreach (var parameter in methodDefinition.Parameters)
                 {
@@ -161,7 +161,7 @@ public static class Pass05CreateRenameGroups
             return (rename.StableHash() % (ulong)Math.Pow(10, context.Options.TypeDeobfuscationCharsPerUniquifier))
                 .ToString();
 
-        return typeRef.Name;
+        return typeRef.Name!;
     }
 
     private static List<string> GenericNameToStrings(this TypeSignature typeRef, RewriteGlobalContext context)

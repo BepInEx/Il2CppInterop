@@ -16,7 +16,7 @@ public static class Pass21GenerateValueTypeFields
             var il2CppTypeTypeRewriteContext = assemblyContext.GlobalContext.GetAssemblyByName("mscorlib")
                 .GetTypeByName("System.Object");
             var il2CppSystemTypeRef =
-                assemblyContext.NewAssembly.ManifestModule.DefaultImporter.ImportType(il2CppTypeTypeRewriteContext.NewType).ToTypeSignature();
+                assemblyContext.NewAssembly.ManifestModule!.DefaultImporter.ImportType(il2CppTypeTypeRewriteContext.NewType).ToTypeSignature();
 
             foreach (var typeContext in assemblyContext.Types)
             {
@@ -38,14 +38,14 @@ public static class Pass21GenerateValueTypeFields
                         if (field.IsStatic) continue;
 
                         var newField = new FieldDefinition(fieldContext.UnmangledName, field.Attributes.ForcePublic(),
-                            !field.Signature.FieldType.IsValueType
+                            !field.Signature!.FieldType.IsValueType
                                 ? assemblyContext.Imports.Module.IntPtr()
                                 : assemblyContext.RewriteTypeRef(field.Signature.FieldType));
 
                         newField.FieldOffset = field.ExtractFieldOffset();
 
                         // Special case: bools in Il2Cpp are bytes
-                        if (newField.Signature.FieldType.FullName == "System.Boolean")
+                        if (newField.Signature!.FieldType.FullName == "System.Boolean")
                             newField.MarshalDescriptor = new SimpleMarshalDescriptor(NativeType.U1);
 
                         newType.Fields.Add(newField);

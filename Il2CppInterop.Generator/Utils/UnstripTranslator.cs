@@ -91,10 +91,10 @@ public static class UnstripTranslator
             {
                 var fieldArg = (IFieldDescriptor)bodyInstruction.Operand;
                 var fieldDeclarer =
-                    Pass80UnstripMethods.ResolveTypeInNewAssembliesRaw(globalContext, fieldArg.DeclaringType.ToTypeSignature(), imports);
+                    Pass80UnstripMethods.ResolveTypeInNewAssembliesRaw(globalContext, fieldArg.DeclaringType!.ToTypeSignature(), imports);
                 if (fieldDeclarer == null)
                     return false;
-                var newField = fieldDeclarer.Resolve().Fields.SingleOrDefault(it => it.Name == fieldArg.Name);
+                var newField = fieldDeclarer.Resolve()!.Fields.SingleOrDefault(it => it.Name == fieldArg.Name);
                 if (newField != null)
                 {
                     var newInstruction = targetBuilder.Add(bodyInstruction.OpCode, imports.Module.DefaultImporter.ImportField(newField));
@@ -104,7 +104,7 @@ public static class UnstripTranslator
                 {
                     if (bodyInstruction.OpCode == OpCodes.Ldfld || bodyInstruction.OpCode == OpCodes.Ldsfld)
                     {
-                        var getterMethod = fieldDeclarer.Resolve().Properties
+                        var getterMethod = fieldDeclarer.Resolve()!.Properties
                             .SingleOrDefault(it => it.Name == fieldArg.Name)?.GetMethod;
                         if (getterMethod == null)
                             return false;
@@ -114,7 +114,7 @@ public static class UnstripTranslator
                     }
                     else if (bodyInstruction.OpCode == OpCodes.Stfld || bodyInstruction.OpCode == OpCodes.Stsfld)
                     {
-                        var setterMethod = fieldDeclarer.Resolve().Properties
+                        var setterMethod = fieldDeclarer.Resolve()!.Properties
                             .SingleOrDefault(it => it.Name == fieldArg.Name)?.SetMethod;
                         if (setterMethod == null)
                             return false;
@@ -133,16 +133,16 @@ public static class UnstripTranslator
             {
                 var methodArg = (IMethodDescriptor)bodyInstruction.Operand;
                 var methodDeclarer =
-                    Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArg.DeclaringType.ToTypeSignature(), imports);
+                    Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArg.DeclaringType?.ToTypeSignature(), imports);
                 if (methodDeclarer == null)
                     return false; // todo: generic methods
 
                 var newReturnType =
-                    Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArg.Signature.ReturnType, imports);
+                    Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArg.Signature?.ReturnType, imports);
                 if (newReturnType == null)
                     return false;
 
-                var newMethodSignature = CecilAdapter.CreateMethodSignature(!methodArg.Signature.HasThis, newReturnType);
+                var newMethodSignature = CecilAdapter.CreateMethodSignature(!methodArg.Signature!.HasThis, newReturnType);
                 var newMethod = new MemberReference(methodDeclarer.ToTypeDefOrRef(), methodArg.Name, newMethodSignature);
                 foreach (var methodArgParameter in methodArg.Signature.ParameterTypes)
                 {

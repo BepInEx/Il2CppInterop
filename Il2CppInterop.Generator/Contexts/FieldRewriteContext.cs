@@ -33,18 +33,18 @@ public class FieldRewriteContext
         declaringType.NewType.Fields.Add(pointerField);
 
         Debug.Assert(pointerField.Signature is not null);
-        PointerField = new MemberReference(DeclaringType.SelfSubstitutedRef, pointerField.Name, new FieldSignature(pointerField.Signature.FieldType));
+        PointerField = new MemberReference(DeclaringType.SelfSubstitutedRef, pointerField.Name, new FieldSignature(pointerField.Signature!.FieldType));
     }
 
     private string UnmangleFieldNameBase(FieldDefinition field, GeneratorOptions options)
     {
         if (options.PassthroughNames)
-            return field.Name;
+            return field.Name!;
 
         if (!field.Name.IsObfuscated(options))
         {
             if (!field.Name.IsInvalidInSource())
-                return field.Name;
+                return field.Name!;
             return field.Name.FilterInvalidInSourceChars();
         }
 
@@ -52,19 +52,19 @@ public class FieldRewriteContext
         var accessModString = MethodAccessTypeLabels[(int)(field.Attributes & FieldAttributes.FieldAccessMask)];
         var staticString = field.IsStatic ? "_Static" : "";
         return "field_" + accessModString + staticString + "_" +
-               DeclaringType.AssemblyContext.RewriteTypeRef(field.Signature.FieldType).GetUnmangledName();
+               DeclaringType.AssemblyContext.RewriteTypeRef(field.Signature!.FieldType).GetUnmangledName();
     }
 
     private string UnmangleFieldName(FieldDefinition field, GeneratorOptions options,
         Dictionary<string, int>? renamedFieldCounts)
     {
         if (options.PassthroughNames)
-            return field.Name;
+            return field.Name!;
 
         if (!field.Name.IsObfuscated(options))
         {
             if (!field.Name.IsInvalidInSource())
-                return field.Name;
+                return field.Name!;
             return field.Name.FilterInvalidInSourceChars();
         }
 

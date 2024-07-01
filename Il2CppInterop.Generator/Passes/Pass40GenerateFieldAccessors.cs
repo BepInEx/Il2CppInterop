@@ -23,7 +23,7 @@ public static class Pass40GenerateFieldAccessors
                     var unmangleFieldName = fieldContext.UnmangledName;
 
                     var property = new PropertyDefinition(unmangleFieldName, PropertyAttributes.None,
-                        new PropertySignature(CallingConventionAttributes.Default, assemblyContext.RewriteTypeRef(fieldContext.OriginalField.Signature.FieldType), []));
+                        new PropertySignature(CallingConventionAttributes.Default, assemblyContext.RewriteTypeRef(fieldContext.OriginalField.Signature!.FieldType), []));
                     typeContext.NewType.Properties.Add(property);
 
                     FieldAccessorGenerator.MakeGetter(field, fieldContext, property, assemblyContext.Imports);

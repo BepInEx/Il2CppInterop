@@ -11,7 +11,7 @@ public static class Pass90WriteToDisk
     {
         foreach (var asmContext in context.Assemblies)
         {
-            var module = asmContext.NewAssembly.ManifestModule;
+            var module = asmContext.NewAssembly.ManifestModule!;
             foreach (var reference in module.AssemblyReferences)
             {
                 // System.Private.CoreLib needs rewriting because references can get created during the rewrite process.
@@ -25,7 +25,7 @@ public static class Pass90WriteToDisk
         }
 
         var assembliesToProcess = context.Assemblies
-            .Where(it => !options.AdditionalAssembliesBlacklist.Contains(it.NewAssembly.Name));
+            .Where(it => !options.AdditionalAssembliesBlacklist.Contains(it.NewAssembly.Name!));
 
         void Processor(AssemblyRewriteContext assemblyContext)
         {

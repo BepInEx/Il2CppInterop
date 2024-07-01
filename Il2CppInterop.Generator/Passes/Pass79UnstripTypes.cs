@@ -20,16 +20,16 @@ public static class Pass79UnstripTypes
             if (processedAssembly == null)
             {
                 var newAssembly = new AssemblyDefinition(unityAssembly.Name, unityAssembly.Version);
-                newAssembly.Modules.Add(new ModuleDefinition(unityAssembly.ManifestModule.Name));
+                newAssembly.Modules.Add(new ModuleDefinition(unityAssembly.ManifestModule!.Name));
                 var newContext = new AssemblyRewriteContext(context, unityAssembly,
                     newAssembly);
-                context.AddAssemblyContext(unityAssembly.Name, newContext);
+                context.AddAssemblyContext(unityAssembly.Name!, newContext);
                 processedAssembly = newContext;
             }
 
             var imports = processedAssembly.Imports;
 
-            foreach (var unityType in unityAssembly.ManifestModule.TopLevelTypes)
+            foreach (var unityType in unityAssembly.ManifestModule!.TopLevelTypes)
                 ProcessType(processedAssembly, unityType, null, imports, ref typesUnstripped);
         }
 
@@ -45,7 +45,7 @@ public static class Pass79UnstripTypes
         // Don't unstrip delegates, the il2cpp runtime methods are stripped and we cannot recover them
         if (unityType.BaseType != null && unityType.BaseType.FullName == "System.MulticastDelegate")
             return;
-        var newModule = processedAssembly.NewAssembly.ManifestModule;
+        var newModule = processedAssembly.NewAssembly.ManifestModule!;
         var processedType = enclosingNewType == null
             ? processedAssembly.TryGetTypeByName(unityType.FullName)?.NewType
             : enclosingNewType.NestedTypes.SingleOrDefault(it => it.Name == unityType.Name);
@@ -106,7 +106,7 @@ public static class Pass79UnstripTypes
         foreach (var sourceEnumField in sourceEnum.Fields)
         {
             TypeSignature fieldType = sourceEnumField.Name == "value__"
-                ? imports.Module.ImportCorlibReference(sourceEnumField.Signature.FieldType.FullName)
+                ? imports.Module.ImportCorlibReference(sourceEnumField.Signature!.FieldType.FullName)
                 : newType.ToTypeSignature();
             var newField = new FieldDefinition(sourceEnumField.Name, sourceEnumField.Attributes, new FieldSignature(fieldType));
             newField.Constant = sourceEnumField.Constant;
@@ -126,7 +126,7 @@ public static class Pass79UnstripTypes
             if (fieldDefinition.IsStatic || SignatureComparer.Default.Equals(fieldDefinition.Signature?.FieldType, typeSignature))
                 continue;
 
-            if (!fieldDefinition.Signature.FieldType.IsValueType)
+            if (!fieldDefinition.Signature!.FieldType.IsValueType)
                 return true;
 
             if (fieldDefinition.Signature.FieldType.Namespace?.StartsWith("System") ?? false &&

@@ -22,11 +22,11 @@ public static class Pass50GenerateMethods
                     var newMethod = methodRewriteContext.NewMethod;
                     var imports = assemblyContext.Imports;
 
-                    var bodyBuilder = newMethod.CilMethodBody.Instructions;
+                    var bodyBuilder = newMethod.CilMethodBody!.Instructions;
                     var exceptionLocal = new CilLocalVariable(imports.Module.IntPtr());
                     var argArray = new CilLocalVariable(imports.Module.IntPtr().MakePointerType());
                     var resultVar = new CilLocalVariable(imports.Module.IntPtr());
-                    var valueTypeLocal = new CilLocalVariable(newMethod.Signature.ReturnType);
+                    var valueTypeLocal = new CilLocalVariable(newMethod.Signature!.ReturnType);
                     newMethod.CilMethodBody.LocalVariables.Add(exceptionLocal);
                     newMethod.CilMethodBody.LocalVariables.Add(argArray);
                     newMethod.CilMethodBody.LocalVariables.Add(resultVar);
@@ -122,7 +122,7 @@ public static class Pass50GenerateMethods
                         var newParam = newMethod.Parameters[i];
                         // NOTE(Kas): out parameters of value type are passed directly as a pointer to the il2cpp method
                         // since we don't need to perform any additional copies
-                        if (newParam.Definition.IsOut && !newParam.ParameterType.GetElementType().IsValueType)
+                        if (newParam.Definition!.IsOut && !newParam.ParameterType.GetElementType().IsValueType)
                         {
                             var elementType = newParam.ParameterType.GetElementType();
 
@@ -177,7 +177,7 @@ public static class Pass50GenerateMethods
 
                     }
 
-                    if (!originalMethod.DeclaringType.IsSealed && !originalMethod.IsFinal &&
+                    if (!originalMethod.DeclaringType!.IsSealed && !originalMethod.IsFinal &&
                         ((originalMethod.IsVirtual && !originalMethod.DeclaringType.IsValueType) || originalMethod.IsAbstract))
                     {
                         bodyBuilder.Add(OpCodes.Ldarg_0);
@@ -204,7 +204,7 @@ public static class Pass50GenerateMethods
                     if (originalMethod.IsStatic)
                         bodyBuilder.Add(OpCodes.Ldc_I4_0);
                     else
-                        bodyBuilder.EmitObjectToPointer(originalMethod.DeclaringType.ToTypeSignature(), newMethod.DeclaringType.ToTypeSignature(), typeContext, 0,
+                        bodyBuilder.EmitObjectToPointer(originalMethod.DeclaringType.ToTypeSignature(), newMethod.DeclaringType!.ToTypeSignature(), typeContext, 0,
                             true, false, true, true, out _);
 
                     bodyBuilder.Add(OpCodes.Ldloc, argArray);
@@ -221,7 +221,7 @@ public static class Pass50GenerateMethods
                         var paramVariable = byRefParam.Item2;
                         var methodParam = newMethod.Parameters[paramIndex];
 
-                        if (methodParam.Definition.IsOut && methodParam.ParameterType.GetElementType() is GenericParameterSignature)
+                        if (methodParam.Definition!.IsOut && methodParam.ParameterType.GetElementType() is GenericParameterSignature)
                         {
                             bodyBuilder.Add(OpCodes.Ldtoken, methodParam.ParameterType.GetElementType().ToTypeDefOrRef());
                             bodyBuilder.Add(OpCodes.Call, imports.Module.TypeGetTypeFromHandle());
@@ -248,7 +248,7 @@ public static class Pass50GenerateMethods
                         }
                     }
 
-                    bodyBuilder.EmitPointerToObject(originalMethod.Signature.ReturnType, newMethod.Signature.ReturnType, typeContext,
+                    bodyBuilder.EmitPointerToObject(originalMethod.Signature!.ReturnType, newMethod.Signature.ReturnType, typeContext,
                         resultVar, false, true);
 
                     bodyBuilder.Add(OpCodes.Ret);

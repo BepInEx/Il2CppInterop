@@ -138,10 +138,10 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
         foreach (var assemblyContext in rewriteContext.Assemblies)
         {
             if (options.DeobfuscationGenerationAssemblies.Count > 0 &&
-                !options.DeobfuscationGenerationAssemblies.Contains(assemblyContext.NewAssembly.Name))
+                !options.DeobfuscationGenerationAssemblies.Contains(assemblyContext.NewAssembly.Name!))
                 continue;
 
-            var cleanAssembly = cleanContext.GetAssemblyByName(assemblyContext.OriginalAssembly.Name);
+            var cleanAssembly = cleanContext.GetAssemblyByName(assemblyContext.OriginalAssembly.Name!);
 
             void DoType(TypeRewriteContext typeContext, TypeRewriteContext? enclosingType)
             {
@@ -194,7 +194,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
         {
             if (currentBase == null) break;
             var currentBaseContext =
-                obfType.AssemblyContext.GlobalContext.TryGetNewTypeForOriginal(currentBase.Resolve());
+                obfType.AssemblyContext.GlobalContext.TryGetNewTypeForOriginal(currentBase.Resolve()!);
             if (currentBaseContext == null || !currentBaseContext.OriginalNameWasObfuscated) break;
 
             inheritanceDepthOfOriginal++;
@@ -230,7 +230,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
                 if (tryBase?.Name == currentBase?.Name && tryBase?.Namespace == currentBase?.Namespace)
                     break;
 
-                tryBase = tryBase?.Resolve().BaseType;
+                tryBase = tryBase?.Resolve()?.BaseType;
                 actualBaseDepth++;
             }
 
@@ -260,7 +260,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
                 if (obfuscatedField.Name.IsObfuscated(options))
                 {
                     var bestFieldScore = candidateCleanType.OriginalType.Fields.Max(it =>
-                        TypeMatchWeight(obfuscatedField.Signature.FieldType, it.Signature.FieldType, options));
+                        TypeMatchWeight(obfuscatedField.Signature!.FieldType, it.Signature!.FieldType, options));
                     currentPenalty += bestFieldScore * (bestFieldScore < 0 ? 10 : 2);
                     continue;
                 }
@@ -271,7 +271,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
 
             foreach (var obfuscatedMethod in obfType.OriginalType.Methods)
             {
-                if (obfuscatedMethod.Name.Contains(".ctor")) continue;
+                if (obfuscatedMethod.IsConstructor) continue;
 
                 if (obfuscatedMethod.Name.IsObfuscated(options))
                 {
@@ -283,7 +283,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
                 }
 
                 if (candidateCleanType.OriginalType.Methods.Any(it => it.Name == obfuscatedMethod.Name))
-                    currentPenalty += obfuscatedMethod.Name.Length / 10 * 5 + 1;
+                    currentPenalty += (obfuscatedMethod.Name?.Length ?? 0) / 10 * 5 + 1;
             }
 
             if (currentPenalty == bestPenalty)
@@ -349,7 +349,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
                     if (a.Name.IsObfuscated(options))
                         return 0;
 
-                    var declMatch = TypeMatchWeight(a.DeclaringType.ToTypeSignature(), b.DeclaringType.ToTypeSignature(), options);
+                    var declMatch = TypeMatchWeight(a.DeclaringType!.ToTypeSignature(), b.DeclaringType!.ToTypeSignature(), options);
                     if (declMatch == -1 || a.Name != b.Name)
                         return -1;
 
@@ -369,7 +369,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
             (b.Attributes & MethodAttributes.MemberAccessMask))
             return -1;
 
-        var runningSum = TypeMatchWeight(a.Signature.ReturnType, b.Signature.ReturnType, options);
+        var runningSum = TypeMatchWeight(a.Signature!.ReturnType, b.Signature!.ReturnType, options);
         if (runningSum == -1)
             return -1;
 

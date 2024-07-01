@@ -23,7 +23,7 @@ public static class Pass89GenerateForwarders
         foreach (var assemblyRewriteContext in context.Assemblies)
         {
             if (!assemblyRewriteContext.NewAssembly.Name.StartsWith("UnityEngine.")) continue;
-            foreach (var mainModuleType in assemblyRewriteContext.NewAssembly.ManifestModule.TopLevelTypes)
+            foreach (var mainModuleType in assemblyRewriteContext.NewAssembly.ManifestModule!.TopLevelTypes)
             {
                 if (mainModuleType.Name == "<Module>")
                     continue;
@@ -32,7 +32,7 @@ public static class Pass89GenerateForwarders
                 {
                     Attributes = TypeAttributes.Forwarder
                 };
-                targetModule.ExportedTypes.Add(exportedType);
+                targetModule!.ExportedTypes.Add(exportedType);
 
                 AddNestedTypes(mainModuleType, exportedType, targetModule);
             }

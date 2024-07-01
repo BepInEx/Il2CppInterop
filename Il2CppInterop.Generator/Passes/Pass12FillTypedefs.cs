@@ -30,6 +30,6 @@ public static class Pass12FillTypedefs
             foreach (var typeContext in assemblyContext.Types)
                 if (!typeContext.OriginalType.IsEnum && typeContext.ComputedTypeSpecifics !=
                     TypeRewriteContext.TypeSpecifics.BlittableStruct)
-                    typeContext.NewType.BaseType = assemblyContext.RewriteTypeRef(typeContext.OriginalType.BaseType);
+                    typeContext.NewType.BaseType = assemblyContext.RewriteTypeRef(typeContext.OriginalType.BaseType!);
     }
 }
