@@ -1,7 +1,6 @@
 using System.Reflection;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
-using AsmResolver.DotNet.Signatures.Types;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;

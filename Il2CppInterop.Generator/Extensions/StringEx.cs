@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using AsmResolver;
-using AsmResolver.DotNet.Signatures.Types;
+using AsmResolver.DotNet.Signatures;
 
 namespace Il2CppInterop.Generator.Extensions;
 

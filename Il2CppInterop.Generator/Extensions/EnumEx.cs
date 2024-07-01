@@ -1,4 +1,4 @@
-using AsmResolver.PE.DotNet.Metadata.Tables.Rows;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 
 namespace Il2CppInterop.Generator.Extensions;
 

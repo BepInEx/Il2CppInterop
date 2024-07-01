@@ -1,5 +1,5 @@
 using AsmResolver.DotNet;
-using AsmResolver.DotNet.Signatures.Types;
+using AsmResolver.DotNet.Signatures;
 using AsmResolver.IO;
 
 namespace Il2CppInterop.Generator.MetadataAccess;

@@ -2,7 +2,6 @@
 
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
-using AsmResolver.DotNet.Signatures.Types;
 using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Generator.Contexts;
 
