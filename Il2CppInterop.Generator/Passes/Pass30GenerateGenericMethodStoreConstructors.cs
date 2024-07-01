@@ -71,15 +71,15 @@ public static class Pass30GenerateGenericMethodStoreConstructors
 
                         var il2CppTypeArray = assemblyContext.Imports.Il2CppReferenceArray.MakeGenericInstanceType(il2CppSystemTypeRef.ToTypeSignature());
                         ctorBuilder.Add(OpCodes.Newobj,
-                            CecilAdapter.CreateInstanceMethodReference(".ctor", assemblyContext.Imports.Module.Void(), il2CppTypeArray.ToTypeDefOrRef(), new GenericParameterSignature(GenericParameterType.Type, 0).MakeSzArrayType()));
+                            ReferenceCreator.CreateInstanceMethodReference(".ctor", assemblyContext.Imports.Module.Void(), il2CppTypeArray.ToTypeDefOrRef(), new GenericParameterSignature(GenericParameterType.Type, 0).MakeSzArrayType()));
                         ctorBuilder.Add(OpCodes.Call,
-                            CecilAdapter.CreateInstanceMethodReference(nameof(MethodInfo.MakeGenericMethod), il2CppSystemReflectionMethodInfoRef.ToTypeSignature(),
+                            ReferenceCreator.CreateInstanceMethodReference(nameof(MethodInfo.MakeGenericMethod), il2CppSystemReflectionMethodInfoRef.ToTypeSignature(),
                                     il2CppSystemReflectionMethodInfoRef, il2CppTypeArray));
                         ctorBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_Il2CppObjectBaseToPtrNotNull.Value);
 
                         ctorBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_il2cpp_method_get_from_reflection.Value);
                         ctorBuilder.Add(OpCodes.Stsfld,
-                            CecilAdapter.CreateFieldReference("Pointer", assemblyContext.Imports.Module.IntPtr(),
+                            ReferenceCreator.CreateFieldReference("Pointer", assemblyContext.Imports.Module.IntPtr(),
                                 methodContext.GenericInstantiationsStoreSelfSubstRef));
 
                         ctorBuilder.Add(OpCodes.Ret);

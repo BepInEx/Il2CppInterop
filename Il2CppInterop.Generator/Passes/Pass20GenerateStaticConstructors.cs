@@ -87,13 +87,13 @@ public static class Pass20GenerateStaticConstructors
             ctorBuilder.Add(OpCodes.Newobj,
                 new MemberReference(il2CppTypeArray.ToTypeDefOrRef(), ".ctor", MethodSignature.CreateInstance(assemblyContext.Imports.Module.Void(), new GenericParameterSignature(GenericParameterType.Type, 0).MakeSzArrayType())));
             ctorBuilder.Add(OpCodes.Call,
-                CecilAdapter.CreateInstanceMethodReference(nameof(Type.MakeGenericType), il2CppSystemTypeRef.ToTypeSignature(), il2CppSystemTypeRef, il2CppTypeArray));
+                ReferenceCreator.CreateInstanceMethodReference(nameof(Type.MakeGenericType), il2CppSystemTypeRef.ToTypeSignature(), il2CppSystemTypeRef, il2CppTypeArray));
 
             ctorBuilder.Add(OpCodes.Call,
-                CecilAdapter.CreateInstanceMethodReference(typeof(Type).GetProperty(nameof(Type.TypeHandle))!.GetMethod!.Name,
+                ReferenceCreator.CreateInstanceMethodReference(typeof(Type).GetProperty(nameof(Type.TypeHandle))!.GetMethod!.Name,
                     il2CppSystemTypeHandleRef.ToTypeSignature(), il2CppSystemTypeRef));
             ctorBuilder.Add(OpCodes.Ldfld,
-                CecilAdapter.CreateFieldReference("value", assemblyContext.Imports.Module.IntPtr(), il2CppSystemTypeHandleRef));
+                ReferenceCreator.CreateFieldReference("value", assemblyContext.Imports.Module.IntPtr(), il2CppSystemTypeHandleRef));
 
             ctorBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_il2cpp_class_from_type.Value);
         }

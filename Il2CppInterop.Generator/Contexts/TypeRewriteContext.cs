@@ -1,6 +1,7 @@
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
+using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Contexts;
@@ -71,7 +72,7 @@ public class TypeRewriteContext
                 AssemblyContext.Imports.Il2CppClassPointerStore.ToTypeDefOrRef(),
                 AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType,
                 SelfSubstitutedRef.ToTypeSignature());
-            ClassPointerFieldRef = CecilAdapter.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
+            ClassPointerFieldRef = ReferenceCreator.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
                 NewType.Module.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
         }
         else
@@ -85,7 +86,7 @@ public class TypeRewriteContext
                     NewType.Module!.ImportCorlibReference(OriginalType.FullName));
             else
                 genericTypeRef.TypeArguments.Add(SelfSubstitutedRef.ToTypeSignature());
-            ClassPointerFieldRef = CecilAdapter.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
+            ClassPointerFieldRef = ReferenceCreator.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
                 NewType.Module!.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
         }
 

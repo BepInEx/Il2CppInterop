@@ -127,7 +127,7 @@ public class RewriteGlobalContext : IDisposable
 
         if (paramsParameters.Any())
         {
-            var paramsMethod = new MethodDefinition(newMethod.Name, newMethod.Attributes, CecilAdapter.CreateMethodSignature(newMethod.Attributes, newMethod.Signature!.ReturnType));
+            var paramsMethod = new MethodDefinition(newMethod.Name, newMethod.Attributes, MethodSignatureCreator.CreateMethodSignature(newMethod.Attributes, newMethod.Signature!.ReturnType));
             foreach (var genericParameter in newMethod.GenericParameters)
             {
                 var newGenericParameter = new GenericParameter(genericParameter.Name, genericParameter.Attributes);
