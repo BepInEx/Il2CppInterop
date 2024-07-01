@@ -131,7 +131,19 @@ public class RewriteGlobalContext : IDisposable
             foreach (var genericParameter in newMethod.GenericParameters)
             {
                 var newGenericParameter = new GenericParameter(genericParameter.Name, genericParameter.Attributes);
-#warning Need to copy constraints or custom attributes?
+
+                foreach (var constraint in genericParameter.Constraints)
+                {
+                    var newConstraintType = constraint.Constraint != null ? resolve(constraint.Constraint.ToTypeSignature())?.ToTypeDefOrRef() : null;
+                    var newConstraint = new GenericParameterConstraint(newConstraintType);
+
+                    // Need to copy custom attributes on constraints for generic parameters?
+
+                    newGenericParameter.Constraints.Add(newConstraint);
+                }
+
+                // Need to copy custom attributes on generic parameters?
+
                 paramsMethod.GenericParameters.Add(newGenericParameter);
             }
 
