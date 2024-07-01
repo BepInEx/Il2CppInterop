@@ -23,7 +23,7 @@ public static class Pass13FillGenericConstraints
 
                         newParameter.Constraints.Add(
                             new GenericParameterConstraint(
-                                assemblyContext.RewriteTypeRef(originalConstraint.Constraint)));
+                                assemblyContext.RewriteTypeRef(originalConstraint.Constraint!)));
                     }
                 }
             }

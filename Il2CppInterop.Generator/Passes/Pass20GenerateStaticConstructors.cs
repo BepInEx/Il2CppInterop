@@ -35,7 +35,7 @@ public static class Pass20GenerateStaticConstructors
         if (newType.IsNested)
         {
             ctorBuilder.Add(OpCodes.Ldsfld,
-                assemblyContext.GlobalContext.GetNewTypeForOriginal(oldType.DeclaringType).ClassPointerFieldRef);
+                assemblyContext.GlobalContext.GetNewTypeForOriginal(oldType.DeclaringType!).ClassPointerFieldRef);
             ctorBuilder.Add(OpCodes.Ldstr, oldType.Name ?? "");
             ctorBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_GetIl2CppNestedType.Value);
         }
@@ -51,7 +51,7 @@ public static class Pass20GenerateStaticConstructors
         {
             var il2CppTypeTypeRewriteContext = assemblyContext.GlobalContext.GetAssemblyByName("mscorlib")
                 .GetTypeByName("System.Type");
-            var il2CppSystemTypeRef = newType.Module.DefaultImporter.ImportType(il2CppTypeTypeRewriteContext.NewType);
+            var il2CppSystemTypeRef = newType.Module!.DefaultImporter.ImportType(il2CppTypeTypeRewriteContext.NewType);
 
             var il2CppTypeHandleTypeRewriteContext = assemblyContext.GlobalContext.GetAssemblyByName("mscorlib")
                 .GetTypeByName("System.RuntimeTypeHandle");
@@ -115,7 +115,7 @@ public static class Pass20GenerateStaticConstructors
         foreach (var field in typeContext.Fields)
         {
             ctorBuilder.Add(OpCodes.Ldsfld, typeContext.ClassPointerFieldRef);
-            ctorBuilder.Add(OpCodes.Ldstr, field.OriginalField.Name);
+            ctorBuilder.Add(OpCodes.Ldstr, field.OriginalField.Name!);
             ctorBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_GetIl2CppField.Value);
             ctorBuilder.Add(OpCodes.Stsfld, field.PointerField);
         }
@@ -131,9 +131,9 @@ public static class Pass20GenerateStaticConstructors
 
                 ctorBuilder.Add(
                     method.OriginalMethod.GenericParameters.Count > 0 ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
-                ctorBuilder.Add(OpCodes.Ldstr, method.OriginalMethod.Name);
+                ctorBuilder.Add(OpCodes.Ldstr, method.OriginalMethod.Name!);
                 ctorBuilder.EmitLoadTypeNameString(assemblyContext.Imports, method.OriginalMethod,
-                    method.OriginalMethod.Signature.ReturnType, method.NewMethod.Signature.ReturnType);
+                    method.OriginalMethod.Signature!.ReturnType, method.NewMethod.Signature!.ReturnType);
                 ctorBuilder.Add(OpCodes.Ldc_I4, method.OriginalMethod.Parameters.Count);
                 ctorBuilder.Add(OpCodes.Newarr, assemblyContext.Imports.Module.String().ToTypeDefOrRef());
 

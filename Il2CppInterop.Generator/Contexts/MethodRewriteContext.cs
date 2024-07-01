@@ -105,7 +105,7 @@ public class MethodRewriteContext
         UnmangledNameWithSignature = UnmangleMethodNameWithSignature();
 
         NewMethod.Name = UnmangledName;
-        NewMethod.Signature.ReturnType = DeclaringType.AssemblyContext.RewriteTypeRef(OriginalMethod.Signature?.ReturnType);
+        NewMethod.Signature!.ReturnType = DeclaringType.AssemblyContext.RewriteTypeRef(OriginalMethod.Signature?.ReturnType);
 
         var nonGenericMethodInfoPointerField = new FieldDefinition(
             "NativeMethodInfoPtr_" + UnmangledNameWithSignature,
@@ -114,7 +114,7 @@ public class MethodRewriteContext
         DeclaringType.NewType.Fields.Add(nonGenericMethodInfoPointerField);
 
         NonGenericMethodInfoPointerField = new MemberReference(DeclaringType.SelfSubstitutedRef, nonGenericMethodInfoPointerField.Name,
-            new FieldSignature(nonGenericMethodInfoPointerField.Signature.FieldType));
+            new FieldSignature(nonGenericMethodInfoPointerField.Signature!.FieldType));
 
         if (OriginalMethod.HasGenericParameters())
         {
@@ -152,7 +152,7 @@ public class MethodRewriteContext
                 DeclaringType.AssemblyContext.Imports.Module.IntPtr());
             genericMethodInfoStoreType.Fields.Add(pointerField);
 
-            GenericInstantiationsStoreSelfSubstRef = DeclaringType.NewType.Module.DefaultImporter.ImportType(selfSubstRef.ToTypeDefOrRef());
+            GenericInstantiationsStoreSelfSubstRef = DeclaringType.NewType.Module!.DefaultImporter.ImportType(selfSubstRef.ToTypeDefOrRef());
             GenericInstantiationsStoreSelfSubstMethodRef =
                 DeclaringType.NewType.Module.DefaultImporter.ImportType(selfSubstMethodRef.ToTypeDefOrRef());
         }
@@ -182,7 +182,7 @@ public class MethodRewriteContext
             return "GetIl2CppType";
 
         if (DeclaringType.AssemblyContext.GlobalContext.Options.PassthroughNames)
-            return method.Name;
+            return method.Name!;
 
         if (method.Name == ".ctor")
             return ".ctor";
@@ -193,7 +193,7 @@ public class MethodRewriteContext
         if (method.Name.IsInvalidInSource())
             return method.Name.FilterInvalidInSourceChars();
 
-        return method.Name;
+        return method.Name!;
     }
 
     private string ProduceMethodSignatureBase()

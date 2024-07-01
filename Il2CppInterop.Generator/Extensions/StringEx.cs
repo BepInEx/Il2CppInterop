@@ -77,8 +77,10 @@ public static class StringEx
         return IsInvalidInSource(str?.Value ?? "");
     }
 
-    public static bool IsObfuscated(this string str, GeneratorOptions options)
+    public static bool IsObfuscated([NotNullWhen(true)] this string? str, GeneratorOptions options)
     {
+        if (str is null)
+            return false;
         if (options.ObfuscatedNamesRegex != null)
             return options.ObfuscatedNamesRegex.IsMatch(str);
 

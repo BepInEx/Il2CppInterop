@@ -21,7 +21,7 @@ public class RuntimeAssemblyReferences
     }
 
     public ModuleDefinition Module { get; }
-
+#nullable disable
     public Memoize<TypeSignature, IMethodDefOrRef> Il2CppRefrenceArrayctor { get; private set; }
     public Lazy<IMethodDefOrRef> Il2CppStringArrayctor { get; private set; }
     public Memoize<TypeSignature, IMethodDefOrRef> Il2CppStructArrayctor { get; private set; }
@@ -85,7 +85,7 @@ public class RuntimeAssemblyReferences
     public TypeSignature RuntimeReflectionHelper { get; private set; }
     public TypeSignature DelegateSupport { get; private set; }
     public TypeSignature Il2CppException { get; private set; }
-
+#nullable enable
     private TypeSignature ResolveType(string typeName)
     {
         return allTypes[typeName];
@@ -466,17 +466,17 @@ public class RuntimeAssemblyReferences
                 Module.DefaultImporter.ImportType(typeof(CachedScanResultsAttribute))));
 
         Il2CppSystemDelegateCombine = new Lazy<IMethodDefOrRef>(() =>
-            Module.DefaultImporter.ImportMethod(globalCtx.GetAssemblyByName("mscorlib").NewAssembly.ManifestModule
+            Module.DefaultImporter.ImportMethod(globalCtx.GetAssemblyByName("mscorlib").NewAssembly.ManifestModule!
                 .GetType("Il2CppSystem.Delegate").Methods.Single(m => m.Name == "Combine" && m.Parameters.Count == 2)));
 
         Il2CppSystemDelegateRemove = new Lazy<IMethodDefOrRef>(() =>
-            Module.DefaultImporter.ImportMethod(globalCtx.GetAssemblyByName("mscorlib").NewAssembly.ManifestModule
+            Module.DefaultImporter.ImportMethod(globalCtx.GetAssemblyByName("mscorlib").NewAssembly.ManifestModule!
                 .GetType("Il2CppSystem.Delegate").Methods.Single(m => m.Name == "Remove")));
 
         Il2CppSystemRuntimeTypeHandleGetRuntimeTypeHandle = new Lazy<IMethodDefOrRef>(() =>
         {
             var declaringTypeRef = RuntimeReflectionHelper;
-            var returnTypeRef = Module.DefaultImporter.ImportType(globalCtx.GetAssemblyByName("mscorlib").NewAssembly.ManifestModule
+            var returnTypeRef = Module.DefaultImporter.ImportType(globalCtx.GetAssemblyByName("mscorlib").NewAssembly.ManifestModule!
                 .GetType("Il2CppSystem.RuntimeTypeHandle"));
             var signature = MethodSignature.CreateStatic(returnTypeRef.ToTypeSignature());
             signature.GenericParameterCount = 1;

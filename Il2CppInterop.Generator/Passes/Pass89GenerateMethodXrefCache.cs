@@ -21,7 +21,7 @@ public static class Pass89GenerateMethodXrefCache
 
         foreach (var assemblyRewriteContext in context.Assemblies)
         {
-            if (options.AdditionalAssembliesBlacklist.Contains(assemblyRewriteContext.NewAssembly.Name))
+            if (options.AdditionalAssembliesBlacklist.Contains(assemblyRewriteContext.NewAssembly.Name!))
                 continue;
 
             var imports = assemblyRewriteContext.Imports;

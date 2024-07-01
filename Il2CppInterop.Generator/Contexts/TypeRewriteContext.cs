@@ -24,11 +24,13 @@ public class TypeRewriteContext
     public readonly TypeDefinition NewType;
 
     public readonly bool OriginalNameWasObfuscated;
+#nullable disable
     public readonly TypeDefinition OriginalType;
+#nullable enable
 
     public TypeSpecifics ComputedTypeSpecifics;
 
-    public TypeRewriteContext(AssemblyRewriteContext assemblyContext, TypeDefinition originalType,
+    public TypeRewriteContext(AssemblyRewriteContext assemblyContext, TypeDefinition? originalType,
         TypeDefinition newType)
     {
         AssemblyContext = assemblyContext ?? throw new ArgumentNullException(nameof(assemblyContext));
@@ -41,7 +43,7 @@ public class TypeRewriteContext
         if (OriginalNameWasObfuscated)
             NewType.CustomAttributes.Add(new CustomAttribute(
                 (ICustomAttributeType)assemblyContext.Imports.ObfuscatedNameAttributector.Value,
-                new CustomAttributeSignature(new CustomAttributeArgument(assemblyContext.Imports.Module.String(), originalType.FullName))));
+                new CustomAttributeSignature(new CustomAttributeArgument(assemblyContext.Imports.Module.String(), OriginalType.FullName))));
 
         if (!OriginalType.IsValueType)
             ComputedTypeSpecifics = TypeSpecifics.ReferenceType;
@@ -50,10 +52,10 @@ public class TypeRewriteContext
         else if (OriginalType.HasGenericParameters())
             ComputedTypeSpecifics = TypeSpecifics.NonBlittableStruct; // not reference type, covered by first if
     }
-
+#nullable disable
     public IFieldDescriptor ClassPointerFieldRef { get; private set; }
     public ITypeDefOrRef SelfSubstitutedRef { get; private set; }
-
+#nullable enable
     public IEnumerable<FieldRewriteContext> Fields => myFieldContexts.Values;
     public IEnumerable<MethodRewriteContext> Methods => myMethodContexts.Values;
 
@@ -64,7 +66,7 @@ public class TypeRewriteContext
             var genericInstanceType = new GenericInstanceTypeSignature(NewType, NewType.IsValueType);
             foreach (var newTypeGenericParameter in NewType.GenericParameters)
                 genericInstanceType.TypeArguments.Add(newTypeGenericParameter.ToTypeSignature());
-            SelfSubstitutedRef = NewType.Module.DefaultImporter.ImportTypeSignature(genericInstanceType).ToTypeDefOrRef();
+            SelfSubstitutedRef = NewType.Module!.DefaultImporter.ImportTypeSignature(genericInstanceType).ToTypeDefOrRef();
             var genericTypeRef = new GenericInstanceTypeSignature(
                 AssemblyContext.Imports.Il2CppClassPointerStore.ToTypeDefOrRef(),
                 AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType,
@@ -80,11 +82,11 @@ public class TypeRewriteContext
                 AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType);
             if (OriginalType.ToTypeSignature().IsPrimitive() || OriginalType.FullName == "System.String")
                 genericTypeRef.TypeArguments.Add(
-                    NewType.Module.ImportCorlibReference(OriginalType.FullName));
+                    NewType.Module!.ImportCorlibReference(OriginalType.FullName));
             else
                 genericTypeRef.TypeArguments.Add(SelfSubstitutedRef.ToTypeSignature());
             ClassPointerFieldRef = CecilAdapter.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
-                NewType.Module.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
+                NewType.Module!.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
         }
 
         if (OriginalType.IsEnum) return;
@@ -109,7 +111,7 @@ public class TypeRewriteContext
 
             var methodRewriteContext = new MethodRewriteContext(this, originalTypeMethod);
             myMethodContexts[originalTypeMethod] = methodRewriteContext;
-            myMethodContextsByName[originalTypeMethod.Name] = methodRewriteContext;
+            myMethodContextsByName[originalTypeMethod.Name!] = methodRewriteContext;
 
             if (methodRewriteContext.HasExtensionAttribute) hasExtensionMethods = true;
         }

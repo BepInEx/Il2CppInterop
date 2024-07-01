@@ -22,7 +22,7 @@ public static class Pass80UnstripMethods
             if (processedAssembly == null) continue;
             var imports = processedAssembly.Imports;
 
-            foreach (var unityType in unityAssembly.ManifestModule.TopLevelTypes)
+            foreach (var unityType in unityAssembly.ManifestModule!.TopLevelTypes)
             {
                 var processedType = processedAssembly.TryGetTypeByName(unityType.FullName);
                 if (processedType == null) continue;
@@ -37,7 +37,7 @@ public static class Pass80UnstripMethods
                     var processedMethod = processedType.TryGetMethodByUnityAssemblyMethod(unityMethod);
                     if (processedMethod != null) continue;
 
-                    var returnType = ResolveTypeInNewAssemblies(context, unityMethod.Signature.ReturnType, imports);
+                    var returnType = ResolveTypeInNewAssemblies(context, unityMethod.Signature!.ReturnType, imports);
                     if (returnType == null)
                     {
                         Logger.Instance.LogTrace("Method {UnityMethod} has unsupported return type {UnityMethodReturnType}", unityMethod.ToString(), unityMethod.Signature.ReturnType.ToString());
@@ -78,7 +78,7 @@ public static class Pass80UnstripMethods
                         foreach (var genericParameterConstraint in unityMethodGenericParameter.Constraints)
                         {
                             if (genericParameterConstraint.Constraint?.FullName == "System.ValueType") continue;
-                            if (genericParameterConstraint.Constraint.Resolve().IsInterface) continue;
+                            if (genericParameterConstraint.Constraint!.Resolve()!.IsInterface) continue;
 
                             var newType = ResolveTypeInNewAssemblies(context, genericParameterConstraint.Constraint.ToTypeSignature(),
                                 imports);
@@ -135,10 +135,10 @@ public static class Pass80UnstripMethods
     private static PropertyDefinition GetOrCreateProperty(MethodDefinition unityMethod, MethodDefinition newMethod)
     {
         var unityProperty =
-            unityMethod.DeclaringType.Properties.Single(
+            unityMethod.DeclaringType!.Properties.Single(
                 it => it.SetMethod == unityMethod || it.GetMethod == unityMethod);
         var newProperty = newMethod.DeclaringType?.Properties.SingleOrDefault(it =>
-            it.Name == unityProperty.Name && it.Signature.ParameterTypes.Count == unityProperty.Signature.ParameterTypes.Count &&
+            it.Name == unityProperty.Name && it.Signature!.ParameterTypes.Count == unityProperty.Signature!.ParameterTypes.Count &&
             it.Signature.ParameterTypes.SequenceEqual(unityProperty.Signature.ParameterTypes, SignatureComparer.Default));
         if (newProperty == null)
         {
@@ -146,18 +146,18 @@ public static class Pass80UnstripMethods
             IEnumerable<TypeSignature> parameterTypes;
             if (unityMethod.IsGetMethod)
             {
-                propertyType = newMethod.Signature.ReturnType;
+                propertyType = newMethod.Signature!.ReturnType;
                 parameterTypes = newMethod.Signature.ParameterTypes;
             }
             else
             {
-                propertyType = newMethod.Signature.ParameterTypes.Last();
+                propertyType = newMethod.Signature!.ParameterTypes.Last();
                 parameterTypes = newMethod.Signature.ParameterTypes.Take(newMethod.Signature.ParameterTypes.Count - 1);
             }
 
             var propertySignature = new PropertySignature(CallingConventionAttributes.Default, propertyType, parameterTypes);
             newProperty = new PropertyDefinition(unityProperty.Name, PropertyAttributes.None, propertySignature);
-            newMethod.DeclaringType.Properties.Add(newProperty);
+            newMethod.DeclaringType!.Properties.Add(newProperty);
         }
 
         return newProperty;
@@ -199,7 +199,7 @@ public static class Pass80UnstripMethods
         {
             var enclosingResolvedType = ResolveTypeInNewAssembliesRaw(context, unityType.DeclaringType.ToTypeSignature(), imports);
             if (enclosingResolvedType == null) return null;
-            var resolvedNestedType = enclosingResolvedType.Resolve().NestedTypes
+            var resolvedNestedType = enclosingResolvedType.Resolve()!.NestedTypes
                 .FirstOrDefault(it => it.Name == unityType.Name);
 
             return resolvedNestedType?.ToTypeSignature();
@@ -226,7 +226,7 @@ public static class Pass80UnstripMethods
             return newInstance;
         }
 
-        var targetAssemblyName = unityType.Scope.Name;
+        var targetAssemblyName = unityType.Scope!.Name!;
         if (targetAssemblyName.EndsWith(".dll"))
             targetAssemblyName = targetAssemblyName.Substring(0, targetAssemblyName.Length - 4);
         if ((targetAssemblyName == "mscorlib" || targetAssemblyName == "netstandard") &&

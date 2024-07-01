@@ -62,15 +62,15 @@ public class CecilMetadataAccess : IIl2CppMetadataAccess
         foreach (var sourceAssembly in assemblies)
         {
             myAssemblies.Add(sourceAssembly);
-            myAssembliesByName[sourceAssembly.Name] = sourceAssembly;
-            sourceAssembly.ManifestModule.MetadataResolver = new DefaultMetadataResolver(myAssemblyResolver);
+            myAssembliesByName[sourceAssembly.Name!] = sourceAssembly;
+            sourceAssembly.ManifestModule!.MetadataResolver = new DefaultMetadataResolver(myAssemblyResolver);
             myAssemblyResolver.AddToCache(sourceAssembly, sourceAssembly);
         }
 
         foreach (var sourceAssembly in myAssemblies)
         {
-            var sourceAssemblyName = sourceAssembly.Name;
-            foreach (var type in sourceAssembly.ManifestModule.TopLevelTypes)
+            var sourceAssemblyName = sourceAssembly.Name!;
+            foreach (var type in sourceAssembly.ManifestModule!.TopLevelTypes)
                 // todo: nested types?
                 myTypesByName[(sourceAssemblyName, type.FullName)] = type;
         }

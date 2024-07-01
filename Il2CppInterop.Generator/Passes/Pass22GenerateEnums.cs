@@ -24,17 +24,17 @@ public static class Pass22GenerateEnums
                     newType.CustomAttributes.Add(new CustomAttribute(
                         (ICustomAttributeType)assemblyContext.Imports.OriginalNameAttributector.Value,
                         new CustomAttributeSignature(
-                            new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Module.Name),
+                            new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Module!.Name),
                             new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Namespace),
                             new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Name))));
                 }
 
-                if (type.CustomAttributes.Any(it => it.Constructor.DeclaringType.FullName == "System.FlagsAttribute"))
+                if (type.CustomAttributes.Any(it => it.Constructor?.DeclaringType?.FullName == "System.FlagsAttribute"))
                     newType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.Module.FlagsAttributeCtor()));
 
                 foreach (var fieldDefinition in type.Fields)
                 {
-                    var fieldName = fieldDefinition.Name;
+                    var fieldName = fieldDefinition.Name!;
                     if (!context.Options.PassthroughNames && fieldName.IsObfuscated(context.Options))
                         fieldName = GetUnmangledName(fieldDefinition);
 
@@ -44,7 +44,7 @@ public static class Pass22GenerateEnums
                         fieldName = newName;
 
                     var newDef = new FieldDefinition(fieldName, fieldDefinition.Attributes | FieldAttributes.HasDefault,
-                        assemblyContext.RewriteTypeRef(fieldDefinition.Signature.FieldType));
+                        assemblyContext.RewriteTypeRef(fieldDefinition.Signature!.FieldType));
                     newType.Fields.Add(newDef);
 
                     newDef.Constant = fieldDefinition.Constant;

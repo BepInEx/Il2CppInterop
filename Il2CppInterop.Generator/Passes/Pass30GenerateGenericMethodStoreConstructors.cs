@@ -24,13 +24,13 @@ public static class Pass30GenerateGenericMethodStoreConstructors
                     {
                         var cctor = storeType.GetOrCreateStaticConstructor();
 
-                        var ctorBuilder = cctor.CilMethodBody.Instructions;
+                        var ctorBuilder = cctor.CilMethodBody!.Instructions;
                         ctorBuilder.Clear();
 
                         var il2CppTypeTypeRewriteContext = assemblyContext.GlobalContext
                             .GetAssemblyByName("mscorlib").GetTypeByName("System.Type");
                         var il2CppSystemTypeRef =
-                            assemblyContext.NewAssembly.ManifestModule.DefaultImporter.ImportType(il2CppTypeTypeRewriteContext.NewType);
+                            assemblyContext.NewAssembly.ManifestModule!.DefaultImporter.ImportType(il2CppTypeTypeRewriteContext.NewType);
 
                         var il2CppMethodInfoTypeRewriteContext = assemblyContext.GlobalContext
                             .GetAssemblyByName("mscorlib").GetTypeByName("System.Reflection.MethodInfo");

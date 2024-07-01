@@ -59,8 +59,8 @@ public class AssemblyRewriteContext
 
     public IMethodDefOrRef RewriteMethodRef(IMethodDefOrRef methodRef)
     {
-        var newType = GlobalContext.GetNewTypeForOriginal(methodRef.DeclaringType.Resolve());
-        var newMethod = newType.GetMethodByOldMethod(methodRef.Resolve()).NewMethod;
+        var newType = GlobalContext.GetNewTypeForOriginal(methodRef.DeclaringType!.Resolve()!);
+        var newMethod = newType.GetMethodByOldMethod(methodRef.Resolve()!).NewMethod;
         return NewAssembly.ManifestModule!.DefaultImporter.ImportMethod(newMethod);
     }
 
@@ -132,8 +132,8 @@ public class AssemblyRewriteContext
             return sourceModule.DefaultImporter.ImportType(GlobalContext.GetAssemblyByName("mscorlib")
                 .GetTypeByName("System.Attribute").NewType).ToTypeSignature();
 
-        var originalTypeDef = typeRef.Resolve();
-        var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.Module.Assembly);
+        var originalTypeDef = typeRef.Resolve()!;
+        var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.Module!.Assembly!);
         var target = targetAssembly.GetContextForOriginalType(originalTypeDef).NewType;
 
         return sourceModule.DefaultImporter.ImportType(target).ToTypeSignature();

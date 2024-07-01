@@ -15,7 +15,7 @@ public static class Pass91GenerateMethodPointerMap
 
         foreach (var assemblyRewriteContext in context.Assemblies)
         {
-            if (options.AdditionalAssembliesBlacklist.Contains(assemblyRewriteContext.NewAssembly.Name))
+            if (options.AdditionalAssembliesBlacklist.Contains(assemblyRewriteContext.NewAssembly.Name!))
                 continue;
 
             assemblyList.Add(assemblyRewriteContext.NewAssembly.FullName);

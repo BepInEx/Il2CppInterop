@@ -19,7 +19,7 @@ public static class Pass80UnstripFields
             if (processedAssembly == null) continue;
             var imports = processedAssembly.Imports;
 
-            foreach (var unityType in unityAssembly.ManifestModule.TopLevelTypes)
+            foreach (var unityType in unityAssembly.ManifestModule!.TopLevelTypes)
             {
                 var processedType = processedAssembly.TryGetTypeByName(unityType.FullName);
                 if (processedType == null) continue;
@@ -36,7 +36,7 @@ public static class Pass80UnstripFields
                     if (processedField != null) continue;
 
                     var fieldType =
-                        Pass80UnstripMethods.ResolveTypeInNewAssemblies(context, unityField.Signature.FieldType, imports);
+                        Pass80UnstripMethods.ResolveTypeInNewAssemblies(context, unityField.Signature!.FieldType, imports);
                     if (fieldType == null)
                     {
                         Logger.Instance.LogTrace("Field {UnityField} on type {UnityType} has unsupported type {UnityFieldType}, the type will be unusable", unityField.ToString(), unityType.FullName, unityField.Signature.FieldType.ToString());
@@ -44,7 +44,7 @@ public static class Pass80UnstripFields
                         continue;
                     }
 
-                    var newField = new FieldDefinition(unityField.Name,
+                    var newField = new FieldDefinition(unityField.Name!,
                         (unityField.Attributes & ~FieldAttributes.FieldAccessMask) | FieldAttributes.Public, fieldType);
 
                     if (unityField.HasConstant()) newField.Constant = unityField.Constant;

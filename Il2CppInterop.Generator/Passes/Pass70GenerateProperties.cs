@@ -29,7 +29,7 @@ public static class Pass70GenerateProperties
                     var property = new PropertyDefinition(unmangledPropertyName, oldProperty.Attributes,
                         new PropertySignature(CallingConventionAttributes.Default, assemblyContext.RewriteTypeRef(oldProperty.Signature!.ReturnType), []));
                     foreach (var oldParameter in oldProperty.Signature.ParameterTypes)
-                        property.Signature.ParameterTypes.Add(assemblyContext.RewriteTypeRef(oldParameter));
+                        property.Signature!.ParameterTypes.Add(assemblyContext.RewriteTypeRef(oldParameter));
 
                     typeContext.NewType.Properties.Add(property);
 
@@ -40,7 +40,7 @@ public static class Pass70GenerateProperties
 
                 string? defaultMemberName = null;
                 var defaultMemberAttributeAttribute = type.CustomAttributes.FirstOrDefault(it =>
-                    it.AttributeType()?.Name == "AttributeAttribute" && it.Signature.NamedArguments.Any(it =>
+                    it.AttributeType()?.Name == "AttributeAttribute" && it.Signature!.NamedArguments.Any(it =>
                         it.MemberName == "Name" && (string?)it.Argument.Element == nameof(DefaultMemberAttribute)));
                 if (defaultMemberAttributeAttribute != null)
                 {
@@ -66,9 +66,9 @@ public static class Pass70GenerateProperties
         ITypeDefOrRef declaringType, Dictionary<string, int> countsByBaseName)
     {
         if (assemblyContext.GlobalContext.Options.PassthroughNames ||
-            !prop.Name.IsObfuscated(assemblyContext.GlobalContext.Options)) return prop.Name;
+            !prop.Name.IsObfuscated(assemblyContext.GlobalContext.Options)) return prop.Name!;
 
-        var baseName = "prop_" + assemblyContext.RewriteTypeRef(prop.Signature.ReturnType).GetUnmangledName();
+        var baseName = "prop_" + assemblyContext.RewriteTypeRef(prop.Signature!.ReturnType).GetUnmangledName();
 
         countsByBaseName.TryGetValue(baseName, out var index);
         countsByBaseName[baseName] = index + 1;

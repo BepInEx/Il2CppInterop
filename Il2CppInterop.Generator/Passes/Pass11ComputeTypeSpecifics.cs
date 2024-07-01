@@ -29,7 +29,7 @@ public static class Pass11ComputeTypeSpecifics
 
             if (originalField.IsStatic) continue;
 
-            var fieldType = originalField.Signature.FieldType;
+            var fieldType = originalField.Signature!.FieldType;
             if (fieldType.IsPrimitive() || fieldType is PointerTypeSignature)
                 continue;
             if (fieldType.FullName == "System.String" || fieldType.FullName == "System.Object"
@@ -39,7 +39,7 @@ public static class Pass11ComputeTypeSpecifics
                 return;
             }
 
-            var fieldTypeContext = typeContext.AssemblyContext.GlobalContext.GetNewTypeForOriginal(fieldType.Resolve());
+            var fieldTypeContext = typeContext.AssemblyContext.GlobalContext.GetNewTypeForOriginal(fieldType.Resolve()!);
             ComputeSpecifics(fieldTypeContext);
             if (fieldTypeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.BlittableStruct)
             {
