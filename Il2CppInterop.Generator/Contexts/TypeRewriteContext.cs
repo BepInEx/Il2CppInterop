@@ -1,5 +1,6 @@
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Contexts;
@@ -97,10 +98,14 @@ public class TypeRewriteContext
 
         foreach (var originalTypeMethod in OriginalType.Methods)
         {
-            if (originalTypeMethod.Name == ".cctor") continue;
-            if (originalTypeMethod.Name == ".ctor" && originalTypeMethod.Parameters.Count == 1 &&
-                originalTypeMethod.Parameters[0].ParameterType.FullName == "System.IntPtr") continue;
-            if (originalTypeMethod.HasOverrides()) continue;
+            if (originalTypeMethod.IsStatic && originalTypeMethod.IsConstructor)
+                continue;
+            if (originalTypeMethod.IsConstructor && originalTypeMethod.Parameters.Count == 1 &&
+                originalTypeMethod.Parameters[0].ParameterType is CorLibTypeSignature { ElementType: ElementType.I })
+                continue;
+            var modules = this.AssemblyContext.GlobalContext.Assemblies.Select(a => a.OriginalAssembly.ManifestModule!);
+            if (originalTypeMethod.HasOverrides(modules))
+                continue;
 
             var methodRewriteContext = new MethodRewriteContext(this, originalTypeMethod);
             myMethodContexts[originalTypeMethod] = methodRewriteContext;

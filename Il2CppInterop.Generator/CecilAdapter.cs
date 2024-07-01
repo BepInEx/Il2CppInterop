@@ -73,11 +73,63 @@ internal static class CecilAdapter
 
     public static ITypeDefOrRef? AttributeType(this CustomAttribute attribute) => attribute.Constructor?.DeclaringType;
 
-    public static bool HasOverrides(this MethodDefinition method)
+    /// <summary>
+    /// Check if the method has any overrides in the given modules.
+    /// </summary>
+    /// <param name="method">The method which might be overriden.</param>
+    /// <param name="modules">The additional modules in which to search.</param>
+    /// <returns>True if any overrides were found.</returns>
+    public static bool HasOverrides(this MethodDefinition method, IEnumerable<ModuleDefinition>? modules = null)
     {
-#warning TODO: Implement
-        //throw new NotImplementedException();
+        if (!method.IsAbstract || !method.IsVirtual)
+            return false;
+        if (method.DeclaringType is null or { IsSealed: true } or { IsValueType: true })
+            return false;
+
+        modules ??= [];
+
+        foreach (var derivedType in GetAllDerivedTypes(method.DeclaringType, modules))
+        {
+            foreach (var derivedMethod in derivedType.Methods)
+            {
+                if (derivedMethod.Name != method.Name)
+                    continue;
+
+                if (SignatureComparer.Default.Equals(derivedMethod.Signature, method.Signature))
+                    return true;
+            }
+        }
+
         return false;
+
+        static IEnumerable<TypeDefinition> GetAllDerivedTypes(TypeDefinition root, IEnumerable<ModuleDefinition> modules)
+        {
+            var declaringModule = root.Module;
+            if (declaringModule is null)
+                yield break;
+
+            foreach (var derivedType in GetDerivedTypesInModule(root, declaringModule))
+                yield return derivedType;
+
+            foreach (var module in modules)
+            {
+                if (module == declaringModule)
+                    continue;
+
+                foreach (var derivedType in GetDerivedTypesInModule(root, module))
+                    yield return derivedType;
+            }
+        }
+        static IEnumerable<TypeDefinition> GetDerivedTypesInModule(TypeDefinition root, ModuleDefinition module)
+        {
+            foreach (var type in module.GetAllTypes())
+            {
+                if (root.Name is not null && type.InheritsFrom(root.Namespace, root.Name) && type != root)
+                {
+                    yield return type;
+                }
+            }
+        }
     }
 
     public static MethodSignature CreateMethodSignature(MethodAttributes attributes, TypeSignature returnType, params TypeSignature[] parameterTypes)
