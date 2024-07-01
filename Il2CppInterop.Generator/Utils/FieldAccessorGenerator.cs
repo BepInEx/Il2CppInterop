@@ -58,7 +58,7 @@ internal static class FieldAccessorGenerator
                 getterBody.Add(OpCodes.Ldloc, local0);
                 getterBody.Add(OpCodes.Ret);
 
-                property.SetSemanticMethods(getter, property.SetMethod);
+                property.GetMethod = getter;
                 return;
             }
         }
@@ -81,7 +81,7 @@ internal static class FieldAccessorGenerator
 
         getterBody.Add(OpCodes.Ret);
 
-        property.SetSemanticMethods(getter, property.SetMethod);
+        property.GetMethod = getter;
     }
 
     public static void MakeSetter(FieldDefinition field, FieldRewriteContext fieldContext, PropertyDefinition property,
@@ -115,7 +115,7 @@ internal static class FieldAccessorGenerator
 
         setterBody.Add(OpCodes.Ret);
 
-        property.SetSemanticMethods(property.GetMethod, setter);
+        property.SetMethod = setter;
     }
 
     private static MethodAttributes Field2MethodAttrs(FieldAttributes fieldAttributes)
