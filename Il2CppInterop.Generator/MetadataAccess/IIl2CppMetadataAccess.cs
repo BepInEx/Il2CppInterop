@@ -1,11 +1,11 @@
-using System.Collections.Generic;
-using Mono.Cecil;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures;
 
 namespace Il2CppInterop.Generator.MetadataAccess;
 
 public interface IIl2CppMetadataAccess : IMetadataAccess
 {
-    IList<GenericInstanceType>? GetKnownInstantiationsFor(TypeDefinition genericDeclaration);
+    IList<GenericInstanceTypeSignature>? GetKnownInstantiationsFor(TypeDefinition genericDeclaration);
     string? GetStringStoredAtAddress(long offsetInMemory);
-    MethodReference? GetMethodRefStoredAt(long offsetInMemory);
+    MemberReference? GetMethodRefStoredAt(long offsetInMemory);
 }

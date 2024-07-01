@@ -1,36 +1,37 @@
-using Mono.Cecil;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures;
 
 namespace Il2CppInterop.Generator.Extensions;
 
 public static class TypeReferenceEx
 {
-    public static bool UnmangledNamesMatch(this TypeReference typeRefA, TypeReference typeRefB)
+    public static bool UnmangledNamesMatch(this TypeSignature typeRefA, TypeSignature typeRefB)
     {
-        var aIsDefOrRef = typeRefA.GetType() == typeof(TypeReference) || typeRefA.GetType() == typeof(TypeDefinition);
-        var bIsDefOrRef = typeRefB.GetType() == typeof(TypeReference) || typeRefB.GetType() == typeof(TypeDefinition);
+        var aIsDefOrRef = typeRefA.GetType() == typeof(TypeDefOrRefSignature);
+        var bIsDefOrRef = typeRefB.GetType() == typeof(TypeDefOrRefSignature);
         if (!(aIsDefOrRef && bIsDefOrRef) && typeRefA.GetType() != typeRefB.GetType())
             return false;
 
         switch (typeRefA)
         {
-            case PointerType pointer:
-                return pointer.ElementType.UnmangledNamesMatch(((PointerType)typeRefB).ElementType);
-            case ByReferenceType byRef:
-                return byRef.ElementType.UnmangledNamesMatch(((ByReferenceType)typeRefB).ElementType);
-            case ArrayType array:
-                return array.ElementType.UnmangledNamesMatch(((ArrayType)typeRefB).ElementType);
-            case GenericInstanceType genericInstance:
+            case PointerTypeSignature pointer:
+                return pointer.BaseType.UnmangledNamesMatch(((PointerTypeSignature)typeRefB).BaseType);
+            case ByReferenceTypeSignature byRef:
+                return byRef.BaseType.UnmangledNamesMatch(((ByReferenceTypeSignature)typeRefB).BaseType);
+            case ArrayBaseTypeSignature array:
+                return array.BaseType.UnmangledNamesMatch(((ArrayBaseTypeSignature)typeRefB).BaseType);
+            case GenericInstanceTypeSignature genericInstance:
                 {
-                    var elementA = genericInstance.ElementType;
-                    var genericInstanceB = (GenericInstanceType)typeRefB;
-                    var elementB = genericInstanceB.ElementType;
+                    var elementA = genericInstance.GenericType.ToTypeSignature();
+                    var genericInstanceB = (GenericInstanceTypeSignature)typeRefB;
+                    var elementB = genericInstanceB.GenericType.ToTypeSignature();
                     if (!elementA.UnmangledNamesMatch(elementB))
                         return false;
-                    if (genericInstance.GenericArguments.Count != genericInstanceB.GenericArguments.Count)
+                    if (genericInstance.TypeArguments.Count != genericInstanceB.TypeArguments.Count)
                         return false;
 
-                    for (var i = 0; i < genericInstance.GenericArguments.Count; i++)
-                        if (!genericInstance.GenericArguments[i].UnmangledNamesMatch(genericInstanceB.GenericArguments[i]))
+                    for (var i = 0; i < genericInstance.TypeArguments.Count; i++)
+                        if (!genericInstance.TypeArguments[i].UnmangledNamesMatch(genericInstanceB.TypeArguments[i]))
                             return false;
 
                     return true;
@@ -40,10 +41,10 @@ public static class TypeReferenceEx
         }
     }
 
-    public static string GetNamespacePrefix(this TypeReference type)
+    public static string? GetNamespacePrefix(this ITypeDefOrRef type)
     {
-        if (type.IsNested)
-            return GetNamespacePrefix(type.DeclaringType) + "." + type.DeclaringType.Name;
+        if (type.DeclaringType is not null)
+            return $"{GetNamespacePrefix(type.DeclaringType)}.{type.DeclaringType.Name}";
 
         return type.Namespace;
     }
