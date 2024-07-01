@@ -1,9 +1,8 @@
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Code.Cil;
 using AsmResolver.DotNet.Signatures;
-using AsmResolver.DotNet.Signatures.Types;
 using AsmResolver.PE.DotNet.Cil;
-using AsmResolver.PE.DotNet.Metadata.Tables.Rows;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Utils;
 
@@ -70,7 +69,7 @@ public static class Pass60AddImplicitConversions
 
         AddDelegateConversions(context);
 
-        var primitiveTypes = (ReadOnlySpan<TypeSignature>)
+        TypeSignature[] primitiveTypes =
         [
             assemblyContext.Imports.Module.SByte(),
             assemblyContext.Imports.Module.Byte(),
