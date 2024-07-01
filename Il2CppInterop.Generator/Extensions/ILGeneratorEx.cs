@@ -71,7 +71,7 @@ public static class ILGeneratorEx
                 body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_object_unbox.Value);
                 var classPointerTypeRef = new GenericInstanceTypeSignature(imports.Il2CppClassPointerStore.ToTypeDefOrRef(), imports.Il2CppClassPointerStore.IsValueType, newType);
                 var classPointerFieldRef =
-                    CecilAdapter.CreateFieldReference("NativeClassPtr", imports.Module.IntPtr(), classPointerTypeRef.ToTypeDefOrRef());
+                    ReferenceCreator.CreateFieldReference("NativeClassPtr", imports.Module.IntPtr(), classPointerTypeRef.ToTypeDefOrRef());
                 body.Add(OpCodes.Ldsfld, enclosingType.NewType.Module!.DefaultImporter.ImportField(classPointerFieldRef));
                 body.Add(OpCodes.Ldc_I4_0);
                 body.Add(OpCodes.Conv_U);
@@ -328,7 +328,7 @@ public static class ILGeneratorEx
                     Debug.Assert(enclosingType.NewType.Module is not null);
                     var classPointerTypeRef = new GenericInstanceTypeSignature(imports.Il2CppClassPointerStore.ToTypeDefOrRef(), imports.Il2CppClassPointerStore.IsValueType, convertedReturnType);
                     var classPointerFieldRef =
-                        CecilAdapter.CreateFieldReference("NativeClassPtr", imports.Module.IntPtr(),
+                        ReferenceCreator.CreateFieldReference("NativeClassPtr", imports.Module.IntPtr(),
                             classPointerTypeRef.ToTypeDefOrRef());
                     body.Add(OpCodes.Ldsfld, enclosingType.NewType.Module.DefaultImporter.ImportField(classPointerFieldRef));
                     body.Add(OpCodes.Ldloc, pointerVariable);
@@ -336,7 +336,7 @@ public static class ILGeneratorEx
                 }
 
                 body.Add(OpCodes.Newobj,
-                    CecilAdapter.CreateInstanceMethodReference(".ctor", imports.Module.Void(), convertedReturnType.ToTypeDefOrRef(), imports.Module.IntPtr()));
+                    ReferenceCreator.CreateInstanceMethodReference(".ctor", imports.Module.Void(), convertedReturnType.ToTypeDefOrRef(), imports.Module.IntPtr()));
             }
         }
         else if (originalReturnType.FullName == "System.String")
@@ -350,7 +350,7 @@ public static class ILGeneratorEx
             body.Add(OpCodes.Ldloc, pointerVariable);
             if (extraDerefForNonValueTypes) body.Add(OpCodes.Ldind_I);
             var actualReturnType = imports.Module.DefaultImporter.ImportTypeSignature(imports.Il2CppArrayBase.MakeGenericInstanceType(genericParameterSignature));//Maybe need to duplicate the generic parameter signature
-            var methodRef = CecilAdapter.CreateStaticMethodReference("WrapNativeGenericArrayPointer",
+            var methodRef = ReferenceCreator.CreateStaticMethodReference("WrapNativeGenericArrayPointer",
                     actualReturnType,
                     convertedReturnType.ToTypeDefOrRef(),
                     imports.Module.IntPtr());
@@ -436,7 +436,7 @@ public static class ILGeneratorEx
             else
             {
                 body.Add(OpCodes.Newobj,
-                    CecilAdapter.CreateInstanceMethodReference(".ctor", imports.Module.Void(), newMethodParameter.ParameterType.GetElementType().ToTypeDefOrRef(), imports.Module.IntPtr()));
+                    ReferenceCreator.CreateInstanceMethodReference(".ctor", imports.Module.Void(), newMethodParameter.ParameterType.GetElementType().ToTypeDefOrRef(), imports.Module.IntPtr()));
             }
             body.Add(OpCodes.Br_S, stnop);
 

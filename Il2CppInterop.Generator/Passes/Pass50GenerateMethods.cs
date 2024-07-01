@@ -77,7 +77,7 @@ public static class Pass50GenerateMethods
                             bodyBuilder.Add(OpCodes.Ldsfld, typeContext.ClassPointerFieldRef);
                             bodyBuilder.Add(OpCodes.Call, imports.IL2CPP_il2cpp_object_new.Value);
                             bodyBuilder.Add(OpCodes.Call,
-                                CecilAdapter.CreateInstanceMethodReference(".ctor", imports.Module.Void(), typeContext.SelfSubstitutedRef, imports.Module.IntPtr()));
+                                ReferenceCreator.CreateInstanceMethodReference(".ctor", imports.Module.Void(), typeContext.SelfSubstitutedRef, imports.Module.IntPtr()));
                         }
                         else if (!originalMethod.IsStatic)
                         {
@@ -184,7 +184,7 @@ public static class Pass50GenerateMethods
                         bodyBuilder.Add(OpCodes.Call, imports.IL2CPP_Il2CppObjectBaseToPtr.Value);
                         if (methodRewriteContext.GenericInstantiationsStoreSelfSubstRef != null)
                             bodyBuilder.Add(OpCodes.Ldsfld,
-                                CecilAdapter.CreateFieldReference("Pointer", imports.Module.IntPtr(),
+                                ReferenceCreator.CreateFieldReference("Pointer", imports.Module.IntPtr(),
                                     methodRewriteContext.GenericInstantiationsStoreSelfSubstMethodRef));
                         else
                             bodyBuilder.Add(OpCodes.Ldsfld, methodRewriteContext.NonGenericMethodInfoPointerField);
@@ -193,7 +193,7 @@ public static class Pass50GenerateMethods
                     else if (methodRewriteContext.GenericInstantiationsStoreSelfSubstRef != null)
                     {
                         bodyBuilder.Add(OpCodes.Ldsfld,
-                            CecilAdapter.CreateFieldReference("Pointer", imports.Module.IntPtr(),
+                            ReferenceCreator.CreateFieldReference("Pointer", imports.Module.IntPtr(),
                                 methodRewriteContext.GenericInstantiationsStoreSelfSubstMethodRef));
                     }
                     else

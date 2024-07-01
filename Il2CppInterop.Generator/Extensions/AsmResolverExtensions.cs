@@ -1,13 +1,13 @@
-﻿using AsmResolver;
-using AsmResolver.DotNet;
+﻿using AsmResolver.DotNet;
 using AsmResolver.DotNet.Code.Cil;
 using AsmResolver.DotNet.Collections;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Cil;
 using AsmResolver.PE.DotNet.Metadata.Tables;
 
-namespace Il2CppInterop.Generator;
-internal static class CecilAdapter
+namespace Il2CppInterop.Generator.Extensions;
+
+internal static class AsmResolverExtensions
 {
     public static bool IsPrimitive(this TypeSignature type)
     {
@@ -20,34 +20,34 @@ internal static class CecilAdapter
         _ => type,
     };
 
-    public static void AddLoadArgument(this CilInstructionCollection instructions, int argumentIndex)
+    public static void AddLoadArgument(this ILProcessor instructions, int argumentIndex)
     {
         switch (argumentIndex)
         {
             case 0:
-                instructions.Add(CilOpCodes.Ldarg_0);
+                instructions.Add(OpCodes.Ldarg_0);
                 break;
             case 1:
-                instructions.Add(CilOpCodes.Ldarg_1);
+                instructions.Add(OpCodes.Ldarg_1);
                 break;
             case 2:
-                instructions.Add(CilOpCodes.Ldarg_2);
+                instructions.Add(OpCodes.Ldarg_2);
                 break;
             case 3:
-                instructions.Add(CilOpCodes.Ldarg_3);
+                instructions.Add(OpCodes.Ldarg_3);
                 break;
             default:
-                instructions.Add(CilOpCodes.Ldarg, instructions.GetArgument(argumentIndex));
+                instructions.Add(OpCodes.Ldarg, instructions.GetArgument(argumentIndex));
                 break;
         }
     }
 
-    public static void AddLoadArgumentAddress(this CilInstructionCollection instructions, int argumentIndex)
+    public static void AddLoadArgumentAddress(this ILProcessor instructions, int argumentIndex)
     {
-        instructions.Add(CilOpCodes.Ldarga, instructions.GetArgument(argumentIndex));
+        instructions.Add(OpCodes.Ldarga, instructions.GetArgument(argumentIndex));
     }
 
-    private static Parameter GetArgument(this CilInstructionCollection instructions, int argumentIndex)
+    private static Parameter GetArgument(this ILProcessor instructions, int argumentIndex)
     {
         var method = instructions.Owner.Owner;
         return method.IsStatic
@@ -132,19 +132,9 @@ internal static class CecilAdapter
         }
     }
 
-    public static MethodSignature CreateMethodSignature(MethodAttributes attributes, TypeSignature returnType, params TypeSignature[] parameterTypes)
-    {
-        return CreateMethodSignature((attributes & MethodAttributes.Static) != 0, returnType, parameterTypes);
-    }
-
-    public static MethodSignature CreateMethodSignature(bool isStatic, TypeSignature returnType, params TypeSignature[] parameterTypes)
-    {
-        return isStatic ? MethodSignature.CreateStatic(returnType, parameterTypes) : MethodSignature.CreateInstance(returnType, parameterTypes);
-    }
-
     public static Parameter AddParameter(this MethodDefinition method, TypeSignature parameterSignature, string parameterName, ParameterAttributes parameterAttributes = default)
     {
-        ParameterDefinition parameterDefinition = new ParameterDefinition((ushort)(method.Signature!.ParameterTypes.Count + 1), parameterName, parameterAttributes);
+        var parameterDefinition = new ParameterDefinition((ushort)(method.Signature!.ParameterTypes.Count + 1), parameterName, parameterAttributes);
         method.Signature.ParameterTypes.Add(parameterSignature);
         method.ParameterDefinitions.Add(parameterDefinition);
 
@@ -162,21 +152,6 @@ internal static class CecilAdapter
     public static TypeDefinition GetType(this ModuleDefinition module, string fullName)
     {
         return module.TopLevelTypes.First(t => t.FullName == fullName);
-    }
-
-    public static MemberReference CreateFieldReference(Utf8String? name, TypeSignature fieldType, IMemberRefParent? parent)
-    {
-        return new MemberReference(parent, name, new FieldSignature(fieldType));
-    }
-
-    public static MemberReference CreateInstanceMethodReference(Utf8String? name, TypeSignature returnType, IMemberRefParent? parent, params TypeSignature[] parameterTypes)
-    {
-        return new MemberReference(parent, name, MethodSignature.CreateInstance(returnType, parameterTypes));
-    }
-
-    public static MemberReference CreateStaticMethodReference(Utf8String? name, TypeSignature returnType, IMemberRefParent? parent, params TypeSignature[] parameterTypes)
-    {
-        return new MemberReference(parent, name, MethodSignature.CreateStatic(returnType, parameterTypes));
     }
 
     public static GenericParameterSignature ToTypeSignature(this GenericParameter genericParameter)

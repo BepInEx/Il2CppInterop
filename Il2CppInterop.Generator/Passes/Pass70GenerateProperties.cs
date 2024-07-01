@@ -56,7 +56,7 @@ public static class Pass70GenerateProperties
 
                 if (defaultMemberName != null)
                     typeContext.NewType.CustomAttributes.Add(new CustomAttribute(
-                        CecilAdapter.CreateInstanceMethodReference(".ctor", assemblyContext.Imports.Module.Void(),
+                        ReferenceCreator.CreateInstanceMethodReference(".ctor", assemblyContext.Imports.Module.Void(),
                             assemblyContext.Imports.Module.DefaultMemberAttribute().ToTypeDefOrRef(), assemblyContext.Imports.Module.String()),
                         new CustomAttributeSignature(new CustomAttributeArgument(assemblyContext.Imports.Module.String(), defaultMemberName))));
             }

@@ -4,6 +4,7 @@ using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Extensions;
 
 namespace Il2CppInterop.Generator.Utils;
 
@@ -149,13 +150,13 @@ public class RuntimeAssemblyReferences
             var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<T>");
             var gp = new GenericParameterSignature(GenericParameterType.Type, 0);
             var giOwner = owner.MakeGenericInstanceType(param).ToTypeDefOrRef();
-            return CecilAdapter.CreateInstanceMethodReference(".ctor", ResolveType("System.Void"),
+            return ReferenceCreator.CreateInstanceMethodReference(".ctor", ResolveType("System.Void"),
                 giOwner, gp.MakeSzArrayType());
         });
 
         Il2CppStringArrayctor = new Lazy<IMethodDefOrRef>(() =>
         {
-            return CecilAdapter.CreateInstanceMethodReference(".ctor", ResolveType("System.Void"),
+            return ReferenceCreator.CreateInstanceMethodReference(".ctor", ResolveType("System.Void"),
                 ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray").ToTypeDefOrRef(), ResolveType("System.String[]"));
         });
 
@@ -165,7 +166,7 @@ public class RuntimeAssemblyReferences
             var gp = new GenericParameterSignature(GenericParameterType.Type, 0);
             var giOwner = new GenericInstanceTypeSignature(owner.ToTypeDefOrRef(), false);
             giOwner.TypeArguments.Add(param);
-            var mr = CecilAdapter.CreateInstanceMethodReference(".ctor", ResolveType("System.Void"),
+            var mr = ReferenceCreator.CreateInstanceMethodReference(".ctor", ResolveType("System.Void"),
                 giOwner.ToTypeDefOrRef());
             var paramType = gp.MakeSzArrayType();
             ((MethodSignature)mr.Signature!).ParameterTypes.Add(paramType);
@@ -177,14 +178,14 @@ public class RuntimeAssemblyReferences
             var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<T>");
             var giOwner = new GenericInstanceTypeSignature(owner.ToTypeDefOrRef(), false);
             giOwner.TypeArguments.Add(param);
-            var mr = CecilAdapter.CreateInstanceMethodReference(".ctor", ResolveType("System.Void"),
+            var mr = ReferenceCreator.CreateInstanceMethodReference(".ctor", ResolveType("System.Void"),
                     giOwner.ToTypeDefOrRef(), ResolveType("System.Int64"));
             return mr;
         });
 
         Il2CppStringArrayctor_size = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateInstanceMethodReference(".ctor", ResolveType("System.Void"),
+            var mr = ReferenceCreator.CreateInstanceMethodReference(".ctor", ResolveType("System.Void"),
                 ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray").ToTypeDefOrRef(), ResolveType("System.Int64"));
             return mr;
         });
@@ -193,21 +194,21 @@ public class RuntimeAssemblyReferences
         {
             var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<T>");
             var giOwner = owner.MakeGenericInstanceType(param).ToTypeDefOrRef();
-            var mr = CecilAdapter.CreateInstanceMethodReference(".ctor", ResolveType("System.Void"),
+            var mr = ReferenceCreator.CreateInstanceMethodReference(".ctor", ResolveType("System.Void"),
                 giOwner, ResolveType("System.Int64"));
             return mr;
         });
 
         IL2CPP_Il2CppObjectBaseToPtr = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("Il2CppObjectBaseToPtr", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("Il2CppObjectBaseToPtr", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"));
             return mr;
         });
 
         IL2CPP_Il2CppObjectBaseToPtrNotNull = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("Il2CppObjectBaseToPtrNotNull", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("Il2CppObjectBaseToPtrNotNull", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(),
                 ResolveType("Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"));
             return mr;
@@ -215,14 +216,14 @@ public class RuntimeAssemblyReferences
 
         IL2CPP_Il2CppStringToManaged = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("Il2CppStringToManaged", ResolveType("System.String"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("Il2CppStringToManaged", ResolveType("System.String"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_ManagedStringToIl2Cpp = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("ManagedStringToIl2Cpp", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("ManagedStringToIl2Cpp", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.String"));
             return mr;
         });
@@ -265,126 +266,126 @@ public class RuntimeAssemblyReferences
 
         IL2CPP_il2cpp_gc_wbarrier_set_field = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_gc_wbarrier_set_field", ResolveType("System.Void"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_gc_wbarrier_set_field", ResolveType("System.Void"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"), ResolveType("System.IntPtr"), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_FieldWriteWbarrierStub = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("FieldWriteWbarrierStub", ResolveType("System.Void"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("FieldWriteWbarrierStub", ResolveType("System.Void"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"), ResolveType("System.IntPtr"), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_il2cpp_field_get_offset = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_field_get_offset", ResolveType("System.UInt32"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_field_get_offset", ResolveType("System.UInt32"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_il2cpp_field_static_get_value = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_field_static_get_value", ResolveType("System.Void"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_field_static_get_value", ResolveType("System.Void"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"), ResolveType("System.Void*"));
             return mr;
         });
 
         IL2CPP_il2cpp_field_static_set_value = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_field_static_set_value", ResolveType("System.Void"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_field_static_set_value", ResolveType("System.Void"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"), ResolveType("System.Void*"));
             return mr;
         });
 
         IL2CPP_il2cpp_runtime_invoke = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_runtime_invoke", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_runtime_invoke", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"), ResolveType("System.IntPtr"), ResolveType("System.Void**"), ResolveType("System.IntPtr&"));
             return mr;
         });
 
         IL2CPP_il2cpp_runtime_class_init = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_runtime_class_init", ResolveType("System.Void"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_runtime_class_init", ResolveType("System.Void"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_il2cpp_object_unbox = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_object_unbox", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_object_unbox", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_il2cpp_value_box = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_value_box", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_value_box", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_il2cpp_class_value_size = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_class_value_size", ResolveType("System.Int32"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_class_value_size", ResolveType("System.Int32"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"), ResolveType("System.UInt32&"));
             return mr;
         });
 
         IL2CPP_il2cpp_object_get_class = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_object_get_class", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_object_get_class", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_il2cpp_class_is_valuetype = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_class_is_valuetype", ResolveType("System.Boolean"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_class_is_valuetype", ResolveType("System.Boolean"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"));
             return mr;
         });
 
         Il2CppException_RaiseExceptionIfNecessary = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("RaiseExceptionIfNecessary", ResolveType("System.Void"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("RaiseExceptionIfNecessary", ResolveType("System.Void"),
                 ResolveType("Il2CppInterop.Runtime.Il2CppException").ToTypeDefOrRef(), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_il2cpp_object_get_virtual_method = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_object_get_virtual_method", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_object_get_virtual_method", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_GetIl2CppField = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("GetIl2CppField", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("GetIl2CppField", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"), ResolveType("System.String"));
             return mr;
         });
 
         IL2CPP_GetIl2CppNestedType = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("GetIl2CppNestedType", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("GetIl2CppNestedType", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"), ResolveType("System.String"));
             return mr;
         });
 
         IL2CPP_GetIl2CppClass = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("GetIl2CppClass", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("GetIl2CppClass", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.String"), ResolveType("System.String"), ResolveType("System.String"));
             return mr;
         });
 
         IL2CPP_GetIl2CppMethod = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("GetIl2CppMethod", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("GetIl2CppMethod", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(),
                 ResolveType("System.IntPtr"), ResolveType("System.Boolean"), ResolveType("System.String"), ResolveType("System.String"), ResolveType("System.String[]"));
             return mr;
@@ -392,42 +393,42 @@ public class RuntimeAssemblyReferences
 
         IL2CPP_GetIl2CppMethodByToken = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("GetIl2CppMethodByToken", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("GetIl2CppMethodByToken", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"), ResolveType("System.Int32"));
             return mr;
         });
 
         IL2CPP_il2cpp_class_get_type = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_class_get_type", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_class_get_type", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_il2cpp_class_from_type = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_class_from_type", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_class_from_type", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_il2cpp_object_new = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_object_new", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_object_new", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_il2cpp_method_get_from_reflection = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_method_get_from_reflection", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_method_get_from_reflection", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"));
             return mr;
         });
 
         IL2CPP_il2cpp_method_get_object = new Lazy<IMethodDefOrRef>(() =>
         {
-            var mr = CecilAdapter.CreateStaticMethodReference("il2cpp_method_get_object", ResolveType("System.IntPtr"),
+            var mr = ReferenceCreator.CreateStaticMethodReference("il2cpp_method_get_object", ResolveType("System.IntPtr"),
                 ResolveType("Il2CppInterop.Runtime.IL2CPP").ToTypeDefOrRef(), ResolveType("System.IntPtr"), ResolveType("System.IntPtr"));
             return mr;
         });
@@ -450,19 +451,19 @@ public class RuntimeAssemblyReferences
             return mr;
         });
 
-        OriginalNameAttributector = new Lazy<IMethodDefOrRef>(() => CecilAdapter.CreateInstanceMethodReference(".ctor",
+        OriginalNameAttributector = new Lazy<IMethodDefOrRef>(() => ReferenceCreator.CreateInstanceMethodReference(".ctor",
                 Module.Void(),
                 Module.DefaultImporter.ImportType(typeof(OriginalNameAttribute)), Module.String(), Module.String(), Module.String()));
 
-        ObfuscatedNameAttributector = new Lazy<IMethodDefOrRef>(() => CecilAdapter.CreateInstanceMethodReference(".ctor",
+        ObfuscatedNameAttributector = new Lazy<IMethodDefOrRef>(() => ReferenceCreator.CreateInstanceMethodReference(".ctor",
                 Module.Void(),
                 Module.DefaultImporter.ImportType(typeof(ObfuscatedNameAttribute)), Module.String()));
 
         CallerCountAttributector = new Lazy<IMethodDefOrRef>(() =>
-            CecilAdapter.CreateInstanceMethodReference(".ctor", Module.Void(), Module.DefaultImporter.ImportType(typeof(CallerCountAttribute)), Module.Int()));
+            ReferenceCreator.CreateInstanceMethodReference(".ctor", Module.Void(), Module.DefaultImporter.ImportType(typeof(CallerCountAttribute)), Module.Int()));
 
         CachedScanResultsAttributector = new Lazy<IMethodDefOrRef>(() =>
-            CecilAdapter.CreateInstanceMethodReference(".ctor", Module.Void(),
+            ReferenceCreator.CreateInstanceMethodReference(".ctor", Module.Void(),
                 Module.DefaultImporter.ImportType(typeof(CachedScanResultsAttribute))));
 
         Il2CppSystemDelegateCombine = new Lazy<IMethodDefOrRef>(() =>

@@ -3,6 +3,7 @@ using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
 using Microsoft.Extensions.Logging;
 

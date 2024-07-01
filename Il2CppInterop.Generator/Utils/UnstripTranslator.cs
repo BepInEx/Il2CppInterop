@@ -5,6 +5,7 @@ using AsmResolver.DotNet.Collections;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Cil;
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Passes;
 
 namespace Il2CppInterop.Generator.Utils;
@@ -142,7 +143,7 @@ public static class UnstripTranslator
                 if (newReturnType == null)
                     return false;
 
-                var newMethodSignature = CecilAdapter.CreateMethodSignature(!methodArg.Signature!.HasThis, newReturnType);
+                var newMethodSignature = MethodSignatureCreator.CreateMethodSignature(!methodArg.Signature!.HasThis, newReturnType);
                 var newMethod = new MemberReference(methodDeclarer.ToTypeDefOrRef(), methodArg.Name, newMethodSignature);
                 foreach (var methodArgParameter in methodArg.Signature.ParameterTypes)
                 {
@@ -212,7 +213,7 @@ public static class UnstripTranslator
                         il2cppTypeArray = imports.Il2CppReferenceArray.MakeGenericInstanceType(targetType).ToTypeDefOrRef();
                     }
                     targetBuilder.Add(OpCodes.Newobj, imports.Module.DefaultImporter.ImportMethod(
-                        CecilAdapter.CreateInstanceMethodReference(".ctor", imports.Module.Void(), il2cppTypeArray, imports.Module.Long())));
+                        ReferenceCreator.CreateInstanceMethodReference(".ctor", imports.Module.Void(), il2cppTypeArray, imports.Module.Long())));
                     instructionMap.Add(bodyInstruction, newInstruction);
                 }
                 else

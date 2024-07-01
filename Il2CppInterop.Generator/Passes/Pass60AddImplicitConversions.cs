@@ -4,6 +4,7 @@ using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Cil;
 using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Passes;
@@ -35,7 +36,7 @@ public static class Pass60AddImplicitConversions
 
         fromBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_ManagedStringToIl2Cpp.Value);
         fromBuilder.Add(OpCodes.Newobj,
-            CecilAdapter.CreateInstanceMethodReference(".ctor", assemblyContext.Imports.Module.Void(), typeContext.NewType, assemblyContext.Imports.Module.IntPtr()));
+            ReferenceCreator.CreateInstanceMethodReference(".ctor", assemblyContext.Imports.Module.Void(), typeContext.NewType, assemblyContext.Imports.Module.IntPtr()));
         fromBuilder.Add(OpCodes.Ret);
 
         var methodToObject = new MethodDefinition("op_Implicit", OperatorAttributes, MethodSignature.CreateStatic(objectTypeContext.NewType.ToTypeSignature()));
