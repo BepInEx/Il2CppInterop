@@ -181,7 +181,7 @@ internal static class CorlibReferences
         {
             0 => module.ImportCorlibReference("System", "Func`1"),
             1 => module.ImportCorlibReference("System", "Func`2"),
-            _ => module.ImportCorlibReference("System", $"Func`{n}")
+            _ => module.ImportCorlibReference("System", $"Func`{n + 1}")
         };
     }
 
