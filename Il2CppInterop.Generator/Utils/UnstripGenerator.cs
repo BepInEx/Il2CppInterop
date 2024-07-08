@@ -65,7 +65,7 @@ public static class UnstripGenerator
         {
             var param = newMethod.Parameters[i];
             var paramType = param.ParameterType;
-            if (paramType.IsValueType || (paramType.IsByReference && paramType.GetElementType().IsValueType))
+            if (paramType.IsValueType || (paramType is ByReferenceType paramRefType && paramRefType.ElementType.IsValueType))
             {
                 body.Emit(OpCodes.Ldarg, i + argOffset);
             }

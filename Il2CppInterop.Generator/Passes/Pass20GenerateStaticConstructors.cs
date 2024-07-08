@@ -191,7 +191,7 @@ public static class Pass20GenerateStaticConstructors
                 imports.Module.ImportReference(new GenericInstanceMethod(imports.IL2CPP_RenderTypeName.Value)
                 {
                     GenericArguments =
-                        {newTypeReference.IsByReference ? newTypeReference.GetElementType() : newTypeReference}
+                        {newTypeReference is ByReferenceType newTypeRefType ? newTypeRefType.ElementType : newTypeReference}
                 }));
         }
     }

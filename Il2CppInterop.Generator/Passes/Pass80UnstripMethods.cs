@@ -143,29 +143,44 @@ public static class Pass80UnstripMethods
     }
 
     internal static TypeReference? ResolveTypeInNewAssemblies(RewriteGlobalContext context, TypeReference unityType,
-        RuntimeAssemblyReferences imports)
+        RuntimeAssemblyReferences imports, bool resolveValueTypes = false)
     {
-        var resolved = ResolveTypeInNewAssembliesRaw(context, unityType, imports);
+        return ResolveTypeInNewAssemblies(context, unityType, imports, out var _, resolveValueTypes);
+    }
+
+    internal static TypeReference? ResolveTypeInNewAssemblies(RewriteGlobalContext context, TypeReference unityType,
+        RuntimeAssemblyReferences imports, out TypeRewriteContext rwContext, bool resolveValueTypes = false)
+    {
+        var resolved = ResolveTypeInNewAssembliesRaw(context, unityType, imports, out rwContext, resolveValueTypes);
         return resolved != null ? imports.Module.ImportReference(resolved) : null;
     }
 
     internal static TypeReference? ResolveTypeInNewAssembliesRaw(RewriteGlobalContext context, TypeReference unityType,
-        RuntimeAssemblyReferences imports)
+        RuntimeAssemblyReferences imports, bool resolveValueTypes = false)
     {
-        if (unityType is ByReferenceType)
+        return ResolveTypeInNewAssembliesRaw(context, unityType, imports, out var _, resolveValueTypes);
+    }
+
+    internal static TypeReference? ResolveTypeInNewAssembliesRaw(RewriteGlobalContext context, TypeReference unityType,
+        RuntimeAssemblyReferences imports, out TypeRewriteContext rwContext, bool resolveValueTypes = false)
+    {
+        if (unityType is ByReferenceType unityRefType)
         {
-            var resolvedElementType = ResolveTypeInNewAssemblies(context, unityType.GetElementType(), imports);
+            var resolvedElementType = ResolveTypeInNewAssemblies(context, unityRefType.ElementType, imports, out rwContext);
             return resolvedElementType == null ? null : new ByReferenceType(resolvedElementType);
         }
 
         if (unityType is GenericParameter)
+        {
+            rwContext = null;
             return null;
+        }
 
         if (unityType is ArrayType arrayType)
         {
-            if (arrayType.Rank != 1) return null;
-            var resolvedElementType = ResolveTypeInNewAssemblies(context, unityType.GetElementType(), imports);
-            if (resolvedElementType == null) return null;
+            if (arrayType.Rank != 1) { rwContext = null; return null; }
+            var resolvedElementType = ResolveTypeInNewAssemblies(context, unityType.GetElementType(), imports, out rwContext, resolveValueTypes);
+            if (resolvedElementType == null) { rwContext = null; return null; }
             if (resolvedElementType.FullName == "System.String")
                 return imports.Il2CppStringArray;
             var genericBase = resolvedElementType.IsValueType
@@ -176,7 +191,7 @@ public static class Pass80UnstripMethods
 
         if (unityType.DeclaringType != null)
         {
-            var enclosingResolvedType = ResolveTypeInNewAssembliesRaw(context, unityType.DeclaringType, imports);
+            var enclosingResolvedType = ResolveTypeInNewAssembliesRaw(context, unityType.DeclaringType, imports, out rwContext, resolveValueTypes);
             if (enclosingResolvedType == null) return null;
             var resolvedNestedType = enclosingResolvedType.Resolve().NestedTypes
                 .FirstOrDefault(it => it.Name == unityType.Name);
@@ -186,13 +201,13 @@ public static class Pass80UnstripMethods
 
         if (unityType is PointerType)
         {
-            var resolvedElementType = ResolveTypeInNewAssemblies(context, unityType.GetElementType(), imports);
+            var resolvedElementType = ResolveTypeInNewAssemblies(context, unityType.GetElementType(), imports, out rwContext, resolveValueTypes);
             return resolvedElementType == null ? null : new PointerType(resolvedElementType);
         }
 
         if (unityType is GenericInstanceType genericInstance)
         {
-            var baseRef = ResolveTypeInNewAssembliesRaw(context, genericInstance.ElementType, imports);
+            var baseRef = ResolveTypeInNewAssembliesRaw(context, genericInstance.ElementType, imports, out rwContext, resolveValueTypes);
             if (baseRef == null) return null;
             var newInstance = new GenericInstanceType(baseRef);
             foreach (var unityGenericArgument in genericInstance.GenericArguments)
@@ -208,24 +223,29 @@ public static class Pass80UnstripMethods
         var targetAssemblyName = unityType.Scope.Name;
         if (targetAssemblyName.EndsWith(".dll"))
             targetAssemblyName = targetAssemblyName.Substring(0, targetAssemblyName.Length - 4);
-        if ((targetAssemblyName == "mscorlib" || targetAssemblyName == "netstandard") &&
-            (unityType.IsValueType || unityType.FullName == "System.String" ||
-             unityType.FullName == "System.Void") && unityType.FullName != "System.RuntimeTypeHandle")
+        if ((targetAssemblyName == "mscorlib" || targetAssemblyName == "netstandard") && (
+                (!resolveValueTypes && (unityType.IsValueType || unityType.FullName == "System.String")) ||
+                 unityType.FullName == "System.Void" || unityType.IsPrimitive
+             ) && unityType.FullName != "System.RuntimeTypeHandle")
+        {
+            rwContext = null;
             return imports.Module.ImportCorlibReference(unityType.Namespace, unityType.Name);
+        }
 
         if (targetAssemblyName == "UnityEngine")
             foreach (var assemblyRewriteContext in context.Assemblies)
             {
                 if (!assemblyRewriteContext.NewAssembly.Name.Name.StartsWith("UnityEngine")) continue;
 
-                var newTypeInAnyUnityAssembly =
-                    assemblyRewriteContext.TryGetTypeByName(unityType.FullName)?.NewType;
+                rwContext = assemblyRewriteContext.TryGetTypeByName(unityType.FullName);
+                var newTypeInAnyUnityAssembly = rwContext?.NewType;
                 if (newTypeInAnyUnityAssembly != null)
                     return newTypeInAnyUnityAssembly;
             }
 
         var targetAssembly = context.TryGetAssemblyByName(targetAssemblyName);
-        var newType = targetAssembly?.TryGetTypeByName(unityType.FullName)?.NewType;
+        rwContext = targetAssembly?.TryGetTypeByName(unityType.FullName);
+        var newType = rwContext?.NewType;
 
         return newType;
     }

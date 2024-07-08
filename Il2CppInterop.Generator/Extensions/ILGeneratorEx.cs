@@ -172,14 +172,16 @@ public static class ILGeneratorEx
         }
 
         var imports = enclosingType.AssemblyContext.Imports;
-        if (originalType is ByReferenceType)
+        if (originalType is ByReferenceType originalRefType)
         {
-            if (newType.GetElementType().IsValueType)
+            if (newType is not ByReferenceType newRefType)
+                throw new ArgumentException($"{nameof(newType)} must be {nameof(ByReferenceType)} if {nameof(originalType)} is", nameof(newType));
+            if (newRefType.ElementType.IsValueType)
             {
                 body.Emit(OpCodes.Ldarg, argumentIndex);
                 body.Emit(OpCodes.Conv_I);
             }
-            else if (originalType.GetElementType().IsValueType)
+            else if (originalRefType.ElementType.IsValueType)
             {
                 body.Emit(OpCodes.Ldarg, argumentIndex);
                 body.Emit(OpCodes.Ldind_Ref);
@@ -192,7 +194,7 @@ public static class ILGeneratorEx
                 body.Body.Variables.Add(pointerVar);
                 body.Emit(OpCodes.Ldarg, argumentIndex);
                 body.Emit(OpCodes.Ldind_Ref);
-                if (originalType.GetElementType().FullName == "System.String")
+                if (originalRefType.ElementType.FullName == "System.String")
                     body.Emit(OpCodes.Call, imports.IL2CPP_ManagedStringToIl2Cpp.Value);
                 else
                     body.Emit(OpCodes.Call, imports.IL2CPP_Il2CppObjectBaseToPtr.Value);
