@@ -25,6 +25,8 @@ public class RewriteGlobalContext : IDisposable
         GameAssemblies = gameAssemblies;
         UnityAssemblies = unityAssemblies;
 
+        Il2CppAssemblyResolver assemblyResolver = new();
+
         foreach (var sourceAssembly in gameAssemblies.Assemblies)
         {
             var assemblyName = sourceAssembly.Name!;
@@ -33,9 +35,12 @@ public class RewriteGlobalContext : IDisposable
                 continue;
             }
 
-            var newAssembly = new AssemblyDefinition(
-                sourceAssembly.Name.UnSystemify(options), sourceAssembly.Version);
-            newAssembly.Modules.Add(new ModuleDefinition(sourceAssembly.ManifestModule?.Name.UnSystemify(options), KnownCorLibs.MsCorLib_v2_0_0_0));
+            var newAssembly = new AssemblyDefinition(sourceAssembly.Name.UnSystemify(options), sourceAssembly.Version);
+            var newModule = new ModuleDefinition(sourceAssembly.ManifestModule?.Name.UnSystemify(options), KnownCorLibs.MsCorLib_v2_0_0_0);
+            newAssembly.Modules.Add(newModule);
+
+            newModule.MetadataResolver = new DefaultMetadataResolver(assemblyResolver);
+            assemblyResolver.AddToCache(newAssembly);
 
             var assemblyRewriteContext = new AssemblyRewriteContext(this, sourceAssembly, newAssembly);
             AddAssemblyContext(assemblyName, assemblyRewriteContext);

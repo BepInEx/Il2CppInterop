@@ -1,6 +1,5 @@
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
-using AsmResolver.IO;
 
 namespace Il2CppInterop.Generator.MetadataAccess;
 
@@ -64,7 +63,7 @@ public class CecilMetadataAccess : IIl2CppMetadataAccess
             myAssemblies.Add(sourceAssembly);
             myAssembliesByName[sourceAssembly.Name!] = sourceAssembly;
             sourceAssembly.ManifestModule!.MetadataResolver = new DefaultMetadataResolver(myAssemblyResolver);
-            myAssemblyResolver.AddToCache(sourceAssembly, sourceAssembly);
+            myAssemblyResolver.AddToCache(sourceAssembly);
         }
 
         foreach (var sourceAssembly in myAssemblies)
@@ -74,14 +73,5 @@ public class CecilMetadataAccess : IIl2CppMetadataAccess
                 // todo: nested types?
                 myTypesByName[(sourceAssemblyName, type.FullName)] = type;
         }
-    }
-
-    private sealed class Il2CppAssemblyResolver : AssemblyResolverBase
-    {
-        public Il2CppAssemblyResolver() : base(new ByteArrayFileService())
-        {
-        }
-
-        protected override string? ProbeRuntimeDirectories(AssemblyDescriptor assembly) => null;
     }
 }
