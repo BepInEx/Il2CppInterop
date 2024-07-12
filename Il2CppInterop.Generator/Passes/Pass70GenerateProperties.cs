@@ -68,7 +68,7 @@ public static class Pass70GenerateProperties
         if (assemblyContext.GlobalContext.Options.PassthroughNames ||
             !prop.Name.IsObfuscated(assemblyContext.GlobalContext.Options)) return prop.Name!;
 
-        var baseName = "prop_" + assemblyContext.RewriteTypeRef(prop.Signature!.ReturnType).GetUnmangledName();
+        var baseName = "prop_" + assemblyContext.RewriteTypeRef(prop.Signature!.ReturnType).GetUnmangledName(prop.DeclaringType);
 
         countsByBaseName.TryGetValue(baseName, out var index);
         countsByBaseName[baseName] = index + 1;

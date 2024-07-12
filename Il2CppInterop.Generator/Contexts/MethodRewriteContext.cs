@@ -225,12 +225,12 @@ public class MethodRewriteContext
                     builder.Append(str);
 
         builder.Append('_');
-        builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(method.Signature?.ReturnType).GetUnmangledName());
+        builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(method.Signature?.ReturnType).GetUnmangledName(method.DeclaringType, method));
 
         foreach (var param in method.Parameters)
         {
             builder.Append('_');
-            builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(param.ParameterType).GetUnmangledName());
+            builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(param.ParameterType).GetUnmangledName(method.DeclaringType, method));
         }
 
         var address = Rva;

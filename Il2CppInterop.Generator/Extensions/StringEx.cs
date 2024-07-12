@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using AsmResolver;
+using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 
 namespace Il2CppInterop.Generator.Extensions;
@@ -116,27 +117,41 @@ public static class StringEx
         return str is not null && str.Value.StartsWith(value, StringComparison.Ordinal);
     }
 
-    public static string GetUnmangledName(this TypeSignature typeRef)
+    /// <summary>
+    /// Construct an unmangled name for a type signature.
+    /// </summary>
+    /// <param name="typeRef"></param>
+    /// <param name="declaringType">The declaring type to use for resolving generic type parameter names.</param>
+    /// <param name="declaringMethod">The declaring method to use for resolving generic method parameter names.</param>
+    /// <returns></returns>
+    public static string GetUnmangledName(this TypeSignature typeRef, TypeDefinition? declaringType = null, MethodDefinition? declaringMethod = null)
     {
         var builder = new StringBuilder();
         if (typeRef is GenericInstanceTypeSignature genericInstance)
         {
-            builder.Append(genericInstance.GenericType.ToTypeSignature().GetUnmangledName());
+            builder.Append(genericInstance.GenericType.ToTypeSignature().GetUnmangledName(declaringType, declaringMethod));
             foreach (var genericArgument in genericInstance.TypeArguments)
             {
                 builder.Append("_");
-                builder.Append(genericArgument.GetUnmangledName());
+                builder.Append(genericArgument.GetUnmangledName(declaringType, declaringMethod));
             }
         }
         else if (typeRef is ByReferenceTypeSignature byRef)
         {
             builder.Append("byref_");
-            builder.Append(byRef.BaseType.GetUnmangledName());
+            builder.Append(byRef.BaseType.GetUnmangledName(declaringType, declaringMethod));
         }
         else if (typeRef is PointerTypeSignature pointer)
         {
             builder.Append("ptr_");
-            builder.Append(pointer.BaseType.GetUnmangledName());
+            builder.Append(pointer.BaseType.GetUnmangledName(declaringType, declaringMethod));
+        }
+        else if (typeRef is GenericParameterSignature genericParameter)
+        {
+            if (genericParameter.ParameterType == GenericParameterType.Type)
+                builder.Append(declaringType!.GenericParameters[genericParameter.Index].Name);
+            else
+                builder.Append(declaringMethod!.GenericParameters[genericParameter.Index].Name);
         }
         else
         {
