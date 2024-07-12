@@ -219,9 +219,10 @@ public class MethodRewriteContext
         if (method.IsStatic) builder.Append("_Static");
         if (method.IsFinal) builder.Append("_Final");
         if (method.IsNewSlot) builder.Append("_New");
-        foreach (var (semantic, str) in SemanticsToCheck)
-            if ((semantic & method.Semantics?.Attributes) != 0)
-                builder.Append(str);
+        if (method.Semantics is not null)
+            foreach (var (semantic, str) in SemanticsToCheck)
+                if ((semantic & method.Semantics?.Attributes) != 0)
+                    builder.Append(str);
 
         builder.Append('_');
         builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(method.Signature?.ReturnType).GetUnmangledName());
