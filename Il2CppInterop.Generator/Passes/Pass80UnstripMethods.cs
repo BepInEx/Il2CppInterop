@@ -155,8 +155,10 @@ public static class Pass80UnstripMethods
                 parameterTypes = newMethod.Signature.ParameterTypes.Take(newMethod.Signature.ParameterTypes.Count - 1);
             }
 
-            var propertySignature = new PropertySignature(CallingConventionAttributes.Default, propertyType, parameterTypes);
-            newProperty = new PropertyDefinition(unityProperty.Name, PropertyAttributes.None, propertySignature);
+            var propertySignature = unityProperty.Signature!.HasThis
+                ? PropertySignature.CreateInstance(propertyType, parameterTypes)
+                : PropertySignature.CreateStatic(propertyType, parameterTypes);
+            newProperty = new PropertyDefinition(unityProperty.Name, unityProperty.Attributes, propertySignature);
             newMethod.DeclaringType!.Properties.Add(newProperty);
         }
 

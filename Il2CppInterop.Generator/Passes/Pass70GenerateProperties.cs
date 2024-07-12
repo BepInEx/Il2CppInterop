@@ -19,6 +19,8 @@ public static class Pass70GenerateProperties
 
                 foreach (var oldProperty in type.Properties)
                 {
+                    FixPropertyDefinitionParameters(oldProperty);
+
                     var modules = context.Assemblies.Select(a => a.OriginalAssembly.ManifestModule!);
                     if ((oldProperty.GetMethod?.HasOverrides(modules) ?? false) || (oldProperty.SetMethod?.HasOverrides(modules) ?? false))
                         continue;
@@ -26,10 +28,14 @@ public static class Pass70GenerateProperties
                     var unmangledPropertyName = UnmanglePropertyName(assemblyContext, oldProperty, typeContext.NewType,
                         propertyCountsByName);
 
-                    var property = new PropertyDefinition(unmangledPropertyName, oldProperty.Attributes,
-                        new PropertySignature(CallingConventionAttributes.Default, assemblyContext.RewriteTypeRef(oldProperty.Signature!.ReturnType), []));
+                    var propertyType = assemblyContext.RewriteTypeRef(oldProperty.Signature!.ReturnType);
+                    var signature = oldProperty.Signature.HasThis
+                        ? PropertySignature.CreateInstance(propertyType)
+                        : PropertySignature.CreateStatic(propertyType);
                     foreach (var oldParameter in oldProperty.Signature.ParameterTypes)
-                        property.Signature!.ParameterTypes.Add(assemblyContext.RewriteTypeRef(oldParameter));
+                        signature.ParameterTypes.Add(assemblyContext.RewriteTypeRef(oldParameter));
+
+                    var property = new PropertyDefinition(unmangledPropertyName, oldProperty.Attributes, signature);
 
                     typeContext.NewType.Properties.Add(property);
 
@@ -88,5 +94,39 @@ public static class Pass70GenerateProperties
 
 
         return unmanglePropertyName;
+    }
+
+    private static void FixPropertyDefinitionParameters(PropertyDefinition property)
+    {
+        // See: https://github.com/SamboyCoding/Cpp2IL/issues/249
+
+        if (property.Signature is null or { ParameterTypes.Count: > 0 })
+            return;
+
+        var getMethod = property.GetMethod;
+        if (getMethod?.Signature is not null)
+        {
+            if (getMethod.Signature.ParameterTypes.Count > 0)
+            {
+                foreach (var parameter in getMethod.Signature.ParameterTypes)
+                {
+                    property.Signature.ParameterTypes.Add(parameter);
+                }
+            }
+
+            return;
+        }
+
+        var setMethod = property.SetMethod;
+        if (setMethod?.Signature is not null)
+        {
+            if (setMethod.Signature.ParameterTypes.Count > 1)
+            {
+                foreach (var parameter in setMethod.Signature.ParameterTypes.Take(setMethod.Signature.ParameterTypes.Count - 1))
+                {
+                    property.Signature.ParameterTypes.Add(parameter);
+                }
+            }
+        }
     }
 }
