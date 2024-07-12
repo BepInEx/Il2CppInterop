@@ -48,7 +48,7 @@ public static class Pass80UnstripMethods
                     var newAttributes = (unityMethod.Attributes & ~MethodAttributes.MemberAccessMask) | MethodAttributes.Public;
                     var newMethod = new MethodDefinition(unityMethod.Name,
                         newAttributes,
-                        MethodSignatureCreator.CreateMethodSignature(newAttributes, returnType));
+                        MethodSignatureCreator.CreateMethodSignature(newAttributes, returnType, unityMethod.Signature.GenericParameterCount));
                     newMethod.CilMethodBody = new(newMethod);
                     var hadBadParameter = false;
                     foreach (var unityMethodParameter in unityMethod.Parameters)

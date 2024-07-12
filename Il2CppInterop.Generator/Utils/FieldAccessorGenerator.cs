@@ -15,7 +15,7 @@ internal static class FieldAccessorGenerator
         var attributes = Field2MethodAttrs(field.Attributes) | MethodAttributes.SpecialName | MethodAttributes.HideBySig;
         var getter = new MethodDefinition("get_" + property.Name,
             attributes,
-            MethodSignatureCreator.CreateMethodSignature(attributes, property.Signature!.ReturnType));
+            MethodSignatureCreator.CreateMethodSignature(attributes, property.Signature!.ReturnType, 0));
 
         getter.CilMethodBody = new(getter);
         var getterBody = getter.CilMethodBody.Instructions;
@@ -90,7 +90,7 @@ internal static class FieldAccessorGenerator
         var attributes = Field2MethodAttrs(field.Attributes) | MethodAttributes.SpecialName | MethodAttributes.HideBySig;
         var setter = new MethodDefinition("set_" + property.Name,
             attributes,
-            MethodSignatureCreator.CreateMethodSignature(attributes, imports.Module.Void(), property.Signature!.ReturnType));
+            MethodSignatureCreator.CreateMethodSignature(attributes, imports.Module.Void(), 0, property.Signature!.ReturnType));
         property.DeclaringType!.Methods.Add(setter);
         setter.CilMethodBody = new(setter);
         var setterBody = setter.CilMethodBody.Instructions;

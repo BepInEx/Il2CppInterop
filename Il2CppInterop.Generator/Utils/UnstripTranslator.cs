@@ -150,8 +150,9 @@ public static class UnstripTranslator
                 if (newReturnType == null)
                     return false;
 
-                var newMethodSignature = MethodSignatureCreator.CreateMethodSignature(!methodArg.Signature!.HasThis, newReturnType);
-                var newMethod = new MemberReference(methodDeclarer.ToTypeDefOrRef(), methodArg.Name, newMethodSignature);
+                var newMethodSignature = methodArg.Signature!.HasThis
+                    ? MethodSignature.CreateInstance(newReturnType, methodArg.Signature.GenericParameterCount)
+                    : MethodSignature.CreateStatic(newReturnType, methodArg.Signature.GenericParameterCount);
                 foreach (var methodArgParameter in methodArg.Signature.ParameterTypes)
                 {
                     var newParamType = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext,
@@ -161,6 +162,8 @@ public static class UnstripTranslator
 
                     newMethodSignature.ParameterTypes.Add(newParamType);
                 }
+
+                var newMethod = new MemberReference(methodDeclarer.ToTypeDefOrRef(), methodArg.Name, newMethodSignature);
 
                 var newInstruction = targetBuilder.Add(bodyInstruction.OpCode, imports.Module.DefaultImporter.ImportMethod(newMethod));
                 instructionMap.Add(bodyInstruction, newInstruction);
