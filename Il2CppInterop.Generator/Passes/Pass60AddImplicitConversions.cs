@@ -173,8 +173,7 @@ public static class Pass60AddImplicitConversions
 
                 bodyBuilder.Add(OpCodes.Ldarg_0);
                 var delegateSupportTypeRef = typeContext.AssemblyContext.Imports.DelegateSupport;
-                var genericConvertSignature = MethodSignature.CreateStatic(new GenericParameterSignature(GenericParameterType.Method, 0), assemblyContext.Imports.Module.Delegate());
-                genericConvertSignature.GenericParameterCount = 1;
+                var genericConvertSignature = MethodSignature.CreateStatic(new GenericParameterSignature(GenericParameterType.Method, 0), 1, assemblyContext.Imports.Module.Delegate());
                 var genericConvertRef = new MemberReference(delegateSupportTypeRef.ToTypeDefOrRef(), "ConvertDelegate", genericConvertSignature);
                 var convertMethodRef = genericConvertRef.MakeGenericInstanceMethod(typeContext.SelfSubstitutedRef.ToTypeSignature());
                 bodyBuilder.Add(OpCodes.Call, typeContext.NewType.Module.DefaultImporter.ImportMethod(convertMethodRef));

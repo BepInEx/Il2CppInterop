@@ -52,8 +52,8 @@ public class MethodRewriteContext
 
         var newAttributes = AdjustAttributes(originalMethod.Attributes, originalMethod.Name == "Finalize");
         var newSignature = (newAttributes & MethodAttributes.Static) != 0
-            ? MethodSignature.CreateStatic(declaringType.AssemblyContext.Imports.Module.Void())
-            : MethodSignature.CreateInstance(declaringType.AssemblyContext.Imports.Module.Void());
+            ? MethodSignature.CreateStatic(declaringType.AssemblyContext.Imports.Module.Void(), originalMethod.GenericParameters.Count)
+            : MethodSignature.CreateInstance(declaringType.AssemblyContext.Imports.Module.Void(), originalMethod.GenericParameters.Count);
         var newMethod = new MethodDefinition("", newAttributes, newSignature);
         newMethod.CilMethodBody = new(newMethod);
         NewMethod = newMethod;
