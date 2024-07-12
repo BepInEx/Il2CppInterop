@@ -1,8 +1,6 @@
 ﻿using AsmResolver.DotNet;
-using AsmResolver.DotNet.Code.Cil;
 using AsmResolver.DotNet.Collections;
 using AsmResolver.DotNet.Signatures;
-using AsmResolver.PE.DotNet.Cil;
 using AsmResolver.PE.DotNet.Metadata.Tables;
 
 namespace Il2CppInterop.Generator.Extensions;
@@ -11,7 +9,8 @@ internal static class AsmResolverExtensions
 {
     public static bool IsPrimitive(this TypeSignature type)
     {
-        return type is CorLibTypeSignature { ElementType: >= ElementType.Boolean and <= ElementType.R8 };
+        //https://github.com/jbevain/cecil/blob/8e1ae7b4ea67ccc38cb8db3ded6802643109ffd7/Mono.Cecil/TypeReference.cs#L286
+        return type is CorLibTypeSignature { ElementType: >= ElementType.Boolean and <= ElementType.R8 or ElementType.I or ElementType.U };
     }
 
     public static TypeSignature GetElementType(this TypeSignature type) => type switch
