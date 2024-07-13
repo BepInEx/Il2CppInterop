@@ -22,8 +22,6 @@ public static class Pass70GenerateProperties
                     FixPropertyDefinitionParameters(oldProperty);
 
                     var modules = context.Assemblies.Select(a => a.OriginalAssembly.ManifestModule!);
-                    if ((oldProperty.GetMethod?.HasOverrides(modules) ?? false) || (oldProperty.SetMethod?.HasOverrides(modules) ?? false))
-                        continue;
 
                     var unmangledPropertyName = UnmanglePropertyName(assemblyContext, oldProperty, typeContext.NewType,
                         propertyCountsByName);

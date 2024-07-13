@@ -107,8 +107,6 @@ public class TypeRewriteContext
                 originalTypeMethod.Parameters[0].ParameterType is CorLibTypeSignature { ElementType: ElementType.I })
                 continue;
             var modules = this.AssemblyContext.GlobalContext.Assemblies.Select(a => a.OriginalAssembly.ManifestModule!);
-            if (originalTypeMethod.HasOverrides(modules))
-                continue;
 
             var methodRewriteContext = new MethodRewriteContext(this, originalTypeMethod);
             myMethodContexts[originalTypeMethod] = methodRewriteContext;
