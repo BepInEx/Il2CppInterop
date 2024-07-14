@@ -18,11 +18,14 @@ public class RuntimeAssemblyReferences
     {
         Module = module;
         globalCtx = globalContext;
+        Il2CppInteropAssemblyRef = new("Il2CppInterop.Runtime", new Version(0, 0, 0, 0));
         InitTypeRefs();
         InitMethodRefs();
     }
 
     public ModuleDefinition Module { get; }
+
+    public AssemblyNameReference Il2CppInteropAssemblyRef { get; }
 
     public Memoize<TypeReference, MethodReference> Il2CppRefrenceArrayctor { get; private set; }
     public Lazy<MethodReference> Il2CppStringArrayctor { get; private set; }
@@ -108,42 +111,41 @@ public class RuntimeAssemblyReferences
         allTypes["System.Boolean"] = Module.ImportReference(typeof(bool));
         allTypes["System.Int64"] = Module.ImportReference(typeof(long));
 
-        var assemblyRef = new AssemblyNameReference("Il2CppInterop.Runtime", new Version(0, 0, 0, 0));
-        Module.AssemblyReferences.Add(assemblyRef);
+        Module.AssemblyReferences.Add(Il2CppInteropAssemblyRef);
 
         Il2CppObjectBase =
-            new TypeReference("Il2CppInterop.Runtime.InteropTypes", "Il2CppObjectBase", Module, assemblyRef);
+            new TypeReference("Il2CppInterop.Runtime.InteropTypes", "Il2CppObjectBase", Module, Il2CppInteropAssemblyRef);
 
         Il2CppObjectPool = new TypeReference("Il2CppInterop.Runtime.Runtime", "Il2CppObjectPool", Module, assemblyRef);
 
         Il2CppStringArray = new TypeReference("Il2CppInterop.Runtime.InteropTypes.Arrays", "Il2CppStringArray", Module,
-            assemblyRef);
+            Il2CppInteropAssemblyRef);
 
         Il2CppArrayBase = new TypeReference("Il2CppInterop.Runtime.InteropTypes.Arrays", "Il2CppArrayBase`1", Module,
-            assemblyRef);
+            Il2CppInteropAssemblyRef);
         Il2CppArrayBase.GenericParameters.Add(new GenericParameter("T", Il2CppArrayBase));
 
         Il2CppStructArray = new TypeReference("Il2CppInterop.Runtime.InteropTypes.Arrays", "Il2CppStructArray`1",
             Module,
-            assemblyRef);
+            Il2CppInteropAssemblyRef);
         Il2CppStructArray.GenericParameters.Add(new GenericParameter("T", Il2CppStructArray));
 
         Il2CppReferenceArray = new TypeReference("Il2CppInterop.Runtime.InteropTypes.Arrays", "Il2CppReferenceArray`1",
-            Module, assemblyRef);
+            Module, Il2CppInteropAssemblyRef);
         Il2CppReferenceArray.GenericParameters.Add(new GenericParameter("T", Il2CppReferenceArray));
 
         Il2CppClassPointerStore = new TypeReference("Il2CppInterop.Runtime", "Il2CppClassPointerStore`1",
-            Module, assemblyRef);
+            Module, Il2CppInteropAssemblyRef);
         Il2CppClassPointerStore.GenericParameters.Add(new GenericParameter("T", Il2CppClassPointerStore));
 
-        Il2Cpp = new TypeReference("Il2CppInterop.Runtime", "IL2CPP", Module, assemblyRef);
+        Il2Cpp = new TypeReference("Il2CppInterop.Runtime", "IL2CPP", Module, Il2CppInteropAssemblyRef);
 
         RuntimeReflectionHelper =
-            new TypeReference("Il2CppInterop.Runtime", "RuntimeReflectionHelper", Module, assemblyRef);
+            new TypeReference("Il2CppInterop.Runtime", "RuntimeReflectionHelper", Module, Il2CppInteropAssemblyRef);
 
-        DelegateSupport = new TypeReference("Il2CppInterop.Runtime", "DelegateSupport", Module, assemblyRef);
+        DelegateSupport = new TypeReference("Il2CppInterop.Runtime", "DelegateSupport", Module, Il2CppInteropAssemblyRef);
 
-        Il2CppException = new TypeReference("Il2CppInterop.Runtime", "Il2CppException", Module, assemblyRef);
+        Il2CppException = new TypeReference("Il2CppInterop.Runtime", "Il2CppException", Module, Il2CppInteropAssemblyRef);
 
         allTypes["Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"] = Il2CppObjectBase;
         allTypes["Il2CppInterop.Runtime.Runtime.Il2CppObjectPool"] = Il2CppObjectPool;
