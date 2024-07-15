@@ -254,6 +254,9 @@ public class MethodRewriteContext
             unmangleMethodNameWithSignature = newName;
         }
 
+        if (unmangleMethodNameWithSignature.IsInvalidInSource())
+            unmangleMethodNameWithSignature = unmangleMethodNameWithSignature.FilterInvalidInSourceChars();
+
         return unmangleMethodNameWithSignature;
     }
 
