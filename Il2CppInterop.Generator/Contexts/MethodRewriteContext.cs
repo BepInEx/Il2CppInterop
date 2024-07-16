@@ -89,13 +89,13 @@ public class MethodRewriteContext
             declaringType.AssemblyContext.GlobalContext.MethodStartAddresses.Add(FileOffset);
     }
 
-    public string UnmangledName { get; private set; }
-    public string UnmangledNameWithSignature { get; private set; }
+    public string? UnmangledName { get; private set; }
+    public string? UnmangledNameWithSignature { get; private set; }
 
     public TypeDefinition? GenericInstantiationsStore { get; private set; }
     public ITypeDefOrRef? GenericInstantiationsStoreSelfSubstRef { get; private set; }
     public ITypeDefOrRef? GenericInstantiationsStoreSelfSubstMethodRef { get; private set; }
-    public MemberReference NonGenericMethodInfoPointerField { get; private set; }
+    public MemberReference NonGenericMethodInfoPointerField { get; private set; } = null!; // Initialized in CtorPhase2
 
     public bool HasExtensionAttribute { get; }
 
@@ -221,7 +221,7 @@ public class MethodRewriteContext
         if (method.IsNewSlot) builder.Append("_New");
         if (method.Semantics is not null)
             foreach (var (semantic, str) in SemanticsToCheck)
-                if ((semantic & method.Semantics?.Attributes) != 0)
+                if ((semantic & method.Semantics.Attributes) != 0)
                     builder.Append(str);
 
         builder.Append('_');

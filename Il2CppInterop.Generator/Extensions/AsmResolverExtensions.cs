@@ -21,24 +21,7 @@ internal static class AsmResolverExtensions
 
     public static void AddLoadArgument(this ILProcessor instructions, int argumentIndex)
     {
-        switch (argumentIndex)
-        {
-            case 0:
-                instructions.Add(OpCodes.Ldarg_0);
-                break;
-            case 1:
-                instructions.Add(OpCodes.Ldarg_1);
-                break;
-            case 2:
-                instructions.Add(OpCodes.Ldarg_2);
-                break;
-            case 3:
-                instructions.Add(OpCodes.Ldarg_3);
-                break;
-            default:
-                instructions.Add(OpCodes.Ldarg, instructions.GetArgument(argumentIndex));
-                break;
-        }
+        instructions.Add(OpCodes.Ldarg, instructions.GetArgument(argumentIndex));
     }
 
     public static void AddLoadArgumentAddress(this ILProcessor instructions, int argumentIndex)

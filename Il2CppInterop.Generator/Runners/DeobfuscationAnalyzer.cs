@@ -23,7 +23,7 @@ internal class DeobfuscationAnalyzerRunner : IRunner
         IIl2CppMetadataAccess inputAssemblies;
         using (new TimingCookie("Reading assemblies"))
         {
-            inputAssemblies = new CecilMetadataAccess(options.Source);
+            inputAssemblies = new AssemblyMetadataAccess(options.Source ?? throw new ArgumentException("Source assemblies must be provided.", nameof(options)));
         }
 
         using (new TimingCookie("Creating assembly contexts"))

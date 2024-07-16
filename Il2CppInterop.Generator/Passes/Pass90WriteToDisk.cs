@@ -29,15 +29,8 @@ public static class Pass90WriteToDisk
 
         void Processor(AssemblyRewriteContext assemblyContext)
         {
-            try
-            {
-                assemblyContext.NewAssembly.Write(
-                    Path.Combine(options.OutputDir ?? ".", $"{assemblyContext.NewAssembly.Name}.dll"), new ManagedPEImageBuilder(ThrowErrorListener.Instance));
-            }
-            catch (Exception e)
-            {
-                throw e;
-            }
+            assemblyContext.NewAssembly.Write(
+                Path.Combine(options.OutputDir ?? ".", $"{assemblyContext.NewAssembly.Name}.dll"), new ManagedPEImageBuilder(ThrowErrorListener.Instance));
         }
 
         if (options.Parallel)

@@ -94,7 +94,7 @@ public static class Pass50GenerateMethods
                     }
                     else
                     {
-                        bodyBuilder.EmitLdcI4(originalMethod.Parameters.Count);
+                        bodyBuilder.Add(OpCodes.Ldc_I4, originalMethod.Parameters.Count);
                         bodyBuilder.Add(OpCodes.Conv_U);
                         bodyBuilder.Add(OpCodes.Sizeof, imports.Module.IntPtr().ToTypeDefOrRef());
                         bodyBuilder.Add(OpCodes.Mul_Ovf_Un);
@@ -112,7 +112,7 @@ public static class Pass50GenerateMethods
                         bodyBuilder.Add(OpCodes.Ldloc, argArray);
                         if (i > 0)
                         {
-                            bodyBuilder.EmitLdcI4(i);
+                            bodyBuilder.Add(OpCodes.Ldc_I4, i);
                             bodyBuilder.Add(OpCodes.Conv_U);
                             bodyBuilder.Add(OpCodes.Sizeof, imports.Module.IntPtr().ToTypeDefOrRef());
                             bodyBuilder.Add(OpCodes.Mul_Ovf_Un);
@@ -143,7 +143,7 @@ public static class Pass50GenerateMethods
                                 bodyBuilder.Add(OpCodes.Brtrue, valueTypeBlock);
 
                                 // The generic parameter is an Il2CppObjectBase => set the output storage to a nullptr
-                                bodyBuilder.EmitLdcI4(0);
+                                bodyBuilder.Add(OpCodes.Ldc_I4, 0);
                                 bodyBuilder.Add(OpCodes.Stloc, outVar);
                                 bodyBuilder.Add(OpCodes.Ldloca, outVar);
                                 bodyBuilder.Add(OpCodes.Conv_I);
@@ -159,7 +159,7 @@ public static class Pass50GenerateMethods
                             }
                             else
                             {
-                                bodyBuilder.EmitLdcI4(0);
+                                bodyBuilder.Add(OpCodes.Ldc_I4, 0);
                                 bodyBuilder.Add(OpCodes.Stloc, outVar);
                                 bodyBuilder.Add(OpCodes.Ldloca, outVar);
                                 bodyBuilder.Add(OpCodes.Conv_I);

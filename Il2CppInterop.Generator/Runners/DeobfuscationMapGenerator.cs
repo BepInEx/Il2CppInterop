@@ -51,7 +51,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
         using (new TimingCookie("Reading assemblies"))
         {
             inputAssemblies =
-                new CecilMetadataAccess(Directory.EnumerateFiles(options.DeobfuscationNewAssembliesPath, "*.dll"));
+                new AssemblyMetadataAccess(Directory.EnumerateFiles(options.DeobfuscationNewAssembliesPath, "*.dll"));
         }
 
         using (new TimingCookie("Creating rewrite assemblies"))
@@ -94,7 +94,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
         IIl2CppMetadataAccess cleanAssemblies;
         using (new TimingCookie("Reading clean assemblies"))
         {
-            cleanAssemblies = new CecilMetadataAccess(options.Source);
+            cleanAssemblies = new AssemblyMetadataAccess(options.Source);
         }
 
         using (new TimingCookie("Creating clean rewrite assemblies"))

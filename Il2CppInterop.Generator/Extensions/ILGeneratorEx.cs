@@ -12,30 +12,6 @@ namespace Il2CppInterop.Generator.Extensions;
 
 public static class ILGeneratorEx
 {
-    private static readonly OpCode[] I4Constants =
-    {
-        OpCodes.Ldc_I4_M1,
-        OpCodes.Ldc_I4_0,
-        OpCodes.Ldc_I4_1,
-        OpCodes.Ldc_I4_2,
-        OpCodes.Ldc_I4_3,
-        OpCodes.Ldc_I4_4,
-        OpCodes.Ldc_I4_5,
-        OpCodes.Ldc_I4_6,
-        OpCodes.Ldc_I4_7,
-        OpCodes.Ldc_I4_8
-    };
-
-    public static void EmitLdcI4(this ILProcessor body, int constant)
-    {
-        if (constant >= -1 && constant <= 8)
-            body.Add(I4Constants[constant + 1]);
-        else if (constant >= byte.MinValue && constant <= byte.MaxValue)
-            body.Add(OpCodes.Ldc_I4_S, (sbyte)constant);
-        else
-            body.Add(OpCodes.Ldc_I4, constant);
-    }
-
     public static void EmitObjectStore(this ILProcessor body, TypeSignature originalType, TypeSignature newType,
         TypeRewriteContext enclosingType, int argumentIndex)
     {
@@ -98,9 +74,9 @@ public static class ILGeneratorEx
 
         Debug.Assert(enclosingType.NewType.Module is not null);
         body.Add(OpCodes.Ldtoken, newType.ToTypeDefOrRef());
-        body.Add(OpCodes.Call, enclosingType.NewType.Module.TypeGetTypeFromHandle());
+        body.Add(OpCodes.Call, enclosingType.NewType.Module!.TypeGetTypeFromHandle());
         body.Add(OpCodes.Dup);
-        body.Add(OpCodes.Callvirt, enclosingType.NewType.Module.TypeGetIsValueType());
+        body.Add(OpCodes.Callvirt, enclosingType.NewType.Module!.TypeGetIsValueType());
 
         var finalNop = new CilInstructionLabel();
         var stringNop = new CilInstructionLabel();
@@ -109,9 +85,9 @@ public static class ILGeneratorEx
 
         body.Add(OpCodes.Brtrue, valueTypeNop);
 
-        body.Add(OpCodes.Callvirt, enclosingType.NewType.Module.TypeGetFullName());
+        body.Add(OpCodes.Callvirt, enclosingType.NewType.Module!.TypeGetFullName());
         body.Add(OpCodes.Ldstr, "System.String");
-        body.Add(OpCodes.Call, enclosingType.NewType.Module.StringEquals());
+        body.Add(OpCodes.Call, enclosingType.NewType.Module!.StringEquals());
         body.Add(OpCodes.Brtrue_S, stringNop);
 
         body.AddLoadArgument(argumentIndex);
@@ -246,8 +222,8 @@ public static class ILGeneratorEx
 
         Debug.Assert(enclosingType.NewType.Module is not null);
         body.Add(OpCodes.Ldtoken, newType.ToTypeDefOrRef());
-        body.Add(OpCodes.Call, enclosingType.NewType.Module.TypeGetTypeFromHandle());
-        body.Add(OpCodes.Callvirt, enclosingType.NewType.Module.TypeGetIsValueType());
+        body.Add(OpCodes.Call, enclosingType.NewType.Module!.TypeGetTypeFromHandle());
+        body.Add(OpCodes.Callvirt, enclosingType.NewType.Module!.TypeGetIsValueType());
 
         var finalNop = new CilInstructionLabel();
         var valueTypeNop = new CilInstructionLabel();
@@ -330,7 +306,7 @@ public static class ILGeneratorEx
                     var classPointerFieldRef =
                         ReferenceCreator.CreateFieldReference("NativeClassPtr", imports.Module.IntPtr(),
                             classPointerTypeRef.ToTypeDefOrRef());
-                    body.Add(OpCodes.Ldsfld, enclosingType.NewType.Module.DefaultImporter.ImportField(classPointerFieldRef));
+                    body.Add(OpCodes.Ldsfld, enclosingType.NewType.Module!.DefaultImporter.ImportField(classPointerFieldRef));
                     body.Add(OpCodes.Ldloc, pointerVariable);
                     body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_value_box.Value);
                 }
@@ -395,7 +371,7 @@ public static class ILGeneratorEx
     {
         Debug.Assert(targetType.Module is not null);
         var method = new MethodDefinition("BoxIl2CppObject", MethodAttributes.Public | MethodAttributes.HideBySig,
-            MethodSignature.CreateInstance(targetType.Module.DefaultImporter.ImportTypeSignature(il2CppObjectTypeDef)));
+            MethodSignature.CreateInstance(targetType.Module!.DefaultImporter.ImportTypeSignature(il2CppObjectTypeDef)));
         targetType.Methods.Add(method);
 
         method.CilMethodBody = new CilMethodBody(method);

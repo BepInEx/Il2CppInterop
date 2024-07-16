@@ -97,7 +97,7 @@ public class RewriteGlobalContext : IDisposable
             or GenericInstanceTypeSignature)
             return TypeRewriteContext.TypeSpecifics.ReferenceType;
 
-        var fieldTypeContext = GetNewTypeForOriginal(typeRef.Resolve() ?? throw new("Could not resolve type."));
+        var fieldTypeContext = GetNewTypeForOriginal(typeRef.Resolve() ?? throw new($"Could not resolve {typeRef.FullName}"));
         return fieldTypeContext.ComputedTypeSpecifics;
     }
 
@@ -142,12 +142,12 @@ public class RewriteGlobalContext : IDisposable
                     var newConstraintType = constraint.Constraint != null ? resolve(constraint.Constraint.ToTypeSignature())?.ToTypeDefOrRef() : null;
                     var newConstraint = new GenericParameterConstraint(newConstraintType);
 
-                    // Need to copy custom attributes on constraints for generic parameters?
+                    // We don't need to copy custom attributes on constraints for generic parameters because Il2Cpp doesn't support them.
 
                     newGenericParameter.Constraints.Add(newConstraint);
                 }
 
-                // Need to copy custom attributes on generic parameters?
+                // Similarly, custom attributes on generic parameters are also stripped by Il2Cpp, so we don't need to copy them.
 
                 paramsMethod.GenericParameters.Add(newGenericParameter);
             }
@@ -169,7 +169,12 @@ public class RewriteGlobalContext : IDisposable
                     convertedType = resolve(originalParameter.ParameterType);
                 }
 
-                var parameter = paramsMethod.AddParameter(convertedType ?? throw new(), originalParameter.Name, originalParameter.Definition?.Attributes ?? default);
+                if (convertedType == null)
+                {
+                    throw new($"Could not resolve parameter type {originalParameter.ParameterType.FullName}");
+                }
+
+                var parameter = paramsMethod.AddParameter(convertedType, originalParameter.Name, originalParameter.Definition?.Attributes ?? default);
 
                 if (isParams)
                     parameter.Definition!.CustomAttributes.Add(new CustomAttribute(newMethod.Module!.ParamArrayAttributeCtor()));

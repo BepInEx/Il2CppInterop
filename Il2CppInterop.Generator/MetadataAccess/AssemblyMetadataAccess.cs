@@ -3,19 +3,19 @@ using AsmResolver.DotNet.Signatures;
 
 namespace Il2CppInterop.Generator.MetadataAccess;
 
-public class CecilMetadataAccess : IIl2CppMetadataAccess
+public class AssemblyMetadataAccess : IIl2CppMetadataAccess
 {
     private readonly Il2CppAssemblyResolver myAssemblyResolver = new();
     private readonly List<AssemblyDefinition> myAssemblies = new();
     private readonly Dictionary<string, AssemblyDefinition> myAssembliesByName = new();
     private readonly Dictionary<(string AssemblyName, string TypeName), TypeDefinition> myTypesByName = new();
 
-    public CecilMetadataAccess(IEnumerable<string> assemblyPaths)
+    public AssemblyMetadataAccess(IEnumerable<string> assemblyPaths)
     {
         Load(assemblyPaths.Select(AssemblyDefinition.FromFile));
     }
 
-    public CecilMetadataAccess(IEnumerable<AssemblyDefinition> assemblies)
+    public AssemblyMetadataAccess(IEnumerable<AssemblyDefinition> assemblies)
     {
         // Note: At the moment this assumes that passed assemblies have their own assembly resolver set up
         // If this is not true, this can cause issues with reference resolving

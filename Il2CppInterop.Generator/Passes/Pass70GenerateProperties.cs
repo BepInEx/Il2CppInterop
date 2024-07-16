@@ -21,8 +21,6 @@ public static class Pass70GenerateProperties
                 {
                     FixPropertyDefinitionParameters(oldProperty);
 
-                    var modules = context.Assemblies.Select(a => a.OriginalAssembly.ManifestModule!);
-
                     var unmangledPropertyName = UnmanglePropertyName(assemblyContext, oldProperty, typeContext.NewType,
                         propertyCountsByName);
 

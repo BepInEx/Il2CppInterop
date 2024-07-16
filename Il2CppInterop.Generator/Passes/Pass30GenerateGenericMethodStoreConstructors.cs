@@ -44,14 +44,14 @@ public static class Pass30GenerateGenericMethodStoreConstructors
                             new MemberReference(il2CppSystemReflectionMethodInfoRef, ".ctor",
                                 MethodSignature.CreateInstance(assemblyContext.Imports.Module.Void(), assemblyContext.Imports.Module.IntPtr())));
 
-                        ctorBuilder.EmitLdcI4(oldMethod.GenericParameters.Count);
+                        ctorBuilder.Add(OpCodes.Ldc_I4, oldMethod.GenericParameters.Count);
 
                         ctorBuilder.Add(OpCodes.Newarr, il2CppSystemTypeRef);
 
                         for (var i = 0; i < oldMethod.GenericParameters.Count; i++)
                         {
                             ctorBuilder.Add(OpCodes.Dup);
-                            ctorBuilder.EmitLdcI4(i);
+                            ctorBuilder.Add(OpCodes.Ldc_I4, i);
 
                             var param = storeType.GenericParameters[i];
                             var storeRef = assemblyContext.Imports.Il2CppClassPointerStore.MakeGenericInstanceType(new GenericParameterSignature(GenericParameterType.Type, param.Number));

@@ -36,7 +36,7 @@ public static class Pass18FinalizeMethodContexts
                             new CustomAttribute((ICustomAttributeType)assemblyContext.Imports.CallerCountAttributector.Value, new CustomAttributeSignature(new CustomAttributeArgument(assemblyContext.Imports.Module.Int(), callerCount))));
 
                         if (!Pass15GenerateMemberContexts.HasObfuscatedMethods) continue;
-                        if (!methodContext.UnmangledName.Contains("_PDM_")) continue;
+                        if (methodContext.UnmangledName?.Contains("_PDM_") is not true) continue;
                         TotalPotentiallyDeadMethods++;
 
                         var hasZeroCallers = callerCount == 0;

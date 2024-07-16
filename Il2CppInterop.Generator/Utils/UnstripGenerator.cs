@@ -30,7 +30,7 @@ public static class UnstripGenerator
         invokeMethod.ImplAttributes = MethodImplAttributes.CodeTypeMask;
         delegateType.Methods.Add(invokeMethod);
 
-        invokeMethod.Signature.ReturnType = convertedMethod.Signature.ReturnType.IsValueType
+        invokeMethod.Signature!.ReturnType = convertedMethod.Signature!.ReturnType.IsValueType
             ? convertedMethod.Signature.ReturnType
             : imports.Module.IntPtr();
         if (!convertedMethod.IsStatic)
@@ -41,7 +41,7 @@ public static class UnstripGenerator
                     ? convertedParameter.ParameterType
                     : imports.Module.IntPtr(),
                 convertedParameter.Name,
-                convertedParameter.Definition.Attributes & ~ParameterAttributes.Optional);
+                convertedParameter.Definition!.Attributes & ~ParameterAttributes.Optional);
 
         return delegateType;
     }
@@ -49,7 +49,7 @@ public static class UnstripGenerator
     public static void GenerateInvokerMethodBody(MethodDefinition newMethod, FieldDefinition delegateField,
         TypeDefinition delegateType, TypeRewriteContext enclosingType, RuntimeAssemblyReferences imports)
     {
-        var body = newMethod.CilMethodBody.Instructions;
+        var body = newMethod.CilMethodBody!.Instructions;
 
         body.Add(OpCodes.Ldsfld, delegateField);
         if (!newMethod.IsStatic)
@@ -81,7 +81,7 @@ public static class UnstripGenerator
         }
 
         body.Add(OpCodes.Call, delegateType.Methods.Single(it => it.Name == "Invoke"));
-        if (!newMethod.Signature.ReturnType.IsValueType)
+        if (!newMethod.Signature!.ReturnType.IsValueType)
         {
             var pointerVar = new CilLocalVariable(imports.Module.IntPtr());
             newMethod.CilMethodBody.LocalVariables.Add(pointerVar);
@@ -102,14 +102,14 @@ public static class UnstripGenerator
 
         var staticCtor = enclosingType.GetOrCreateStaticConstructor();
 
-        var bodyProcessor = staticCtor.CilMethodBody.Instructions;
+        var bodyProcessor = staticCtor.CilMethodBody!.Instructions;
 
         bodyProcessor.Remove(staticCtor.CilMethodBody.Instructions.Last()); // remove ret
 
         bodyProcessor.Add(OpCodes.Ldstr, GetICallSignature(unityMethod));
 
         var methodRef = imports.IL2CPP_ResolveICall.Value.MakeGenericInstanceMethod(delegateType.ToTypeSignature());
-        bodyProcessor.Add(OpCodes.Call, enclosingType.Module.DefaultImporter.ImportMethod(methodRef));
+        bodyProcessor.Add(OpCodes.Call, enclosingType.Module!.DefaultImporter.ImportMethod(methodRef));
         bodyProcessor.Add(OpCodes.Stsfld, delegateField);
 
         bodyProcessor.Add(OpCodes.Ret); // restore ret
@@ -120,7 +120,7 @@ public static class UnstripGenerator
     private static string GetICallSignature(MethodDefinition unityMethod)
     {
         var builder = new StringBuilder();
-        builder.Append(unityMethod.DeclaringType.FullName);
+        builder.Append(unityMethod.DeclaringType!.FullName);
         builder.Append("::");
         builder.Append(unityMethod.Name);
 

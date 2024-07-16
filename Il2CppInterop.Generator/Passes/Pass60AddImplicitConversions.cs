@@ -140,16 +140,16 @@ public static class Pass60AddImplicitConversions
                 typeContext.NewType.Methods.Add(implicitMethod);
                 implicitMethod.CilMethodBody = new CilMethodBody(implicitMethod);
 
-                var hasReturn = invokeMethod.Signature.ReturnType.FullName != "System.Void";
+                var hasReturn = invokeMethod.Signature!.ReturnType.FullName != "System.Void";
                 var hasParameters = invokeMethod.Parameters.Count > 0;
 
                 TypeSignature monoDelegateType;
                 if (!hasReturn && !hasParameters)
-                    monoDelegateType = typeContext.NewType.Module.Action();
+                    monoDelegateType = typeContext.NewType.Module!.Action();
                 else if (!hasReturn)
-                    monoDelegateType = typeContext.NewType.Module.Action(invokeMethod.Parameters.Count);
+                    monoDelegateType = typeContext.NewType.Module!.Action(invokeMethod.Parameters.Count);
                 else
-                    monoDelegateType = typeContext.NewType.Module.Func(invokeMethod.Parameters.Count);
+                    monoDelegateType = typeContext.NewType.Module!.Func(invokeMethod.Parameters.Count);
 
                 GenericInstanceTypeSignature? genericInstanceType = null;
                 if (hasParameters)
@@ -166,7 +166,7 @@ public static class Pass60AddImplicitConversions
                 }
 
                 implicitMethod.AddParameter(genericInstanceType != null
-                    ? typeContext.NewType.Module.DefaultImporter.ImportTypeSignature(genericInstanceType)
+                    ? typeContext.NewType.Module!.DefaultImporter.ImportTypeSignature(genericInstanceType)
                     : monoDelegateType);
 
                 var bodyBuilder = implicitMethod.CilMethodBody.Instructions;
@@ -176,7 +176,7 @@ public static class Pass60AddImplicitConversions
                 var genericConvertSignature = MethodSignature.CreateStatic(new GenericParameterSignature(GenericParameterType.Method, 0), 1, assemblyContext.Imports.Module.Delegate());
                 var genericConvertRef = new MemberReference(delegateSupportTypeRef.ToTypeDefOrRef(), "ConvertDelegate", genericConvertSignature);
                 var convertMethodRef = genericConvertRef.MakeGenericInstanceMethod(typeContext.SelfSubstitutedRef.ToTypeSignature());
-                bodyBuilder.Add(OpCodes.Call, typeContext.NewType.Module.DefaultImporter.ImportMethod(convertMethodRef));
+                bodyBuilder.Add(OpCodes.Call, typeContext.NewType.Module!.DefaultImporter.ImportMethod(convertMethodRef));
                 bodyBuilder.Add(OpCodes.Ret);
 
                 // public static T operator+(T lhs, T rhs) => Il2CppSystem.Delegate.Combine(lhs, rhs).Cast<T>();

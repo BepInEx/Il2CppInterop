@@ -61,14 +61,14 @@ public static class Pass20GenerateStaticConstructors
             ctorBuilder.Add(OpCodes.Call,
                 new MemberReference(il2CppSystemTypeRef, "internal_from_handle", MethodSignature.CreateStatic(il2CppSystemTypeRef.ToTypeSignature(), assemblyContext.Imports.Module.IntPtr())));
 
-            ctorBuilder.EmitLdcI4(oldType.GenericParameters.Count);
+            ctorBuilder.Add(OpCodes.Ldc_I4, oldType.GenericParameters.Count);
 
             ctorBuilder.Add(OpCodes.Newarr, il2CppSystemTypeRef);
 
             for (var i = 0; i < oldType.GenericParameters.Count; i++)
             {
                 ctorBuilder.Add(OpCodes.Dup);
-                ctorBuilder.EmitLdcI4(i);
+                ctorBuilder.Add(OpCodes.Ldc_I4, i);
 
                 var param = oldType.GenericParameters[i];
                 var storeRef = assemblyContext.Imports.Il2CppClassPointerStore
@@ -140,7 +140,7 @@ public static class Pass20GenerateStaticConstructors
                 for (var i = 0; i < method.OriginalMethod.Parameters.Count; i++)
                 {
                     ctorBuilder.Add(OpCodes.Dup);
-                    ctorBuilder.EmitLdcI4(i);
+                    ctorBuilder.Add(OpCodes.Ldc_I4, i);
                     ctorBuilder.EmitLoadTypeNameString(assemblyContext.Imports, method.OriginalMethod,
                         method.OriginalMethod.Parameters[i].ParameterType,
                         method.NewMethod.Parameters[i].ParameterType);
@@ -151,7 +151,7 @@ public static class Pass20GenerateStaticConstructors
             }
             else
             {
-                ctorBuilder.EmitLdcI4((int)token);
+                ctorBuilder.Add(OpCodes.Ldc_I4, (int)token);
                 ctorBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_GetIl2CppMethodByToken.Value);
             }
 

@@ -40,13 +40,13 @@ internal class InteropAssemblyGeneratorRunner : IRunner
 
         using (new TimingCookie("Reading assemblies"))
         {
-            gameAssemblies = new CecilMetadataAccess(options.Source);
+            gameAssemblies = new AssemblyMetadataAccess(options.Source);
         }
 
         if (!string.IsNullOrEmpty(options.UnityBaseLibsDir))
             using (new TimingCookie("Reading unity assemblies"))
             {
-                unityAssemblies = new CecilMetadataAccess(Directory.EnumerateFiles(options.UnityBaseLibsDir, "*.dll"));
+                unityAssemblies = new AssemblyMetadataAccess(Directory.EnumerateFiles(options.UnityBaseLibsDir, "*.dll"));
             }
         else
             unityAssemblies = NullMetadataAccess.Instance;

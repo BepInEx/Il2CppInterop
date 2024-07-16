@@ -26,6 +26,8 @@ public class TypeRewriteContext
 
     public readonly bool OriginalNameWasObfuscated;
 #nullable disable
+    // OriginalType is null for unstripped types, but we don't want to warn anywhere,
+    // including in the constructor, so we disable all null tracking for this field.
     public readonly TypeDefinition OriginalType;
 #nullable enable
 
@@ -53,10 +55,11 @@ public class TypeRewriteContext
         else if (OriginalType.HasGenericParameters())
             ComputedTypeSpecifics = TypeSpecifics.NonBlittableStruct; // not reference type, covered by first if
     }
-#nullable disable
-    public IFieldDescriptor ClassPointerFieldRef { get; private set; }
-    public ITypeDefOrRef SelfSubstitutedRef { get; private set; }
-#nullable enable
+
+    // These are initialized in AddMembers, which is called from an early rewrite pass.
+    public IFieldDescriptor ClassPointerFieldRef { get; private set; } = null!;
+    public ITypeDefOrRef SelfSubstitutedRef { get; private set; } = null!;
+
     public IEnumerable<FieldRewriteContext> Fields => myFieldContexts.Values;
     public IEnumerable<MethodRewriteContext> Methods => myMethodContexts.Values;
 
@@ -103,8 +106,8 @@ public class TypeRewriteContext
         {
             if (originalTypeMethod.IsStatic && originalTypeMethod.IsConstructor)
                 continue;
-            if (originalTypeMethod.IsConstructor && originalTypeMethod.Parameters.Count == 1 &&
-                originalTypeMethod.Parameters[0].ParameterType is CorLibTypeSignature { ElementType: ElementType.I })
+            if (originalTypeMethod.IsConstructor
+                && originalTypeMethod.Parameters is [{ ParameterType: CorLibTypeSignature { ElementType: ElementType.I } }])
                 continue;
             var modules = this.AssemblyContext.GlobalContext.Assemblies.Select(a => a.OriginalAssembly.ManifestModule!);
 
