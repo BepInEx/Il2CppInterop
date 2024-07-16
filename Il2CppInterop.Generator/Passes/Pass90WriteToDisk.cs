@@ -1,4 +1,5 @@
 using AsmResolver;
+using AsmResolver.DotNet;
 using AsmResolver.DotNet.Builder;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Utils;
@@ -20,6 +21,15 @@ public static class Pass90WriteToDisk
                 {
                     CorlibReferences.RewriteReferenceToMscorlib(reference);
                     continue;
+                }
+            }
+
+            // Optimize macros in all methods.
+            foreach (var type in module.GetAllTypes())
+            {
+                foreach (var method in type.Methods)
+                {
+                    method.CilMethodBody?.Instructions.OptimizeMacros();
                 }
             }
         }
