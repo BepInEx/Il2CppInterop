@@ -7,12 +7,30 @@ namespace Il2CppInterop.Generator.Utils;
 
 internal static class CorlibReferences
 {
-    public static void RewriteReferenceToMscorlib(AssemblyReference assemblyNameReference)
+    /// <summary>
+    /// This is used in the TargetFrameworkAttribute.
+    /// </summary>
+    public static string TargetFrameworkName => ".NET 6.0";
+    public static AssemblyReference TargetCorlib => KnownCorLibs.SystemRuntime_v6_0_0_0;
+
+    public static void RewriteCorlibReference(AssemblyReference assemblyNameReference)
     {
-        assemblyNameReference.Name = "mscorlib";
-        assemblyNameReference.Version = new Version(4, 0, 0, 0);
-        assemblyNameReference.PublicKeyOrToken = new byte[] { 183, 122, 92, 86, 25, 52, 224, 137 };
-        assemblyNameReference.Culture = "";
+        CopyValues(assemblyNameReference, TargetCorlib);
+    }
+
+    private static void CopyValues(AssemblyReference target, AssemblyReference source)
+    {
+        target.Attributes = source.Attributes;
+        target.Culture = source.Culture;
+        target.DisableJitCompileOptimizer = source.DisableJitCompileOptimizer;
+        target.EnableJitCompileTracking = source.EnableJitCompileTracking;
+        target.HashValue = [.. source.HashValue];
+        target.HasPublicKey = source.HasPublicKey;
+        target.IsRetargetable = source.IsRetargetable;
+        target.IsWindowsRuntime = source.IsWindowsRuntime;
+        target.Name = source.Name;
+        target.PublicKeyOrToken = [.. source.PublicKeyOrToken];
+        target.Version = source.Version;
     }
 
     public static TypeSignature ImportCorlibReference(this ModuleDefinition module, string fullName)

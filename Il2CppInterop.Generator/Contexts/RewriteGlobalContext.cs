@@ -36,7 +36,7 @@ public class RewriteGlobalContext : IDisposable
             }
 
             var newAssembly = new AssemblyDefinition(sourceAssembly.Name.UnSystemify(options), sourceAssembly.Version);
-            var newModule = new ModuleDefinition(sourceAssembly.ManifestModule?.Name.UnSystemify(options), KnownCorLibs.MsCorLib_v2_0_0_0);
+            var newModule = new ModuleDefinition(sourceAssembly.ManifestModule?.Name.UnSystemify(options), CorlibReferences.TargetCorlib);
             newAssembly.Modules.Add(newModule);
 
             newModule.MetadataResolver = new DefaultMetadataResolver(assemblyResolver);
