@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
 using System.Reflection;
 using System.Text;
 using Il2CppInterop.Common.Maps;
@@ -17,7 +15,7 @@ public static class Pass91GenerateMethodPointerMap
 
         foreach (var assemblyRewriteContext in context.Assemblies)
         {
-            if (options.AdditionalAssembliesBlacklist.Contains(assemblyRewriteContext.NewAssembly.Name.Name))
+            if (options.AdditionalAssembliesBlacklist.Contains(assemblyRewriteContext.NewAssembly.Name!))
                 continue;
 
             assemblyList.Add(assemblyRewriteContext.NewAssembly.FullName);

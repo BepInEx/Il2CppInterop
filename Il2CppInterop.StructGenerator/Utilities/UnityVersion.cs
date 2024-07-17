@@ -86,4 +86,11 @@ internal struct UnityVersion : IComparable, IComparable<UnityVersion>
     }
 
     private readonly ulong myMBlob;
+
+    public override readonly bool Equals(object obj)
+    {
+        return obj is UnityVersion version && this == version;
+    }
+
+    public override readonly int GetHashCode() => myMBlob.GetHashCode();
 }

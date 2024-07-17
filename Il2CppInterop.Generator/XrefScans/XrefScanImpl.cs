@@ -1,5 +1,4 @@
-﻿using System;
-using Il2CppInterop.Common.XrefScans;
+﻿using Il2CppInterop.Common.XrefScans;
 
 namespace Il2CppInterop.Generator.XrefScans;
 

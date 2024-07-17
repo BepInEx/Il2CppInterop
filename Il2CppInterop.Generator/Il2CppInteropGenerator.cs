@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Il2CppInterop.Common;
+﻿using Il2CppInterop.Common;
 using Il2CppInterop.Common.Host;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Generator.Runners;
@@ -14,11 +13,14 @@ public sealed class Il2CppInteropGenerator : BaseHost
 
     private readonly List<IRunner> _runners = new();
 
-    private Il2CppInteropGenerator() { }
+    private Il2CppInteropGenerator(GeneratorOptions options)
+    {
+        Options = options;
+    }
 
     public static Il2CppInteropGenerator Create(GeneratorOptions options)
     {
-        var generator = new Il2CppInteropGenerator { Options = options };
+        var generator = new Il2CppInteropGenerator(options);
         generator.AddXrefScanner<Il2CppInteropGenerator, XrefScanImpl>();
         return generator;
     }
