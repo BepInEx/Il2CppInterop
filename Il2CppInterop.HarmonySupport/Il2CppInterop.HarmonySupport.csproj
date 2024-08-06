@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="HarmonyX" Version="2.10.0"/>
+    <PackageReference Include="HarmonyX" Version="2.13.0"/>
   </ItemGroup>
 
   <ItemGroup>
