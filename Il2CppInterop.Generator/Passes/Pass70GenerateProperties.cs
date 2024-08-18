@@ -1,4 +1,5 @@
 using System.Reflection;
+using AsmResolver;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using Il2CppInterop.Generator.Contexts;
@@ -43,7 +44,7 @@ public static class Pass70GenerateProperties
                 string? defaultMemberName = null;
                 var defaultMemberAttributeAttribute = type.CustomAttributes.FirstOrDefault(it =>
                     it.AttributeType()?.Name == "AttributeAttribute" && it.Signature!.NamedArguments.Any(it =>
-                        it.MemberName == "Name" && (string?)it.Argument.Element == nameof(DefaultMemberAttribute)));
+                        it.MemberName == "Name" && (Utf8String?)it.Argument.Element == nameof(DefaultMemberAttribute)));
                 if (defaultMemberAttributeAttribute != null)
                 {
                     defaultMemberName = "Item";
