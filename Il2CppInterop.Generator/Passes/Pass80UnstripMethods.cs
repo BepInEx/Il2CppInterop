@@ -78,9 +78,9 @@ public static class Pass80UnstripMethods
                         foreach (var genericParameterConstraint in unityMethodGenericParameter.Constraints)
                         {
                             if (genericParameterConstraint.Constraint?.FullName == "System.ValueType") continue;
-                            if (genericParameterConstraint.Constraint!.Resolve()!.IsInterface) continue;
+                            if (genericParameterConstraint.Constraint?.Resolve()?.IsInterface ?? false) continue;
 
-                            var newType = ResolveTypeInNewAssemblies(context, genericParameterConstraint.Constraint.ToTypeSignature(),
+                            var newType = ResolveTypeInNewAssemblies(context, genericParameterConstraint.Constraint?.ToTypeSignature(),
                                 imports);
                             if (newType != null)
                                 newParameter.Constraints.Add(new GenericParameterConstraint(newType.ToTypeDefOrRef()));
