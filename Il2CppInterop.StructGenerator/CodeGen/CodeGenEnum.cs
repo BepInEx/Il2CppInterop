@@ -32,6 +32,16 @@ internal class CodeGenEnumElement
         if (lhs.Name != rhs.Name) return false;
         return lhs.Value == rhs.Value;
     }
+
+    public override bool Equals(object obj)
+    {
+        return obj is CodeGenEnumElement element && this == element;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Name, Value);
+    }
 }
 
 internal enum EnumUnderlyingType
@@ -93,5 +103,15 @@ internal class CodeGenEnum : CodeGenElement
             if (lhs.Elements[i] != rhs.Elements[i])
                 return false;
         return true;
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is CodeGenEnum @enum && this == @enum;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Name, UnderlyingType, Elements.Count);
     }
 }

@@ -1,8 +1,9 @@
-using System;
-using System.Collections.Generic;
+using System.Diagnostics;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
-using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Contexts;
 
@@ -14,7 +15,7 @@ public class FieldRewriteContext
     public readonly TypeRewriteContext DeclaringType;
     public readonly FieldDefinition OriginalField;
 
-    public readonly FieldReference PointerField;
+    public readonly MemberReference PointerField;
     public readonly string UnmangledName;
 
     public FieldRewriteContext(TypeRewriteContext declaringType, FieldDefinition originalField,
@@ -31,35 +32,39 @@ public class FieldRewriteContext
 
         declaringType.NewType.Fields.Add(pointerField);
 
-        PointerField = new FieldReference(pointerField.Name, pointerField.FieldType, DeclaringType.SelfSubstitutedRef);
+        Debug.Assert(pointerField.Signature is not null);
+        PointerField = new MemberReference(DeclaringType.SelfSubstitutedRef, pointerField.Name, new FieldSignature(pointerField.Signature!.FieldType));
     }
 
     private string UnmangleFieldNameBase(FieldDefinition field, GeneratorOptions options)
     {
-        if (options.PassthroughNames) return field.Name;
+        if (options.PassthroughNames)
+            return field.Name!;
 
         if (!field.Name.IsObfuscated(options))
         {
             if (!field.Name.IsInvalidInSource())
-                return field.Name;
+                return field.Name!;
             return field.Name.FilterInvalidInSourceChars();
         }
 
+        Debug.Assert(field.Signature is not null);
         var accessModString = MethodAccessTypeLabels[(int)(field.Attributes & FieldAttributes.FieldAccessMask)];
         var staticString = field.IsStatic ? "_Static" : "";
         return "field_" + accessModString + staticString + "_" +
-               DeclaringType.AssemblyContext.RewriteTypeRef(field.FieldType).GetUnmangledName();
+               DeclaringType.AssemblyContext.RewriteTypeRef(field.Signature!.FieldType).GetUnmangledName(field.DeclaringType);
     }
 
     private string UnmangleFieldName(FieldDefinition field, GeneratorOptions options,
         Dictionary<string, int>? renamedFieldCounts)
     {
-        if (options.PassthroughNames) return field.Name;
+        if (options.PassthroughNames)
+            return field.Name!;
 
         if (!field.Name.IsObfuscated(options))
         {
             if (!field.Name.IsInvalidInSource())
-                return field.Name;
+                return field.Name!;
             return field.Name.FilterInvalidInSourceChars();
         }
 

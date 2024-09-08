@@ -1,6 +1,5 @@
-using System.Collections.Generic;
-using Mono.Cecil;
-using Mono.Collections.Generic;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures;
 
 namespace Il2CppInterop.Generator.MetadataAccess;
 
@@ -12,7 +11,7 @@ public class NullMetadataAccess : IMetadataAccess
     {
     }
 
-    public IList<AssemblyDefinition> Assemblies => ReadOnlyCollection<AssemblyDefinition>.Empty;
+    public IList<AssemblyDefinition> Assemblies => Array.Empty<AssemblyDefinition>();
 
     public AssemblyDefinition? GetAssemblyBySimpleName(string name)
     {
@@ -24,7 +23,7 @@ public class NullMetadataAccess : IMetadataAccess
         return null;
     }
 
-    public IList<GenericInstanceType>? GetKnownInstantiationsFor(TypeReference genericDeclaration)
+    public IList<GenericInstanceTypeSignature>? GetKnownInstantiationsFor(TypeReference genericDeclaration)
     {
         return null;
     }
@@ -34,7 +33,7 @@ public class NullMetadataAccess : IMetadataAccess
         return null;
     }
 
-    public MethodReference? GetMethodRefStoredAt(long offsetInMemory)
+    public MemberReference? GetMethodRefStoredAt(long offsetInMemory)
     {
         return null;
     }

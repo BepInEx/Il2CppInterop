@@ -8,17 +8,19 @@
     <RootNamespace>Il2CppInterop.Generator</RootNamespace>
     <Configurations>Debug;Release</Configurations>
     <Platforms>AnyCPU</Platforms>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="IsExternalInit" Version="1.0.3">
+    <PackageReference Include="AsmResolver.DotNet" Version="6.0.0-beta.1" />
+    <PackageReference Include="PolySharp" Version="1.14.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Mono.Cecil" Version="0.11.3"/>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj"/>
+    <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj" />
   </ItemGroup>
 </Project>
