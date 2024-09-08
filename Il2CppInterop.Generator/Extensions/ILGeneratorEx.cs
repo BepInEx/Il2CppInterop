@@ -31,7 +31,7 @@ public static class ILGeneratorEx
             body.Add(OpCodes.Call, imports.IL2CPP_ManagedStringToIl2Cpp.Value);
             body.Add(OpCodes.Call, imports.WriteFieldWBarrier);
         }
-        else if (originalType.IsValueType)
+        else if (originalType.IsValueTypeLike())
         {
             var typeSpecifics = enclosingType.AssemblyContext.GlobalContext.JudgeSpecificsByOriginalType(originalType);
             if (typeSpecifics == TypeRewriteContext.TypeSpecifics.BlittableStruct)
@@ -82,6 +82,11 @@ public static class ILGeneratorEx
         var stringNop = new CilInstructionLabel();
         var valueTypeNop = new CilInstructionLabel();
         var storePointerNop = new CilInstructionLabel();
+
+        body.Add(OpCodes.Brtrue, valueTypeNop);
+
+        body.Add(OpCodes.Dup);
+        body.Add(OpCodes.Callvirt, enclosingType.NewType.Module!.TypeGetIsPointer());
 
         body.Add(OpCodes.Brtrue, valueTypeNop);
 
@@ -182,9 +187,9 @@ public static class ILGeneratorEx
                 body.Add(OpCodes.Conv_I);
             }
         }
-        else if (originalType.IsValueType)
+        else if (originalType.IsValueTypeLike())
         {
-            if (newType.IsValueType)
+            if (newType.IsValueTypeLike())
             {
                 if (argumentIndex == 0 && valueTypeArgument0IsAPointer)
                     body.Add(OpCodes.Ldarg_0);
@@ -228,6 +233,12 @@ public static class ILGeneratorEx
         var finalNop = new CilInstructionLabel();
         var valueTypeNop = new CilInstructionLabel();
         var stringNop = new CilInstructionLabel();
+
+        body.Add(OpCodes.Brtrue, valueTypeNop);
+
+        body.Add(OpCodes.Ldtoken, newType.ToTypeDefOrRef());
+        body.Add(OpCodes.Call, enclosingType.NewType.Module!.TypeGetTypeFromHandle());
+        body.Add(OpCodes.Callvirt, enclosingType.NewType.Module!.TypeGetIsPointer());
 
         body.Add(OpCodes.Brtrue, valueTypeNop);
 
@@ -285,9 +296,9 @@ public static class ILGeneratorEx
         {
             // do nothing
         }
-        else if (originalReturnType.IsValueType)
+        else if (originalReturnType.IsValueTypeLike())
         {
-            if (convertedReturnType.IsValueType)
+            if (convertedReturnType.IsValueTypeLike())
             {
                 body.Add(OpCodes.Ldloc, pointerVariable);
                 if (unboxValueType) body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_object_unbox.Value);

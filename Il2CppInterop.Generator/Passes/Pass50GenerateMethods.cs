@@ -142,6 +142,12 @@ public static class Pass50GenerateMethods
 
                                 bodyBuilder.Add(OpCodes.Brtrue, valueTypeBlock);
 
+                                bodyBuilder.Add(OpCodes.Ldtoken, elementType.ToTypeDefOrRef());
+                                bodyBuilder.Add(OpCodes.Call, imports.Module.TypeGetTypeFromHandle());
+                                bodyBuilder.Add(OpCodes.Callvirt, imports.Module.TypeGetIsPointer());
+
+                                bodyBuilder.Add(OpCodes.Brtrue, valueTypeBlock);
+
                                 // The generic parameter is an Il2CppObjectBase => set the output storage to a nullptr
                                 bodyBuilder.Add(OpCodes.Ldc_I4, 0);
                                 bodyBuilder.Add(OpCodes.Stloc, outVar);
@@ -228,6 +234,12 @@ public static class Pass50GenerateMethods
                             bodyBuilder.Add(OpCodes.Callvirt, imports.Module.TypeGetIsValueType());
 
                             var continueBlock = new CilInstructionLabel();
+
+                            bodyBuilder.Add(OpCodes.Brtrue, continueBlock);
+
+                            bodyBuilder.Add(OpCodes.Ldtoken, methodParam.ParameterType.GetElementType().ToTypeDefOrRef());
+                            bodyBuilder.Add(OpCodes.Call, imports.Module.TypeGetTypeFromHandle());
+                            bodyBuilder.Add(OpCodes.Callvirt, imports.Module.TypeGetIsPointer());
 
                             bodyBuilder.Add(OpCodes.Brtrue, continueBlock);
 

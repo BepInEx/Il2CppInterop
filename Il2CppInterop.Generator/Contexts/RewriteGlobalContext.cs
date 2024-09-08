@@ -87,12 +87,11 @@ public class RewriteGlobalContext : IDisposable
 
     public TypeRewriteContext.TypeSpecifics JudgeSpecificsByOriginalType(TypeSignature typeRef)
     {
-        if (typeRef.IsPrimitive() || typeRef is PointerTypeSignature || typeRef.FullName == "System.TypedReference")
+        if (typeRef.IsPrimitive() || typeRef.IsPointerLike() || typeRef.FullName == "System.TypedReference")
             return TypeRewriteContext.TypeSpecifics.BlittableStruct;
         if (typeRef
             is CorLibTypeSignature { ElementType: ElementType.String or ElementType.Object }
             or ArrayBaseTypeSignature
-            or ByReferenceTypeSignature
             or GenericParameterSignature
             or GenericInstanceTypeSignature)
             return TypeRewriteContext.TypeSpecifics.ReferenceType;
