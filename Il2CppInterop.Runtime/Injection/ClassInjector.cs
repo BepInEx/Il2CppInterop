@@ -359,16 +359,12 @@ public static unsafe partial class ClassInjector
                         {
                             if (Marshal.PtrToStringAnsi(m.Name) != name) return false;
                             if (m.ParametersCount != baseMethod.ParametersCount) return false;
+                            if (GetIl2CppTypeFullName(m.ReturnType) != GetIl2CppTypeFullName(baseMethod.ReturnType)) return false;
 
                             for (var i = 0; i < m.ParametersCount; i++)
                             {
-                                var parameterName = IL2CPP.il2cpp_method_get_param_name(baseMethod.Pointer, (uint)i);
-                                var otherParameterName = IL2CPP.il2cpp_method_get_param_name(m.Pointer, (uint)i);
-
                                 var parameterInfo = UnityVersionHandler.Wrap(baseMethod.Parameters, i);
                                 var otherParameterInfo = UnityVersionHandler.Wrap(m.Parameters, i);
-
-                                if (Marshal.PtrToStringAnsi(parameterName) != Marshal.PtrToStringAnsi(otherParameterName)) return false;
 
                                 if (GetIl2CppTypeFullName(parameterInfo.ParameterType) != GetIl2CppTypeFullName(otherParameterInfo.ParameterType)) return false;
                             }
