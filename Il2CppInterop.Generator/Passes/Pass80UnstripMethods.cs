@@ -187,7 +187,7 @@ public static class Pass80UnstripMethods
         if (unityType is ByReferenceTypeSignature)
         {
             var resolvedElementType = ResolveTypeInNewAssemblies(context, unityType.GetElementType(), imports);
-            return resolvedElementType == null ? null : new ByReferenceTypeSignature(resolvedElementType);
+            return resolvedElementType?.MakeByReferenceType();
         }
 
         if (unityType is ArrayBaseTypeSignature arrayType)
@@ -203,20 +203,25 @@ public static class Pass80UnstripMethods
             return new GenericInstanceTypeSignature(genericBase.ToTypeDefOrRef(), false, resolvedElementType);
         }
 
-        if (unityType.DeclaringType != null)
-        {
-            var enclosingResolvedType = ResolveTypeInNewAssembliesRaw(context, unityType.DeclaringType.ToTypeSignature(), imports);
-            if (enclosingResolvedType == null) return null;
-            var resolvedNestedType = enclosingResolvedType.Resolve()!.NestedTypes
-                .FirstOrDefault(it => it.Name == unityType.Name);
-
-            return resolvedNestedType?.ToTypeSignature();
-        }
-
         if (unityType is PointerTypeSignature)
         {
             var resolvedElementType = ResolveTypeInNewAssemblies(context, unityType.GetElementType(), imports);
             return resolvedElementType?.MakePointerType();
+        }
+
+        if (unityType is PinnedTypeSignature)
+        {
+            var resolvedElementType = ResolveTypeInNewAssemblies(context, unityType.GetElementType(), imports);
+            return resolvedElementType?.MakePinnedType();
+        }
+
+        if (unityType is CustomModifierTypeSignature customModifier)
+        {
+            var resolvedElementType = ResolveTypeInNewAssemblies(context, customModifier.BaseType, imports);
+            var resolvedModifierType = ResolveTypeInNewAssemblies(context, customModifier.ModifierType.ToTypeSignature(), imports);
+            return resolvedElementType is not null && resolvedModifierType is not null
+                ? new CustomModifierTypeSignature(resolvedModifierType.ToTypeDefOrRef(), customModifier.IsRequired, resolvedElementType)
+                : null;
         }
 
         if (unityType is GenericInstanceTypeSignature genericInstance)
@@ -232,6 +237,25 @@ public static class Pass80UnstripMethods
             }
 
             return newInstance;
+        }
+
+        if (unityType is BoxedTypeSignature)
+            return null; // Boxed types are not yet supported
+
+        if (unityType is FunctionPointerTypeSignature)
+            return null; // Function pointers are not yet supported
+
+        if (unityType is SentinelTypeSignature)
+            return unityType; // SentinelTypeSignature has no state and be reused.
+
+        if (unityType.DeclaringType != null)
+        {
+            var enclosingResolvedType = ResolveTypeInNewAssembliesRaw(context, unityType.DeclaringType.ToTypeSignature(), imports);
+            if (enclosingResolvedType == null) return null;
+            var resolvedNestedType = enclosingResolvedType.Resolve()!.NestedTypes
+                .FirstOrDefault(it => it.Name == unityType.Name);
+
+            return resolvedNestedType?.ToTypeSignature();
         }
 
         var targetAssemblyName = unityType.Scope!.Name!;
