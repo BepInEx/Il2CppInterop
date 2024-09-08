@@ -1,11 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
-using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -17,7 +16,7 @@ public static class Pass05CreateRenameGroups
     public static void DoPass(RewriteGlobalContext context)
     {
         foreach (var assemblyContext in context.Assemblies)
-            foreach (var originalType in assemblyContext.OriginalAssembly.MainModule.Types)
+            foreach (var originalType in assemblyContext.OriginalAssembly.ManifestModule!.TopLevelTypes)
                 ProcessType(context, originalType, false);
 
         var typesToRemove = context.RenameGroups.Where(it => it.Value.Count > 1).ToList();
@@ -32,7 +31,7 @@ public static class Pass05CreateRenameGroups
             context.PreviousRenamedTypes[contextRenamedType.Key] = contextRenamedType.Value;
 
         foreach (var assemblyContext in context.Assemblies)
-            foreach (var originalType in assemblyContext.OriginalAssembly.MainModule.Types)
+            foreach (var originalType in assemblyContext.OriginalAssembly.ManifestModule!.TopLevelTypes)
                 ProcessType(context, originalType, true);
     }
 
@@ -49,7 +48,7 @@ public static class Pass05CreateRenameGroups
 
         context.RenameGroups
             .GetOrCreate(
-                ((object)originalType.DeclaringType ?? originalType.Namespace, unobfuscatedName,
+                ((object?)originalType.DeclaringType ?? originalType.Namespace, unobfuscatedName,
                     originalType.GenericParameters.Count), _ => new List<TypeDefinition>()).Add(originalType);
         context.RenamedTypes[originalType] = unobfuscatedName;
     }
@@ -64,12 +63,12 @@ public static class Pass05CreateRenameGroups
         var firstUnobfuscatedType = typeDefinition.BaseType;
         while (firstUnobfuscatedType != null && firstUnobfuscatedType.Name.IsObfuscated(context.Options))
         {
-            firstUnobfuscatedType = firstUnobfuscatedType.Resolve().BaseType?.Resolve();
+            firstUnobfuscatedType = firstUnobfuscatedType.Resolve()?.BaseType?.Resolve();
             inheritanceDepth++;
         }
 
-        var unobfuscatedInterfacesList = typeDefinition.Interfaces.Select(it => it.InterfaceType)
-            .Where(it => !it.Name.IsObfuscated(context.Options));
+        var unobfuscatedInterfacesList = typeDefinition.Interfaces.Select(it => it.Interface!)
+            .Where(it => !it!.Name.IsObfuscated(context.Options));
         var accessName = ClassAccessNames[(int)(typeDefinition.Attributes & TypeAttributes.VisibilityMask)];
 
         var classifier = typeDefinition.IsInterface ? "Interface" : typeDefinition.IsValueType ? "Struct" : "Class";
@@ -79,7 +78,7 @@ public static class Pass05CreateRenameGroups
         var specialNameString = typeDefinition.IsSpecialName ? "SpecialName" : "";
 
         var nameBuilder = new StringBuilder();
-        nameBuilder.Append(firstUnobfuscatedType?.GenericNameToStrings(context)?.ConcatAll() ?? classifier);
+        nameBuilder.Append(firstUnobfuscatedType?.ToTypeSignature().GenericNameToStrings(context)?.ConcatAll() ?? classifier);
         if (inheritanceDepth > 0)
             nameBuilder.Append(inheritanceDepth);
         nameBuilder.Append(compilerGenertaedString);
@@ -88,15 +87,15 @@ public static class Pass05CreateRenameGroups
         nameBuilder.Append(sealedString);
         nameBuilder.Append(specialNameString);
         foreach (var interfaceRef in unobfuscatedInterfacesList)
-            nameBuilder.Append(interfaceRef.GenericNameToStrings(context).ConcatAll());
+            nameBuilder.Append(interfaceRef.ToTypeSignature().GenericNameToStrings(context).ConcatAll());
 
         var uniqContext = new UniquificationContext(options);
         foreach (var fieldDef in typeDefinition.Fields)
         {
             if (!typeDefinition.IsEnum)
-                uniqContext.Push(fieldDef.FieldType.GenericNameToStrings(context));
+                uniqContext.Push(fieldDef.Signature!.FieldType.GenericNameToStrings(context));
 
-            uniqContext.Push(fieldDef.Name);
+            uniqContext.Push(fieldDef.Name!);
 
             if (uniqContext.CheckFull()) break;
         }
@@ -106,8 +105,8 @@ public static class Pass05CreateRenameGroups
 
         foreach (var propertyDef in typeDefinition.Properties)
         {
-            uniqContext.Push(propertyDef.PropertyType.GenericNameToStrings(context));
-            uniqContext.Push(propertyDef.Name);
+            uniqContext.Push(propertyDef.Signature!.ReturnType.GenericNameToStrings(context));
+            uniqContext.Push(propertyDef.Name!);
 
             if (uniqContext.CheckFull()) break;
         }
@@ -117,7 +116,7 @@ public static class Pass05CreateRenameGroups
             var invokeMethod = typeDefinition.Methods.SingleOrDefault(it => it.Name == "Invoke");
             if (invokeMethod != null)
             {
-                uniqContext.Push(invokeMethod.ReturnType.GenericNameToStrings(context));
+                uniqContext.Push(invokeMethod.Signature!.ReturnType.GenericNameToStrings(context));
 
                 foreach (var parameterDef in invokeMethod.Parameters)
                 {
@@ -131,8 +130,8 @@ public static class Pass05CreateRenameGroups
             allowExtraHeuristics) // method order on non-interface types appears to be unstable
             foreach (var methodDefinition in typeDefinition.Methods)
             {
-                uniqContext.Push(methodDefinition.Name);
-                uniqContext.Push(methodDefinition.ReturnType.GenericNameToStrings(context));
+                uniqContext.Push(methodDefinition.Name!);
+                uniqContext.Push(methodDefinition.Signature!.ReturnType.GenericNameToStrings(context));
 
                 foreach (var parameter in methodDefinition.Parameters)
                 {
@@ -155,24 +154,27 @@ public static class Pass05CreateRenameGroups
         return string.Concat(strings);
     }
 
-    private static string NameOrRename(this TypeReference typeRef, RewriteGlobalContext context)
+    private static string NameOrRename(this TypeSignature typeRef, RewriteGlobalContext context)
     {
         var resolved = typeRef.Resolve();
         if (resolved != null && context.PreviousRenamedTypes.TryGetValue(resolved, out var rename))
             return (rename.StableHash() % (ulong)Math.Pow(10, context.Options.TypeDeobfuscationCharsPerUniquifier))
                 .ToString();
 
-        return typeRef.Name;
+        return typeRef.Name!;
     }
 
-    private static List<string> GenericNameToStrings(this TypeReference typeRef, RewriteGlobalContext context)
+    private static List<string> GenericNameToStrings(this TypeSignature typeRef, RewriteGlobalContext context)
     {
-        if (typeRef is ArrayType arrayType)
-            return arrayType.ElementType.GenericNameToStrings(context);
+        if (typeRef is SzArrayTypeSignature szArrayType)
+            return szArrayType.BaseType.GenericNameToStrings(context);
 
-        if (typeRef is GenericInstanceType genericInstance)
+        if (typeRef is ArrayTypeSignature arrayType)
+            return arrayType.BaseType.GenericNameToStrings(context);
+
+        if (typeRef is GenericInstanceTypeSignature genericInstance)
         {
-            var baseTypeName = genericInstance.GetElementType().NameOrRename(context);
+            var baseTypeName = genericInstance.GenericType.ToTypeSignature().NameOrRename(context);
             var indexOfBacktick = baseTypeName.IndexOf('`');
             if (indexOfBacktick >= 0)
                 baseTypeName = baseTypeName.Substring(0, indexOfBacktick);
@@ -180,8 +182,8 @@ public static class Pass05CreateRenameGroups
             var entries = new List<string>();
 
             entries.Add(baseTypeName);
-            entries.Add(genericInstance.GenericArguments.Count.ToString());
-            foreach (var genericArgument in genericInstance.GenericArguments)
+            entries.Add(genericInstance.TypeArguments.Count.ToString());
+            foreach (var genericArgument in genericInstance.TypeArguments)
                 entries.AddRange(genericArgument.GenericNameToStrings(context));
             return entries;
         }

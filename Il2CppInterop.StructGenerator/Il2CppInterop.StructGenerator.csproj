@@ -8,16 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ClangSharp" Version="10.0.0-beta"/>
-    <PackageReference Include="CppAst" Version="0.8.0"/>
-    <PackageReference Include="IsExternalInit" Version="1.0.2">
+    <PackageReference Include="ClangSharp" Version="10.0.0-beta" />
+    <PackageReference Include="CppAst" Version="0.8.0" />
+    <PackageReference Include="libclang" Version="11.0.0" />
+    <PackageReference Include="libclang.runtime.win-x64" Version="11.0.0" />
+    <PackageReference Include="libClangSharp.runtime.win-x64" Version="10.0.2-beta2" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
+    <PackageReference Include="PolySharp" Version="1.14.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="libclang" Version="11.0.0"/>
-    <PackageReference Include="libclang.runtime.win-x64" Version="11.0.0"/>
-    <PackageReference Include="libClangSharp.runtime.win-x64" Version="10.0.2-beta2"/>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0"/>
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace Il2CppInterop.Generator.Extensions;
 
 public static class CollectionEx

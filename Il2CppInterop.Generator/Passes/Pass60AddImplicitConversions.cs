@@ -1,8 +1,11 @@
-using System.Linq;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Code.Cil;
+using AsmResolver.DotNet.Signatures;
+using AsmResolver.PE.DotNet.Cil;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -16,59 +19,59 @@ public static class Pass60AddImplicitConversions
         var typeContext = assemblyContext.GetTypeByName("System.String");
         var objectTypeContext = assemblyContext.GetTypeByName("System.Object");
 
-        var methodFromMonoString = new MethodDefinition("op_Implicit", OperatorAttributes, typeContext.NewType);
-        methodFromMonoString.Parameters.Add(new ParameterDefinition(assemblyContext.Imports.Module.String()));
+        var methodFromMonoString = new MethodDefinition("op_Implicit", OperatorAttributes,
+            MethodSignature.CreateStatic(typeContext.NewType.ToTypeSignature(), assemblyContext.Imports.Module.String()));
         typeContext.NewType.Methods.Add(methodFromMonoString);
-        var fromBuilder = methodFromMonoString.Body.GetILProcessor();
+        methodFromMonoString.CilMethodBody = new CilMethodBody(methodFromMonoString);
+        var fromBuilder = methodFromMonoString.CilMethodBody.Instructions;
 
-        var createIl2CppStringNop = fromBuilder.Create(OpCodes.Nop);
+        var createIl2CppStringNop = new CilInstructionLabel();
 
-        fromBuilder.Emit(OpCodes.Ldarg_0);
-        fromBuilder.Emit(OpCodes.Dup);
-        fromBuilder.Emit(OpCodes.Brtrue_S, createIl2CppStringNop);
-        fromBuilder.Emit(OpCodes.Ret);
+        fromBuilder.Add(OpCodes.Ldarg_0);
+        fromBuilder.Add(OpCodes.Dup);
+        fromBuilder.Add(OpCodes.Brtrue_S, createIl2CppStringNop);
+        fromBuilder.Add(OpCodes.Ret);
 
-        fromBuilder.Append(createIl2CppStringNop);
-        fromBuilder.Emit(OpCodes.Call, assemblyContext.Imports.IL2CPP_ManagedStringToIl2Cpp.Value);
-        fromBuilder.Emit(OpCodes.Newobj,
-            new MethodReference(".ctor", assemblyContext.Imports.Module.Void(), typeContext.NewType)
-            {
-                HasThis = true,
-                Parameters = { new ParameterDefinition(assemblyContext.Imports.Module.IntPtr()) }
-            });
-        fromBuilder.Emit(OpCodes.Ret);
+        createIl2CppStringNop.Instruction = fromBuilder.Add(OpCodes.Nop);
 
-        var methodToObject = new MethodDefinition("op_Implicit", OperatorAttributes, objectTypeContext.NewType);
-        methodToObject.Parameters.Add(new ParameterDefinition(assemblyContext.Imports.Module.String()));
+        fromBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_ManagedStringToIl2Cpp.Value);
+        fromBuilder.Add(OpCodes.Newobj,
+            ReferenceCreator.CreateInstanceMethodReference(".ctor", assemblyContext.Imports.Module.Void(), typeContext.NewType, assemblyContext.Imports.Module.IntPtr()));
+        fromBuilder.Add(OpCodes.Ret);
+
+        var methodToObject = new MethodDefinition("op_Implicit", OperatorAttributes, MethodSignature.CreateStatic(objectTypeContext.NewType.ToTypeSignature()));
+        methodToObject.AddParameter(assemblyContext.Imports.Module.String());
         objectTypeContext.NewType.Methods.Add(methodToObject);
-        var toObjectBuilder = methodToObject.Body.GetILProcessor();
-        toObjectBuilder.Emit(OpCodes.Ldarg_0);
-        toObjectBuilder.Emit(OpCodes.Call, methodFromMonoString);
-        toObjectBuilder.Emit(OpCodes.Ret);
+        methodToObject.CilMethodBody = new CilMethodBody(methodToObject);
+        var toObjectBuilder = methodToObject.CilMethodBody.Instructions;
+        toObjectBuilder.Add(OpCodes.Ldarg_0);
+        toObjectBuilder.Add(OpCodes.Call, methodFromMonoString);
+        toObjectBuilder.Add(OpCodes.Ret);
 
-        var methodToMonoString = new MethodDefinition("op_Implicit", OperatorAttributes, assemblyContext.Imports.Module.String());
-        methodToMonoString.Parameters.Add(new ParameterDefinition(typeContext.NewType));
+        var methodToMonoString = new MethodDefinition("op_Implicit", OperatorAttributes, MethodSignature.CreateStatic(assemblyContext.Imports.Module.String()));
+        methodToMonoString.AddParameter(typeContext.NewType.ToTypeSignature());
         typeContext.NewType.Methods.Add(methodToMonoString);
-        var toBuilder = methodToMonoString.Body.GetILProcessor();
+        methodToMonoString.CilMethodBody = new CilMethodBody(methodToMonoString);
+        var toBuilder = methodToMonoString.CilMethodBody.Instructions;
 
-        var createStringNop = toBuilder.Create(OpCodes.Nop);
+        var createStringNop = new CilInstructionLabel();
 
-        toBuilder.Emit(OpCodes.Ldarg_0);
-        toBuilder.Emit(OpCodes.Call, assemblyContext.Imports.IL2CPP_Il2CppObjectBaseToPtr.Value);
-        toBuilder.Emit(OpCodes.Dup);
-        toBuilder.Emit(OpCodes.Brtrue_S, createStringNop);
-        toBuilder.Emit(OpCodes.Pop);
-        toBuilder.Emit(OpCodes.Ldnull);
-        toBuilder.Emit(OpCodes.Ret);
+        toBuilder.Add(OpCodes.Ldarg_0);
+        toBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_Il2CppObjectBaseToPtr.Value);
+        toBuilder.Add(OpCodes.Dup);
+        toBuilder.Add(OpCodes.Brtrue_S, createStringNop);
+        toBuilder.Add(OpCodes.Pop);
+        toBuilder.Add(OpCodes.Ldnull);
+        toBuilder.Add(OpCodes.Ret);
 
-        toBuilder.Append(createStringNop);
-        toBuilder.Emit(OpCodes.Call, assemblyContext.Imports.IL2CPP_Il2CppStringToManaged.Value);
-        toBuilder.Emit(OpCodes.Ret);
+        createStringNop.Instruction = toBuilder.Add(OpCodes.Nop);
+        toBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_Il2CppStringToManaged.Value);
+        toBuilder.Add(OpCodes.Ret);
 
         AddDelegateConversions(context);
 
-        var primitiveTypes = new[]
-        {
+        TypeSignature[] primitiveTypes =
+        [
             assemblyContext.Imports.Module.SByte(),
             assemblyContext.Imports.Module.Byte(),
 
@@ -86,30 +89,31 @@ public static class Pass60AddImplicitConversions
 
             assemblyContext.Imports.Module.Char(),
             assemblyContext.Imports.Module.Bool(),
-        };
+        ];
 
         foreach (var systemType in primitiveTypes)
         {
             var il2CppSystemType = assemblyContext.GetTypeByName(systemType.FullName).NewType;
 
-            var method = new MethodDefinition("op_Implicit", OperatorAttributes, objectTypeContext.NewType);
-            method.Parameters.Add(new ParameterDefinition("value", ParameterAttributes.None, systemType));
+            var method = new MethodDefinition("op_Implicit", OperatorAttributes, MethodSignature.CreateStatic(objectTypeContext.NewType.ToTypeSignature()));
+            method.AddParameter(systemType, "value");
 
-            var il = method.Body.GetILProcessor();
+            method.CilMethodBody = new CilMethodBody(method);
+            var il = method.CilMethodBody.Instructions;
 
-            var structLocal = new VariableDefinition(il2CppSystemType);
-            method.Body.Variables.Add(structLocal);
+            var structLocal = new CilLocalVariable(il2CppSystemType.ToTypeSignature());
+            method.CilMethodBody.LocalVariables.Add(structLocal);
 
-            il.Emit(OpCodes.Ldloca, structLocal);
-            il.Emit(OpCodes.Initobj, il2CppSystemType);
+            il.Add(OpCodes.Ldloca, structLocal);
+            il.Add(OpCodes.Initobj, il2CppSystemType);
 
-            il.Emit(OpCodes.Ldloca, structLocal);
-            il.Emit(OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Stfld, il2CppSystemType.Fields.Single(f => f.Name == "m_value"));
+            il.Add(OpCodes.Ldloca, structLocal);
+            il.Add(OpCodes.Ldarg_0);
+            il.Add(OpCodes.Stfld, il2CppSystemType.Fields.Single(f => f.Name == "m_value"));
 
-            il.Emit(OpCodes.Ldloca_S, structLocal);
-            il.Emit(OpCodes.Call, il2CppSystemType.Methods.Single(m => m.Name == "BoxIl2CppObject"));
-            il.Emit(OpCodes.Ret);
+            il.Add(OpCodes.Ldloca_S, structLocal);
+            il.Add(OpCodes.Call, il2CppSystemType.Methods.Single(m => m.Name == "BoxIl2CppObject"));
+            il.Add(OpCodes.Ret);
 
             objectTypeContext.NewType.Methods.Add(method);
         }
@@ -118,101 +122,94 @@ public static class Pass60AddImplicitConversions
     private static void AddDelegateConversions(RewriteGlobalContext context)
     {
         foreach (var assemblyContext in context.Assemblies)
+        {
             foreach (var typeContext in assemblyContext.Types)
             {
-                if (typeContext.OriginalType.BaseType?.FullName != "System.MulticastDelegate") continue;
-
-                var invokeMethod = typeContext.NewType.Methods.Single(it => it.Name == "Invoke");
-                if (invokeMethod.Parameters.Count > 8) continue; // mscorlib only contains delegates of up to 8 parameters
-
-                // Don't generate implicit conversions for pointers and byrefs, as they can't be specified in generics
-                if (invokeMethod.Parameters.Any(it => it.ParameterType.IsByReference || it.ParameterType.IsPointer))
+                if (typeContext.OriginalType.BaseType?.FullName != "System.MulticastDelegate")
                     continue;
 
-                var implicitMethod = new MethodDefinition("op_Implicit", OperatorAttributes, typeContext.SelfSubstitutedRef);
-                typeContext.NewType.Methods.Add(implicitMethod);
+                var invokeMethod = typeContext.NewType.Methods.Single(it => it.Name == "Invoke");
+                if (invokeMethod.Parameters.Count > 8)
+                    continue; // mscorlib only contains delegates of up to 8 parameters
 
-                var hasReturn = invokeMethod.ReturnType.FullName != "System.Void";
+                // Don't generate implicit conversions for pointers and byrefs, as they can't be specified in generics
+                if (invokeMethod.Parameters.Any(it => it.ParameterType is PointerTypeSignature or ByReferenceTypeSignature))
+                    continue;
+
+                var implicitMethod = new MethodDefinition("op_Implicit", OperatorAttributes, MethodSignature.CreateStatic(typeContext.SelfSubstitutedRef.ToTypeSignature()));
+                typeContext.NewType.Methods.Add(implicitMethod);
+                implicitMethod.CilMethodBody = new CilMethodBody(implicitMethod);
+
+                var hasReturn = invokeMethod.Signature!.ReturnType.FullName != "System.Void";
                 var hasParameters = invokeMethod.Parameters.Count > 0;
 
-                TypeReference monoDelegateType;
+                TypeSignature monoDelegateType;
                 if (!hasReturn && !hasParameters)
-                    monoDelegateType =
-                        typeContext.NewType.Module.Action();
+                    monoDelegateType = typeContext.NewType.Module!.Action();
                 else if (!hasReturn)
-                    monoDelegateType =
-                        typeContext.NewType.Module.Action(invokeMethod.Parameters.Count);
+                    monoDelegateType = typeContext.NewType.Module!.Action(invokeMethod.Parameters.Count);
                 else
-                    monoDelegateType =
-                        typeContext.NewType.Module.Func(invokeMethod.Parameters.Count);
+                    monoDelegateType = typeContext.NewType.Module!.Func(invokeMethod.Parameters.Count);
 
-                GenericInstanceType genericInstanceType = null;
+                GenericInstanceTypeSignature? genericInstanceType = null;
                 if (hasParameters)
                 {
-                    genericInstanceType = new GenericInstanceType(monoDelegateType);
+                    genericInstanceType = new GenericInstanceTypeSignature(monoDelegateType.ToTypeDefOrRef(), false);
                     foreach (var t in invokeMethod.Parameters)
-                        genericInstanceType.GenericArguments.Add(t.ParameterType);
+                        genericInstanceType.TypeArguments.Add(t.ParameterType);
                 }
 
                 if (hasReturn)
                 {
-                    genericInstanceType ??= new GenericInstanceType(monoDelegateType);
-                    genericInstanceType.GenericArguments.Add(invokeMethod.ReturnType);
+                    genericInstanceType ??= new GenericInstanceTypeSignature(monoDelegateType.ToTypeDefOrRef(), false);
+                    genericInstanceType.TypeArguments.Add(invokeMethod.Signature.ReturnType);
                 }
 
-                implicitMethod.Parameters.Add(new ParameterDefinition(genericInstanceType != null
-                    ? typeContext.NewType.Module.ImportReference(genericInstanceType)
-                    : monoDelegateType));
+                implicitMethod.AddParameter(genericInstanceType != null
+                    ? typeContext.NewType.Module!.DefaultImporter.ImportTypeSignature(genericInstanceType)
+                    : monoDelegateType);
 
-                var bodyBuilder = implicitMethod.Body.GetILProcessor();
+                var bodyBuilder = implicitMethod.CilMethodBody.Instructions;
 
-                bodyBuilder.Emit(OpCodes.Ldarg_0);
+                bodyBuilder.Add(OpCodes.Ldarg_0);
                 var delegateSupportTypeRef = typeContext.AssemblyContext.Imports.DelegateSupport;
-                var genericConvertRef =
-                    new MethodReference("ConvertDelegate", assemblyContext.Imports.Module.Void(), delegateSupportTypeRef)
-                    {
-                        HasThis = false,
-                        Parameters = { new ParameterDefinition(assemblyContext.Imports.Module.Delegate()) }
-                    };
-                genericConvertRef.GenericParameters.Add(new GenericParameter(genericConvertRef));
-                genericConvertRef.ReturnType = genericConvertRef.GenericParameters[0];
-                var convertMethodRef = new GenericInstanceMethod(genericConvertRef)
-                { GenericArguments = { typeContext.SelfSubstitutedRef } };
-                bodyBuilder.Emit(OpCodes.Call, typeContext.NewType.Module.ImportReference(convertMethodRef));
-                bodyBuilder.Emit(OpCodes.Ret);
+                var genericConvertSignature = MethodSignature.CreateStatic(new GenericParameterSignature(GenericParameterType.Method, 0), 1, assemblyContext.Imports.Module.Delegate());
+                var genericConvertRef = new MemberReference(delegateSupportTypeRef.ToTypeDefOrRef(), "ConvertDelegate", genericConvertSignature);
+                var convertMethodRef = genericConvertRef.MakeGenericInstanceMethod(typeContext.SelfSubstitutedRef.ToTypeSignature());
+                bodyBuilder.Add(OpCodes.Call, typeContext.NewType.Module!.DefaultImporter.ImportMethod(convertMethodRef));
+                bodyBuilder.Add(OpCodes.Ret);
 
                 // public static T operator+(T lhs, T rhs) => Il2CppSystem.Delegate.Combine(lhs, rhs).Cast<T>();
-                var addMethod = new MethodDefinition("op_Addition", OperatorAttributes, typeContext.SelfSubstitutedRef);
+                var addMethod = new MethodDefinition("op_Addition", OperatorAttributes, MethodSignature.CreateStatic(typeContext.SelfSubstitutedRef.ToTypeSignature()));
                 typeContext.NewType.Methods.Add(addMethod);
-                addMethod.Parameters.Add(new ParameterDefinition(typeContext.SelfSubstitutedRef));
-                addMethod.Parameters.Add(new ParameterDefinition(typeContext.SelfSubstitutedRef));
-                var addBody = addMethod.Body.GetILProcessor();
-                addBody.Emit(OpCodes.Ldarg_0);
-                addBody.Emit(OpCodes.Ldarg_1);
-                addBody.Emit(OpCodes.Call, assemblyContext.Imports.Il2CppSystemDelegateCombine.Value);
-                addBody.Emit(OpCodes.Call,
-                    assemblyContext.Imports.Module.ImportReference(
-                        new GenericInstanceMethod(assemblyContext.Imports.Il2CppObjectBase_Cast.Value)
-                        { GenericArguments = { typeContext.SelfSubstitutedRef } }));
-                addBody.Emit(OpCodes.Ret);
+                addMethod.AddParameter(typeContext.SelfSubstitutedRef.ToTypeSignature());
+                addMethod.AddParameter(typeContext.SelfSubstitutedRef.ToTypeSignature());
+                addMethod.CilMethodBody = new CilMethodBody(addMethod);
+                var addBody = addMethod.CilMethodBody.Instructions;
+                addBody.Add(OpCodes.Ldarg_0);
+                addBody.Add(OpCodes.Ldarg_1);
+                addBody.Add(OpCodes.Call, assemblyContext.Imports.Il2CppSystemDelegateCombine.Value);
+                addBody.Add(OpCodes.Call,
+                    assemblyContext.Imports.Module.DefaultImporter.ImportMethod(assemblyContext.Imports.Il2CppObjectBase_Cast.Value.MakeGenericInstanceMethod(typeContext.SelfSubstitutedRef.ToTypeSignature())));
+                addBody.Add(OpCodes.Ret);
 
                 // public static T operator-(T lhs, T rhs) => Il2CppSystem.Delegate.Remove(lhs, rhs)?.Cast<T>();
-                var subtractMethod = new MethodDefinition("op_Subtraction", OperatorAttributes, typeContext.SelfSubstitutedRef);
+                var subtractMethod = new MethodDefinition("op_Subtraction", OperatorAttributes, MethodSignature.CreateStatic(typeContext.SelfSubstitutedRef.ToTypeSignature()));
                 typeContext.NewType.Methods.Add(subtractMethod);
-                subtractMethod.Parameters.Add(new ParameterDefinition(typeContext.SelfSubstitutedRef));
-                subtractMethod.Parameters.Add(new ParameterDefinition(typeContext.SelfSubstitutedRef));
-                var subtractBody = subtractMethod.Body.GetILProcessor();
-                subtractBody.Emit(OpCodes.Ldarg_0);
-                subtractBody.Emit(OpCodes.Ldarg_1);
-                subtractBody.Emit(OpCodes.Call, assemblyContext.Imports.Il2CppSystemDelegateRemove.Value);
-                subtractBody.Emit(OpCodes.Dup);
-                var ret = subtractBody.Create(OpCodes.Ret);
-                subtractBody.Emit(OpCodes.Brfalse_S, ret);
-                subtractBody.Emit(OpCodes.Call,
-                    assemblyContext.Imports.Module.ImportReference(
-                        new GenericInstanceMethod(assemblyContext.Imports.Il2CppObjectBase_Cast.Value)
-                        { GenericArguments = { typeContext.SelfSubstitutedRef } }));
-                subtractBody.Append(ret);
+                subtractMethod.AddParameter(typeContext.SelfSubstitutedRef.ToTypeSignature());
+                subtractMethod.AddParameter(typeContext.SelfSubstitutedRef.ToTypeSignature());
+                subtractMethod.CilMethodBody = new CilMethodBody(subtractMethod);
+                var subtractBody = subtractMethod.CilMethodBody.Instructions;
+                subtractBody.Add(OpCodes.Ldarg_0);
+                subtractBody.Add(OpCodes.Ldarg_1);
+                subtractBody.Add(OpCodes.Call, assemblyContext.Imports.Il2CppSystemDelegateRemove.Value);
+                subtractBody.Add(OpCodes.Dup);
+                var ret = new CilInstructionLabel();
+                subtractBody.Add(OpCodes.Brfalse_S, ret);
+                subtractBody.Add(OpCodes.Call,
+                    assemblyContext.Imports.Module.DefaultImporter.ImportMethod(assemblyContext.Imports.Il2CppObjectBase_Cast.Value.MakeGenericInstanceMethod(typeContext.SelfSubstitutedRef.ToTypeSignature())));
+                ret.Instruction = subtractBody.Add(OpCodes.Ret);
             }
+        }
     }
 }

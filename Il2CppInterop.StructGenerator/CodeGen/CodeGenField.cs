@@ -35,4 +35,14 @@ internal class CodeGenField : CodeGenElement
         if (lhs.Name != rhs.Name) return false;
         return lhs.DefaultValue == rhs.DefaultValue;
     }
+
+    public override bool Equals(object obj)
+    {
+        return obj is CodeGenField field && this == field;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Type, Name, DefaultValue);
+    }
 }

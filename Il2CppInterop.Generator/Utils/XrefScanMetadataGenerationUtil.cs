@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
@@ -24,7 +22,7 @@ internal static class XrefScanMetadataGenerationUtil
         {
             var assembly =
                 context.Assemblies.FirstOrDefault(it =>
-                    it.OriginalAssembly.Name.Name == metadataInitCandidate.Assembly);
+                    it.OriginalAssembly.Name == metadataInitCandidate.Assembly);
             var unityObjectCctor = assembly?.TryGetTypeByName(metadataInitCandidate.Type)?.OriginalType.Methods
                 .FirstOrDefault(it => it.Name == metadataInitCandidate.Method);
 

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Il2CppInterop.Generator.Extensions;
 
 namespace Il2CppInterop.Generator.Utils;

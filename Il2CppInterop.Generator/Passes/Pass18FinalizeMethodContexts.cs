@@ -1,8 +1,9 @@
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Utils;
 using Microsoft.Extensions.Logging;
-using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -18,7 +19,9 @@ public static class Pass18FinalizeMethodContexts
         var pdmTopNZCaller = 0;
 
         foreach (var assemblyContext in context.Assemblies)
+        {
             foreach (var typeContext in assemblyContext.Types)
+            {
                 foreach (var methodContext in typeContext.Methods)
                 {
                     methodContext.CtorPhase2();
@@ -30,14 +33,10 @@ public static class Pass18FinalizeMethodContexts
                             callerCount = callers.Count;
 
                         methodContext.NewMethod.CustomAttributes.Add(
-                            new CustomAttribute(assemblyContext.Imports.CallerCountAttributector.Value)
-                            {
-                                ConstructorArguments =
-                                    {new CustomAttributeArgument(assemblyContext.Imports.Module.Int(), callerCount)}
-                            });
+                            new CustomAttribute((ICustomAttributeType)assemblyContext.Imports.CallerCountAttributector.Value, new CustomAttributeSignature(new CustomAttributeArgument(assemblyContext.Imports.Module.Int(), callerCount))));
 
                         if (!Pass15GenerateMemberContexts.HasObfuscatedMethods) continue;
-                        if (!methodContext.UnmangledName.Contains("_PDM_")) continue;
+                        if (methodContext.UnmangledName?.Contains("_PDM_") is not true) continue;
                         TotalPotentiallyDeadMethods++;
 
                         var hasZeroCallers = callerCount == 0;
@@ -57,6 +56,8 @@ public static class Pass18FinalizeMethodContexts
                         }
                     }
                 }
+            }
+        }
 
         if (Pass15GenerateMemberContexts.HasObfuscatedMethods)
         {

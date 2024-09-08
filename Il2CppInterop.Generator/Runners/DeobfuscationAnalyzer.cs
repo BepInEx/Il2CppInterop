@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using Il2CppInterop.Generator.Contexts;
+﻿using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.MetadataAccess;
 using Il2CppInterop.Generator.Passes;
 using Il2CppInterop.Generator.Utils;
@@ -25,7 +23,7 @@ internal class DeobfuscationAnalyzerRunner : IRunner
         IIl2CppMetadataAccess inputAssemblies;
         using (new TimingCookie("Reading assemblies"))
         {
-            inputAssemblies = new CecilMetadataAccess(options.Source);
+            inputAssemblies = new AssemblyMetadataAccess(options.Source ?? throw new ArgumentException("Source assemblies must be provided.", nameof(options)));
         }
 
         using (new TimingCookie("Creating assembly contexts"))

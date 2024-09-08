@@ -82,4 +82,14 @@ internal class CodeGenClass : CodeGenElement
 
         return true;
     }
+
+    public override bool Equals(object obj)
+    {
+        return obj is CodeGenClass @class && this == @class;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Fields.Count, NestedElements.Count);
+    }
 }
