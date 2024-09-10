@@ -140,8 +140,15 @@ public class MethodRewriteContext
 
                 foreach (var oldConstraint in oldParameter.Constraints)
                 {
-                    if (oldConstraint.Constraint?.FullName == "System.ValueType" ||
-                        oldConstraint.Constraint?.Resolve()?.IsInterface == true) continue;
+                    if (oldConstraint.IsSystemValueType() || oldConstraint.IsInterface())
+                        continue;
+
+                    if (oldConstraint.IsSystemEnum())
+                    {
+                        newParameter.Constraints.Add(new GenericParameterConstraint(
+                            DeclaringType.AssemblyContext.Imports.Module.Enum().ToTypeDefOrRef()));
+                        continue;
+                    }
 
                     newParameter.Constraints.Add(new GenericParameterConstraint(
                         DeclaringType.AssemblyContext.RewriteTypeRef(oldConstraint.Constraint?.ToTypeSignature()).ToTypeDefOrRef()));
