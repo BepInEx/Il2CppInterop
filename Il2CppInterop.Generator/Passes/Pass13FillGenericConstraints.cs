@@ -1,5 +1,7 @@
 using AsmResolver.DotNet;
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Extensions;
+using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -17,9 +19,15 @@ public static class Pass13FillGenericConstraints
                     var newParameter = typeContext.NewType.GenericParameters[i];
                     foreach (var originalConstraint in originalParameter.Constraints)
                     {
-                        if (originalConstraint.Constraint?.FullName is "System.ValueType" ||
-                            originalConstraint.Constraint?.Resolve()?.IsInterface == true)
+                        if (originalConstraint.IsSystemValueType() || originalConstraint.IsInterface())
                             continue;
+
+                        if (originalConstraint.IsSystemEnum())
+                        {
+                            newParameter.Constraints.Add(new GenericParameterConstraint(
+                                typeContext.AssemblyContext.Imports.Module.Enum().ToTypeDefOrRef()));
+                            continue;
+                        }
 
                         newParameter.Constraints.Add(
                             new GenericParameterConstraint(

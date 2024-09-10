@@ -53,6 +53,12 @@ internal static class AsmResolverExtensions
 
     public static bool IsNested(this TypeSignature type) => type.DeclaringType is not null;
 
+    public static bool IsSystemEnum(this GenericParameterConstraint constraint) => constraint.Constraint?.FullName is "System.Enum";
+
+    public static bool IsSystemValueType(this GenericParameterConstraint constraint) => constraint.Constraint?.FullName is "System.ValueType";
+
+    public static bool IsInterface(this GenericParameterConstraint constraint) => constraint.Constraint?.Resolve()?.IsInterface == true;
+
     public static ITypeDefOrRef? AttributeType(this CustomAttribute attribute) => attribute.Constructor?.DeclaringType;
 
     public static Parameter AddParameter(this MethodDefinition method, TypeSignature parameterSignature, string parameterName, ParameterAttributes parameterAttributes = default)
