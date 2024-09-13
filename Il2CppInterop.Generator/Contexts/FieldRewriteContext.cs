@@ -7,6 +7,7 @@ using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Contexts;
 
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
 public class FieldRewriteContext
 {
     private static readonly string[] MethodAccessTypeLabels =
@@ -83,5 +84,10 @@ public class FieldRewriteContext
             unmangleFieldNameBase = newName;
 
         return unmangleFieldNameBase;
+    }
+
+    private string GetDebuggerDisplay()
+    {
+        return DeclaringType.NewType.FullName + "::" + UnmangledName;
     }
 }
