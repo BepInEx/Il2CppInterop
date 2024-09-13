@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using Il2CppInterop.Generator.Extensions;
@@ -5,6 +6,7 @@ using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Contexts;
 
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
 public class AssemblyRewriteContext
 {
     // TODO: Dispose
@@ -147,5 +149,10 @@ public class AssemblyRewriteContext
     public TypeRewriteContext? TryGetTypeByName(string name)
     {
         return myNameTypeMap.TryGetValue(name, out var result) ? result : null;
+    }
+
+    private string GetDebuggerDisplay()
+    {
+        return NewAssembly.FullName;
     }
 }

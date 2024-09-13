@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
@@ -6,6 +7,7 @@ using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Contexts;
 
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
 public class TypeRewriteContext
 {
     public enum TypeSpecifics
@@ -179,5 +181,10 @@ public class TypeRewriteContext
         }
 
         return null;
+    }
+
+    private string GetDebuggerDisplay()
+    {
+        return NewType.FullName;
     }
 }

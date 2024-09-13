@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using AsmResolver.DotNet;
@@ -10,6 +11,7 @@ using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Contexts;
 
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
 public class MethodRewriteContext
 {
     private static readonly string[] MethodAccessTypeLabels =
@@ -308,5 +310,10 @@ public class MethodRewriteContext
         }
 
         return true;
+    }
+
+    private string GetDebuggerDisplay()
+    {
+        return NewMethod.FullName;
     }
 }
