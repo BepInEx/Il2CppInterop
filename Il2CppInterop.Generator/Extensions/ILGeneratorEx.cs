@@ -31,7 +31,14 @@ public static class ILGeneratorEx
             body.Add(OpCodes.Call, imports.IL2CPP_ManagedStringToIl2Cpp.Value);
             body.Add(OpCodes.Call, imports.WriteFieldWBarrier);
         }
-        else if (originalType.IsValueTypeLike())
+        else if (originalType.IsPointerLike())
+        {
+            Debug.Assert(newType.IsPointerLike());
+            body.AddLoadArgument(argumentIndex);
+            body.Add(OpCodes.Stobj, newType.ToTypeDefOrRef());
+            body.Add(OpCodes.Pop);
+        }
+        else if (originalType.IsValueType)
         {
             var typeSpecifics = enclosingType.AssemblyContext.GlobalContext.JudgeSpecificsByOriginalType(originalType);
             if (typeSpecifics == TypeRewriteContext.TypeSpecifics.BlittableStruct)
@@ -182,9 +189,14 @@ public static class ILGeneratorEx
                 body.Add(OpCodes.Conv_I);
             }
         }
-        else if (originalType.IsValueTypeLike())
+        else if (originalType.IsPointerLike())
         {
-            if (newType.IsValueTypeLike())
+            Debug.Assert(newType.IsPointerLike());
+            body.AddLoadArgument(argumentIndex);
+        }
+        else if (originalType.IsValueType)
+        {
+            if (newType.IsValueType)
             {
                 if (argumentIndex == 0 && valueTypeArgument0IsAPointer)
                     body.Add(OpCodes.Ldarg_0);
@@ -285,9 +297,14 @@ public static class ILGeneratorEx
         {
             // do nothing
         }
-        else if (originalReturnType.IsValueTypeLike())
+        else if (originalReturnType.IsPointerLike())
         {
-            if (convertedReturnType.IsValueTypeLike())
+            Debug.Assert(convertedReturnType.IsPointerLike());
+            body.Add(OpCodes.Ldloc, pointerVariable);
+        }
+        else if (originalReturnType.IsValueType)
+        {
+            if (convertedReturnType.IsValueType)
             {
                 body.Add(OpCodes.Ldloc, pointerVariable);
                 if (unboxValueType) body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_object_unbox.Value);
