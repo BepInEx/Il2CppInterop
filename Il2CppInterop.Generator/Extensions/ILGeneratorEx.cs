@@ -85,11 +85,6 @@ public static class ILGeneratorEx
 
         body.Add(OpCodes.Brtrue, valueTypeNop);
 
-        body.Add(OpCodes.Dup);
-        body.Add(OpCodes.Callvirt, enclosingType.NewType.Module!.TypeGetIsPointer());
-
-        body.Add(OpCodes.Brtrue, valueTypeNop);
-
         body.Add(OpCodes.Callvirt, enclosingType.NewType.Module!.TypeGetFullName());
         body.Add(OpCodes.Ldstr, "System.String");
         body.Add(OpCodes.Call, enclosingType.NewType.Module!.StringEquals());
@@ -233,12 +228,6 @@ public static class ILGeneratorEx
         var finalNop = new CilInstructionLabel();
         var valueTypeNop = new CilInstructionLabel();
         var stringNop = new CilInstructionLabel();
-
-        body.Add(OpCodes.Brtrue, valueTypeNop);
-
-        body.Add(OpCodes.Ldtoken, newType.ToTypeDefOrRef());
-        body.Add(OpCodes.Call, enclosingType.NewType.Module!.TypeGetTypeFromHandle());
-        body.Add(OpCodes.Callvirt, enclosingType.NewType.Module!.TypeGetIsPointer());
 
         body.Add(OpCodes.Brtrue, valueTypeNop);
 

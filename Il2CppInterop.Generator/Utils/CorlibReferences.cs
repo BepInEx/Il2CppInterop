@@ -216,12 +216,6 @@ internal static class CorlibReferences
         return new MemberReference(type.ToTypeDefOrRef(), "get_IsValueType", MethodSignature.CreateInstance(module.Bool()));
     }
 
-    public static MemberReference TypeGetIsPointer(this ModuleDefinition module)
-    {
-        var type = module.Type();
-        return new MemberReference(type.ToTypeDefOrRef(), "get_IsPointer", MethodSignature.CreateInstance(module.Bool()));
-    }
-
     public static MemberReference TypeGetFullName(this ModuleDefinition module)
     {
         var type = module.Type();
