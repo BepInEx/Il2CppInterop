@@ -63,12 +63,11 @@ internal static class AsmResolverExtensions
 
     public static Parameter AddParameter(this MethodDefinition method, TypeSignature parameterSignature, string parameterName, ParameterAttributes parameterAttributes = default)
     {
-        var parameterDefinition = new ParameterDefinition((ushort)(method.Signature!.ParameterTypes.Count + 1), parameterName, parameterAttributes);
-        method.Signature.ParameterTypes.Add(parameterSignature);
-        method.ParameterDefinitions.Add(parameterDefinition);
-
-        method.Parameters.PullUpdatesFromMethodSignature();
-        return method.Parameters.Single(parameter => parameter.Name == parameterName && parameter.ParameterType == parameterSignature);
+        var parameter = method.AddParameter(parameterSignature);
+        var parameterDefinition = parameter.GetOrCreateDefinition();
+        parameterDefinition.Name = parameterName;
+        parameterDefinition.Attributes = parameterAttributes;
+        return parameter;
     }
 
     public static Parameter AddParameter(this MethodDefinition method, TypeSignature parameterSignature)

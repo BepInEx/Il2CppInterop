@@ -44,7 +44,7 @@ public static class Pass70GenerateProperties
                 string? defaultMemberName = null;
                 var defaultMemberAttributeAttribute = type.CustomAttributes.FirstOrDefault(it =>
                     it.AttributeType()?.Name == "AttributeAttribute" && it.Signature!.NamedArguments.Any(it =>
-                        it.MemberName == "Name" && (Utf8String?)it.Argument.Element == nameof(DefaultMemberAttribute)));
+                        it.MemberName == "Name" && it.Argument.GetElementAsString() == nameof(DefaultMemberAttribute)));
                 if (defaultMemberAttributeAttribute != null)
                 {
                     defaultMemberName = "Item";

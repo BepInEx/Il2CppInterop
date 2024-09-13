@@ -1,5 +1,6 @@
 using AsmResolver;
 using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures;
 
 namespace Il2CppInterop.Generator.Extensions;
 
@@ -25,13 +26,18 @@ public static class CustomAttributeEx
         return ExtractInt(originalField, "FieldOffsetAttribute", "Offset");
     }
 
+    public static string? GetElementAsString(this CustomAttributeArgument argument)
+    {
+        return argument.Element as Utf8String ?? argument.Element as string;
+    }
+
     private static string? Extract(this IHasCustomAttribute originalMethod, string attributeName,
         string parameterName)
     {
         var attribute = originalMethod.CustomAttributes.SingleOrDefault(it => it.Constructor?.DeclaringType?.Name == attributeName);
         var field = attribute?.Signature?.NamedArguments.SingleOrDefault(it => it.MemberName == parameterName);
 
-        return (Utf8String?)field?.Argument.Element;
+        return field?.Argument.GetElementAsString();
     }
 
     private static long ExtractLong(this IHasCustomAttribute originalMethod, string attributeName, string parameterName)
