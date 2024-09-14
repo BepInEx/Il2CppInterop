@@ -81,7 +81,7 @@ public static class UnstripGenerator
         }
 
         body.Add(OpCodes.Call, delegateType.Methods.Single(it => it.Name == "Invoke"));
-        if (!newMethod.Signature!.ReturnType.IsValueType)
+        if (!newMethod.Signature!.ReturnType.IsValueTypeLike())
         {
             var pointerVar = new CilLocalVariable(imports.Module.IntPtr());
             newMethod.CilMethodBody.LocalVariables.Add(pointerVar);
