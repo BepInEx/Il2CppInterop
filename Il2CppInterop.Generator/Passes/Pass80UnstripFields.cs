@@ -25,13 +25,15 @@ public static class Pass80UnstripFields
                 var processedType = processedAssembly.TryGetTypeByName(unityType.FullName);
                 if (processedType == null) continue;
 
-                if (!unityType.IsValueType || unityType.IsEnum)
-                    continue;
+                if (unityType.IsEnum)
+                    continue;// Enum fields do not get stripped.
 
                 foreach (var unityField in unityType.Fields)
                 {
-                    if (unityField.IsStatic && !unityField.HasConstant()) continue;
-                    if (processedType.NewType.IsExplicitLayout && !unityField.IsStatic) continue;
+                    if (unityField.IsStatic && !unityField.HasConstant())
+                        continue;// Non-constant static fields might require initialization, which we can't do.
+                    if (unityField.IsInstance() && (processedType.OriginalType is not null || processedType.NewType.IsReferenceType()))
+                        continue;// Instance fields are only supported on newly created value types.
 
                     var processedField = processedType.TryGetFieldByUnityAssemblyField(unityField);
                     if (processedField != null) continue;

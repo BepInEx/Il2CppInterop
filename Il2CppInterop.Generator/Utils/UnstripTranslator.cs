@@ -102,7 +102,10 @@ public static class UnstripTranslator
                     Pass80UnstripMethods.ResolveTypeInNewAssembliesRaw(globalContext, fieldArg.DeclaringType!.ToTypeSignature(), imports);
                 if (fieldDeclarer == null)
                     return false;
-                var newField = fieldDeclarer.Resolve()?.Fields.SingleOrDefault(it => it.Name == fieldArg.Name);
+                var fieldDeclarerDefinition = fieldDeclarer.Resolve();
+                if (fieldDeclarerDefinition == null)
+                    return false;
+                var newField = fieldDeclarerDefinition.Fields.SingleOrDefault(it => it.Name == fieldArg.Name);
                 if (newField != null)
                 {
                     var newInstruction = targetBuilder.Add(bodyInstruction.OpCode, imports.Module.DefaultImporter.ImportField(newField));
@@ -112,7 +115,7 @@ public static class UnstripTranslator
                 {
                     if (bodyInstruction.OpCode == OpCodes.Ldfld || bodyInstruction.OpCode == OpCodes.Ldsfld)
                     {
-                        var getterMethod = fieldDeclarer.Resolve()?.Properties
+                        var getterMethod = fieldDeclarerDefinition.Properties
                             .SingleOrDefault(it => it.Name == fieldArg.Name)?.GetMethod;
                         if (getterMethod == null)
                             return false;
@@ -122,7 +125,7 @@ public static class UnstripTranslator
                     }
                     else if (bodyInstruction.OpCode == OpCodes.Stfld || bodyInstruction.OpCode == OpCodes.Stsfld)
                     {
-                        var setterMethod = fieldDeclarer.Resolve()?.Properties
+                        var setterMethod = fieldDeclarerDefinition.Properties
                             .SingleOrDefault(it => it.Name == fieldArg.Name)?.SetMethod;
                         if (setterMethod == null)
                             return false;
