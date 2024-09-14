@@ -137,6 +137,9 @@ public class RewriteGlobalContext : IDisposable
             {
                 var newGenericParameter = new GenericParameter(genericParameter.Name, genericParameter.Attributes);
 
+                if (newGenericParameter.Name.IsInvalidInSource())
+                    newGenericParameter.Name = newGenericParameter.Name.FilterInvalidInSourceChars();
+
                 foreach (var constraint in genericParameter.Constraints)
                 {
                     var newConstraintType = constraint.Constraint != null ? resolve(constraint.Constraint.ToTypeSignature())?.ToTypeDefOrRef() : null;
