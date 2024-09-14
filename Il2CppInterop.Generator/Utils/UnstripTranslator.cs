@@ -110,7 +110,12 @@ public static class UnstripTranslator
                 var fieldDeclarerDefinition = fieldDeclarer.Resolve();
                 if (fieldDeclarerDefinition == null)
                     return false;
-                var newField = fieldDeclarerDefinition.Fields.SingleOrDefault(it => it.Name == fieldArg.Name);
+
+                var fieldDeclarerContext = globalContext.GetContextForNewType(fieldDeclarerDefinition);
+                var propertyName = fieldDeclarerContext.Fields.SingleOrDefault(it => it.OriginalField.Name == fieldArg.Name)?.UnmangledName;
+
+                var newField = fieldDeclarerDefinition.Fields.SingleOrDefault(it => it.Name == fieldArg.Name)
+                    ?? fieldDeclarerDefinition.Fields.SingleOrDefault(it => it.Name == propertyName);
                 if (newField != null)
                 {
                     var newInstruction = targetBuilder.Add(bodyInstruction.OpCode, imports.Module.DefaultImporter.ImportField(newField));
@@ -118,10 +123,14 @@ public static class UnstripTranslator
                 }
                 else
                 {
-                    if (bodyInstruction.OpCode == OpCodes.Ldfld || bodyInstruction.OpCode == OpCodes.Ldsfld)
+                    if (propertyName == null)
+                    {
+                        return false;
+                    }
+                    else if (bodyInstruction.OpCode == OpCodes.Ldfld || bodyInstruction.OpCode == OpCodes.Ldsfld)
                     {
                         var getterMethod = fieldDeclarerDefinition.Properties
-                            .SingleOrDefault(it => it.Name == fieldArg.Name)?.GetMethod;
+                            .SingleOrDefault(it => it.Name == propertyName)?.GetMethod;
                         if (getterMethod == null)
                             return false;
 
@@ -131,7 +140,7 @@ public static class UnstripTranslator
                     else if (bodyInstruction.OpCode == OpCodes.Stfld || bodyInstruction.OpCode == OpCodes.Stsfld)
                     {
                         var setterMethod = fieldDeclarerDefinition.Properties
-                            .SingleOrDefault(it => it.Name == fieldArg.Name)?.SetMethod;
+                            .SingleOrDefault(it => it.Name == propertyName)?.SetMethod;
                         if (setterMethod == null)
                             return false;
 

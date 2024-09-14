@@ -120,6 +120,11 @@ public class RewriteGlobalContext : IDisposable
         return null;
     }
 
+    public TypeRewriteContext GetContextForNewType(TypeDefinition type)
+    {
+        return GetAssemblyByName(type.Module!.Assembly!.Name!).GetContextForNewType(type);
+    }
+
     public MethodDefinition? CreateParamsMethod(MethodDefinition originalMethod, MethodDefinition newMethod,
         RuntimeAssemblyReferences imports, Func<TypeSignature, TypeSignature?> resolve)
     {
