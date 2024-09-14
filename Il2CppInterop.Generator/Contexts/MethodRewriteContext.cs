@@ -76,6 +76,9 @@ public class MethodRewriteContext
                 var genericParameter = new GenericParameter(oldParameter.Name);
                 genericParameter.Attributes = oldParameter.Attributes.StripValueTypeConstraint();
                 newMethod.GenericParameters.Add(genericParameter);
+
+                if (genericParameter.Name.IsInvalidInSource())
+                    genericParameter.Name = genericParameter.Name.FilterInvalidInSourceChars();
             }
         }
 
@@ -135,6 +138,8 @@ public class MethodRewriteContext
             {
                 var oldParameter = genericParams[index];
                 var genericParameter = new GenericParameter(oldParameter.Name);
+                if (genericParameter.Name.IsInvalidInSource())
+                    genericParameter.Name = genericParameter.Name.FilterInvalidInSourceChars();
                 genericMethodInfoStoreType.GenericParameters.Add(genericParameter);
                 selfSubstRef.TypeArguments.Add(genericParameter.ToTypeSignature());
                 var newParameter = NewMethod.GenericParameters[index];
