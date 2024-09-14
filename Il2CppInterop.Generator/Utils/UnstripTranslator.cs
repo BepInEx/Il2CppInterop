@@ -341,13 +341,86 @@ public static class UnstripTranslator
             newLabel.Instruction = instructionMap[oldLabel.Instruction!];
         }
 
+        // Copy exception handlers
+        foreach (var exceptionHandler in original.CilMethodBody.ExceptionHandlers)
+        {
+            var newExceptionHandler = new CilExceptionHandler
+            {
+                HandlerType = exceptionHandler.HandlerType
+            };
+
+            switch (exceptionHandler.TryStart)
+            {
+                case null:
+                    break;
+                case CilInstructionLabel { Instruction: not null } tryStart:
+                    newExceptionHandler.TryStart = new CilInstructionLabel(instructionMap[tryStart.Instruction]);
+                    break;
+                default:
+                    return false;
+            }
+
+            switch (exceptionHandler.TryEnd)
+            {
+                case null:
+                    break;
+                case CilInstructionLabel { Instruction: not null } tryEnd:
+                    newExceptionHandler.TryEnd = new CilInstructionLabel(instructionMap[tryEnd.Instruction]);
+                    break;
+                default:
+                    return false;
+            }
+
+            switch (exceptionHandler.HandlerStart)
+            {
+                case null:
+                    break;
+                case CilInstructionLabel { Instruction: not null } handlerStart:
+                    newExceptionHandler.HandlerStart = new CilInstructionLabel(instructionMap[handlerStart.Instruction]);
+                    break;
+                default:
+                    return false;
+            }
+
+            switch (exceptionHandler.HandlerEnd)
+            {
+                case null:
+                    break;
+                case CilInstructionLabel { Instruction: not null } handlerEnd:
+                    newExceptionHandler.HandlerEnd = new CilInstructionLabel(instructionMap[handlerEnd.Instruction]);
+                    break;
+                default:
+                    return false;
+            }
+
+            switch (exceptionHandler.FilterStart)
+            {
+                case null:
+                    break;
+                case CilInstructionLabel { Instruction: not null } filterStart:
+                    newExceptionHandler.FilterStart = new CilInstructionLabel(instructionMap[filterStart.Instruction]);
+                    break;
+                default:
+                    return false;
+            }
+
+            if (exceptionHandler.ExceptionType is not null)
+            {
+                var exceptionType = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, exceptionHandler.ExceptionType.ToTypeSignature(), imports);
+                if (exceptionType == null)
+                    return false;
+                newExceptionHandler.ExceptionType = exceptionType.ToTypeDefOrRef();
+            }
+
+            target.CilMethodBody.ExceptionHandlers.Add(newExceptionHandler);
+        }
+
         return true;
     }
 
     public static void ReplaceBodyWithException(MethodDefinition newMethod, RuntimeAssemblyReferences imports)
     {
-        newMethod.CilMethodBody!.LocalVariables.Clear();
-        newMethod.CilMethodBody.Instructions.Clear();
+        newMethod.CilMethodBody = new(newMethod);
         var processor = newMethod.CilMethodBody.Instructions;
 
         processor.Add(OpCodes.Ldstr, "Method unstripping failed");
