@@ -39,8 +39,6 @@ internal static class AsmResolverExtensions
                 : method.Parameters[argumentIndex - 1];
     }
 
-    public static bool IsReferenceType(this TypeDefinition type) => !type.IsValueType;
-
     public static bool HasGenericParameters(this TypeDefinition type) => type.GenericParameters.Count > 0;
 
     public static bool HasGenericParameters(this MethodDefinition method) => method.GenericParameters.Count > 0;
