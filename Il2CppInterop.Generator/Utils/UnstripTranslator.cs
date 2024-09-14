@@ -5,7 +5,6 @@ using AsmResolver.DotNet.Collections;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Cil;
 using Il2CppInterop.Generator.Contexts;
-using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Passes;
 
 namespace Il2CppInterop.Generator.Utils;
@@ -160,7 +159,7 @@ public static class UnstripTranslator
                 var methodDeclarer =
                     Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArg.DeclaringType?.ToTypeSignature(), imports);
                 if (methodDeclarer == null)
-                    return false; // todo: generic methods
+                    return false;
 
                 var newReturnType =
                     Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArg.Signature?.ReturnType, imports);
@@ -180,35 +179,39 @@ public static class UnstripTranslator
                     newMethodSignature.ParameterTypes.Add(newParamType);
                 }
 
-                var newMethod = new MemberReference(methodDeclarer.ToTypeDefOrRef(), methodArg.Name, newMethodSignature);
+                var memberReference = new MemberReference(methodDeclarer.ToTypeDefOrRef(), methodArg.Name, newMethodSignature);
+
+                IMethodDescriptor newMethod;
+                if (methodArg is MethodSpecification genericMethod)
+                {
+                    if (genericMethod.Signature is null)
+                        return false;
+
+                    TypeSignature[] typeArguments = new TypeSignature[genericMethod.Signature.TypeArguments.Count];
+                    for (var i = 0; i < genericMethod.Signature.TypeArguments.Count; i++)
+                    {
+                        var newTypeArgument = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, genericMethod.Signature.TypeArguments[i], imports);
+                        if (newTypeArgument == null)
+                            return false;
+
+                        typeArguments[i] = newTypeArgument;
+                    }
+
+                    newMethod = memberReference.MakeGenericInstanceMethod(typeArguments);
+                }
+                else
+                {
+                    newMethod = memberReference;
+                }
 
                 var newInstruction = targetBuilder.Add(bodyInstruction.OpCode, imports.Module.DefaultImporter.ImportMethod(newMethod));
                 instructionMap.Add(bodyInstruction, newInstruction);
             }
             else if (bodyInstruction.OpCode.OperandType == CilOperandType.InlineType)
             {
-                var targetType = ((ITypeDefOrRef)bodyInstruction.Operand).ToTypeSignature();
-                if (targetType is GenericParameterSignature genericParam)
-                {
-                    if (genericParam.ParameterType is GenericParameterType.Type)
-                    {
-                        var newTypeOwner =
-                            Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, original.DeclaringType?.ToTypeSignature(), imports)?.Resolve();
-                        if (newTypeOwner == null)
-                            return false;
-                        targetType = newTypeOwner.GenericParameters.Single(it => it.Name == targetType.Name).ToTypeSignature();
-                    }
-                    else
-                    {
-                        targetType = target.GenericParameters.Single(it => it.Name == targetType.Name).ToTypeSignature();
-                    }
-                }
-                else
-                {
-                    targetType = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, targetType, imports);
-                    if (targetType == null)
-                        return false;
-                }
+                var targetType = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, ((ITypeDefOrRef)bodyInstruction.Operand).ToTypeSignature(), imports);
+                if (targetType == null)
+                    return false;
 
                 if (bodyInstruction.OpCode == OpCodes.Castclass && !targetType.IsValueType)
                 {
@@ -256,36 +259,23 @@ public static class UnstripTranslator
             }
             else if (bodyInstruction.OpCode.OperandType == CilOperandType.InlineTok)
             {
-                var targetTok = (bodyInstruction.Operand as ITypeDefOrRef)?.ToTypeSignature();
-                if (targetTok == null)
-                    return false;
-                if (targetTok is GenericParameterSignature genericParam)
+                switch (bodyInstruction.Operand)
                 {
-                    if (genericParam.ParameterType is GenericParameterType.Type)
-                    {
-                        var newTypeOwner =
-                            Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, original.DeclaringType?.ToTypeSignature(), imports)?.Resolve();
-                        if (newTypeOwner == null)
-                            return false;
-                        var name = original.DeclaringType!.GenericParameters[genericParam.Index].Name;
-                        targetTok = newTypeOwner.GenericParameters.Single(it => it.Name == name).ToTypeSignature();
-                    }
-                    else
-                    {
-                        var name = original.GenericParameters[genericParam.Index].Name;
-                        targetTok = target.GenericParameters.Single(it => it.Name == name).ToTypeSignature();
-                    }
-                }
-                else
-                {
-                    targetTok = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, targetTok, imports);
-                    if (targetTok == null)
+                    case ITypeDefOrRef typeDefOrRef:
+                        {
+                            var targetTok = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, typeDefOrRef.ToTypeSignature(), imports);
+                            if (targetTok == null)
+                                return false;
+
+                            var newInstruction = targetBuilder.Add(OpCodes.Call,
+                                imports.Module.DefaultImporter.ImportMethod(imports.Il2CppSystemRuntimeTypeHandleGetRuntimeTypeHandle.Value.MakeGenericInstanceMethod(targetTok)));
+                            instructionMap.Add(bodyInstruction, newInstruction);
+                        }
+                        break;
+                    default:
+                        // Ldtoken is also used for members, which is not implemented.
                         return false;
                 }
-
-                var newInstruction = targetBuilder.Add(OpCodes.Call,
-                    imports.Module.DefaultImporter.ImportMethod(imports.Il2CppSystemRuntimeTypeHandleGetRuntimeTypeHandle.Value.MakeGenericInstanceMethod(targetTok)));
-                instructionMap.Add(bodyInstruction, newInstruction);
             }
             else if (bodyInstruction.OpCode.OperandType is CilOperandType.InlineSwitch && bodyInstruction.Operand is IReadOnlyList<ICilLabel> labels)
             {
