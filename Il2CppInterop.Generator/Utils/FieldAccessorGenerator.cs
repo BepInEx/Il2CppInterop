@@ -79,6 +79,9 @@ internal static class FieldAccessorGenerator
         getterBody.EmitPointerToObject(fieldContext.OriginalField.Signature!.FieldType, property.Signature.ReturnType,
             fieldContext.DeclaringType, local0, !field.IsStatic, false);
 
+        if (property.Signature.ReturnType.IsPointerLike())
+            getterBody.Add(OpCodes.Ldind_I);
+
         getterBody.Add(OpCodes.Ret);
 
         property.GetMethod = getter;

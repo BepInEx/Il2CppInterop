@@ -31,6 +31,13 @@ public static class ILGeneratorEx
             body.Add(OpCodes.Call, imports.IL2CPP_ManagedStringToIl2Cpp.Value);
             body.Add(OpCodes.Call, imports.WriteFieldWBarrier);
         }
+        else if (originalType.IsPointerLike())
+        {
+            Debug.Assert(newType.IsPointerLike());
+            body.AddLoadArgument(argumentIndex);
+            body.Add(OpCodes.Stobj, newType.ToTypeDefOrRef());
+            body.Add(OpCodes.Pop);
+        }
         else if (originalType.IsValueType)
         {
             var typeSpecifics = enclosingType.AssemblyContext.GlobalContext.JudgeSpecificsByOriginalType(originalType);
@@ -182,6 +189,11 @@ public static class ILGeneratorEx
                 body.Add(OpCodes.Conv_I);
             }
         }
+        else if (originalType.IsPointerLike())
+        {
+            Debug.Assert(newType.IsPointerLike());
+            body.AddLoadArgument(argumentIndex);
+        }
         else if (originalType.IsValueType)
         {
             if (newType.IsValueType)
@@ -284,6 +296,11 @@ public static class ILGeneratorEx
         if (originalReturnType.FullName == "System.Void")
         {
             // do nothing
+        }
+        else if (originalReturnType.IsPointerLike())
+        {
+            Debug.Assert(convertedReturnType.IsPointerLike());
+            body.Add(OpCodes.Ldloc, pointerVariable);
         }
         else if (originalReturnType.IsValueType)
         {

@@ -53,6 +53,10 @@ internal static class AsmResolverExtensions
 
     public static bool IsNested(this TypeSignature type) => type.DeclaringType is not null;
 
+    public static bool IsPointerLike(this TypeSignature type) => type is PointerTypeSignature or ByReferenceTypeSignature;
+
+    public static bool IsValueTypeLike(this TypeSignature type) => type.IsValueType || type.IsPointerLike();
+
     public static bool IsSystemEnum(this GenericParameterConstraint constraint) => constraint.Constraint?.FullName is "System.Enum";
 
     public static bool IsSystemValueType(this GenericParameterConstraint constraint) => constraint.Constraint?.FullName is "System.ValueType";
