@@ -34,6 +34,11 @@ public static class UnstripTranslator
             localVariableMap.Add(variableDefinition, newVariableDefinition);
         }
 
+        // We expand macros because our instructions are not mapped one-to-one,
+        // so specialized instructions like Br_S need to be expanded to Br for safety.
+        // In pass 90, we optimize all macros, so we won't need to worry about that here.
+        original.CilMethodBody.Instructions.ExpandMacros();
+
         List<KeyValuePair<CilInstructionLabel, CilInstructionLabel>> labelMap = new();
         Dictionary<CilInstruction, CilInstruction> instructionMap = new();
 
