@@ -32,8 +32,8 @@ public static class Pass80UnstripFields
                 {
                     if (unityField.IsStatic && !unityField.HasConstant())
                         continue;// Non-constant static fields might require initialization, which we can't do.
-                    if (unityField.IsInstance() && (unityType.IsReferenceType() || processedType.NewType.IsExplicitLayout))
-                        continue;
+                    if (unityField.IsInstance())
+                        continue;// Inserting instance fields into Il2Cpp types will never be supported.
 
                     var processedField = processedType.TryGetFieldByUnityAssemblyField(unityField);
                     if (processedField != null) continue;
