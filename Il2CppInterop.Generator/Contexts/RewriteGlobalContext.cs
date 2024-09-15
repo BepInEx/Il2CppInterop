@@ -13,6 +13,7 @@ public class RewriteGlobalContext : IDisposable
 
     private readonly Dictionary<string, AssemblyRewriteContext> myAssemblies = new();
     private readonly Dictionary<AssemblyDefinition, AssemblyRewriteContext> myAssembliesByOld = new();
+    private readonly Dictionary<AssemblyDefinition, AssemblyRewriteContext> myAssembliesByNew = new();
     internal readonly Dictionary<TypeDefinition, string> PreviousRenamedTypes = new();
     internal readonly Dictionary<TypeDefinition, string> RenamedTypes = new();
 
@@ -65,6 +66,7 @@ public class RewriteGlobalContext : IDisposable
         myAssemblies[assemblyName] = context;
         if (context.OriginalAssembly != null)
             myAssembliesByOld[context.OriginalAssembly] = context;
+        myAssembliesByNew[context.NewAssembly] = context;
     }
 
     public AssemblyRewriteContext GetNewAssemblyForOriginal(AssemblyDefinition oldAssembly)
@@ -120,9 +122,14 @@ public class RewriteGlobalContext : IDisposable
         return null;
     }
 
+    public AssemblyRewriteContext GetContextForNewAssembly(AssemblyDefinition assembly)
+    {
+        return myAssembliesByNew[assembly];
+    }
+
     public TypeRewriteContext GetContextForNewType(TypeDefinition type)
     {
-        return GetAssemblyByName(type.Module!.Assembly!.Name!).GetContextForNewType(type);
+        return GetContextForNewAssembly(type.Module!.Assembly!).GetContextForNewType(type);
     }
 
     public MethodDefinition? CreateParamsMethod(MethodDefinition originalMethod, MethodDefinition newMethod,

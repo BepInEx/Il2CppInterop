@@ -103,9 +103,13 @@ public static class UnstripTranslator
             }
             else if (bodyInstruction.OpCode.OperandType == CilOperandType.InlineField)
             {
+                // This code doesn't handle fields in the corlib types well.
+                // Static fields are fine, but references to instance fields can't be redirected.
+
                 var fieldArg = (IFieldDescriptor)bodyInstruction.Operand;
+                var useSystemCorlibType = fieldArg.Signature?.HasThis ?? true;
                 var fieldDeclarer =
-                    Pass80UnstripMethods.ResolveTypeInNewAssembliesRaw(globalContext, fieldArg.DeclaringType!.ToTypeSignature(), imports);
+                    Pass80UnstripMethods.ResolveTypeInNewAssembliesRaw(globalContext, fieldArg.DeclaringType!.ToTypeSignature(), imports, useSystemCorlibType);
                 if (fieldDeclarer == null)
                     return false;
                 var fieldDeclarerDefinition = fieldDeclarer.Resolve();
@@ -157,9 +161,13 @@ public static class UnstripTranslator
             }
             else if (bodyInstruction.OpCode.OperandType == CilOperandType.InlineMethod)
             {
+                // This code doesn't handle methods in the corlib types well.
+                // Static methods are fine, but references to instance methods can't be redirected.
+
                 var methodArg = (IMethodDescriptor)bodyInstruction.Operand;
+                var useSystemCorlibType = methodArg.Signature?.HasThis ?? true;
                 var methodDeclarer =
-                    Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArg.DeclaringType?.ToTypeSignature(), imports);
+                    Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, methodArg.DeclaringType?.ToTypeSignature(), imports, useSystemCorlibType);
                 if (methodDeclarer == null)
                     return false;
 
