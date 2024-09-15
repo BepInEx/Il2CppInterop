@@ -4,6 +4,7 @@ using AsmResolver.DotNet.Code.Cil;
 using AsmResolver.DotNet.Collections;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Cil;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Passes;
@@ -404,12 +405,17 @@ public static class UnstripTranslator
                     return false;
             }
 
-            if (exceptionHandler.ExceptionType is not null)
+            switch (exceptionHandler.ExceptionType?.ToTypeSignature())
             {
-                var exceptionType = Pass80UnstripMethods.ResolveTypeInNewAssemblies(globalContext, exceptionHandler.ExceptionType.ToTypeSignature(), imports);
-                if (exceptionType == null)
+                case null:
+                    break;
+                case CorLibTypeSignature { ElementType: ElementType.Object }:
+                    newExceptionHandler.ExceptionType = imports.Module.CorLibTypeFactory.Object.ToTypeDefOrRef();
+                    break;
+                default:
+                    // In the future, we will throw exact exceptions, but we don't right now,
+                    // so attempting to catch a specific exception type will always fail.
                     return false;
-                newExceptionHandler.ExceptionType = exceptionType.ToTypeDefOrRef();
             }
 
             target.CilMethodBody.ExceptionHandlers.Add(newExceptionHandler);
