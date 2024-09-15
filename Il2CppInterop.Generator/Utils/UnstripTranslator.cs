@@ -214,8 +214,12 @@ public static class UnstripTranslator
                 if (targetType == null)
                     return false;
 
-                if (bodyInstruction.OpCode == OpCodes.Castclass && !targetType.IsValueType)
+                if ((bodyInstruction.OpCode == OpCodes.Castclass && !targetType.IsValueType) ||
+                    (bodyInstruction.OpCode == OpCodes.Unbox_Any && targetType is GenericParameterSignature))
                 {
+                    // Compilers use unbox.any for casting to generic parameter types.
+                    // Castclass is only used for reference types.
+                    // Both can be translated to Il2CppObjectBase.Cast<T>().
                     var newInstruction = targetBuilder.Add(OpCodes.Call,
                         imports.Module.DefaultImporter.ImportMethod(imports.Il2CppObjectBase_Cast.Value.MakeGenericInstanceMethod(targetType)));
                     instructionMap.Add(bodyInstruction, newInstruction);
