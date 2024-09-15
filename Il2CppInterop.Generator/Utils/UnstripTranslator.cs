@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AsmResolver;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Code.Cil;
@@ -259,6 +260,7 @@ public static class UnstripTranslator
             }
             else if (bodyInstruction.OpCode.OperandType == CilOperandType.InlineTok)
             {
+                Debug.Assert(bodyInstruction.OpCode.Code is CilCode.Ldtoken);
                 switch (bodyInstruction.Operand)
                 {
                     case ITypeDefOrRef typeDefOrRef:
