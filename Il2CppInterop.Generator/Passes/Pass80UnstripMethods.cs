@@ -181,8 +181,11 @@ public static class Pass80UnstripMethods
     internal static TypeSignature? ResolveTypeInNewAssembliesRaw(RewriteGlobalContext context, TypeSignature? unityType,
         RuntimeAssemblyReferences imports)
     {
-        if (unityType is null or GenericParameterSignature)
+        if (unityType is null)
             return null;
+
+        if (unityType is GenericParameterSignature genericParameterSignature)
+            return new GenericParameterSignature(imports.Module, genericParameterSignature.ParameterType, genericParameterSignature.Index);
 
         if (unityType is ByReferenceTypeSignature)
         {
