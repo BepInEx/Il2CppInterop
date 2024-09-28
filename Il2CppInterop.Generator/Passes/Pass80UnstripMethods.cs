@@ -265,7 +265,7 @@ public static class Pass80UnstripMethods
         if (targetAssemblyName.EndsWith(".dll"))
             targetAssemblyName = targetAssemblyName.Substring(0, targetAssemblyName.Length - 4);
 
-        if (useSystemCorlibPrimitives && unityType.IsPrimitive() || unityType.ElementType is ElementType.String or ElementType.Void)
+        if (useSystemCorlibPrimitives && (unityType.IsPrimitive() || unityType.ElementType is ElementType.String or ElementType.Void))
             return imports.Module.CorLibTypeFactory.FromElementType(unityType.ElementType);
 
         if (targetAssemblyName == "UnityEngine")
