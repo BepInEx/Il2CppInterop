@@ -24,9 +24,9 @@ public static class Pass22GenerateEnums
                     newType.CustomAttributes.Add(new CustomAttribute(
                         (ICustomAttributeType)assemblyContext.Imports.OriginalNameAttributector.Value,
                         new CustomAttributeSignature(
-                            new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Module!.Name),
-                            new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Namespace),
-                            new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Name))));
+                            new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Module?.Name ?? ""),
+                            new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Namespace ?? ""),
+                            new CustomAttributeArgument(assemblyContext.Imports.Module.String(), type.Name ?? ""))));
                 }
 
                 if (type.CustomAttributes.Any(it => it.Constructor?.DeclaringType?.FullName == "System.FlagsAttribute"))
