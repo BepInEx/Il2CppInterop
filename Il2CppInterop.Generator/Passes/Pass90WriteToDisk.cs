@@ -49,12 +49,13 @@ public static class Pass90WriteToDisk
                 asmContext.NewAssembly.CustomAttributes.Add(targetFrameworkAttribute);
             }
 
-            // Optimize macros in all methods.
+            // Optimize macros in all methods and assign tokens.
             foreach (var type in module.GetAllTypes())
             {
                 foreach (var method in type.Methods)
                 {
                     method.CilMethodBody?.Instructions.OptimizeMacros();
+                    module.TokenAllocator.AssignNextAvailableToken(method);
                 }
             }
         }
