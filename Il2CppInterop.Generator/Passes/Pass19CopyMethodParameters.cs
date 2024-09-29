@@ -26,7 +26,7 @@ public static class Pass19CopyMethodParameters
                         var newParameter = newMethod.AddParameter(
                             assemblyContext.RewriteTypeRef(originalMethodParameter.ParameterType),
                             newName,
-                            originalMethodParameter.Definition!.Attributes & ~ParameterAttributes.HasFieldMarshal);
+                            originalMethodParameter.GetOrCreateDefinition().Attributes & ~ParameterAttributes.HasFieldMarshal);
 
                         if (originalMethodParameter.IsParamsArray())
                         {
@@ -35,7 +35,7 @@ public static class Pass19CopyMethodParameters
                         }
                         else
                         {
-                            newParameter.Definition!.Constant = originalMethodParameter.Definition.Constant;
+                            newParameter.Definition!.Constant = originalMethodParameter.Definition!.Constant;
                         }
                     }
 
