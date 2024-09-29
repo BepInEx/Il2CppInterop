@@ -172,14 +172,14 @@ public static class Pass80UnstripMethods
     }
 
     internal static TypeSignature? ResolveTypeInNewAssemblies(RewriteGlobalContext context, TypeSignature? unityType,
-        RuntimeAssemblyReferences imports)
+        RuntimeAssemblyReferences imports, bool useSystemCorlibPrimitives = true)
     {
-        var resolved = ResolveTypeInNewAssembliesRaw(context, unityType, imports);
+        var resolved = ResolveTypeInNewAssembliesRaw(context, unityType, imports, useSystemCorlibPrimitives);
         return resolved != null ? imports.Module.DefaultImporter.ImportTypeSignature(resolved) : null;
     }
 
     internal static TypeSignature? ResolveTypeInNewAssembliesRaw(RewriteGlobalContext context, TypeSignature? unityType,
-        RuntimeAssemblyReferences imports)
+        RuntimeAssemblyReferences imports, bool useSystemCorlibPrimitives = true)
     {
         if (unityType is null)
             return null;
@@ -264,10 +264,9 @@ public static class Pass80UnstripMethods
         var targetAssemblyName = unityType.Scope!.Name!;
         if (targetAssemblyName.EndsWith(".dll"))
             targetAssemblyName = targetAssemblyName.Substring(0, targetAssemblyName.Length - 4);
-        if ((targetAssemblyName == "mscorlib" || targetAssemblyName == "netstandard") &&
-            (unityType.IsValueType || unityType.FullName == "System.String" ||
-             unityType.FullName == "System.Void") && unityType.FullName != "System.RuntimeTypeHandle")
-            return imports.Module.ImportCorlibReference(unityType.FullName);
+
+        if (useSystemCorlibPrimitives && (unityType.IsPrimitive() || unityType.ElementType is ElementType.String or ElementType.Void))
+            return imports.Module.CorLibTypeFactory.FromElementType(unityType.ElementType);
 
         if (targetAssemblyName == "UnityEngine")
             foreach (var assemblyRewriteContext in context.Assemblies)
