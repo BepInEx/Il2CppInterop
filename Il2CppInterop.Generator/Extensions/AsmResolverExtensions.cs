@@ -7,10 +7,20 @@ namespace Il2CppInterop.Generator.Extensions;
 
 internal static class AsmResolverExtensions
 {
+    /// <summary>
+    /// Boolean, Char, or numeric type
+    /// </summary>
     public static bool IsPrimitive(this TypeSignature type)
     {
-        //https://github.com/jbevain/cecil/blob/8e1ae7b4ea67ccc38cb8db3ded6802643109ffd7/Mono.Cecil/TypeReference.cs#L286
-        return type is CorLibTypeSignature { ElementType: >= ElementType.Boolean and <= ElementType.R8 or ElementType.I or ElementType.U };
+        return (type as CorLibTypeSignature)?.ElementType.IsPrimitive() ?? false;
+    }
+
+    /// <summary>
+    /// Boolean, Char, or numeric type
+    /// </summary>
+    public static bool IsPrimitive(this ElementType elementType)
+    {
+        return elementType is >= ElementType.Boolean and <= ElementType.R8 or ElementType.I or ElementType.U;
     }
 
     public static TypeSignature GetElementType(this TypeSignature type) => type switch
