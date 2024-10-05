@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Il2CppInterop.Runtime.Runtime;
 
@@ -41,27 +42,19 @@ public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObject
 
     public override T this[int index]
     {
-        get
-        {
-            if (index < 0 || index >= Length)
-                throw new ArgumentOutOfRangeException(nameof(index),
-                    "Array index may not be negative or above length of the array");
-            var arrayStartPointer = IntPtr.Add(Pointer, 4 * IntPtr.Size);
-            var elementPointer = IntPtr.Add(arrayStartPointer, index * ourElementTypeSize);
-            return WrapElement(elementPointer);
-        }
-        set
-        {
-            if (index < 0 || index >= Length)
-                throw new ArgumentOutOfRangeException(nameof(index),
-                    "Array index may not be negative or above length of the array");
-            var arrayStartPointer = IntPtr.Add(Pointer, 4 * IntPtr.Size);
-            var elementPointer = IntPtr.Add(arrayStartPointer, index * ourElementTypeSize);
-            StoreValue(elementPointer, value?.Pointer ?? IntPtr.Zero);
-        }
+        get => WrapElement(GetElementPointer(index));
+        set => StoreValue(GetElementPointer(index), value?.Pointer ?? IntPtr.Zero);
     }
 
-    public static implicit operator Il2CppReferenceArray<T>(T[] arr)
+    private IntPtr GetElementPointer(int index)
+    {
+        ThrowIfIndexOutOfRange(index);
+        var elementPointer = IntPtr.Add(ArrayStartPointer, index * ourElementTypeSize);
+        return elementPointer;
+    }
+
+    [return: NotNullIfNotNull(nameof(arr))]
+    public static implicit operator Il2CppReferenceArray<T>?(T[]? arr)
     {
         if (arr == null) return null;
 

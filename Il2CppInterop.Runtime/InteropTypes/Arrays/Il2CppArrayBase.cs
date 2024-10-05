@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
@@ -10,6 +11,11 @@ public abstract class Il2CppArrayBase : Il2CppObjectBase, IEnumerable
     {
     }
 
+    /// <summary>
+    /// The pointer to the first element in the array.
+    /// </summary>
+    private protected IntPtr ArrayStartPointer => IntPtr.Add(Pointer, 4 * IntPtr.Size);
+
     public int Length => (int)IL2CPP.il2cpp_array_length(Pointer);
 
     public abstract IEnumerator GetEnumerator();
@@ -17,6 +23,13 @@ public abstract class Il2CppArrayBase : Il2CppObjectBase, IEnumerable
     private protected static bool ThrowImmutableLength()
     {
         throw new NotSupportedException("Arrays have immutable length");
+    }
+
+    private protected void ThrowIfIndexOutOfRange(int index)
+    {
+        if (index < 0 || index >= Length)
+            throw new ArgumentOutOfRangeException(nameof(index),
+                "Array index may not be negative or above length of the array");
     }
 }
 public abstract class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyList<T>
@@ -102,7 +115,8 @@ public abstract class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyL
         Il2CppClassPointerStore<Il2CppArrayBase<T>>.CreatedTypeRedirect = ownType;
     }
 
-    public static implicit operator T[](Il2CppArrayBase<T> il2CppArray)
+    [return: NotNullIfNotNull(nameof(il2CppArray))]
+    public static implicit operator T[]?(Il2CppArrayBase<T>? il2CppArray)
     {
         if (il2CppArray == null)
             return null;
@@ -143,7 +157,7 @@ public abstract class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyL
 
         public void Dispose()
         {
-            myArray = null;
+            myArray = null!;
         }
 
         public bool MoveNext()
@@ -156,7 +170,7 @@ public abstract class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyL
             myIndex = -1;
         }
 
-        object IEnumerator.Current => Current;
+        object? IEnumerator.Current => Current;
         public T Current => myArray[myIndex];
     }
 }
