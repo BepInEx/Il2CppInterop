@@ -14,7 +14,7 @@ public abstract class Il2CppArrayBase : Il2CppObjectBase, IEnumerable
     /// <summary>
     /// The pointer to the first element in the array.
     /// </summary>
-    private protected IntPtr ArrayStartPointer => IntPtr.Add(Pointer, 4 * IntPtr.Size);
+    private protected unsafe IntPtr ArrayStartPointer => IntPtr.Add(Pointer, sizeof(Il2CppObject) /* base */ + sizeof(void*) /* bounds */ + sizeof(nuint) /* max_length */);
 
     public int Length => (int)IL2CPP.il2cpp_array_length(Pointer);
 
