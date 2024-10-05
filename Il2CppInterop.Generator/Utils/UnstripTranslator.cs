@@ -77,13 +77,60 @@ public static class UnstripTranslator
                         //This is Il2CppReferenceArray<T>.set_Item but the T is not known because the operand is null.
                         return false;
 
-                    case >= CilCode.Ldelem_I1 and <= CilCode.Ldelem_R8:
-                        //This is Il2CppStructArray<T>.get_Item
+                    case CilCode.Ldelem_I1:
+                    case CilCode.Ldelem_I2:
+                    case CilCode.Ldelem_I4:
+                    case CilCode.Ldelem_U4:
+                        //This is Il2CppArrayBase<T>.get_Item but the T could be either the cooresponding primitive or an enum.
                         return false;
 
-                    case >= CilCode.Stelem_I and <= CilCode.Stelem_R8:
+                    case CilCode.Ldelem_U1:
+                        //This is Il2CppArrayBase<T>.get_Item but the T could be either byte, bool, or an enum.
+                        return false;
+
+                    case CilCode.Ldelem_U2:
+                        //This is Il2CppArrayBase<T>.get_Item but the T could be either ushort, char, or an enum.
+                        return false;
+
+                    case CilCode.Ldelem_I8:
+                        //This is Il2CppArrayBase<T>.get_Item but the T could be either signed, unsigned, or an enum.
+                        return false;
+
+                    case CilCode.Ldelem_I:
+                        //This is Il2CppArrayBase<T>.get_Item but the T could be either signed, unsigned, or a pointer.
+                        return false;
+
+                    case CilCode.Ldelem_R4:
+                        {
+                            var getMethod = imports.Il2CppArrayBase_get_Item.Get(imports.Module.CorLibTypeFactory.Single);
+                            newInstruction = targetBuilder.Add(OpCodes.Callvirt, imports.Module.DefaultImporter.ImportMethod(getMethod));
+                        }
+                        break;
+
+                    case CilCode.Ldelem_R8:
+                        {
+                            var getMethod = imports.Il2CppArrayBase_get_Item.Get(imports.Module.CorLibTypeFactory.Double);
+                            newInstruction = targetBuilder.Add(OpCodes.Callvirt, imports.Module.DefaultImporter.ImportMethod(getMethod));
+                        }
+                        break;
+
+                    case >= CilCode.Stelem_I and <= CilCode.Stelem_I8:
                         //This is Il2CppStructArray<T>.set_Item
                         return false;
+
+                    case CilCode.Stelem_R4:
+                        {
+                            var setMethod = imports.Il2CppArrayBase_set_Item.Get(imports.Module.CorLibTypeFactory.Single);
+                            newInstruction = targetBuilder.Add(OpCodes.Callvirt, imports.Module.DefaultImporter.ImportMethod(setMethod));
+                        }
+                        break;
+
+                    case CilCode.Stelem_R8:
+                        {
+                            var setMethod = imports.Il2CppArrayBase_set_Item.Get(imports.Module.CorLibTypeFactory.Double);
+                            newInstruction = targetBuilder.Add(OpCodes.Callvirt, imports.Module.DefaultImporter.ImportMethod(setMethod));
+                        }
+                        break;
 
                     case >= CilCode.Ldind_I1 and <= CilCode.Ldind_Ref:
                         //This is for by ref parameters
