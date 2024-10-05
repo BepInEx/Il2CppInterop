@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-public class Il2CppStringArray : Il2CppArrayBase<string>
+public class Il2CppStringArray : Il2CppArrayBase<string?>
 {
     static Il2CppStringArray()
     {
@@ -18,15 +18,15 @@ public class Il2CppStringArray : Il2CppArrayBase<string>
     {
     }
 
-    public Il2CppStringArray(string[] arr) : base(AllocateArray(arr.Length))
+    public Il2CppStringArray(string?[] arr) : base(AllocateArray(arr.Length))
     {
         for (var i = 0; i < arr.Length; i++)
             this[i] = arr[i];
     }
 
-    public override unsafe string this[int index]
+    public override unsafe string? this[int index]
     {
-        get => IL2CPP.Il2CppStringToManaged(*GetElementPointer(index)) ?? "";
+        get => IL2CPP.Il2CppStringToManaged(*GetElementPointer(index));
         set => *GetElementPointer(index) = IL2CPP.ManagedStringToIl2Cpp(value);
     }
 
@@ -37,7 +37,7 @@ public class Il2CppStringArray : Il2CppArrayBase<string>
     }
 
     [return: NotNullIfNotNull(nameof(arr))]
-    public static implicit operator Il2CppStringArray?(string[]? arr)
+    public static implicit operator Il2CppStringArray?(string?[]? arr)
     {
         if (arr == null) return null;
 

@@ -202,7 +202,7 @@ public static unsafe class IL2CPP
         return new string(chars, 0, length);
     }
 
-    public static IntPtr ManagedStringToIl2Cpp(string str)
+    public static IntPtr ManagedStringToIl2Cpp(string? str)
     {
         if (str == null) return IntPtr.Zero;
 
