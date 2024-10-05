@@ -1,13 +1,12 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObjectBase
+public class Il2CppReferenceArray<T> : Il2CppArrayBase<T?> where T : Il2CppObjectBase
 {
-    private static ConstructorInfo ourCachedInstanceCtor;
     private static readonly int ourElementTypeSize;
     private static readonly bool ourElementIsValueType;
 
@@ -40,7 +39,7 @@ public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObject
             this[i] = arr[i];
     }
 
-    public override T this[int index]
+    public override T? this[int index]
     {
         get => WrapElement(GetElementPointer(index));
         set => StoreValue(GetElementPointer(index), value?.Pointer ?? IntPtr.Zero);
@@ -69,8 +68,8 @@ public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObject
 
             var valueRawPointer = (byte*)IL2CPP.il2cpp_object_unbox(valuePointer);
             var targetRawPointer = (byte*)targetPointer;
-            for (var i = 0; i < ourElementTypeSize; i++)
-                targetRawPointer[i] = valueRawPointer[i];
+
+            Unsafe.CopyBlock(targetRawPointer, valueRawPointer, (uint)ourElementTypeSize);
         }
         else
         {
@@ -80,25 +79,15 @@ public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObject
 
     private static unsafe T? WrapElement(IntPtr memberPointer)
     {
-        if (ourCachedInstanceCtor == null) ourCachedInstanceCtor = typeof(T).GetConstructor(new[] { typeof(IntPtr) });
-
         if (ourElementIsValueType)
-            return (T)ourCachedInstanceCtor.Invoke(new object[]
-                {IL2CPP.il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, memberPointer)});
+            memberPointer = IL2CPP.il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, memberPointer);
+        else
+            memberPointer = *(IntPtr*)memberPointer;
 
-        var referencePointer = *(IntPtr*)memberPointer;
-        if (referencePointer == IntPtr.Zero) return null;
+        if (memberPointer == IntPtr.Zero)
+            return default;
 
-        if (typeof(Il2CppObjectBase).IsAssignableFrom(typeof(T)))
-        {
-            var typePtr = Il2CppClassPointerStore<T>.NativeClassPtr;
-            var referenceClassPtr = IL2CPP.il2cpp_object_get_class(referencePointer);
-            if (RuntimeSpecificsStore.IsInjected(typePtr) &&
-                IL2CPP.il2cpp_class_is_assignable_from(typePtr, referenceClassPtr))
-                return ClassInjectorBase.GetMonoObjectFromIl2CppPointer(referencePointer) as T;
-        }
-
-        return (T)ourCachedInstanceCtor.Invoke(new object[] { referencePointer });
+        return Il2CppObjectPool.Get<T>(memberPointer);
     }
 
     private static IntPtr AllocateArray(long size)
