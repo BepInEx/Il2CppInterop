@@ -27,7 +27,7 @@ public abstract class Il2CppArrayBase : Il2CppObjectBase, IEnumerable
 
     private protected void ThrowIfIndexOutOfRange(int index)
     {
-        if (index < 0 || index >= Length)
+        if ((uint)index >= (uint)Length)
             throw new ArgumentOutOfRangeException(nameof(index),
                 "Array index may not be negative or above length of the array");
     }
