@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-public class Il2CppStringArray : Il2CppArrayBase<string?>
+public class Il2CppStringArray : Il2CppArrayBase<string>
 {
     static Il2CppStringArray()
     {
@@ -23,13 +23,13 @@ public class Il2CppStringArray : Il2CppArrayBase<string?>
         for (var i = 0; i < arr.Length; i++)
             this[i] = arr[i];
     }
-
-    public override unsafe string? this[int index]
+#nullable disable
+    public override unsafe string this[int index]
     {
         get => IL2CPP.Il2CppStringToManaged(*GetElementPointer(index));
         set => *GetElementPointer(index) = IL2CPP.ManagedStringToIl2Cpp(value);
     }
-
+#nullable enable
     private unsafe IntPtr* GetElementPointer(int index)
     {
         ThrowIfIndexOutOfRange(index);
