@@ -10,11 +10,6 @@ public class Il2CppStructArray<T> : Il2CppArrayBase<T> where T : unmanaged
         StaticCtorBody(typeof(Il2CppStructArray<T>));
     }
 
-    /// <summary>
-    /// The pointer to the first element in the array.
-    /// </summary>
-    private IntPtr ArrayStartPointer => IntPtr.Add(Pointer, 4 * IntPtr.Size);
-
     public Il2CppStructArray(IntPtr nativeObject) : base(nativeObject)
     {
     }
