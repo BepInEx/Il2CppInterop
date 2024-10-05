@@ -49,8 +49,7 @@ public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObject
     private IntPtr GetElementPointer(int index)
     {
         ThrowIfIndexOutOfRange(index);
-        var elementPointer = IntPtr.Add(ArrayStartPointer, index * ourElementTypeSize);
-        return elementPointer;
+        return IntPtr.Add(ArrayStartPointer, index * ourElementTypeSize);
     }
 
     [return: NotNullIfNotNull(nameof(arr))]
