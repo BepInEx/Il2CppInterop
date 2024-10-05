@@ -5,7 +5,7 @@ using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObjectBase
+public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObjectBase?
 {
     private static readonly int ourElementTypeSize;
     private static readonly bool ourElementIsValueType;
@@ -33,18 +33,18 @@ public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObject
     {
     }
 
-    public Il2CppReferenceArray(T?[] arr) : base(AllocateArray(arr.Length))
+    public Il2CppReferenceArray(T[] arr) : base(AllocateArray(arr.Length))
     {
         for (var i = 0; i < arr.Length; i++)
             this[i] = arr[i];
     }
-#nullable disable
+
     public override T this[int index]
     {
-        get => WrapElement(GetElementPointer(index));
+        get => WrapElement(GetElementPointer(index))!;
         set => StoreValue(GetElementPointer(index), value?.Pointer ?? IntPtr.Zero);
     }
-#nullable enable
+
     private IntPtr GetElementPointer(int index)
     {
         ThrowIfIndexOutOfRange(index);
@@ -52,7 +52,7 @@ public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObject
     }
 
     [return: NotNullIfNotNull(nameof(arr))]
-    public static implicit operator Il2CppReferenceArray<T>?(T?[]? arr)
+    public static implicit operator Il2CppReferenceArray<T>?(T[]? arr)
     {
         if (arr == null) return null;
 
