@@ -30,6 +30,8 @@ public class RuntimeAssemblyReferences
     public Lazy<IMethodDefOrRef> Il2CppStringArrayctor_size { get; private set; }
     public Memoize<TypeSignature, IMethodDefOrRef> Il2CppStructArrayctor_size { get; private set; }
     public Lazy<IMethodDefOrRef> Il2CppArrayBase_get_Length { get; private set; }
+    public Memoize<TypeSignature, IMethodDefOrRef> Il2CppArrayBase_get_Item { get; private set; }
+    public Memoize<TypeSignature, IMethodDefOrRef> Il2CppArrayBase_set_Item { get; private set; }
     public Lazy<IMethodDefOrRef> IL2CPP_Il2CppObjectBaseToPtr { get; private set; }
     public Lazy<IMethodDefOrRef> IL2CPP_Il2CppObjectBaseToPtrNotNull { get; private set; }
     public Lazy<IMethodDefOrRef> IL2CPP_Il2CppStringToManaged { get; private set; }
@@ -122,6 +124,8 @@ public class RuntimeAssemblyReferences
 
         var nonGenericIl2CppArrayBase = new TypeReference(Module, assemblyRef, "Il2CppInterop.Runtime.InteropTypes.Arrays", "Il2CppArrayBase").ToTypeSignature();
 
+        var genericIl2CppArrayBase = new TypeReference(Module, assemblyRef, "Il2CppInterop.Runtime.InteropTypes.Arrays", "Il2CppArrayBase`1").ToTypeSignature();
+
         Il2CppStructArray = new TypeReference(Module, assemblyRef, "Il2CppInterop.Runtime.InteropTypes.Arrays", "Il2CppStructArray`1").ToTypeSignature();
 
         Il2CppReferenceArray = new TypeReference(Module, assemblyRef, "Il2CppInterop.Runtime.InteropTypes.Arrays", "Il2CppReferenceArray`1").ToTypeSignature();
@@ -140,6 +144,7 @@ public class RuntimeAssemblyReferences
         allTypes["Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"] = Il2CppObjectBase;
         allTypes["Il2CppInterop.Runtime.Runtime.Il2CppObjectPool"] = Il2CppObjectPool;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppArrayBase"] = nonGenericIl2CppArrayBase;
+        allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppArrayBase<T>"] = genericIl2CppArrayBase;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray"] = Il2CppStringArray;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<T>"] = Il2CppReferenceArray;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<T>"] = Il2CppStructArray;
@@ -208,6 +213,24 @@ public class RuntimeAssemblyReferences
             var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppArrayBase");
             var mr = ReferenceCreator.CreateInstanceMethodReference("get_Length", ResolveType("System.Int32"),
                 owner.ToTypeDefOrRef());
+            return mr;
+        });
+
+        Il2CppArrayBase_get_Item = new((param) =>
+        {
+            var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppArrayBase<T>");
+            var giOwner = owner.MakeGenericInstanceType(param).ToTypeDefOrRef();
+            var mr = ReferenceCreator.CreateInstanceMethodReference("get_Item", new GenericParameterSignature(Module, GenericParameterType.Type, 0),
+                giOwner, ResolveType("System.Int32"));
+            return mr;
+        });
+
+        Il2CppArrayBase_set_Item = new((param) =>
+        {
+            var owner = ResolveType("Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppArrayBase<T>");
+            var giOwner = owner.MakeGenericInstanceType(param).ToTypeDefOrRef();
+            var mr = ReferenceCreator.CreateInstanceMethodReference("set_Item", Module.Void(),
+                giOwner, ResolveType("System.Int32"), new GenericParameterSignature(Module, GenericParameterType.Type, 0));
             return mr;
         });
 
