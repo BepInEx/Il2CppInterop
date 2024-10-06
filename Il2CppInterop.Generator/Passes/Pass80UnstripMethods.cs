@@ -73,7 +73,7 @@ public static class Pass80UnstripMethods
 
                     foreach (var unityMethodGenericParameter in unityMethod.GenericParameters)
                     {
-                        var newParameter = new GenericParameter(unityMethodGenericParameter.Name);
+                        var newParameter = new GenericParameter(unityMethodGenericParameter.Name.MakeValidInSource());
                         newParameter.Attributes = unityMethodGenericParameter.Attributes;
                         foreach (var genericParameterConstraint in unityMethodGenericParameter.Constraints)
                         {
