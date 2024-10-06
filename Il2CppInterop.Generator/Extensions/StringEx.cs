@@ -71,39 +71,38 @@ public static class StringEx
         if (Utf8String.IsNullOrEmpty(str))
             return Utf8String.Empty;
 
-        byte[]? rentedArray = null;
         ReadOnlySpan<byte> data = str.GetBytesUnsafe();
+
+        var length = data.Length;
+        byte[]? rentedArray = null;
+        Span<byte> rentedArraySpan = default;
+
+        if (char.IsDigit((char)data[0]))
+        {
+            length++;
+            rentedArray = ArrayPool<byte>.Shared.Rent(length);
+            rentedArray[0] = (byte)'_';
+            rentedArraySpan = rentedArray.AsSpan(1);
+            data.CopyTo(rentedArraySpan);
+        }
+
         for (var i = 0; i < data.Length; i++)
         {
-            var it = data[i];
-            if (IsValidInSource((char)it))
+            if (IsValidInSource((char)data[i]))
                 continue;
 
             if (rentedArray is null)
             {
-                rentedArray ??= ArrayPool<byte>.Shared.Rent(data.Length + 1);
-                data.CopyTo(rentedArray.AsSpan(1));
-                rentedArray[0] = (byte)'_';
+                rentedArray = ArrayPool<byte>.Shared.Rent(length);
+                rentedArraySpan = rentedArray.AsSpan();
+                data.CopyTo(rentedArraySpan);
             }
-            rentedArray[i + 1] = (byte)'_';
+            rentedArraySpan[i] = (byte)'_';
         }
 
-        if (char.IsDigit((char)data[0]))
+        if (rentedArray is not null)
         {
-            if (rentedArray is null)
-            {
-                rentedArray = ArrayPool<byte>.Shared.Rent(data.Length + 1);
-                data.CopyTo(rentedArray.AsSpan(1));
-                rentedArray[0] = (byte)'_';
-            }
-
-            var result = new Utf8String(rentedArray, 0, data.Length + 1);
-            ArrayPool<byte>.Shared.Return(rentedArray);
-            return result;
-        }
-        else if (rentedArray is not null)
-        {
-            var result = new Utf8String(rentedArray, 1, data.Length);
+            var result = new Utf8String(rentedArray, 0, length);
             ArrayPool<byte>.Shared.Return(rentedArray);
             return result;
         }
