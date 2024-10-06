@@ -72,7 +72,7 @@ public static class StringEx
             return Utf8String.Empty;
 
         byte[]? rentedArray = null;
-        var data = str.GetBytesUnsafe();
+        ReadOnlySpan<byte> data = str.GetBytesUnsafe();
         for (var i = 0; i < data.Length; i++)
         {
             var it = data[i];
@@ -82,7 +82,7 @@ public static class StringEx
             if (rentedArray is null)
             {
                 rentedArray ??= ArrayPool<byte>.Shared.Rent(data.Length + 1);
-                Array.Copy(data, 0, rentedArray, 1, data.Length);
+                data.CopyTo(rentedArray.AsSpan(1));
                 rentedArray[0] = (byte)'_';
             }
             rentedArray[i + 1] = (byte)'_';
@@ -93,7 +93,7 @@ public static class StringEx
             if (rentedArray is null)
             {
                 rentedArray = ArrayPool<byte>.Shared.Rent(data.Length + 1);
-                Array.Copy(data, 0, rentedArray, 1, data.Length);
+                data.CopyTo(rentedArray.AsSpan(1));
                 rentedArray[0] = (byte)'_';
             }
 
