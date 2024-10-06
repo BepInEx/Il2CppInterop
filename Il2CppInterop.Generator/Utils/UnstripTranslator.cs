@@ -302,13 +302,15 @@ public static class UnstripTranslator
                 }
                 else if (bodyInstruction.OpCode == OpCodes.Ldelem)
                 {
-                    // Not implemented
-                    return false;
+                    var getMethod = imports.Il2CppArrayBase_get_Item.Get(targetType);
+                    var newInstruction = targetBuilder.Add(OpCodes.Callvirt, imports.Module.DefaultImporter.ImportMethod(getMethod));
+                    instructionMap.Add(bodyInstruction, newInstruction);
                 }
                 else if (bodyInstruction.OpCode == OpCodes.Stelem)
                 {
-                    // Not implemented
-                    return false;
+                    var setMethod = imports.Il2CppArrayBase_set_Item.Get(targetType);
+                    var newInstruction = targetBuilder.Add(OpCodes.Callvirt, imports.Module.DefaultImporter.ImportMethod(setMethod));
+                    instructionMap.Add(bodyInstruction, newInstruction);
                 }
                 else
                 {
