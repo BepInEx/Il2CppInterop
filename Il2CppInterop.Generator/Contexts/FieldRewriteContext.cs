@@ -44,9 +44,7 @@ public class FieldRewriteContext
 
         if (!field.Name.IsObfuscated(options))
         {
-            if (!field.Name.IsInvalidInSource())
-                return field.Name!;
-            return field.Name.FilterInvalidInSourceChars();
+            return field.Name.MakeValidInSource();
         }
 
         Debug.Assert(field.Signature is not null);
@@ -64,9 +62,7 @@ public class FieldRewriteContext
 
         if (!field.Name.IsObfuscated(options))
         {
-            if (!field.Name.IsInvalidInSource())
-                return field.Name!;
-            return field.Name.FilterInvalidInSourceChars();
+            return field.Name.MakeValidInSource();
         }
 
         if (renamedFieldCounts == null) throw new ArgumentNullException(nameof(renamedFieldCounts));

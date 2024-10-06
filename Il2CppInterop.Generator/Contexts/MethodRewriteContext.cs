@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using AsmResolver;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
@@ -73,12 +74,9 @@ public class MethodRewriteContext
 
             foreach (var oldParameter in genericParams)
             {
-                var genericParameter = new GenericParameter(oldParameter.Name);
-                genericParameter.Attributes = oldParameter.Attributes.StripValueTypeConstraint();
-                newMethod.GenericParameters.Add(genericParameter);
-
-                if (genericParameter.Name.IsInvalidInSource())
-                    genericParameter.Name = genericParameter.Name.FilterInvalidInSourceChars();
+                newMethod.GenericParameters.Add(new GenericParameter(
+                    oldParameter.Name.MakeValidInSource(),
+                    oldParameter.Attributes.StripValueTypeConstraint()));
             }
         }
 
@@ -94,7 +92,7 @@ public class MethodRewriteContext
             declaringType.AssemblyContext.GlobalContext.MethodStartAddresses.Add(FileOffset);
     }
 
-    public string? UnmangledName { get; private set; }
+    public Utf8String? UnmangledName { get; private set; }
     public string? UnmangledNameWithSignature { get; private set; }
 
     public TypeDefinition? GenericInstantiationsStore { get; private set; }
@@ -137,9 +135,7 @@ public class MethodRewriteContext
             for (var index = 0; index < genericParams.Count; index++)
             {
                 var oldParameter = genericParams[index];
-                var genericParameter = new GenericParameter(oldParameter.Name);
-                if (genericParameter.Name.IsInvalidInSource())
-                    genericParameter.Name = genericParameter.Name.FilterInvalidInSourceChars();
+                var genericParameter = new GenericParameter(oldParameter.Name.MakeValidInSource());
                 genericMethodInfoStoreType.GenericParameters.Add(genericParameter);
                 selfSubstRef.TypeArguments.Add(genericParameter.ToTypeSignature());
                 var newParameter = NewMethod.GenericParameters[index];
@@ -204,22 +200,18 @@ public class MethodRewriteContext
         if (method.Name.IsObfuscated(DeclaringType.AssemblyContext.GlobalContext.Options))
             return UnmangleMethodNameWithSignature();
 
-        if (method.Name.IsInvalidInSource())
-            return method.Name.FilterInvalidInSourceChars();
-
-        return method.Name!;
+        return method.Name.MakeValidInSource();
     }
 
     private string ProduceMethodSignatureBase()
     {
         var method = OriginalMethod;
 
-        var name = method.Name;
+        string name;
         if (method.Name.IsObfuscated(DeclaringType.AssemblyContext.GlobalContext.Options))
             name = "Method";
-
-        if (name.IsInvalidInSource())
-            name = name.FilterInvalidInSourceChars();
+        else
+            name = method.Name.MakeValidInSource();
 
         if (method.Name == "GetType" && method.Parameters.Count == 0)
             name = "GetIl2CppType";

@@ -14,11 +14,9 @@ public static class Pass12FillTypedefs
             {
                 foreach (var originalParameter in typeContext.OriginalType.GenericParameters)
                 {
-                    var newParameter = new GenericParameter(originalParameter.Name);
-                    if (newParameter.Name.IsInvalidInSource())
-                        newParameter.Name = newParameter.Name.FilterInvalidInSourceChars();
+                    var newParameter = new GenericParameter(originalParameter.Name.MakeValidInSource(),
+                        originalParameter.Attributes.StripValueTypeConstraint());
                     typeContext.NewType.GenericParameters.Add(newParameter);
-                    newParameter.Attributes = originalParameter.Attributes.StripValueTypeConstraint();
                 }
 
                 if (typeContext.OriginalType.IsEnum)

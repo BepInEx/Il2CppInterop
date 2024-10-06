@@ -101,10 +101,7 @@ public static class Pass10CreateTypedefs
             return (null, convertedTypeName);
         }
 
-        if (type.Name.IsInvalidInSource())
-            return (null, type.Name.FilterInvalidInSourceChars());
-
-        return (null, type.Name!);
+        return (null, type.Name.MakeValidInSource());
     }
 
     private static TypeAttributes AdjustAttributes(TypeAttributes typeAttributes)
