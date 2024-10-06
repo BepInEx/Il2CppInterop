@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using AsmResolver;
@@ -52,7 +53,7 @@ public static class StringEx
         for (var i = 0; i < str.Length; i++)
         {
             var it = str[i];
-            if (char.IsDigit(it) || (it is >= 'a' and <= 'z') || (it is >= 'A' and <= 'Z') || it == '_' || it == '`')
+            if (IsValidInSource(it))
                 continue;
 
             chars ??= str.ToCharArray();
@@ -63,12 +64,53 @@ public static class StringEx
         return char.IsDigit(result[0]) ? "_" + result : result;
     }
 
+    private static bool IsValidInSource(char c) => char.IsDigit(c) || (c is >= 'a' and <= 'z') || (c is >= 'A' and <= 'Z') || c == '_' || c == '`';
+
     public static Utf8String MakeValidInSource(this Utf8String? str)
     {
         if (Utf8String.IsNullOrEmpty(str))
             return Utf8String.Empty;
-        var result = str.Value.MakeValidInSource();
-        return result == str ? str : result;
+
+        byte[]? rentedArray = null;
+        var data = str.GetBytesUnsafe();
+        for (var i = 0; i < data.Length; i++)
+        {
+            var it = data[i];
+            if (IsValidInSource((char)it))
+                continue;
+
+            if (rentedArray is null)
+            {
+                rentedArray ??= ArrayPool<byte>.Shared.Rent(data.Length + 1);
+                Array.Copy(data, 0, rentedArray, 1, data.Length);
+                rentedArray[0] = (byte)'_';
+            }
+            rentedArray[i + 1] = (byte)'_';
+        }
+
+        if (char.IsDigit((char)data[0]))
+        {
+            if (rentedArray is null)
+            {
+                rentedArray = ArrayPool<byte>.Shared.Rent(data.Length + 1);
+                Array.Copy(data, 0, rentedArray, 1, data.Length);
+                rentedArray[0] = (byte)'_';
+            }
+
+            var result = new Utf8String(rentedArray, 0, data.Length + 1);
+            ArrayPool<byte>.Shared.Return(rentedArray);
+            return result;
+        }
+        else if (rentedArray is not null)
+        {
+            var result = new Utf8String(rentedArray, 1, data.Length);
+            ArrayPool<byte>.Shared.Return(rentedArray);
+            return result;
+        }
+        else
+        {
+            return str;
+        }
     }
 
     public static bool IsInvalidInSource([NotNullWhen(true)] this string? str)
