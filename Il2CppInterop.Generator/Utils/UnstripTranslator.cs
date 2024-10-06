@@ -57,18 +57,6 @@ public static class UnstripTranslator
                             imports.Module.DefaultImporter.ImportMethod(imports.Il2CppArrayBase_get_Length.Value));
                         break;
 
-                    case CilCode.Ldelema:
-                        //This is Il2CppArrayBase<T>.Pointer + index * sizeof(T) but the T is not known because the operand is null.
-                        return false;
-
-                    case CilCode.Ldelem:
-                        //This is Il2CppArrayBase<T>.set_Item but the T is not known because the operand is null.
-                        return false;
-
-                    case CilCode.Stelem:
-                        //This is Il2CppArrayBase<T>.set_Item but the T is not known because the operand is null.
-                        return false;
-
                     case CilCode.Ldelem_Ref:
                         //This is Il2CppReferenceArray<T>.get_Item but the T is not known because the operand is null.
                         return false;
@@ -286,7 +274,7 @@ public static class UnstripTranslator
                         imports.Module.DefaultImporter.ImportMethod(imports.Il2CppObjectBase_TryCast.Value.MakeGenericInstanceMethod(targetType)));
                     instructionMap.Add(bodyInstruction, newInstruction);
                 }
-                else if (bodyInstruction.OpCode == OpCodes.Newarr && !targetType.IsValueType)
+                else if (bodyInstruction.OpCode == OpCodes.Newarr)
                 {
                     var newInstruction = targetBuilder.Add(OpCodes.Conv_I8);
 
@@ -306,6 +294,21 @@ public static class UnstripTranslator
                     targetBuilder.Add(OpCodes.Newobj, imports.Module.DefaultImporter.ImportMethod(
                         ReferenceCreator.CreateInstanceMethodReference(".ctor", imports.Module.Void(), il2cppTypeArray, imports.Module.Long())));
                     instructionMap.Add(bodyInstruction, newInstruction);
+                }
+                else if (bodyInstruction.OpCode == OpCodes.Ldelema)
+                {
+                    // Not implemented
+                    return false;
+                }
+                else if (bodyInstruction.OpCode == OpCodes.Ldelem)
+                {
+                    // Not implemented
+                    return false;
+                }
+                else if (bodyInstruction.OpCode == OpCodes.Stelem)
+                {
+                    // Not implemented
+                    return false;
                 }
                 else
                 {
