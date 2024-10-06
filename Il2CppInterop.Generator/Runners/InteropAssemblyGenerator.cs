@@ -153,6 +153,11 @@ internal class InteropAssemblyGeneratorRunner : IRunner
             Pass70GenerateProperties.DoPass(rewriteContext);
         }
 
+        using (new TimingCookie("Creating events"))
+        {
+            Pass71GenerateEvents.DoPass(rewriteContext);
+        }
+
         if (options.UnityBaseLibsDir != null)
         {
             using (new TimingCookie("Unstripping types"))
