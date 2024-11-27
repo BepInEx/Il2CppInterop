@@ -1,13 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <RootNamespace>Il2CppInterop.Pdb.Generator</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AsmResolver.DotNet" Version="6.0.0-beta.1" />
+    <PackageReference Include="AssetRipper.Bindings.MsPdbCore" Version="1.0.1" />
   </ItemGroup>
 
   <ItemGroup>

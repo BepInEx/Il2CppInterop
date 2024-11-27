@@ -1,8 +1,9 @@
-﻿using System.Reflection.PortableExecutable;
+﻿using AssetRipper.Bindings.MsPdbCore;
+using System.Reflection.PortableExecutable;
 
 namespace Il2CppInterop.Pdb.Generator;
 
-internal static class Program
+internal static unsafe class Program
 {
     public static void Main(string[] args)
     {
@@ -53,7 +54,7 @@ internal static class Program
             }
 
             if (targetSect == 0) throw new ApplicationException("Bad segment");
-            MsPdbCore.ModAddPublic2(mod, valueTuple.Item2.FullName, targetSect, (int)(valueTuple.Item1 - tsva * 2), CV_PUBSYMFLAGS_e.cvpsfFunction);
+            MsPdbCore.ModAddPublic2(mod, valueTuple.Item2.FullName, targetSect, (int)(valueTuple.Item1 - tsva * 2), CV_PUBSYMFLAGS_e.Function);
         }
 
         MsPdbCore.ModClose(mod);
