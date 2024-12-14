@@ -19,6 +19,8 @@ public class RewriteGlobalContext : IDisposable
 
     internal readonly Dictionary<(object?, string, int), List<TypeDefinition>> RenameGroups = new();
 
+    internal readonly Dictionary<ModuleDefinition, RuntimeAssemblyReferences> ImportsMap = new();
+
     public RewriteGlobalContext(GeneratorOptions options, IIl2CppMetadataAccess gameAssemblies,
         IMetadataAccess unityAssemblies)
     {

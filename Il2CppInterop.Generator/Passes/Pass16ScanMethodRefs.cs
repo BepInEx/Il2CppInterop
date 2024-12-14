@@ -10,8 +10,8 @@ namespace Il2CppInterop.Generator.Passes;
 
 public static class Pass16ScanMethodRefs
 {
-    public static readonly HashSet<long> NonDeadMethods = new();
-    public static IDictionary<long, List<XrefInstance>> MapOfCallers = new Dictionary<long, List<XrefInstance>>();
+    internal static HashSet<long> NonDeadMethods = new();
+    internal static IDictionary<long, List<XrefInstance>> MapOfCallers = new Dictionary<long, List<XrefInstance>>();
 
     public static void DoPass(RewriteGlobalContext context, GeneratorOptions options)
     {
