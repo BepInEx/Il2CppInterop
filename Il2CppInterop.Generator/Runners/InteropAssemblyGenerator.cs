@@ -1,4 +1,5 @@
 ﻿using Il2CppInterop.Common;
+using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.MetadataAccess;
 using Il2CppInterop.Generator.Passes;
@@ -199,6 +200,12 @@ internal class InteropAssemblyGeneratorRunner : IRunner
         using (new TimingCookie("Writing method pointer map"))
         {
             Pass91GenerateMethodPointerMap.DoPass(rewriteContext, options);
+        }
+
+        using (new TimingCookie("Clearing static data"))
+        {
+            Pass16ScanMethodRefs.MapOfCallers = new Dictionary<long, List<XrefInstance>>();
+            Pass16ScanMethodRefs.NonDeadMethods = [];
         }
 
         Logger.Instance.LogInformation("Done!");

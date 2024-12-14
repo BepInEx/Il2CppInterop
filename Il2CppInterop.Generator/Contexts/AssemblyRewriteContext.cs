@@ -9,9 +9,6 @@ namespace Il2CppInterop.Generator.Contexts;
 [DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
 public class AssemblyRewriteContext
 {
-    // TODO: Dispose
-    private static readonly Dictionary<ModuleDefinition, RuntimeAssemblyReferences> ImportsMap = new();
-
     public readonly RewriteGlobalContext GlobalContext;
 
     public readonly RuntimeAssemblyReferences Imports;
@@ -30,7 +27,7 @@ public class AssemblyRewriteContext
         NewAssembly = newAssembly;
         GlobalContext = globalContext;
 
-        Imports = ImportsMap.GetOrCreate(newAssembly.ManifestModule!,
+        Imports = globalContext.ImportsMap.GetOrCreate(newAssembly.ManifestModule!,
             mod => new RuntimeAssemblyReferences(mod, globalContext));
     }
 
