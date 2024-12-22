@@ -1,12 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.MetadataAccess;
 using Il2CppInterop.Generator.Utils;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
 
 namespace Il2CppInterop.Generator.Contexts;
 
@@ -16,10 +13,13 @@ public class RewriteGlobalContext : IDisposable
 
     private readonly Dictionary<string, AssemblyRewriteContext> myAssemblies = new();
     private readonly Dictionary<AssemblyDefinition, AssemblyRewriteContext> myAssembliesByOld = new();
+    private readonly Dictionary<AssemblyDefinition, AssemblyRewriteContext> myAssembliesByNew = new();
     internal readonly Dictionary<TypeDefinition, string> PreviousRenamedTypes = new();
     internal readonly Dictionary<TypeDefinition, string> RenamedTypes = new();
 
-    internal readonly Dictionary<(object, string, int), List<TypeDefinition>> RenameGroups = new();
+    internal readonly Dictionary<(object?, string, int), List<TypeDefinition>> RenameGroups = new();
+
+    internal readonly Dictionary<ModuleDefinition, RuntimeAssemblyReferences> ImportsMap = new();
 
     public RewriteGlobalContext(GeneratorOptions options, IIl2CppMetadataAccess gameAssemblies,
         IMetadataAccess unityAssemblies)
@@ -28,18 +28,22 @@ public class RewriteGlobalContext : IDisposable
         GameAssemblies = gameAssemblies;
         UnityAssemblies = unityAssemblies;
 
+        Il2CppAssemblyResolver assemblyResolver = new();
+
         foreach (var sourceAssembly in gameAssemblies.Assemblies)
         {
-            var assemblyName = sourceAssembly.Name.Name;
+            var assemblyName = sourceAssembly.Name!;
             if (assemblyName == "Il2CppDummyDll")
             {
-                sourceAssembly.Dispose();
                 continue;
             }
 
-            var newAssembly = AssemblyDefinition.CreateAssembly(
-                new AssemblyNameDefinition(sourceAssembly.Name.Name.UnSystemify(options), sourceAssembly.Name.Version),
-                sourceAssembly.MainModule.Name.UnSystemify(options), sourceAssembly.MainModule.Kind);
+            var newAssembly = new AssemblyDefinition(sourceAssembly.Name.UnSystemify(options), sourceAssembly.Version);
+            var newModule = new ModuleDefinition(sourceAssembly.ManifestModule?.Name.UnSystemify(options), CorlibReferences.TargetCorlib);
+            newAssembly.Modules.Add(newModule);
+
+            newModule.MetadataResolver = new DefaultMetadataResolver(assemblyResolver);
+            assemblyResolver.AddToCache(newAssembly);
 
             var assemblyRewriteContext = new AssemblyRewriteContext(this, sourceAssembly, newAssembly);
             AddAssemblyContext(assemblyName, assemblyRewriteContext);
@@ -56,22 +60,6 @@ public class RewriteGlobalContext : IDisposable
 
     public void Dispose()
     {
-        var resolverCacheField =
-            typeof(DefaultAssemblyResolver).GetField("cache", BindingFlags.Instance | BindingFlags.NonPublic);
-
-        foreach (var assembly in Assemblies)
-        {
-            foreach (var module in assembly.NewAssembly.Modules)
-            {
-                var resolver = (DefaultAssemblyResolver)module.AssemblyResolver;
-                var cache = (Dictionary<string, AssemblyDefinition>)resolverCacheField!.GetValue(resolver);
-                cache.Clear();
-            }
-
-            assembly.NewAssembly.Dispose();
-            assembly.OriginalAssembly.Dispose();
-        }
-
         UnityAssemblies.Dispose();
     }
 
@@ -80,6 +68,7 @@ public class RewriteGlobalContext : IDisposable
         myAssemblies[assemblyName] = context;
         if (context.OriginalAssembly != null)
             myAssembliesByOld[context.OriginalAssembly] = context;
+        myAssembliesByNew[context.NewAssembly] = context;
     }
 
     public AssemblyRewriteContext GetNewAssemblyForOriginal(AssemblyDefinition oldAssembly)
@@ -89,26 +78,30 @@ public class RewriteGlobalContext : IDisposable
 
     public TypeRewriteContext GetNewTypeForOriginal(TypeDefinition originalType)
     {
-        return GetNewAssemblyForOriginal(originalType.Module.Assembly)
+        return GetNewAssemblyForOriginal(originalType.Module!.Assembly!)
             .GetContextForOriginalType(originalType);
     }
 
     public TypeRewriteContext? TryGetNewTypeForOriginal(TypeDefinition originalType)
     {
-        if (!myAssembliesByOld.TryGetValue(originalType.Module.Assembly, out var assembly))
+        if (!myAssembliesByOld.TryGetValue(originalType.Module!.Assembly!, out var assembly))
             return null;
         return assembly.TryGetContextForOriginalType(originalType);
     }
 
-    public TypeRewriteContext.TypeSpecifics JudgeSpecificsByOriginalType(TypeReference typeRef)
+    public TypeRewriteContext.TypeSpecifics JudgeSpecificsByOriginalType(TypeSignature typeRef)
     {
-        if (typeRef.IsPrimitive || typeRef.IsPointer || typeRef.FullName == "System.TypedReference")
+        if (typeRef.IsPrimitive() || typeRef is PointerTypeSignature || typeRef.FullName == "System.TypedReference")
             return TypeRewriteContext.TypeSpecifics.BlittableStruct;
-        if (typeRef.FullName == "System.String" || typeRef.FullName == "System.Object" || typeRef.IsArray ||
-            typeRef.IsByReference || typeRef.IsGenericParameter || typeRef.IsGenericInstance)
+        if (typeRef
+            is CorLibTypeSignature { ElementType: ElementType.String or ElementType.Object }
+            or ArrayBaseTypeSignature
+            or ByReferenceTypeSignature
+            or GenericParameterSignature
+            or GenericInstanceTypeSignature)
             return TypeRewriteContext.TypeSpecifics.ReferenceType;
 
-        var fieldTypeContext = GetNewTypeForOriginal(typeRef.Resolve());
+        var fieldTypeContext = GetNewTypeForOriginal(typeRef.Resolve() ?? throw new($"Could not resolve {typeRef.FullName}"));
         return fieldTypeContext.ComputedTypeSpecifics;
     }
 
@@ -117,8 +110,11 @@ public class RewriteGlobalContext : IDisposable
         return myAssemblies[name];
     }
 
-    public AssemblyRewriteContext? TryGetAssemblyByName(string name)
+    public AssemblyRewriteContext? TryGetAssemblyByName(string? name)
     {
+        if (name is null)
+            return null;
+
         if (myAssemblies.TryGetValue(name, out var result))
             return result;
 
@@ -128,64 +124,94 @@ public class RewriteGlobalContext : IDisposable
         return null;
     }
 
+    public AssemblyRewriteContext GetContextForNewAssembly(AssemblyDefinition assembly)
+    {
+        return myAssembliesByNew[assembly];
+    }
+
+    public TypeRewriteContext GetContextForNewType(TypeDefinition type)
+    {
+        return GetContextForNewAssembly(type.Module!.Assembly!).GetContextForNewType(type);
+    }
+
     public MethodDefinition? CreateParamsMethod(MethodDefinition originalMethod, MethodDefinition newMethod,
-        RuntimeAssemblyReferences imports, Func<TypeReference, TypeReference?> resolve)
+        RuntimeAssemblyReferences imports, Func<TypeSignature, TypeSignature?> resolve)
     {
         if (newMethod.Name == "Invoke")
             return null;
 
         var paramsParameters = originalMethod.Parameters.Where(parameter =>
-            parameter.IsParamsArray() && !(resolve(((ArrayType)parameter.ParameterType).ElementType)?.IsGenericParameter ?? true)
+            parameter.IsParamsArray() && resolve(((ArrayBaseTypeSignature)parameter.ParameterType).BaseType) is not null and not GenericParameterSignature
         ).ToArray();
 
         if (paramsParameters.Any())
         {
-            var paramsMethod = new MethodDefinition(newMethod.Name, newMethod.Attributes, newMethod.ReturnType);
-            foreach (var genericParameter in newMethod.GenericParameters)
-                paramsMethod.GenericParameters.Add(genericParameter);
+            var paramsMethod = new MethodDefinition(newMethod.Name, newMethod.Attributes, MethodSignatureCreator.CreateMethodSignature(newMethod.Attributes, newMethod.Signature!.ReturnType, newMethod.Signature.GenericParameterCount));
+            foreach (var genericParameter in originalMethod.GenericParameters)
+            {
+                var newGenericParameter = new GenericParameter(genericParameter.Name.MakeValidInSource(), genericParameter.Attributes);
+
+                foreach (var constraint in genericParameter.Constraints)
+                {
+                    var newConstraintType = constraint.Constraint != null ? resolve(constraint.Constraint.ToTypeSignature())?.ToTypeDefOrRef() : null;
+                    var newConstraint = new GenericParameterConstraint(newConstraintType);
+
+                    // We don't need to copy custom attributes on constraints for generic parameters because Il2Cpp doesn't support them.
+
+                    newGenericParameter.Constraints.Add(newConstraint);
+                }
+
+                // Similarly, custom attributes on generic parameters are also stripped by Il2Cpp, so we don't need to copy them.
+
+                paramsMethod.GenericParameters.Add(newGenericParameter);
+            }
 
             foreach (var originalParameter in originalMethod.Parameters)
             {
                 var isParams = paramsParameters.Contains(originalParameter);
 
-                TypeReference? convertedType;
-                if (isParams && originalParameter.ParameterType is ArrayType arrayType)
+                TypeSignature? convertedType;
+                if (isParams && originalParameter.ParameterType is ArrayBaseTypeSignature arrayType)
                 {
                     var resolvedElementType = resolve(arrayType.GetElementType());
-                    convertedType = resolvedElementType == null
-                        ? null
-                        : new ArrayType(resolvedElementType, arrayType.Rank);
+                    convertedType = arrayType is SzArrayTypeSignature
+                        ? resolvedElementType?.MakeSzArrayType()
+                        : resolvedElementType?.MakeArrayType(arrayType.Rank);
                 }
                 else
                 {
                     convertedType = resolve(originalParameter.ParameterType);
                 }
 
-                var parameter =
-                    new ParameterDefinition(originalParameter.Name, originalParameter.Attributes, convertedType);
+                if (convertedType == null)
+                {
+                    throw new($"Could not resolve parameter type {originalParameter.ParameterType.FullName}");
+                }
+
+                var parameter = paramsMethod.AddParameter(convertedType, originalParameter.Name, originalParameter.Definition?.Attributes ?? default);
 
                 if (isParams)
-                    parameter.CustomAttributes.Add(new CustomAttribute(newMethod.Module.ParamArrayAttributeCtor()));
-
-                paramsMethod.Parameters.Add(parameter);
+                    parameter.Definition!.CustomAttributes.Add(new CustomAttribute(newMethod.Module!.ParamArrayAttributeCtor()));
             }
 
-            var body = paramsMethod.Body.GetILProcessor();
+            paramsMethod.CilMethodBody = new(paramsMethod);
+            var body = paramsMethod.CilMethodBody.Instructions;
 
-            if (newMethod.HasThis) body.Emit(OpCodes.Ldarg_0);
-
-            var argOffset = newMethod.HasThis ? 1 : 0;
+            if (!newMethod.IsStatic)
+            {
+                body.Add(OpCodes.Ldarg_0);
+            }
 
             for (var i = 0; i < newMethod.Parameters.Count; i++)
             {
-                body.Emit(OpCodes.Ldarg, argOffset + i);
+                body.Add(OpCodes.Ldarg, newMethod.Parameters[i]);
 
                 var parameter = originalMethod.Parameters[i];
                 if (paramsParameters.Contains(parameter))
                 {
-                    var parameterType = (ArrayType)parameter.ParameterType;
+                    var parameterType = (ArrayBaseTypeSignature)parameter.ParameterType;
 
-                    MethodReference constructorReference;
+                    IMethodDescriptor constructorReference;
 
                     var elementType = parameterType.GetElementType();
                     if (elementType.FullName == "System.String")
@@ -196,17 +222,17 @@ public class RewriteGlobalContext : IDisposable
                     {
                         var convertedElementType = resolve(elementType)!;
 
-                        constructorReference = imports.Module.ImportReference(convertedElementType.IsValueType
+                        constructorReference = imports.Module.DefaultImporter.ImportMethod(convertedElementType.IsValueType
                             ? imports.Il2CppStructArrayctor.Get(convertedElementType)
                             : imports.Il2CppRefrenceArrayctor.Get(convertedElementType));
                     }
 
-                    body.Emit(OpCodes.Newobj, constructorReference);
+                    body.Add(OpCodes.Newobj, constructorReference);
                 }
             }
 
-            body.Emit(OpCodes.Call, newMethod);
-            body.Emit(OpCodes.Ret);
+            body.Add(OpCodes.Call, newMethod);
+            body.Add(OpCodes.Ret);
 
             return paramsMethod;
         }

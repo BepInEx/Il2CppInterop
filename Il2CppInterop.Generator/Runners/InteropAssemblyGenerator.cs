@@ -1,7 +1,5 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using Il2CppInterop.Common;
+﻿using Il2CppInterop.Common;
+using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.MetadataAccess;
 using Il2CppInterop.Generator.Passes;
@@ -43,13 +41,13 @@ internal class InteropAssemblyGeneratorRunner : IRunner
 
         using (new TimingCookie("Reading assemblies"))
         {
-            gameAssemblies = new CecilMetadataAccess(options.Source);
+            gameAssemblies = new AssemblyMetadataAccess(options.Source);
         }
 
         if (!string.IsNullOrEmpty(options.UnityBaseLibsDir))
             using (new TimingCookie("Reading unity assemblies"))
             {
-                unityAssemblies = new CecilMetadataAccess(Directory.EnumerateFiles(options.UnityBaseLibsDir, "*.dll"));
+                unityAssemblies = new AssemblyMetadataAccess(Directory.EnumerateFiles(options.UnityBaseLibsDir, "*.dll"));
             }
         else
             unityAssemblies = NullMetadataAccess.Instance;
@@ -207,6 +205,12 @@ internal class InteropAssemblyGeneratorRunner : IRunner
         using (new TimingCookie("Writing method pointer map"))
         {
             Pass91GenerateMethodPointerMap.DoPass(rewriteContext, options);
+        }
+
+        using (new TimingCookie("Clearing static data"))
+        {
+            Pass16ScanMethodRefs.MapOfCallers = new Dictionary<long, List<XrefInstance>>();
+            Pass16ScanMethodRefs.NonDeadMethods = [];
         }
 
         Logger.Instance.LogInformation("Done!");

@@ -1,4 +1,4 @@
-using Mono.Cecil;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 
 namespace Il2CppInterop.Generator.Extensions;
 

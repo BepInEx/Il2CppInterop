@@ -1,12 +1,13 @@
-﻿using Mono.Cecil;
+﻿using AsmResolver.DotNet.Collections;
+using AsmResolver.DotNet.Signatures;
 
 namespace Il2CppInterop.Generator.Extensions;
 
 internal static class ParameterDefinitionEx
 {
-    public static bool IsParamsArray(this ParameterDefinition self)
+    public static bool IsParamsArray(this Parameter self)
     {
-        return self.ParameterType is ArrayType { Rank: 1 } && self.CustomAttributes.Any(attribute =>
-            attribute.AttributeType.FullName == typeof(ParamArrayAttribute).FullName);
+        return self.ParameterType is SzArrayTypeSignature && (self.Definition?.CustomAttributes.Any(attribute =>
+            attribute.Constructor?.DeclaringType?.FullName == typeof(ParamArrayAttribute).FullName) ?? false);
     }
 }

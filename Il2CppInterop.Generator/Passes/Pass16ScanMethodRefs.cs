@@ -1,22 +1,17 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
 using System.IO.MemoryMappedFiles;
-using System.Linq;
 using System.Text;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
-using Il2CppInterop.Generator.XrefScans;
 
 namespace Il2CppInterop.Generator.Passes;
 
 public static class Pass16ScanMethodRefs
 {
-    public static readonly HashSet<long> NonDeadMethods = new();
-    public static IDictionary<long, List<XrefInstance>> MapOfCallers = new Dictionary<long, List<XrefInstance>>();
+    internal static HashSet<long> NonDeadMethods = new();
+    internal static IDictionary<long, List<XrefInstance>> MapOfCallers = new Dictionary<long, List<XrefInstance>>();
 
     public static void DoPass(RewriteGlobalContext context, GeneratorOptions options)
     {

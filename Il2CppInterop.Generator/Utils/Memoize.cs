@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿namespace Il2CppInterop.Generator.Utils;
 
-namespace Il2CppInterop.Generator.Utils;
-
-public class Memoize<TParam, TResult>
+public class Memoize<TParam, TResult> where TParam : notnull
 {
     private readonly Dictionary<int, TResult> _cache = new();
     private readonly Func<TParam, TResult> _func;

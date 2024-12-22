@@ -1,15 +1,18 @@
-using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using AsmResolver;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Passes;
 using Il2CppInterop.Generator.Utils;
-using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Contexts;
 
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
 public class MethodRewriteContext
 {
     private static readonly string[] MethodAccessTypeLabels =
@@ -47,30 +50,33 @@ public class MethodRewriteContext
         var passthroughNames = declaringType.AssemblyContext.GlobalContext.Options.PassthroughNames;
 
         OriginalNameObfuscated = !passthroughNames &&
-                                 (OriginalMethod?.Name?.IsObfuscated(declaringType.AssemblyContext.GlobalContext
+                                 (OriginalMethod.Name?.IsObfuscated(declaringType.AssemblyContext.GlobalContext
                                      .Options) ?? false);
 
-        var newMethod = new MethodDefinition("",
-            AdjustAttributes(originalMethod.Attributes, originalMethod.Name == "Finalize"),
-            declaringType.AssemblyContext.Imports.Module.Void());
+        var newAttributes = AdjustAttributes(originalMethod.Attributes, originalMethod.Name == "Finalize");
+        var newSignature = (newAttributes & MethodAttributes.Static) != 0
+            ? MethodSignature.CreateStatic(declaringType.AssemblyContext.Imports.Module.Void(), originalMethod.GenericParameters.Count)
+            : MethodSignature.CreateInstance(declaringType.AssemblyContext.Imports.Module.Void(), originalMethod.GenericParameters.Count);
+        var newMethod = new MethodDefinition("", newAttributes, newSignature);
+        newMethod.CilMethodBody = new(newMethod);
         NewMethod = newMethod;
 
         HasExtensionAttribute =
-            originalMethod.CustomAttributes.Any(x => x.AttributeType.FullName == typeof(ExtensionAttribute).FullName);
+            originalMethod.CustomAttributes.Any(x => x.AttributeType()?.FullName == typeof(ExtensionAttribute).FullName);
 
         if (HasExtensionAttribute)
             newMethod.CustomAttributes.Add(
                 new CustomAttribute(declaringType.AssemblyContext.Imports.Module.ExtensionAttributeCtor()));
 
-        if (originalMethod.HasGenericParameters)
+        if (originalMethod.HasGenericParameters())
         {
             var genericParams = originalMethod.GenericParameters;
 
             foreach (var oldParameter in genericParams)
             {
-                var genericParameter = new GenericParameter(oldParameter.Name, newMethod);
-                genericParameter.Attributes = oldParameter.Attributes.StripValueTypeConstraint();
-                newMethod.GenericParameters.Add(genericParameter);
+                newMethod.GenericParameters.Add(new GenericParameter(
+                    oldParameter.Name.MakeValidInSource(),
+                    oldParameter.Attributes.StripValueTypeConstraint()));
             }
         }
 
@@ -86,13 +92,13 @@ public class MethodRewriteContext
             declaringType.AssemblyContext.GlobalContext.MethodStartAddresses.Add(FileOffset);
     }
 
-    public string UnmangledName { get; private set; }
-    public string UnmangledNameWithSignature { get; private set; }
+    public Utf8String? UnmangledName { get; private set; }
+    public string? UnmangledNameWithSignature { get; private set; }
 
     public TypeDefinition? GenericInstantiationsStore { get; private set; }
-    public TypeReference? GenericInstantiationsStoreSelfSubstRef { get; private set; }
-    public TypeReference? GenericInstantiationsStoreSelfSubstMethodRef { get; private set; }
-    public FieldReference NonGenericMethodInfoPointerField { get; private set; }
+    public ITypeDefOrRef? GenericInstantiationsStoreSelfSubstRef { get; private set; }
+    public ITypeDefOrRef? GenericInstantiationsStoreSelfSubstMethodRef { get; private set; }
+    public MemberReference NonGenericMethodInfoPointerField { get; private set; } = null!; // Initialized in CtorPhase2
 
     public bool HasExtensionAttribute { get; }
 
@@ -102,7 +108,7 @@ public class MethodRewriteContext
         UnmangledNameWithSignature = UnmangleMethodNameWithSignature();
 
         NewMethod.Name = UnmangledName;
-        NewMethod.ReturnType = DeclaringType.AssemblyContext.RewriteTypeRef(OriginalMethod.ReturnType);
+        NewMethod.Signature!.ReturnType = DeclaringType.AssemblyContext.RewriteTypeRef(OriginalMethod.Signature?.ReturnType);
 
         var nonGenericMethodInfoPointerField = new FieldDefinition(
             "NativeMethodInfoPtr_" + UnmangledNameWithSignature,
@@ -110,39 +116,45 @@ public class MethodRewriteContext
             DeclaringType.AssemblyContext.Imports.Module.IntPtr());
         DeclaringType.NewType.Fields.Add(nonGenericMethodInfoPointerField);
 
-        NonGenericMethodInfoPointerField = new FieldReference(nonGenericMethodInfoPointerField.Name,
-            nonGenericMethodInfoPointerField.FieldType, DeclaringType.SelfSubstitutedRef);
+        NonGenericMethodInfoPointerField = new MemberReference(DeclaringType.SelfSubstitutedRef, nonGenericMethodInfoPointerField.Name,
+            new FieldSignature(nonGenericMethodInfoPointerField.Signature!.FieldType));
 
-        if (OriginalMethod.HasGenericParameters)
+        if (OriginalMethod.HasGenericParameters())
         {
             var genericParams = OriginalMethod.GenericParameters;
             var genericMethodInfoStoreType = new TypeDefinition("",
                 "MethodInfoStoreGeneric_" + UnmangledNameWithSignature + "`" + genericParams.Count,
                 TypeAttributes.NestedPrivate | TypeAttributes.Sealed | TypeAttributes.BeforeFieldInit,
-                DeclaringType.AssemblyContext.Imports.Module.Object());
-            genericMethodInfoStoreType.DeclaringType = DeclaringType.NewType;
+                DeclaringType.AssemblyContext.Imports.Module.Object().ToTypeDefOrRef());
             DeclaringType.NewType.NestedTypes.Add(genericMethodInfoStoreType);
             GenericInstantiationsStore = genericMethodInfoStoreType;
 
-            var selfSubstRef = new GenericInstanceType(genericMethodInfoStoreType);
-            var selfSubstMethodRef = new GenericInstanceType(genericMethodInfoStoreType);
+            var selfSubstRef = new GenericInstanceTypeSignature(genericMethodInfoStoreType, false);
+            var selfSubstMethodRef = new GenericInstanceTypeSignature(genericMethodInfoStoreType, false);
 
             for (var index = 0; index < genericParams.Count; index++)
             {
                 var oldParameter = genericParams[index];
-                var genericParameter = new GenericParameter(oldParameter.Name, genericMethodInfoStoreType);
+                var genericParameter = new GenericParameter(oldParameter.Name.MakeValidInSource());
                 genericMethodInfoStoreType.GenericParameters.Add(genericParameter);
-                selfSubstRef.GenericArguments.Add(genericParameter);
+                selfSubstRef.TypeArguments.Add(genericParameter.ToTypeSignature());
                 var newParameter = NewMethod.GenericParameters[index];
-                selfSubstMethodRef.GenericArguments.Add(newParameter);
+                selfSubstMethodRef.TypeArguments.Add(newParameter.ToTypeSignature());
 
                 foreach (var oldConstraint in oldParameter.Constraints)
                 {
-                    if (oldConstraint.ConstraintType.FullName == "System.ValueType" ||
-                        oldConstraint.ConstraintType.Resolve()?.IsInterface == true) continue;
+                    if (oldConstraint.IsSystemValueType() || oldConstraint.IsInterface())
+                        continue;
+
+                    if (oldConstraint.IsSystemEnum())
+                    {
+                        newParameter.Constraints.Add(new GenericParameterConstraint(
+                            DeclaringType.AssemblyContext.Imports.Module.Enum().ToTypeDefOrRef()));
+                        continue;
+                    }
 
                     newParameter.Constraints.Add(new GenericParameterConstraint(
-                        DeclaringType.AssemblyContext.RewriteTypeRef(oldConstraint.ConstraintType)));
+                        DeclaringType.AssemblyContext.RewriteTypeRef(oldConstraint.Constraint?.ToTypeSignature()).ToTypeDefOrRef()));
                 }
             }
 
@@ -150,9 +162,9 @@ public class MethodRewriteContext
                 DeclaringType.AssemblyContext.Imports.Module.IntPtr());
             genericMethodInfoStoreType.Fields.Add(pointerField);
 
-            GenericInstantiationsStoreSelfSubstRef = DeclaringType.NewType.Module.ImportReference(selfSubstRef);
+            GenericInstantiationsStoreSelfSubstRef = DeclaringType.NewType.Module!.DefaultImporter.ImportType(selfSubstRef.ToTypeDefOrRef());
             GenericInstantiationsStoreSelfSubstMethodRef =
-                DeclaringType.NewType.Module.ImportReference(selfSubstMethodRef);
+                DeclaringType.NewType.Module.DefaultImporter.ImportType(selfSubstMethodRef.ToTypeDefOrRef());
         }
 
         DeclaringType.NewType.Methods.Add(NewMethod);
@@ -180,7 +192,7 @@ public class MethodRewriteContext
             return "GetIl2CppType";
 
         if (DeclaringType.AssemblyContext.GlobalContext.Options.PassthroughNames)
-            return method.Name;
+            return method.Name!;
 
         if (method.Name == ".ctor")
             return ".ctor";
@@ -188,22 +200,18 @@ public class MethodRewriteContext
         if (method.Name.IsObfuscated(DeclaringType.AssemblyContext.GlobalContext.Options))
             return UnmangleMethodNameWithSignature();
 
-        if (method.Name.IsInvalidInSource())
-            return method.Name.FilterInvalidInSourceChars();
-
-        return method.Name;
+        return method.Name.MakeValidInSource();
     }
 
     private string ProduceMethodSignatureBase()
     {
         var method = OriginalMethod;
 
-        var name = method.Name;
+        string name;
         if (method.Name.IsObfuscated(DeclaringType.AssemblyContext.GlobalContext.Options))
             name = "Method";
-
-        if (name.IsInvalidInSource())
-            name = name.FilterInvalidInSourceChars();
+        else
+            name = method.Name.MakeValidInSource();
 
         if (method.Name == "GetType" && method.Parameters.Count == 0)
             name = "GetIl2CppType";
@@ -217,17 +225,18 @@ public class MethodRewriteContext
         if (method.IsStatic) builder.Append("_Static");
         if (method.IsFinal) builder.Append("_Final");
         if (method.IsNewSlot) builder.Append("_New");
-        foreach (var (semantic, str) in SemanticsToCheck)
-            if ((semantic & method.SemanticsAttributes) != 0)
-                builder.Append(str);
+        if (method.Semantics is not null)
+            foreach (var (semantic, str) in SemanticsToCheck)
+                if ((semantic & method.Semantics.Attributes) != 0)
+                    builder.Append(str);
 
         builder.Append('_');
-        builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(method.ReturnType).GetUnmangledName());
+        builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(method.Signature?.ReturnType).GetUnmangledName(method.DeclaringType, method));
 
         foreach (var param in method.Parameters)
         {
             builder.Append('_');
-            builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(param.ParameterType).GetUnmangledName());
+            builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(param.ParameterType).GetUnmangledName(method.DeclaringType, method));
         }
 
         var address = Rva;
@@ -271,10 +280,10 @@ public class MethodRewriteContext
             (bM.Attributes & comparisonMask))
             return false;
 
-        if (aM.SemanticsAttributes != bM.SemanticsAttributes)
+        if (aM.Semantics?.Attributes != bM.Semantics?.Attributes)
             return false;
 
-        if (aM.ReturnType.FullName != bM.ReturnType.FullName)
+        if (aM.Signature?.ReturnType.FullName != bM.Signature?.ReturnType.FullName)
             return false;
 
         var a = aM.Parameters;
@@ -298,5 +307,10 @@ public class MethodRewriteContext
         }
 
         return true;
+    }
+
+    private string GetDebuggerDisplay()
+    {
+        return NewMethod.FullName;
     }
 }

@@ -1,256 +1,262 @@
-using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Mono.Cecil;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures;
 
 namespace Il2CppInterop.Generator.Utils;
 
 internal static class CorlibReferences
 {
-    public static void RewriteReferenceToMscorlib(AssemblyNameReference assemblyNameReference)
+    /// <summary>
+    /// This is used in the TargetFrameworkAttribute.
+    /// </summary>
+    public static string TargetFrameworkName => ".NET 6.0";
+    public static AssemblyReference TargetCorlib => KnownCorLibs.SystemRuntime_v6_0_0_0;
+
+    public static void RewriteCorlibReference(AssemblyReference assemblyNameReference)
     {
-        assemblyNameReference.Name = "mscorlib";
-        assemblyNameReference.Version = new Version(4, 0, 0, 0);
-        assemblyNameReference.PublicKeyToken = new byte[] { 183, 122, 92, 86, 25, 52, 224, 137 };
-        assemblyNameReference.Culture = "";
+        CopyValues(assemblyNameReference, TargetCorlib);
     }
 
-    public static TypeReference ImportCorlibReference(this ModuleDefinition module, string @namespace, string type)
+    private static void CopyValues(AssemblyReference target, AssemblyReference source)
     {
-        return module.ImportReference(typeof(string).Assembly.GetType($"{@namespace}.{type}"));
+        target.Attributes = source.Attributes;
+        target.Culture = source.Culture;
+        target.DisableJitCompileOptimizer = source.DisableJitCompileOptimizer;
+        target.EnableJitCompileTracking = source.EnableJitCompileTracking;
+        target.HashValue = source.HashValue?.ToArray();
+        target.HasPublicKey = source.HasPublicKey;
+        target.IsRetargetable = source.IsRetargetable;
+        target.IsWindowsRuntime = source.IsWindowsRuntime;
+        target.Name = source.Name;
+        target.PublicKeyOrToken = source.PublicKeyOrToken?.ToArray();
+        target.Version = source.Version;
     }
 
-    public static TypeReference Void(this ModuleDefinition module)
+    public static TypeSignature ImportCorlibReference(this ModuleDefinition module, string fullName)
     {
-        return module.ImportReference(typeof(void));
+        return module.DefaultImporter.ImportTypeSignature(typeof(string).Assembly.GetType(fullName));
     }
 
-    public static TypeReference Bool(this ModuleDefinition module)
+    public static TypeSignature Void(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(bool));
+        return module.CorLibTypeFactory.Void;
     }
 
-    public static TypeReference IntPtr(this ModuleDefinition module)
+    public static TypeSignature Bool(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(IntPtr));
+        return module.CorLibTypeFactory.Boolean;
     }
 
-    public static TypeReference String(this ModuleDefinition module)
+    public static TypeSignature IntPtr(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(string));
+        return module.CorLibTypeFactory.IntPtr;
     }
 
-    public static TypeReference SByte(this ModuleDefinition module)
+    public static TypeSignature String(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(sbyte));
+        return module.CorLibTypeFactory.String;
     }
 
-    public static TypeReference Byte(this ModuleDefinition module)
+    public static TypeSignature SByte(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(byte));
+        return module.CorLibTypeFactory.SByte;
     }
 
-    public static TypeReference Short(this ModuleDefinition module)
+    public static TypeSignature Byte(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(short));
+        return module.CorLibTypeFactory.Byte;
     }
 
-    public static TypeReference Int(this ModuleDefinition module)
+    public static TypeSignature Short(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(int));
+        return module.CorLibTypeFactory.Int16;
     }
 
-    public static TypeReference Long(this ModuleDefinition module)
+    public static TypeSignature Int(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(long));
+        return module.CorLibTypeFactory.Int32;
     }
 
-    public static TypeReference UShort(this ModuleDefinition module)
+    public static TypeSignature Long(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(ushort));
+        return module.CorLibTypeFactory.Int64;
     }
 
-    public static TypeReference UInt(this ModuleDefinition module)
+    public static TypeSignature UShort(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(uint));
+        return module.CorLibTypeFactory.UInt16;
     }
 
-    public static TypeReference ULong(this ModuleDefinition module)
+    public static TypeSignature UInt(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(ulong));
+        return module.CorLibTypeFactory.UInt32;
     }
 
-    public static TypeReference Float(this ModuleDefinition module)
+    public static TypeSignature ULong(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(float));
+        return module.CorLibTypeFactory.UInt64;
     }
 
-    public static TypeReference Double(this ModuleDefinition module)
+    public static TypeSignature Float(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(double));
+        return module.CorLibTypeFactory.Single;
     }
 
-    public static TypeReference Char(this ModuleDefinition module)
+    public static TypeSignature Double(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(char));
+        return module.CorLibTypeFactory.Double;
     }
 
-    public static TypeReference Type(this ModuleDefinition module)
+    public static TypeSignature Char(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(Type));
+        return module.CorLibTypeFactory.Char;
     }
 
-    public static TypeReference Object(this ModuleDefinition module)
+    public static TypeSignature Type(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(object));
+        return module.DefaultImporter.ImportTypeSignature(typeof(Type));
     }
 
-    public static TypeReference Enum(this ModuleDefinition module)
+    public static TypeSignature Object(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(Enum));
+        return module.CorLibTypeFactory.Object;
     }
 
-    public static TypeReference ValueType(this ModuleDefinition module)
+    public static TypeSignature Enum(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(ValueType));
+        return module.DefaultImporter.ImportTypeSignature(typeof(Enum));
     }
 
-    public static TypeReference Delegate(this ModuleDefinition module)
+    public static TypeSignature ValueType(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(Delegate));
+        return module.DefaultImporter.ImportTypeSignature(typeof(ValueType));
     }
 
-    public static TypeReference MulticastDelegate(this ModuleDefinition module)
+    public static TypeSignature Delegate(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(MulticastDelegate));
+        return module.DefaultImporter.ImportTypeSignature(typeof(Delegate));
     }
 
-    public static TypeReference DefaultMemberAttribute(this ModuleDefinition module)
+    public static TypeSignature MulticastDelegate(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(DefaultMemberAttribute));
+        return module.DefaultImporter.ImportTypeSignature(typeof(MulticastDelegate));
     }
 
-    public static TypeReference NotSupportedException(this ModuleDefinition module)
+    public static TypeSignature DefaultMemberAttribute(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(NotSupportedException));
+        return module.DefaultImporter.ImportTypeSignature(typeof(DefaultMemberAttribute));
     }
 
-    public static TypeReference FlagsAttribute(this ModuleDefinition module)
+    public static TypeSignature NotSupportedException(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(FlagsAttribute));
+        return module.DefaultImporter.ImportTypeSignature(typeof(NotSupportedException));
     }
 
-    public static TypeReference ObsoleteAttribute(this ModuleDefinition module)
+    public static TypeSignature FlagsAttribute(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(ObsoleteAttribute));
+        return module.DefaultImporter.ImportTypeSignature(typeof(FlagsAttribute));
     }
 
-    public static TypeReference Attribute(this ModuleDefinition module)
+    public static TypeSignature ObsoleteAttribute(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(Attribute));
+        return module.DefaultImporter.ImportTypeSignature(typeof(ObsoleteAttribute));
     }
 
-    public static TypeReference RuntimeTypeHandle(this ModuleDefinition module)
+    public static TypeSignature Attribute(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(RuntimeTypeHandle));
+        return module.DefaultImporter.ImportTypeSignature(typeof(Attribute));
     }
 
-    public static TypeReference ExtensionAttribute(this ModuleDefinition module)
+    public static TypeSignature RuntimeTypeHandle(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(ExtensionAttribute));
+        return module.DefaultImporter.ImportTypeSignature(typeof(RuntimeTypeHandle));
     }
 
-    public static TypeReference ParamArrayAttribute(this ModuleDefinition module)
+    public static TypeSignature ExtensionAttribute(this ModuleDefinition module)
     {
-        return module.ImportReference(typeof(ParamArrayAttribute));
+        return module.DefaultImporter.ImportTypeSignature(typeof(ExtensionAttribute));
     }
 
-    public static TypeReference Action(this ModuleDefinition module, int n = 0)
+    public static TypeSignature ParamArrayAttribute(this ModuleDefinition module)
+    {
+        return module.DefaultImporter.ImportTypeSignature(typeof(ParamArrayAttribute));
+    }
+
+    public static TypeSignature Action(this ModuleDefinition module, int n = 0)
     {
         return n switch
         {
-            0 => module.ImportCorlibReference("System", "Action"),
-            1 => module.ImportCorlibReference("System", "Action`1"),
-            _ => module.ImportCorlibReference("System", $"Action`{n}")
+            0 => module.ImportCorlibReference("System.Action"),
+            1 => module.ImportCorlibReference("System.Action`1"),
+            _ => module.ImportCorlibReference($"System.Action`{n}")
         };
     }
 
-    public static TypeReference Func(this ModuleDefinition module, int n = 0)
+    public static TypeSignature Func(this ModuleDefinition module, int n = 0)
     {
         return n switch
         {
-            0 => module.ImportCorlibReference("System", "Func`1"),
-            1 => module.ImportCorlibReference("System", "Func`2"),
-            _ => module.ImportCorlibReference("System", $"Func`{n}")
+            0 => module.ImportCorlibReference("System.Func`1"),
+            1 => module.ImportCorlibReference("System.Func`2"),
+            _ => module.ImportCorlibReference($"System.Func`{n + 1}")
         };
     }
 
-    public static MethodReference TypeGetTypeFromHandle(this ModuleDefinition module)
+    public static MemberReference TypeGetTypeFromHandle(this ModuleDefinition module)
     {
         var type = module.Type();
-        var mr = new MethodReference("GetTypeFromHandle", type, type)
-        {
-            HasThis = false
-        };
-        mr.Parameters.Add(new ParameterDefinition(module.RuntimeTypeHandle()));
-        return mr;
+        MethodSignature signature = MethodSignature.CreateStatic(type, module.RuntimeTypeHandle());
+        return new MemberReference(type.ToTypeDefOrRef(), nameof(System.Type.GetTypeFromHandle), signature);
     }
 
-    public static MethodReference TypeGetIsValueType(this ModuleDefinition module)
+    public static MemberReference TypeGetIsValueType(this ModuleDefinition module)
     {
         var type = module.Type();
-        var mr = new MethodReference("get_IsValueType", module.Bool(), type)
-        {
-            HasThis = true
-        };
-        return mr;
+        return new MemberReference(type.ToTypeDefOrRef(), "get_IsValueType", MethodSignature.CreateInstance(module.Bool()));
     }
 
-    public static MethodReference TypeGetFullName(this ModuleDefinition module)
+    public static MemberReference TypeGetFullName(this ModuleDefinition module)
     {
         var type = module.Type();
-        var mr = new MethodReference("get_FullName", module.String(), type)
-        {
-            HasThis = true
-        };
-        return mr;
+        return new MemberReference(type.ToTypeDefOrRef(), "get_FullName", MethodSignature.CreateInstance(module.String()));
     }
 
-    public static MethodReference StringEquals(this ModuleDefinition module)
+    public static MemberReference StringEquals(this ModuleDefinition module)
     {
-        var mr = new MethodReference("Equals", module.Bool(), module.String())
-        {
-            HasThis = false
-        };
-        mr.Parameters.Add(new ParameterDefinition(module.String()));
-        mr.Parameters.Add(new ParameterDefinition(module.String()));
-        return mr;
+        var @string = module.String();
+        MethodSignature signature = MethodSignature.CreateStatic(module.Bool(), @string, @string);
+        return new MemberReference(@string.ToTypeDefOrRef(), nameof(string.Equals), signature);
     }
 
-    public static MethodReference ExtensionAttributeCtor(this ModuleDefinition module)
+    public static MemberReference ExtensionAttributeCtor(this ModuleDefinition module)
     {
-        return new MethodReference(".ctor", module.Void(), module.ExtensionAttribute()) { HasThis = true };
+        return MakeConstructorReference(module, module.ExtensionAttribute().ToTypeDefOrRef());
     }
 
-    public static MethodReference ParamArrayAttributeCtor(this ModuleDefinition module)
+    public static MemberReference ParamArrayAttributeCtor(this ModuleDefinition module)
     {
-        return new MethodReference(".ctor", module.Void(), module.ParamArrayAttribute()) { HasThis = true };
+        return MakeConstructorReference(module, module.ParamArrayAttribute().ToTypeDefOrRef());
     }
 
-    public static MethodReference FlagsAttributeCtor(this ModuleDefinition module)
+    public static MemberReference FlagsAttributeCtor(this ModuleDefinition module)
     {
-        return new MethodReference(".ctor", module.Void(), module.FlagsAttribute()) { HasThis = true };
+        return MakeConstructorReference(module, module.FlagsAttribute().ToTypeDefOrRef());
     }
 
-    public static MethodReference NotSupportedExceptionCtor(this ModuleDefinition module)
+    public static MemberReference NotSupportedExceptionCtor(this ModuleDefinition module)
     {
-        return new MethodReference(".ctor", module.Void(), module.NotSupportedException())
-        { HasThis = true, Parameters = { new ParameterDefinition(module.String()) } };
+        return MakeConstructorReference(module, module.NotSupportedException().ToTypeDefOrRef(), module.String());
     }
 
-    public static MethodReference ObsoleteAttributeCtor(this ModuleDefinition module)
+    public static MemberReference ObsoleteAttributeCtor(this ModuleDefinition module)
     {
-        return new MethodReference(".ctor", module.Void(), module.ObsoleteAttribute())
-        { HasThis = true, Parameters = { new ParameterDefinition(module.String()) } };
+        return MakeConstructorReference(module, module.ObsoleteAttribute().ToTypeDefOrRef(), module.String());
+    }
+
+    private static MemberReference MakeConstructorReference(ModuleDefinition module, ITypeDefOrRef type, params TypeSignature[] parameters)
+    {
+        MethodSignature signature = MethodSignature.CreateInstance(module.Void(), parameters);
+        return new MemberReference(type, ".ctor", signature);
     }
 }

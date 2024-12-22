@@ -1,23 +1,45 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-public abstract class Il2CppArrayBase<T> : Il2CppObjectBase, IList<T>
+public abstract class Il2CppArrayBase : Il2CppObjectBase, IEnumerable
 {
     protected Il2CppArrayBase(IntPtr pointer) : base(pointer)
     {
     }
 
+    /// <summary>
+    /// The pointer to the first element in the array.
+    /// </summary>
+    private protected unsafe IntPtr ArrayStartPointer => IntPtr.Add(Pointer, sizeof(Il2CppObject) /* base */ + sizeof(void*) /* bounds */ + sizeof(nuint) /* max_length */);
+
     public int Length => (int)IL2CPP.il2cpp_array_length(Pointer);
 
-    IEnumerator IEnumerable.GetEnumerator()
+    public abstract IEnumerator GetEnumerator();
+
+    private protected static bool ThrowImmutableLength()
     {
-        return GetEnumerator();
+        throw new NotSupportedException("Arrays have immutable length");
     }
 
-    public IEnumerator<T> GetEnumerator()
+    private protected void ThrowIfIndexOutOfRange(int index)
+    {
+        if ((uint)index >= (uint)Length)
+            throw new ArgumentOutOfRangeException(nameof(index),
+                "Array index may not be negative or above length of the array");
+    }
+}
+public abstract class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyList<T>
+{
+    protected Il2CppArrayBase(IntPtr pointer) : base(pointer)
+    {
+    }
+
+    public sealed override IEnumerator<T> GetEnumerator()
     {
         return new IndexEnumerator(this);
     }
@@ -54,8 +76,9 @@ public abstract class Il2CppArrayBase<T> : Il2CppObjectBase, IList<T>
         return ThrowImmutableLength();
     }
 
+    public new int Length => base.Length;// For binary compatibility
     public int Count => Length;
-    public bool IsReadOnly => false;
+    bool ICollection<T>.IsReadOnly => false;
 
     public int IndexOf(T item)
     {
@@ -93,12 +116,8 @@ public abstract class Il2CppArrayBase<T> : Il2CppObjectBase, IList<T>
         Il2CppClassPointerStore<Il2CppArrayBase<T>>.CreatedTypeRedirect = ownType;
     }
 
-    private static bool ThrowImmutableLength()
-    {
-        throw new NotSupportedException("Arrays have immutable length");
-    }
-
-    public static implicit operator T[](Il2CppArrayBase<T> il2CppArray)
+    [return: NotNullIfNotNull(nameof(il2CppArray))]
+    public static implicit operator T[]?(Il2CppArrayBase<T>? il2CppArray)
     {
         if (il2CppArray == null)
             return null;
@@ -139,7 +158,7 @@ public abstract class Il2CppArrayBase<T> : Il2CppObjectBase, IList<T>
 
         public void Dispose()
         {
-            myArray = null;
+            myArray = null!;
         }
 
         public bool MoveNext()
@@ -152,7 +171,7 @@ public abstract class Il2CppArrayBase<T> : Il2CppObjectBase, IList<T>
             myIndex = -1;
         }
 
-        object IEnumerator.Current => Current;
+        object? IEnumerator.Current => Current;
         public T Current => myArray[myIndex];
     }
 }

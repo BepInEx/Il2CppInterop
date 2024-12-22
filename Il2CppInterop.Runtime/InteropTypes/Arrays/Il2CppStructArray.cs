@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
@@ -19,35 +20,36 @@ public class Il2CppStructArray<T> : Il2CppArrayBase<T> where T : unmanaged
 
     public Il2CppStructArray(T[] arr) : base(AllocateArray(arr.Length))
     {
-        for (var i = 0; i < arr.Length; i++)
-            this[i] = arr[i];
+        arr.CopyTo(this);
     }
 
-    public override unsafe T this[int index]
+    public override T this[int index]
     {
-        get
-        {
-            if (index < 0 || index >= Length)
-                throw new ArgumentOutOfRangeException(nameof(index),
-                    "Array index may not be negative or above length of the array");
-            var arrayStartPointer = IntPtr.Add(Pointer, 4 * IntPtr.Size);
-            return ((T*)arrayStartPointer.ToPointer())[index];
-        }
-        set
-        {
-            if (index < 0 || index >= Length)
-                throw new ArgumentOutOfRangeException(nameof(index),
-                    "Array index may not be negative or above length of the array");
-            var arrayStartPointer = IntPtr.Add(Pointer, 4 * IntPtr.Size);
-            ((T*)arrayStartPointer.ToPointer())[index] = value;
-        }
+        get => AsSpan()[index];
+        set => AsSpan()[index] = value;
     }
 
-    public static implicit operator Il2CppStructArray<T>(T[] arr)
+    public unsafe Span<T> AsSpan()
+    {
+        return new Span<T>(ArrayStartPointer.ToPointer(), Length);
+    }
+
+    [return: NotNullIfNotNull(nameof(arr))]
+    public static implicit operator Il2CppStructArray<T>?(T[]? arr)
     {
         if (arr == null) return null;
 
         return new Il2CppStructArray<T>(arr);
+    }
+
+    public static implicit operator Span<T>(Il2CppStructArray<T>? il2CppArray)
+    {
+        return il2CppArray is not null ? il2CppArray.AsSpan() : default;
+    }
+
+    public static implicit operator ReadOnlySpan<T>(Il2CppStructArray<T>? il2CppArray)
+    {
+        return il2CppArray is not null ? il2CppArray.AsSpan() : default;
     }
 
     private static IntPtr AllocateArray(long size)

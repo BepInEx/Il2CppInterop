@@ -1,10 +1,13 @@
-using System;
-using System.Collections.Generic;
+using System.Diagnostics;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Signatures;
+using AsmResolver.PE.DotNet.Metadata.Tables;
+using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
-using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Contexts;
 
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
 public class TypeRewriteContext
 {
     public enum TypeSpecifics
@@ -24,11 +27,15 @@ public class TypeRewriteContext
     public readonly TypeDefinition NewType;
 
     public readonly bool OriginalNameWasObfuscated;
+#nullable disable
+    // OriginalType is null for unstripped types, but we don't want to warn anywhere,
+    // including in the constructor, so we disable all null tracking for this field.
     public readonly TypeDefinition OriginalType;
+#nullable enable
 
     public TypeSpecifics ComputedTypeSpecifics;
 
-    public TypeRewriteContext(AssemblyRewriteContext assemblyContext, TypeDefinition originalType,
+    public TypeRewriteContext(AssemblyRewriteContext assemblyContext, TypeDefinition? originalType,
         TypeDefinition newType)
     {
         AssemblyContext = assemblyContext ?? throw new ArgumentNullException(nameof(assemblyContext));
@@ -39,50 +46,53 @@ public class TypeRewriteContext
 
         OriginalNameWasObfuscated = OriginalType.Name != NewType.Name;
         if (OriginalNameWasObfuscated)
-            NewType.CustomAttributes.Add(new CustomAttribute(assemblyContext.Imports.ObfuscatedNameAttributector.Value)
-            {
-                ConstructorArguments =
-                    {new CustomAttributeArgument(assemblyContext.Imports.Module.String(), originalType.FullName)}
-            });
+            NewType.CustomAttributes.Add(new CustomAttribute(
+                (ICustomAttributeType)assemblyContext.Imports.ObfuscatedNameAttributector.Value,
+                new CustomAttributeSignature(new CustomAttributeArgument(assemblyContext.Imports.Module.String(), OriginalType.FullName))));
 
         if (!OriginalType.IsValueType)
             ComputedTypeSpecifics = TypeSpecifics.ReferenceType;
         else if (OriginalType.IsEnum)
             ComputedTypeSpecifics = TypeSpecifics.BlittableStruct;
-        else if (OriginalType.HasGenericParameters)
+        else if (OriginalType.HasGenericParameters())
             ComputedTypeSpecifics = TypeSpecifics.NonBlittableStruct; // not reference type, covered by first if
     }
 
-    public FieldReference ClassPointerFieldRef { get; private set; }
-    public TypeReference SelfSubstitutedRef { get; private set; }
+    // These are initialized in AddMembers, which is called from an early rewrite pass.
+    public IFieldDescriptor ClassPointerFieldRef { get; private set; } = null!;
+    public ITypeDefOrRef SelfSubstitutedRef { get; private set; } = null!;
 
     public IEnumerable<FieldRewriteContext> Fields => myFieldContexts.Values;
     public IEnumerable<MethodRewriteContext> Methods => myMethodContexts.Values;
 
     public void AddMembers()
     {
-        if (NewType.HasGenericParameters)
+        if (NewType.HasGenericParameters())
         {
-            var genericInstanceType = new GenericInstanceType(NewType);
+            var genericInstanceType = new GenericInstanceTypeSignature(NewType, NewType.IsValueType);
             foreach (var newTypeGenericParameter in NewType.GenericParameters)
-                genericInstanceType.GenericArguments.Add(newTypeGenericParameter);
-            SelfSubstitutedRef = NewType.Module.ImportReference(genericInstanceType);
-            var genericTypeRef = new GenericInstanceType(AssemblyContext.Imports.Il2CppClassPointerStore)
-            { GenericArguments = { SelfSubstitutedRef } };
-            ClassPointerFieldRef = new FieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
-                NewType.Module.ImportReference(genericTypeRef));
+                genericInstanceType.TypeArguments.Add(newTypeGenericParameter.ToTypeSignature());
+            SelfSubstitutedRef = NewType.Module!.DefaultImporter.ImportTypeSignature(genericInstanceType).ToTypeDefOrRef();
+            var genericTypeRef = new GenericInstanceTypeSignature(
+                AssemblyContext.Imports.Il2CppClassPointerStore.ToTypeDefOrRef(),
+                AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType,
+                SelfSubstitutedRef.ToTypeSignature());
+            ClassPointerFieldRef = ReferenceCreator.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
+                NewType.Module.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
         }
         else
         {
             SelfSubstitutedRef = NewType;
-            var genericTypeRef = new GenericInstanceType(AssemblyContext.Imports.Il2CppClassPointerStore);
-            if (OriginalType.IsPrimitive || OriginalType.FullName == "System.String")
-                genericTypeRef.GenericArguments.Add(
-                    NewType.Module.ImportCorlibReference(OriginalType.Namespace, OriginalType.Name));
+            var genericTypeRef = new GenericInstanceTypeSignature(
+                AssemblyContext.Imports.Il2CppClassPointerStore.ToTypeDefOrRef(),
+                AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType);
+            if (OriginalType.ToTypeSignature().IsPrimitive() || OriginalType.FullName == "System.String")
+                genericTypeRef.TypeArguments.Add(
+                    NewType.Module!.ImportCorlibReference(OriginalType.FullName));
             else
-                genericTypeRef.GenericArguments.Add(SelfSubstitutedRef);
-            ClassPointerFieldRef = new FieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
-                NewType.Module.ImportReference(genericTypeRef));
+                genericTypeRef.TypeArguments.Add(SelfSubstitutedRef.ToTypeSignature());
+            ClassPointerFieldRef = ReferenceCreator.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
+                NewType.Module!.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
         }
 
         if (OriginalType.IsEnum) return;
@@ -96,14 +106,16 @@ public class TypeRewriteContext
 
         foreach (var originalTypeMethod in OriginalType.Methods)
         {
-            if (originalTypeMethod.Name == ".cctor") continue;
-            if (originalTypeMethod.Name == ".ctor" && originalTypeMethod.Parameters.Count == 1 &&
-                originalTypeMethod.Parameters[0].ParameterType.FullName == "System.IntPtr") continue;
-            if (originalTypeMethod.HasOverrides) continue;
+            if (originalTypeMethod.IsStatic && originalTypeMethod.IsConstructor)
+                continue;
+            if (originalTypeMethod.IsConstructor
+                && originalTypeMethod.Parameters is [{ ParameterType: CorLibTypeSignature { ElementType: ElementType.I } }])
+                continue;
+            var modules = this.AssemblyContext.GlobalContext.Assemblies.Select(a => a.OriginalAssembly.ManifestModule!);
 
             var methodRewriteContext = new MethodRewriteContext(this, originalTypeMethod);
             myMethodContexts[originalTypeMethod] = methodRewriteContext;
-            myMethodContextsByName[originalTypeMethod.Name] = methodRewriteContext;
+            myMethodContextsByName[originalTypeMethod.Name!] = methodRewriteContext;
 
             if (methodRewriteContext.HasExtensionAttribute) hasExtensionMethods = true;
         }
@@ -162,12 +174,17 @@ public class TypeRewriteContext
             var originalField = fieldRewriteContext.Value.OriginalField;
             if (originalField.Name != field.Name) continue;
 
-            if (originalField.FieldType.FullName != field.FieldType.FullName)
+            if (originalField.Signature?.FieldType.FullName != field.Signature?.FieldType.FullName)
                 continue;
 
             return fieldRewriteContext.Value;
         }
 
         return null;
+    }
+
+    private string GetDebuggerDisplay()
+    {
+        return NewType.FullName;
     }
 }

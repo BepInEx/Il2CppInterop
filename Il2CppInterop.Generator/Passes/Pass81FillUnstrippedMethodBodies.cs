@@ -1,9 +1,8 @@
-using System.Collections.Generic;
+using AsmResolver.DotNet;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Utils;
 using Microsoft.Extensions.Logging;
-using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -32,6 +31,9 @@ public static class Pass81FillUnstrippedMethodBodies
                 methodsSucceeded++;
             }
         }
+
+        StuffToProcess.Clear();
+        StuffToProcess.Capacity = 0;
 
         Logger.Instance.LogInformation("IL unstrip statistics: {MethodsSucceeded} successful, {MethodsFailed} failed", methodsSucceeded,
             methodsFailed);

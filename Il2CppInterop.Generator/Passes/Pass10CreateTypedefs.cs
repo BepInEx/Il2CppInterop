@@ -1,9 +1,9 @@
-using System.Linq;
+using AsmResolver.DotNet;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
 using Microsoft.Extensions.Logging;
-using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -12,11 +12,11 @@ public static class Pass10CreateTypedefs
     public static void DoPass(RewriteGlobalContext context)
     {
         foreach (var assemblyContext in context.Assemblies)
-            foreach (var type in assemblyContext.OriginalAssembly.MainModule.Types)
+            foreach (var type in assemblyContext.OriginalAssembly.ManifestModule!.TopLevelTypes)
                 if (!IsCpp2ILInjectedType(type) && type.Name != "<Module>")
                     ProcessType(type, assemblyContext, null);
 
-        static bool IsCpp2ILInjectedType(TypeDefinition type) => type.Namespace?.StartsWith("Cpp2ILInjected", StringComparison.Ordinal) ?? false;
+        static bool IsCpp2ILInjectedType(TypeDefinition type) => type.Namespace?.Value.StartsWith("Cpp2ILInjected", StringComparison.Ordinal) ?? false;
     }
 
     private static void ProcessType(TypeDefinition type, AssemblyRewriteContext assemblyContext,
@@ -34,12 +34,11 @@ public static class Pass10CreateTypedefs
 
         if (parentType == null)
         {
-            assemblyContext.NewAssembly.MainModule.Types.Add(newType);
+            assemblyContext.NewAssembly.ManifestModule!.TopLevelTypes.Add(newType);
         }
         else
         {
             parentType.NestedTypes.Add(newType);
-            newType.DeclaringType = parentType;
         }
 
         foreach (var typeNestedType in type.NestedTypes)
@@ -47,9 +46,9 @@ public static class Pass10CreateTypedefs
 
         assemblyContext.RegisterTypeRewrite(new TypeRewriteContext(assemblyContext, type, newType));
 
-        static string GetNamespace(TypeDefinition type, AssemblyRewriteContext assemblyContext)
+        static string? GetNamespace(TypeDefinition type, AssemblyRewriteContext assemblyContext)
         {
-            if (type.Name is "<Module>" || type.DeclaringType is not null)
+            if (type.Name?.Value is "<Module>" || type.DeclaringType is not null)
                 return type.Namespace;
             else
                 return type.Namespace.UnSystemify(assemblyContext.GlobalContext.Options);
@@ -60,7 +59,7 @@ public static class Pass10CreateTypedefs
         RewriteGlobalContext assemblyContextGlobalContext, TypeDefinition type, TypeDefinition? enclosingType)
     {
         if (assemblyContextGlobalContext.Options.PassthroughNames)
-            return (null, type.Name);
+            return (null, type.Name!);
 
         if (type.Name.IsObfuscated(assemblyContextGlobalContext.Options))
         {
@@ -68,7 +67,7 @@ public static class Pass10CreateTypedefs
             var genericParametersCount = type.GenericParameters.Count;
             var renameGroup =
                 assemblyContextGlobalContext.RenameGroups[
-                    ((object)type.DeclaringType ?? type.Namespace, newNameBase, genericParametersCount)];
+                    ((object?)type.DeclaringType ?? type.Namespace, newNameBase, genericParametersCount)];
             var genericSuffix = genericParametersCount == 0 ? "" : "`" + genericParametersCount;
             var convertedTypeName = newNameBase +
                                     (renameGroup.Count == 1 ? "Unique" : renameGroup.IndexOf(type).ToString()) +
@@ -81,7 +80,7 @@ public static class Pass10CreateTypedefs
             if (assemblyContextGlobalContext.Options.RenameMap.TryGetValue(fullName + "." + convertedTypeName,
                     out var newName))
             {
-                if (type.Module.Types.Any(t => t.FullName == newName))
+                if (type.Module!.TopLevelTypes.Any(t => t.FullName == newName))
                 {
                     Logger.Instance.LogWarning("[Rename map issue] {NewName} already exists in {ModuleName} (mapped from {MappedNamespace}.{MappedType})",
                         newName, type.Module.Name, fullName, convertedTypeName);
@@ -102,10 +101,7 @@ public static class Pass10CreateTypedefs
             return (null, convertedTypeName);
         }
 
-        if (type.Name.IsInvalidInSource())
-            return (null, type.Name.FilterInvalidInSourceChars());
-
-        return (null, type.Name);
+        return (null, type.Name.MakeValidInSource());
     }
 
     private static TypeAttributes AdjustAttributes(TypeAttributes typeAttributes)

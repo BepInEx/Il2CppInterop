@@ -1,7 +1,9 @@
+using AsmResolver.DotNet;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Extensions;
 using Microsoft.Extensions.Logging;
-using Mono.Cecil;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -14,39 +16,41 @@ public static class Pass80UnstripFields
 
         foreach (var unityAssembly in context.UnityAssemblies.Assemblies)
         {
-            var processedAssembly = context.TryGetAssemblyByName(unityAssembly.Name.Name);
+            var processedAssembly = context.TryGetAssemblyByName(unityAssembly.Name);
             if (processedAssembly == null) continue;
             var imports = processedAssembly.Imports;
 
-            foreach (var unityType in unityAssembly.MainModule.Types)
+            foreach (var unityType in unityAssembly.ManifestModule!.TopLevelTypes)
             {
                 var processedType = processedAssembly.TryGetTypeByName(unityType.FullName);
                 if (processedType == null) continue;
 
-                if (!unityType.IsValueType || unityType.IsEnum)
-                    continue;
+                if (unityType.IsEnum)
+                    continue;// Enum fields do not get stripped.
 
                 foreach (var unityField in unityType.Fields)
                 {
-                    if (unityField.IsStatic && !unityField.HasConstant) continue;
-                    if (processedType.NewType.IsExplicitLayout && !unityField.IsStatic) continue;
+                    if (unityField.IsStatic && !unityField.HasConstant())
+                        continue;// Non-constant static fields might require initialization, which we can't do.
+                    if (unityField.IsInstance() && (processedType.OriginalType is not null || processedType.NewType.IsReferenceType()))
+                        continue;// Instance fields are only supported on newly created value types.
 
                     var processedField = processedType.TryGetFieldByUnityAssemblyField(unityField);
                     if (processedField != null) continue;
 
                     var fieldType =
-                        Pass80UnstripMethods.ResolveTypeInNewAssemblies(context, unityField.FieldType, imports);
+                        Pass80UnstripMethods.ResolveTypeInNewAssemblies(context, unityField.Signature!.FieldType, imports);
                     if (fieldType == null)
                     {
-                        Logger.Instance.LogTrace("Field {UnityField} on type {UnityType} has unsupported type {UnityFieldType}, the type will be unusable", unityField.ToString(), unityType.FullName, unityField.FieldType.ToString());
+                        Logger.Instance.LogTrace("Field {UnityField} on type {UnityType} has unsupported type {UnityFieldType}, the type will be unusable", unityField.ToString(), unityType.FullName, unityField.Signature.FieldType.ToString());
                         fieldsIgnored++;
                         continue;
                     }
 
-                    var newField = new FieldDefinition(unityField.Name,
+                    var newField = new FieldDefinition(unityField.Name!,
                         (unityField.Attributes & ~FieldAttributes.FieldAccessMask) | FieldAttributes.Public, fieldType);
 
-                    if (unityField.HasConstant) newField.Constant = unityField.Constant;
+                    if (unityField.HasConstant()) newField.Constant = unityField.Constant;
 
                     processedType.NewType.Fields.Add(newField);
 

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
@@ -17,35 +18,26 @@ public class Il2CppStringArray : Il2CppArrayBase<string>
     {
     }
 
-    public Il2CppStringArray(string[] arr) : base(AllocateArray(arr.Length))
+    public Il2CppStringArray(string?[] arr) : base(AllocateArray(arr.Length))
     {
         for (var i = 0; i < arr.Length; i++)
             this[i] = arr[i];
     }
-
+#nullable disable
     public override unsafe string this[int index]
     {
-        get
-        {
-            if (index < 0 || index >= Length)
-                throw new ArgumentOutOfRangeException(nameof(index),
-                    "Array index may not be negative or above length of the array");
-            var arrayStartPointer = IntPtr.Add(Pointer, 4 * IntPtr.Size);
-            var elementPointer = IntPtr.Add(arrayStartPointer, index * IntPtr.Size);
-            return IL2CPP.Il2CppStringToManaged(*(IntPtr*)elementPointer);
-        }
-        set
-        {
-            if (index < 0 || index >= Length)
-                throw new ArgumentOutOfRangeException(nameof(index),
-                    "Array index may not be negative or above length of the array");
-            var arrayStartPointer = IntPtr.Add(Pointer, 4 * IntPtr.Size);
-            var elementPointer = IntPtr.Add(arrayStartPointer, index * IntPtr.Size);
-            *(IntPtr*)elementPointer = IL2CPP.ManagedStringToIl2Cpp(value);
-        }
+        get => IL2CPP.Il2CppStringToManaged(*GetElementPointer(index));
+        set => *GetElementPointer(index) = IL2CPP.ManagedStringToIl2Cpp(value);
+    }
+#nullable enable
+    private unsafe IntPtr* GetElementPointer(int index)
+    {
+        ThrowIfIndexOutOfRange(index);
+        return (IntPtr*)IntPtr.Add(ArrayStartPointer, index * IntPtr.Size).ToPointer();
     }
 
-    public static implicit operator Il2CppStringArray(string[] arr)
+    [return: NotNullIfNotNull(nameof(arr))]
+    public static implicit operator Il2CppStringArray?(string?[]? arr)
     {
         if (arr == null) return null;
 
