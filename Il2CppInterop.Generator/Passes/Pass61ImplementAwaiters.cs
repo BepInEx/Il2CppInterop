@@ -4,158 +4,79 @@ using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Cil;
 using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Contexts;
-using MelonLoader;
 using System.Runtime.CompilerServices;
 
 namespace Il2CppInterop.Generator.Passes;
 
-internal static class Pass61ImplementAwaiters
+public static class Pass61ImplementAwaiters
 {
     public static void DoPass(RewriteGlobalContext context)
     {
-        AssemblyRewriteContext corlib = context.GetAssemblyByName("mscorlib");
-        TypeRewriteContext actionUntyped = corlib.GetTypeByName("System.Action");
+        var corlib = context.GetAssemblyByName("mscorlib");
+        var actionUntyped = corlib.GetTypeByName("System.Action");
 
-        MethodDefinition actionConversionUntyped = actionUntyped.NewType.Methods.FirstOrDefault(m => m.Name == "op_Implicit") ?? throw new MissingMethodException("Untyped action conversion");
+        var actionConversionUntyped = actionUntyped.NewType.Methods.FirstOrDefault(m => m.Name == "op_Implicit") ?? throw new MissingMethodException("Untyped action conversion");
 
-        foreach (AssemblyRewriteContext assemblyContext in context.Assemblies)
+        foreach (var assemblyContext in context.Assemblies)
         {
-
-            // dont actually import the references until they're needed
+            // Use Lazy as a lazy way to not actually import the references until they're needed
 
             Lazy<ITypeDefOrRef> actionUntypedRef = new(() => assemblyContext.NewAssembly.ManifestModule!.DefaultImporter.ImportType(actionConversionUntyped.Parameters[0].ParameterType.ToTypeDefOrRef())!);
-            Lazy<ITypeDefOrRef> interopActionUntypedRef = new(() => assemblyContext.NewAssembly.ManifestModule!.DefaultImporter.ImportType(actionUntyped.NewType)!);
             Lazy<IMethodDefOrRef> actionConversionUntypedRef = new(() => assemblyContext.NewAssembly.ManifestModule!.DefaultImporter.ImportMethod(actionConversionUntyped));
             Lazy<ITypeDefOrRef> notifyCompletionRef = new(() => assemblyContext.NewAssembly.ManifestModule!.DefaultImporter.ImportType(typeof(INotifyCompletion)));
             Lazy<ITypeDefOrRef> voidRef = new(() => assemblyContext.NewAssembly.ManifestModule!.DefaultImporter.ImportType(typeof(void)));
 
-            foreach (TypeRewriteContext typeContext in assemblyContext.Types)
+            foreach (var typeContext in assemblyContext.Types)
             {
-                InterfaceImplementation? interfaceImplementation = typeContext.OriginalType.Interfaces.FirstOrDefault(InterfaceImplementation => InterfaceImplementation.Interface.Name == nameof(INotifyCompletion));
-                if (interfaceImplementation is null)
-                    continue;
-                if (typeContext.OriginalType.IsInterface)
+                var interfaceImplementation = typeContext.OriginalType.Interfaces.FirstOrDefault(InterfaceImplementation => InterfaceImplementation.Interface?.Name == nameof(INotifyCompletion));
+                if (interfaceImplementation is null || typeContext.OriginalType.IsInterface)
                     continue;
 
-                bool isGeneric = typeContext.OriginalType.GenericParameters.Count > 0;
+                var onCompletedContext = typeContext.TryGetMethodByName(nameof(INotifyCompletion.OnCompleted));
+                var interopOnCompleted = typeContext.NewType.Methods.FirstOrDefault(m => m.Name == nameof(INotifyCompletion.OnCompleted));
+                IMethodDefOrRef? interopOnCompletedRef = interopOnCompleted;
 
-                TypeDefinition awaiterType = typeContext.OriginalType;
-
-                MethodRewriteContext? onCompleteContext = typeContext.TryGetMethodByName(nameof(INotifyCompletion.OnCompleted));
-                //System.Reflection.MethodInfo newOncompleteTyped = typeof(string).GetMethod("");
-                MethodDefinition? interopOnComplete = typeContext.NewType.Methods.FirstOrDefault(m => m.Name == nameof(INotifyCompletion.OnCompleted));
-                IMethodDefOrRef? interopOnCompleteRef = interopOnComplete;
-                //var j = 
-
-                if (interopOnComplete?.CilMethodBody is null)
+                if (interopOnCompleted?.CilMethodBody is null || onCompletedContext is null || interopOnCompleted is null)
                     continue;
 
+                // Established that INotifyCompletion.OnCompleted is implemented, & interop method is defined, now create the .NET interface implementation method that jumps to the proxy
+                var onCompletedAttr = MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.NewSlot;
+                var sig = MethodSignature.CreateInstance(voidRef.Value.ToTypeSignature(), [actionUntypedRef.Value.ToTypeSignature()]);
 
-                //var interopInstructions = interopOnComplete.CilMethodBody.Instructions;
-                //foreach (var item in interopInstructions)
-                //{
-                //    // loads the static field that holds the IL2CPP method pointer
-                //    if (item.OpCode.Code != CilCode.Ldsfld)
-                //        continue;
-
-                //    if (item.Operand is not MemberReference field)
-                //        continue;
-
-                //    // handles generic instance types (hopefully) (if youre seeing this comment on github, it does)
-                //    if (field.DeclaringType is not TypeSpecification spec)
-                //        continue;
-
-
-                //    var mSig = interopOnComplete.Signature;
-                //    spec.CreateMemberReference(interopOnComplete.Name!, mSig!);
-                //    //interopOnComplete = spec!.Methods.FirstOrDefault(m => m.Name == nameof(INotifyCompletion.OnCompleted));
-                //    //Debugger.Break();
-                //}
-
-
-                if (onCompleteContext is null || interopOnComplete is null)
-                    continue;
-
-                MethodAttributes onCompletedAttr = MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.NewSlot;
-                MethodSignature sig = MethodSignature.CreateInstance(voidRef.Value.ToTypeSignature(), new TypeSignature[] { actionUntypedRef.Value.ToTypeSignature() });
-
-                #region Handle generic declaring types of nested types
-                // many awaiters are nested types, so we need to handle generic declaring types
-                // shit like UniTask<T>.Awaiter
-                // our new OnCompletes cant just call Task<>.Awaiter.OnComplete
-                //   this is probably hacky, only checking the single declaring type, but honestly, it works, i dont care.
-
-                #endregion
-
-                MethodDefinition proxyOnComplete = new MethodDefinition(onCompleteContext.NewMethod.Name, onCompletedAttr, sig);
-                ParameterDefinition parameter = proxyOnComplete.Parameters[0].GetOrCreateDefinition();
+                var proxyOnCompleted = new MethodDefinition(onCompletedContext.NewMethod.Name, onCompletedAttr, sig);
+                var parameter = proxyOnCompleted.Parameters[0].GetOrCreateDefinition();
                 parameter.Name = "continuation";
-                //(1, , interopOnComplete.ParameterDefinitions[0].Attributes);
 
-                CilMethodBody body = proxyOnComplete.CilMethodBody ??= new(proxyOnComplete);
+                var body = proxyOnCompleted.CilMethodBody ??= new(proxyOnCompleted);
 
                 typeContext.NewType.Interfaces.Add(new(notifyCompletionRef.Value));
-                typeContext.NewType.Methods.Add(proxyOnComplete);
+                typeContext.NewType.Methods.Add(proxyOnCompleted);
 
-                CilInstructionCollection instructions = body.Instructions;
+                var instructions = body.Instructions;
                 instructions.Add(CilOpCodes.Nop);
-                instructions.Add(CilOpCodes.Ldarg_0);
-                instructions.Add(CilOpCodes.Ldarg_1); // ldarg1 bc not static, so ldarg0 is "this" & ldarg1 is the parameter
+                instructions.Add(CilOpCodes.Ldarg_0); // load "this"
+                instructions.Add(CilOpCodes.Ldarg_1); // not static, so ldarg1 loads "continuation"
                 instructions.Add(CilOpCodes.Call, actionConversionUntypedRef.Value);
-                if (typeContext.NewType.DeclaringType?.GenericParameters.Count > 0)
+
+                // The titular jump to the interop method -- it's gotta reference the method on the right type, so we need to handle generic parameters
+                // Without this, awaiters declared in generic types like UniTask<T>.Awaiter would effectively try to cast themselves to their untyped versions (UniTask<>.Awaiter in this case, which isn't a thing)
+                var genericParameterCount = typeContext.NewType.GenericParameters.Count;
+                if (genericParameterCount > 0)
                 {
-                    var interopOnCompleteGeneric = typeContext.NewType.MakeGenericInstanceType(false, new GenericParameterSignature(GenericParameterType.Type, 0))
+                    var typeArguments = Enumerable.Range(0, genericParameterCount).Select(i => new GenericParameterSignature(GenericParameterType.Type, i)).ToArray();
+                    var interopOnCompleteGeneric = typeContext.NewType.MakeGenericInstanceType(typeArguments)
                         .ToTypeDefOrRef()
-                        .CreateMemberReference(interopOnComplete.Name!, interopOnComplete.Signature);
+                        .CreateMemberReference(interopOnCompleted.Name!, interopOnCompleted.Signature!); // MemberReference ctor uses nullables, so we can tell the compiler "shut up I know what I'm doing"
                     instructions.Add(CilOpCodes.Call, interopOnCompleteGeneric);
                 }
                 else
-                    instructions.Add(CilOpCodes.Call, interopOnComplete);
+                {
+                    instructions.Add(CilOpCodes.Call, interopOnCompleted);
+                }
+
                 instructions.Add(CilOpCodes.Nop);
                 instructions.Add(CilOpCodes.Ret);
-
-                MelonLogger.Msg("Created member: " + body.Owner.FullName);
-                foreach (var item in instructions)
-                {
-                    MelonLogger.Msg("\t" + CilInstructionFormatter.Instance.FormatInstruction(item));
-                }
-                //body.MaxStack = 8;
-                //proxyOnComplete.CilMethodBody.ComputeMaxStackOnBuild = false;
             }
         }
     }
-
-    //static TypeReference MakeGenericType(this TypeReference self, params TypeReference[] arguments)
-    //{
-    //    if (self.GenericParameters.Count != arguments.Length)
-    //        throw new ArgumentException();
-
-    //    var instance = new GenericInstanceType(self);
-    //    foreach (var argument in arguments)
-    //        instance.GenericArguments.Add(argument);
-
-    //    return instance;
-    //}
-
-    //public static MethodReference MakeGeneric(this MethodReference self, TypeReference declaringType)
-    //{
-    //    var reference = new MethodReference(self.Name, self.ReturnType)
-    //    {
-    //        Name = self.Name,
-    //        DeclaringType = declaringType,
-    //        HasThis = self.HasThis,
-    //        ExplicitThis = self.ExplicitThis,
-    //        ReturnType = self.ReturnType,
-    //        CallingConvention = MethodCallingConvention.Generic,
-    //    };
-
-    //    foreach (var parameter in self.Parameters)
-    //        reference.Parameters.Add(new ParameterDefinition
-    //        (parameter.ParameterType));
-
-    //    foreach (var generic_parameter in self.GenericParameters)
-    //        reference.GenericParameters.Add(new GenericParameter(reference));
-
-    //    return reference;
-    //}
 }
