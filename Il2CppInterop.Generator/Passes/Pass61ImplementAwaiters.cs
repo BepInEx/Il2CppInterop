@@ -1,10 +1,9 @@
-﻿using AsmResolver.DotNet;
-using AsmResolver.DotNet.Code.Cil;
+﻿using System.Runtime.CompilerServices;
+using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Cil;
 using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Contexts;
-using System.Runtime.CompilerServices;
 
 namespace Il2CppInterop.Generator.Passes;
 
