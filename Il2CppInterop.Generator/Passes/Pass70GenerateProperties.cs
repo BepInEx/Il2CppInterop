@@ -42,17 +42,13 @@ public static class Pass70GenerateProperties
                 }
 
                 string? defaultMemberName = null;
-                var defaultMemberAttributeAttribute = type.CustomAttributes.FirstOrDefault(it =>
-                    it.AttributeType()?.Name == "AttributeAttribute" && it.Signature!.NamedArguments.Any(it =>
-                        it.MemberName == "Name" && it.Argument.GetElementAsString() == nameof(DefaultMemberAttribute)));
-                if (defaultMemberAttributeAttribute != null)
+                if (type.CustomAttributes.FirstOrDefault(IsDefaultMemberAttributeFake) != null)
                 {
                     defaultMemberName = "Item";
                 }
                 else
                 {
-                    var realDefaultMemberAttribute =
-                        type.CustomAttributes.FirstOrDefault(it => it.AttributeType()?.Name == nameof(DefaultMemberAttribute));
+                    var realDefaultMemberAttribute = type.CustomAttributes.FirstOrDefault(IsDefaultMemberAttributeReal);
                     if (realDefaultMemberAttribute != null)
                         defaultMemberName = realDefaultMemberAttribute.Signature?.FixedArguments[0].Element?.ToString() ?? "Item";
                 }
@@ -63,6 +59,21 @@ public static class Pass70GenerateProperties
                             assemblyContext.Imports.Module.DefaultMemberAttribute().ToTypeDefOrRef(), assemblyContext.Imports.Module.String()),
                         new CustomAttributeSignature(new CustomAttributeArgument(assemblyContext.Imports.Module.String(), defaultMemberName))));
             }
+
+        static bool IsDefaultMemberAttributeFake(CustomAttribute attribute)
+        {
+            return attribute.AttributeType()?.Name == "AttributeAttribute" && attribute.Signature!.NamedArguments.Any(it =>
+            {
+                // Name support is for backwards compatibility.
+                return (it.MemberName == "Type" && it.Argument.Element is ITypeDescriptor { Namespace: "System.Reflection", Name: nameof(DefaultMemberAttribute) })
+                    || (it.MemberName == "Name" && it.Argument.GetElementAsString() == nameof(DefaultMemberAttribute));
+            });
+        }
+
+        static bool IsDefaultMemberAttributeReal(CustomAttribute attribute)
+        {
+            return attribute.AttributeType() is { Namespace.Value: "System.Reflection", Name.Value: nameof(DefaultMemberAttribute) };
+        }
     }
 
     private static string UnmanglePropertyName(AssemblyRewriteContext assemblyContext, PropertyDefinition prop,
