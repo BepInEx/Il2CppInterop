@@ -103,7 +103,7 @@ public static class Pass61ImplementAwaiters
                     var typeArguments = Enumerable.Range(0, genericParameterCount).Select(i => new GenericParameterSignature(GenericParameterType.Type, i)).ToArray();
                     var interopOnCompleteGeneric = typeContext.NewType.MakeGenericInstanceType(typeArguments)
                         .ToTypeDefOrRef()
-                        .CreateMemberReference(interopOnCompleted.Name!, interopOnCompleted.Signature!); // MemberReference ctor uses nullables, so we can tell the compiler "shut up I know what I'm doing"
+                        .CreateMemberReference(interopOnCompleted.Name, interopOnCompleted.Signature);
                     instructions.Add(CilOpCodes.Call, interopOnCompleteGeneric);
                 }
                 else
