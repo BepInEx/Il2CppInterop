@@ -80,11 +80,7 @@ public static class Pass61ImplementAwaiters
                     .Include(interopOnCompleted);
                 var cloneResult = cloner.Clone();
 
-                // Established that INotifyCompletion.OnCompleted is implemented, & interop method is defined, now create the .NET interface implementation method that jumps to the proxy
-                //var onCompletedAttr = MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.NewSlot;
-                //var sig = MethodSignature.CreateInstance(voidRef, [actionUntypedRef.Value.ToTypeSignature()]);
-                //var proxyOnCompleted = new MethodDefinition(onCompletedContext.NewMethod.Name, onCompletedAttr, sig);
-
+                // Established that INotifyCompletion.OnCompleted is implemented, & interop method is defined, now clone it to create the .NET interface implementation method that jumps straight to it
                 var proxyOnCompleted = (MethodDefinition)cloneResult.ClonedMembers.Single();
                 proxyOnCompleted.Signature!.ParameterTypes[0] = actionUntypedRef.Value.ToTypeSignature();
                 var parameter = proxyOnCompleted.Parameters[0].GetOrCreateDefinition();
