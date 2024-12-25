@@ -11,7 +11,7 @@ public static class Pass61ImplementAwaiters
 {
     public static void DoPass(RewriteGlobalContext context)
     {
-        var corlib = context.GetAssemblyByName("mscorlib");
+        var corlib = context.CorLib;
         var actionUntyped = corlib.GetTypeByName("System.Action");
 
         var actionConversionUntyped = actionUntyped.NewType.Methods.FirstOrDefault(m => m.Name == "op_Implicit") ?? throw new MissingMethodException("Untyped action conversion");
