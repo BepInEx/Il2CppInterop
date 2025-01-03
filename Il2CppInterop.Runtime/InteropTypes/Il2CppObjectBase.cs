@@ -82,10 +82,10 @@ public class Il2CppObjectBase
     }
 
     private static readonly Type[] _intPtrTypeArray = { typeof(IntPtr) };
-    private static readonly MethodInfo _getUninitializedObject = typeof(RuntimeHelpers).GetMethod(nameof(RuntimeHelpers.GetUninitializedObject))!;
+    private static readonly MethodInfo _getUninitializedObject = typeof(RuntimeHelpers).GetMethod(nameof(FormatterServices.GetUninitializedObject))!;
     private static readonly MethodInfo _getTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
-    private static readonly MethodInfo _createGCHandle = typeof(Il2CppObjectBase).GetMethod(nameof(CreateGCHandle))!;
-    private static readonly FieldInfo _isWrapped = typeof(Il2CppObjectBase).GetField(nameof(isWrapped))!;
+    private static readonly MethodInfo _createGCHandle = typeof(Il2CppObjectBase).GetMethod(nameof(CreateGCHandle), BindingFlags.Instance | BindingFlags.NonPublic)!;
+    private static readonly FieldInfo _isWrapped = typeof(Il2CppObjectBase).GetField(nameof(isWrapped), BindingFlags.Instance | BindingFlags.NonPublic)!;
 
     internal static class InitializerStore<T>
     {
@@ -126,7 +126,7 @@ public class Il2CppObjectBase
                 // obj.isWrapped = true;
                 il.Emit(OpCodes.Dup);
                 il.Emit(OpCodes.Ldc_I4_1);
-                il.Emit(OpCodes.Stsfld, _isWrapped);
+                il.Emit(OpCodes.Stfld, _isWrapped);
 
                 var parameterlessConstructor = type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, Type.EmptyTypes);
                 if (parameterlessConstructor != null)

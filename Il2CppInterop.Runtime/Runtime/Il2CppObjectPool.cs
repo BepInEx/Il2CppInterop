@@ -40,10 +40,14 @@ public static class Il2CppObjectPool
         var newObj = Il2CppObjectBase.InitializerStore<T>.Initializer(ptr);
         unsafe
         {
-            var nativeClassStruct = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<T>.NativeClassPtr);
-            if (!nativeClassStruct.HasFinalize)
+            var il2CppClass = (Il2CppClass*)Il2CppClassPointerStore<T>.NativeClassPtr;
+            if (il2CppClass != null)
             {
-                Il2CppSystem.GC.ReRegisterForFinalize(newObj as Object ?? new Object(ptr));
+                var nativeClassStruct = UnityVersionHandler.Wrap(il2CppClass);
+                if (!nativeClassStruct.HasFinalize)
+                {
+                    Il2CppSystem.GC.ReRegisterForFinalize(newObj as Object ?? new Object(ptr));
+                }
             }
         }
 
