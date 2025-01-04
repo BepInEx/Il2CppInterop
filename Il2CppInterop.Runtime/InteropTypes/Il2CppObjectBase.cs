@@ -82,7 +82,7 @@ public class Il2CppObjectBase
     }
 
     private static readonly Type[] _intPtrTypeArray = { typeof(IntPtr) };
-    private static readonly MethodInfo _getUninitializedObject = typeof(RuntimeHelpers).GetMethod(nameof(FormatterServices.GetUninitializedObject))!;
+    private static readonly MethodInfo _getUninitializedObject = typeof(FormatterServices).GetMethod(nameof(FormatterServices.GetUninitializedObject))!;
     private static readonly MethodInfo _getTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
     private static readonly MethodInfo _createGCHandle = typeof(Il2CppObjectBase).GetMethod(nameof(CreateGCHandle), BindingFlags.Instance | BindingFlags.NonPublic)!;
     private static readonly FieldInfo _isWrapped = typeof(Il2CppObjectBase).GetField(nameof(isWrapped), BindingFlags.Instance | BindingFlags.NonPublic)!;
