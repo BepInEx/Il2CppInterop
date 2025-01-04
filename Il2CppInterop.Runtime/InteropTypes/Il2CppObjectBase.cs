@@ -82,7 +82,7 @@ public class Il2CppObjectBase
     }
 
     private static readonly Type[] _intPtrTypeArray = { typeof(IntPtr) };
-    private static readonly MethodInfo _getUninitializedObject = typeof(FormatterServices).GetMethod(nameof(FormatterServices.GetUninitializedObject))!;
+    private static readonly MethodInfo _getUninitializedObject = typeof(RuntimeHelpers).GetMethod(nameof(RuntimeHelpers.GetUninitializedObject))!;
     private static readonly MethodInfo _getTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
     private static readonly MethodInfo _createGCHandle = typeof(Il2CppObjectBase).GetMethod(nameof(CreateGCHandle), BindingFlags.Instance | BindingFlags.NonPublic)!;
     private static readonly FieldInfo _isWrapped = typeof(Il2CppObjectBase).GetField(nameof(isWrapped), BindingFlags.Instance | BindingFlags.NonPublic)!;
@@ -112,7 +112,7 @@ public class Il2CppObjectBase
                 // However, it could be be user-made or implicit
                 // In that case we set the GCHandle and then call the ctor and let GC destroy any objects created by DerivedConstructorPointer
 
-                // var obj = (T)FormatterServices.GetUninitializedObject(type);
+                // var obj = (T)RuntimeHelpers.GetUninitializedObject(type);
                 il.Emit(OpCodes.Ldtoken, type);
                 il.Emit(OpCodes.Call, _getTypeFromHandle);
                 il.Emit(OpCodes.Call, _getUninitializedObject);
