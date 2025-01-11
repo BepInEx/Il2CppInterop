@@ -62,7 +62,13 @@ public class FieldRewriteContext
 
         if (!field.Name.IsObfuscated(options))
         {
-            return field.Name.MakeValidInSource();
+            var name = field.Name.MakeValidInSource();
+            while (field.DeclaringType!.Events.Any(e => e.Name == name)
+                || field.DeclaringType!.Fields.Any(f => f.Name == name && f != field))
+            {
+                name += "_"; // Backing fields for events have the same name as the event.
+            }
+            return name;
         }
 
         if (renamedFieldCounts == null) throw new ArgumentNullException(nameof(renamedFieldCounts));
