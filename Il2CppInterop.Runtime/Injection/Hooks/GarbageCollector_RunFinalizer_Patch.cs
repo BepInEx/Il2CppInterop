@@ -39,6 +39,13 @@ internal class GarbageCollector_RunFinalizer_Patch : Hook<GarbageCollector_RunFi
         },
         new()
         {
+            // Summer Vacation! Scramble - 2021.3.33 (x64)
+            pattern = "\x48\x89\x5c\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xec\x20\x48\x8b\x19\x33\xff\x48\x89\x7c\x24\x30\x48\x8b\xf1\xf6\x83\x32\x01\x00\x00\x02\x75\x08\x48\x8b\xcb\xe8",
+            mask = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            xref = false,
+        },
+        new()
+        {
             // Test Game - 2021.3.22 (x64)
             pattern = "\x40\x53\x48\x83\xEC\x20\x48\x8B\xD9\x48\xC7\x44\x24\x30\x00\x00\x00\x00\x48\x8B",
             mask = "xxxxxxxxxxxxxxxxxxxx",
