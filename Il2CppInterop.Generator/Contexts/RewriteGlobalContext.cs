@@ -55,6 +55,7 @@ public class RewriteGlobalContext : IDisposable
     public IMetadataAccess UnityAssemblies { get; }
 
     public IEnumerable<AssemblyRewriteContext> Assemblies => myAssemblies.Values;
+    public AssemblyRewriteContext CorLib => myAssemblies["mscorlib"];
 
     internal bool HasGcWbarrierFieldWrite { get; set; }
 
