@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Il2CppInterop.Common;
 using Il2CppInterop.Common.Extensions;
+using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
@@ -79,6 +80,8 @@ public static class UnityVersionHandler
     public static bool HasShimForGetMethod { get; private set; }
     public static bool IsMetadataV29OrHigher { get; private set; }
 
+    public static bool HasScriptAssembliesFile { get; private set; }
+
     // Version since which extra_arg is set to invoke_multicast, necessitating constructor calls
     public static bool MustUseDelegateConstructor => IsMetadataV29OrHigher;
 
@@ -98,6 +101,7 @@ public static class UnityVersionHandler
 
         HasGetMethodFromReflection = unityVersion > new Version(2018, 1, 0);
         IsMetadataV29OrHigher = unityVersion >= new Version(2021, 2, 0);
+        HasScriptAssembliesFile = unityVersion >= new Version(2020, 0, 0);
 
         HasShimForGetMethod = unityVersion >= new Version(2020, 3, 41) || IsMetadataV29OrHigher;
 
@@ -127,6 +131,14 @@ public static class UnityVersionHandler
     private static Type[] GetAllTypesSafe()
     {
         return typeof(UnityVersionHandler).Assembly.GetTypesSafe();
+    }
+
+    internal static IAssemblyListFile GetAssemblyListFile()
+    {
+        if (HasScriptAssembliesFile)
+            return new JSONAssemblyListFile();
+
+        return new GameManagersAssemblyListFile();
     }
 
     //Assemblies
