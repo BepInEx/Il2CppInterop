@@ -42,7 +42,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 mask = "xxxxxxxxxxxxxx?xxxxxxxxxxxxx",
                 xref = false
             },
-            
+
             // V Rising - Unity 2022.3.23 (x64)
             new MemoryUtils.SignatureDefinition
             {
@@ -113,11 +113,16 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 var getStaticFieldValue = XrefScannerLowLevel.JumpTargets(getStaticFieldValueAPI).Single();
                 Logger.Instance.LogTrace("Field::StaticGetValue: 0x{GetStaticFieldValueAddress}", getStaticFieldValue.ToInt64().ToString("X2"));
 
-                var getStaticFieldValueTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValue).ToArray();
-                if (getStaticFieldValueTargets.Length > 4)
+                var getStaticFieldValueTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValue).ToList();
+
+                // Sometimes the compiler can do an optimization and omit 'retn' instruction,
+                // which then causes code following to grab wrong function pointer. A correct match should not contain more than 4 jumps
+                // This optimization also causes Field::StaticGetValueInternal method to be located right under Field::StaticGetValue method
+                // Example: https://discord.com/channels/623153565053222947/754333645199900723/1104817647171932283
+                if (getStaticFieldValueTargets.Count > 4)
                     return getStaticFieldValueTargets[^2];
 
-                var getStaticFieldValueInternal = getStaticFieldValueTargets.Last();
+                var getStaticFieldValueInternal = getStaticFieldValueTargets[^1];
                 Logger.Instance.LogTrace("Field::StaticGetValueInternal: 0x{GetStaticFieldValueInternalAddress}", getStaticFieldValueInternal.ToInt64().ToString("X2"));
 
                 var getStaticFieldValueInternalTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).ToArray();
