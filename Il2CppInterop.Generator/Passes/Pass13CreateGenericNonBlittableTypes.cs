@@ -1,5 +1,5 @@
-﻿using Il2CppInterop.Generator.Contexts;
-using Mono.Cecil;
+﻿using AsmResolver.DotNet;
+using Il2CppInterop.Generator.Contexts;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -15,7 +15,7 @@ public static class Pass13CreateGenericNonBlittableTypes
             }
     }
 
-    private static void CreateBoxedType(TypeRewriteContext typeContext, TypeDefinition parentType = null)
+    private static void CreateBoxedType(TypeRewriteContext typeContext, TypeDefinition? parentType = null)
     {
         AssemblyRewriteContext assemblyContext = typeContext.AssemblyContext;
         var typeName = typeContext.NewType.Name;
@@ -31,12 +31,11 @@ public static class Pass13CreateGenericNonBlittableTypes
         var declaringType = parentType ?? typeContext.NewType.DeclaringType;
         if (declaringType == null)
         {
-            assemblyContext.NewAssembly.MainModule.Types.Add(newBoxedType);
+            assemblyContext.NewAssembly.ManifestModule!.TopLevelTypes.Add(newBoxedType);
         }
         else
         {
             declaringType.NestedTypes.Add(newBoxedType);
-            newBoxedType.DeclaringType = declaringType;
         }
 
         TypeRewriteContext boxedTypeContext = new TypeRewriteContext(assemblyContext, typeContext.OriginalType, newBoxedType);

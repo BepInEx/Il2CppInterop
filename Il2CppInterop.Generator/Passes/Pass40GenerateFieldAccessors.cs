@@ -23,7 +23,7 @@ public static class Pass40GenerateFieldAccessors
                     var field = fieldContext.OriginalField;
                     var unmangleFieldName = fieldContext.UnmangledName;
 
-                    var propertyType = assemblyContext.RewriteTypeRef(fieldContext.OriginalField.Signature!.FieldType, typeContext.isBoxedTypeVariant);
+                    var propertyType = assemblyContext.RewriteTypeRef(field.Signature!.FieldType, field.DeclaringType!.GetGenericParameterContext(), typeContext.isBoxedTypeVariant);
                     var signature = field.IsStatic
                         ? PropertySignature.CreateStatic(propertyType)
                         : PropertySignature.CreateInstance(propertyType);

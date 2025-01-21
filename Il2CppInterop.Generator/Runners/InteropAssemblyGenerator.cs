@@ -215,8 +215,8 @@ internal class InteropAssemblyGeneratorRunner : IRunner
 
         using (new TimingCookie("Clearing static data"))
         {
-            Pass16ScanMethodRefs.MapOfCallers = new Dictionary<long, List<XrefInstance>>();
-            Pass16ScanMethodRefs.NonDeadMethods = [];
+            Pass17ScanMethodRefs.MapOfCallers = new Dictionary<long, List<XrefInstance>>();
+            Pass17ScanMethodRefs.NonDeadMethods = [];
         }
 
         Logger.Instance.LogInformation("Done!");

@@ -1,6 +1,9 @@
-﻿using Il2CppInterop.Generator.Contexts;
+﻿using AsmResolver.DotNet;
+using AsmResolver.DotNet.Collections;
+using AsmResolver.DotNet.Signatures;
+using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
-using Mono.Cecil;
+using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Passes
 {
@@ -27,9 +30,9 @@ namespace Il2CppInterop.Generator.Passes
 
             void OnResult(GenericParameter parameter, TypeRewriteContext.GenericParameterSpecifics specific)
             {
-                if (parameter.DeclaringType != originalType) return;
+                if (parameter.Owner != originalType) return;
 
-                typeContext.SetGenericParameterUsageSpecifics(parameter.Position, specific);
+                typeContext.SetGenericParameterUsageSpecifics(parameter.Number, specific);
             }
 
             foreach (var originalField in originalType.Fields)
@@ -38,7 +41,7 @@ namespace Il2CppInterop.Generator.Passes
                 if (originalField.ExtractFieldOffset() >= 0x8000000) continue;
                 if (originalField.IsStatic) continue;
 
-                FindTypeGenericParameters(originalField.FieldType,
+                FindTypeGenericParameters(originalField.Signature!.FieldType, originalType.GetGenericParameterContext(),
                     TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability, OnResult);
             }
 
@@ -48,18 +51,18 @@ namespace Il2CppInterop.Generator.Passes
                 if (originalField.ExtractFieldOffset() >= 0x8000000) continue;
                 if (!originalField.IsStatic) continue;
 
-                FindTypeGenericParameters(originalField.FieldType,
+                FindTypeGenericParameters(originalField.Signature!.FieldType, originalType.GetGenericParameterContext(),
                     TypeRewriteContext.GenericParameterSpecifics.Relaxed, OnResult);
             }
 
             foreach (var originalMethod in originalType.Methods)
             {
-                FindTypeGenericParameters(originalMethod.ReturnType,
+                FindTypeGenericParameters(originalMethod.Signature!.ReturnType, originalMethod.GetGenericParameterContext(),
                     TypeRewriteContext.GenericParameterSpecifics.Relaxed, OnResult);
 
-                foreach (ParameterDefinition parameter in originalMethod.Parameters)
+                foreach (Parameter parameter in originalMethod.Parameters)
                 {
-                    FindTypeGenericParameters(parameter.ParameterType,
+                    FindTypeGenericParameters(parameter.ParameterType, originalMethod.GetGenericParameterContext(),
                         TypeRewriteContext.GenericParameterSpecifics.Relaxed, OnResult);
                 }
             }
@@ -76,49 +79,53 @@ namespace Il2CppInterop.Generator.Passes
 
                     if (myParameter == null) continue;
 
-                    var otherParameterSpecific = nestedContext.genericParameterUsage[parameter.Position];
+                    var otherParameterSpecific = nestedContext.genericParameterUsage[parameter.Number];
                     if (otherParameterSpecific == TypeRewriteContext.GenericParameterSpecifics.Strict)
-                        typeContext.SetGenericParameterUsageSpecifics(myParameter.Position, otherParameterSpecific);
+                        typeContext.SetGenericParameterUsageSpecifics(myParameter.Number, otherParameterSpecific);
                 }
             }
         }
 
-        private static void FindTypeGenericParameters(TypeReference reference,
+        private static void FindTypeGenericParameters(
+            TypeSignature? reference,
+            GenericParameterContext parameterContext,
             TypeRewriteContext.GenericParameterSpecifics currentConstraint,
             Action<GenericParameter, TypeRewriteContext.GenericParameterSpecifics> onFound)
         {
-            if (reference is GenericParameter genericParameter)
+            if (reference is GenericParameterSignature parameterSignature)
             {
-                onFound?.Invoke(genericParameter, currentConstraint);
+                var genericParameter = parameterContext.GetGenericParameter(parameterSignature);
+                onFound?.Invoke(genericParameter!, currentConstraint);
                 return;
             }
 
-            if (reference.IsPointer)
+            if (reference is PointerTypeSignature)
             {
-                FindTypeGenericParameters(reference.GetElementType(),
+                FindTypeGenericParameters(reference!.GetElementType(), parameterContext,
                     TypeRewriteContext.GenericParameterSpecifics.Strict, onFound);
                 return;
             }
 
-            if (reference.IsArray || reference.IsByReference)
+            if (reference is ArrayBaseTypeSignature or ByReferenceTypeSignature)
             {
-                FindTypeGenericParameters(reference.GetElementType(),
+                FindTypeGenericParameters(reference.GetElementType(), parameterContext,
                     currentConstraint, onFound);
                 return;
             }
 
-            if (reference is GenericInstanceType genericInstance)
+            if (reference is GenericInstanceTypeSignature genericInstance)
             {
-                var typeContext = globalContext.GetNewTypeForOriginal(reference.Resolve());
+                var typeDefinition = reference.Resolve()!;
+                var typeContext = globalContext.GetNewTypeForOriginal(typeDefinition);
                 ComputeGenericParameterUsageSpecifics(typeContext);
-                for (var i = 0; i < genericInstance.GenericArguments.Count; i++)
+                for (var i = 0; i < genericInstance.TypeArguments.Count; i++)
                 {
                     var myConstraint = typeContext.genericParameterUsage[i];
                     if (myConstraint == TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability)
                         myConstraint = currentConstraint;
 
-                    var genericArgument = genericInstance.GenericArguments[i];
-                    FindTypeGenericParameters(genericArgument, myConstraint, onFound);
+                    var genericArgument = genericInstance.TypeArguments[i];
+                    FindTypeGenericParameters(genericArgument, parameterContext, myConstraint, onFound);
                 }
             }
         }

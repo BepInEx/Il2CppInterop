@@ -5,8 +5,6 @@ using AsmResolver.DotNet.Signatures;
 using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
-using Mono.Cecil;
-using Mono.Cecil.Rocks;
 
 namespace Il2CppInterop.Generator.Utils;
 
@@ -76,7 +74,6 @@ public class RuntimeAssemblyReferences
     public Lazy<IMethodDefOrRef> Il2CppSystemDelegateRemove { get; private set; }
     public Lazy<IMethodDefOrRef> Il2CppSystemRuntimeTypeHandleGetRuntimeTypeHandle { get; private set; }
 
-    public MethodReference WriteFieldWBarrier => globalCtx.HasGcWbarrierFieldWrite
     public IMethodDescriptor WriteFieldWBarrier => globalCtx.HasGcWbarrierFieldWrite
         ? IL2CPP_il2cpp_gc_wbarrier_set_field.Value
         : IL2CPP_FieldWriteWbarrierStub.Value;
@@ -93,7 +90,7 @@ public class RuntimeAssemblyReferences
     public TypeSignature DelegateSupport { get; private set; }
     public TypeSignature Il2CppException { get; private set; }
 #nullable enable
-    public TypeReference NativeBoolean { get; private set; }
+    public TypeSignature NativeBoolean { get; private set; }
 
     private TypeSignature ResolveType(string typeName)
     {
@@ -146,8 +143,7 @@ public class RuntimeAssemblyReferences
 
         Il2CppException = new TypeReference(Module, assemblyRef, "Il2CppInterop.Runtime", "Il2CppException").ToTypeSignature();
 
-        NativeBoolean = new TypeReference("Il2CppInterop.Runtime", "NativeBoolean", Module, assemblyRef);
-        NativeBoolean.IsValueType = true;
+        NativeBoolean = new TypeReference(Module, assemblyRef,"Il2CppInterop.Runtime", "NativeBoolean").ToTypeSignature(true);
 
         allTypes["Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"] = Il2CppObjectBase;
         allTypes["Il2CppInterop.Runtime.Runtime.Il2CppObjectPool"] = Il2CppObjectPool;

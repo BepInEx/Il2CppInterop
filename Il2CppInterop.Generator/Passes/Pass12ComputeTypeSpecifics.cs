@@ -1,11 +1,9 @@
-using System.Diagnostics;
-using Il2CppInterop.Common;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Collections;
 using AsmResolver.DotNet.Signatures;
-using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging;
+using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -17,7 +15,7 @@ public static class Pass12ComputeTypeSpecifics
 
         foreach (var assemblyContext in context.Assemblies)
             foreach (var typeContext in assemblyContext.Types)
-                ScanTypeUsage(typeContext);
+                ScanTypeContextUsage(typeContext);
 
         foreach (var assemblyContext in context.Assemblies)
             foreach (var typeContext in assemblyContext.Types)
@@ -30,73 +28,75 @@ public static class Pass12ComputeTypeSpecifics
 
     internal static Dictionary<TypeDefinition, ParameterUsage> typeUsageDictionary = new Dictionary<TypeDefinition, ParameterUsage>(new TypeComparer());
 
-    private static void ScanTypeUsage(TypeRewriteContext typeContext)
+    private static void ScanTypeContextUsage(TypeRewriteContext typeContext)
     {
-        foreach (FieldDefinition fieldDefinition in typeContext.OriginalType.Fields)
+        var type = typeContext.OriginalType;
+
+        foreach (FieldDefinition fieldDefinition in type.Fields)
         {
-            ScanTypeUsage(fieldDefinition.FieldType);
+            ScanTypeUsage(fieldDefinition.Signature!.FieldType, type.GetGenericParameterContext());
         }
 
-        foreach (PropertyDefinition propertyDefinition in typeContext.OriginalType.Properties)
+        foreach (PropertyDefinition propertyDefinition in type.Properties)
         {
-            ScanTypeUsage(propertyDefinition.PropertyType);
+            ScanTypeUsage(propertyDefinition.Signature!.ReturnType, type.GetGenericParameterContext());
         }
 
-        foreach (MethodDefinition methodDefinition in typeContext.OriginalType.Methods)
+        foreach (MethodDefinition method in type.Methods)
         {
-            ScanTypeUsage(methodDefinition.ReturnType);
-            foreach (ParameterDefinition parameterDefinition in methodDefinition.Parameters)
+            ScanTypeUsage(method.Signature!.ReturnType, method.GetGenericParameterContext());
+            foreach (Parameter parameterDefinition in method.Parameters)
             {
-                ScanTypeUsage(parameterDefinition.ParameterType);
+                ScanTypeUsage(parameterDefinition.ParameterType, method.GetGenericParameterContext());
             }
         }
     }
 
-    private static void ScanTypeUsage(TypeReference fieldType)
+    private static void ScanTypeUsage(TypeSignature? fieldType, GenericParameterContext parameterContext)
     {
-        while (fieldType.IsPointer)
+        while (fieldType is PointerTypeSignature pointerType)
         {
-            fieldType = (fieldType as PointerType).ElementType;
+            fieldType = pointerType.BaseType;
         }
 
-        while (fieldType.IsArray)
+        while (fieldType is ArrayTypeSignature arrayType)
         {
-            fieldType = (fieldType as ArrayType).ElementType;
+            fieldType = arrayType.BaseType;
         }
 
-        if (fieldType is GenericInstanceType genericInstanceType)
+        if (fieldType is GenericInstanceTypeSignature genericInstanceType)
         {
-            foreach (TypeReference typeReference in genericInstanceType.GenericArguments)
+            foreach (TypeSignature typeReference in genericInstanceType.TypeArguments)
             {
-                ScanTypeUsage(typeReference);
+                ScanTypeUsage(typeReference, parameterContext);
             }
 
-            TypeDefinition typeDef = fieldType.Resolve();
-            if (typeDef?.BaseType == null || !typeDef.BaseType.Name.Equals("ValueType")) return;
+            TypeDefinition typeDef = fieldType.Resolve()!;
+            if (typeDef?.BaseType == null || !typeDef.BaseType.Name!.Equals("ValueType")) return;
 
 
             if (!typeUsageDictionary.TryGetValue(typeDef, out ParameterUsage usage))
             {
-                usage = new ParameterUsage(genericInstanceType.GenericArguments.Count);
+                usage = new ParameterUsage(genericInstanceType.TypeArguments.Count);
                 typeUsageDictionary.Add(typeDef, usage);
             }
 
-            for (var i = 0; i < genericInstanceType.GenericArguments.Count; i++)
+            for (var i = 0; i < genericInstanceType.TypeArguments.Count; i++)
             {
-                usage.AddUsage(i, genericInstanceType.GenericArguments[i]);
+                usage.AddUsage(i, genericInstanceType.TypeArguments[i], parameterContext);
             }
         }
     }
 
     private static bool IsValueTypeOnly(TypeRewriteContext typeContext, GenericParameter genericParameter)
     {
-        if (genericParameter.Constraints.All(constraint => constraint.ConstraintType.FullName != "System.ValueType"))
+        if (genericParameter.Constraints.All(constraint => constraint.Constraint!.FullName != "System.ValueType"))
             return false;
 
         if (typeUsageDictionary.ContainsKey(typeContext.OriginalType))
         {
             var usage = typeUsageDictionary[typeContext.OriginalType];
-            return usage.IsBlittableParameter(typeContext.AssemblyContext.GlobalContext, genericParameter.Position);
+            return usage.IsBlittableParameter(typeContext.AssemblyContext.GlobalContext, genericParameter.Number);
         }
 
         return true;
@@ -118,12 +118,12 @@ public static class Pass12ComputeTypeSpecifics
 
             if (originalField.IsStatic) continue;
 
-            var fieldType = originalField.FieldType;
+            var fieldType = originalField.Signature!.FieldType;
 
-            if (fieldType.IsPrimitive || fieldType.IsPointer || fieldType.IsGenericParameter) continue;
+            if (fieldType.IsPrimitive() || fieldType is PointerTypeSignature or GenericParameterSignature) continue;
 
             if (fieldType.FullName == "System.String" || fieldType.FullName == "System.Object"
-                || fieldType is ArrayBaseTypeSignature or ByReferenceTypeSignature or GenericParameterSignature or GenericInstanceTypeSignature)
+                || fieldType is ArrayBaseTypeSignature or ByReferenceTypeSignature)
             {
                 typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
                 return;
@@ -133,11 +133,12 @@ public static class Pass12ComputeTypeSpecifics
             ComputeSpecifics(fieldTypeContext);
             if (fieldTypeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct)
             {
-                var genericInstance = fieldType as GenericInstanceType;
-                for (var i = 0; i < genericInstance.GenericArguments.Count; i++)
+                var genericInstance = fieldType as GenericInstanceTypeSignature;
+                for (var i = 0; i < genericInstance!.TypeArguments.Count; i++)
                 {
-                    var genericArgument = genericInstance.GenericArguments[i];
-                    if (genericArgument.IsGenericParameter) continue;
+                    var genericArgument = genericInstance.TypeArguments[i];
+                    if (genericArgument is GenericParameterSignature) continue;
+
                     if (fieldTypeContext.genericParameterUsage[i] < TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability) continue;
 
                     var genericArgumentContext = typeContext.AssemblyContext.GlobalContext.GetNewTypeForOriginal(genericArgument.Resolve());
@@ -172,13 +173,13 @@ public static class Pass12ComputeTypeSpecifics
 
         foreach (var genericParameter in typeContext.OriginalType.GenericParameters)
         {
-            if (typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability ||
-                typeContext.genericParameterUsage[genericParameter.Position] == TypeRewriteContext.GenericParameterSpecifics.Strict)
+            if (typeContext.genericParameterUsage[genericParameter.Number] == TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability ||
+                typeContext.genericParameterUsage[genericParameter.Number] == TypeRewriteContext.GenericParameterSpecifics.Strict)
 
             {
                 if (IsValueTypeOnly(typeContext, genericParameter))
                 {
-                    typeContext.SetGenericParameterUsageSpecifics(genericParameter.Position, TypeRewriteContext.GenericParameterSpecifics.Strict);
+                    typeContext.SetGenericParameterUsageSpecifics(genericParameter.Number, TypeRewriteContext.GenericParameterSpecifics.Strict);
                     continue;
                 }
 
@@ -191,29 +192,35 @@ public static class Pass12ComputeTypeSpecifics
 
     internal class ParameterUsage
     {
-        public List<TypeReference>[] usageData;
+        public List<INameProvider>[] usageData;
 
         public ParameterUsage(int paramCount)
         {
-            usageData = new List<TypeReference>[paramCount];
+            usageData = new List<INameProvider>[paramCount];
             for (var i = 0; i < paramCount; i++)
             {
-                usageData[i] = new List<TypeReference>();
+                usageData[i] = new List<INameProvider>();
             }
         }
 
-        public void AddUsage(int index, TypeReference type)
+        public void AddUsage(int index, TypeSignature type, GenericParameterContext parameterContext)
         {
-            if (type is GenericParameter genericParameter)
+            if (type is GenericParameterSignature parameterSignature)
             {
+                var genericParameter = parameterContext.GetGenericParameter(parameterSignature)!;
                 var declaringName = GetDeclaringName(genericParameter);
 
-                if (usageData[index].All(reference => reference is not GenericParameter parameter || !GetDeclaringName(parameter).Equals(declaringName)))
+                if (usageData[index].All(reference =>
+                        reference is not GenericParameter parameter ||
+                        !GetDeclaringName(parameter).Equals(declaringName))
+                    )
                 {
-                    usageData[index].Add(type);
+                    usageData[index].Add(genericParameter);
                 }
             }
-            else if (usageData[index].All(reference => !reference.FullName.Equals(type.FullName)))
+            else if (usageData[index].All(reference =>
+                         reference is not TypeSignature fullNameProvider ||
+                         !fullNameProvider.FullName.Equals(type.FullName)))
             {
                 usageData[index].Add(type);
             }
@@ -221,8 +228,8 @@ public static class Pass12ComputeTypeSpecifics
 
         private static string GetDeclaringName(GenericParameter genericParameter)
         {
-            var declaringName = genericParameter.DeclaringMethod != null ? genericParameter.DeclaringMethod.FullName : genericParameter.DeclaringType.FullName;
-            declaringName += genericParameter.FullName;
+            var declaringName = genericParameter.Owner!.FullName;
+            declaringName += genericParameter.Name;
             return declaringName;
         }
 
@@ -230,16 +237,16 @@ public static class Pass12ComputeTypeSpecifics
         {
             var usages = usageData[index];
 
-            foreach (TypeReference reference in usages)
+            foreach (INameProvider reference in usages)
             {
                 if (reference is GenericParameter genericParameter)
                 {
-                    if (genericParameter.Constraints.All(constraint => constraint.ConstraintType.FullName != "System.ValueType"))
+                    if (genericParameter.Constraints.All(constraint => constraint.Constraint!.FullName != "System.ValueType"))
                         return false;
                 }
-                else
+                else if (reference is TypeSignature typeSignature)
                 {
-                    var typeDef = reference.Resolve();
+                    var typeDef = typeSignature.Resolve()!;
                     var fieldTypeContext = globalContext.GetNewTypeForOriginal(typeDef);
                     ComputeSpecifics(fieldTypeContext);
                     if (fieldTypeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.NonBlittableStruct)
@@ -251,15 +258,10 @@ public static class Pass12ComputeTypeSpecifics
         }
     }
 
-    internal sealed class TypeComparer : EqualityComparer<TypeDefinition>
+    private sealed class TypeComparer : EqualityComparer<TypeDefinition>
     {
         public override bool Equals(TypeDefinition x, TypeDefinition y)
         {
-            if (x == null)
-                return y == null;
-            if (y == null)
-                return false;
-
             return x.FullName.Equals(y.FullName);
         }
 

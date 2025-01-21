@@ -1,5 +1,6 @@
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
+using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Extensions;
 
@@ -47,18 +48,5 @@ public static class TypeReferenceEx
             return $"{GetNamespacePrefix(type.DeclaringType)}.{type.DeclaringType.Name}";
 
         return type.Namespace;
-    }
-
-    public static MethodReference DefaultCtorFor(this TypeReference type)
-    {
-        var resolved = type.Resolve();
-        if (resolved == null)
-            return null;
-
-        var ctor = resolved.Methods.SingleOrDefault(m => m.IsConstructor && m.Parameters.Count == 0 && !m.IsStatic);
-        if (ctor == null)
-            return DefaultCtorFor(resolved.BaseType);
-
-        return new MethodReference(".ctor", type.Module.TypeSystem.Void, type) { HasThis = true };
     }
 }

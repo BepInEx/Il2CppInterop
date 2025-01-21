@@ -31,7 +31,7 @@ public static class Pass15FillGenericConstraints
 
                         newParameter.Constraints.Add(
                             new GenericParameterConstraint(
-                                assemblyContext.RewriteTypeRef(originalConstraint.Constraint!, false)));
+                                assemblyContext.RewriteTypeRef(originalConstraint.Constraint!, default, false)));
                     }
                 }
             }

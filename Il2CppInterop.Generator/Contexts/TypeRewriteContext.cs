@@ -226,9 +226,9 @@ public class TypeRewriteContext
 
     private void SetGenericParameterSpecificsUp(GenericParameter parameter, GenericParameterSpecifics specifics)
     {
-        if (specifics > genericParameterUsage[parameter.Position])
+        if (specifics > genericParameterUsage[parameter.Number])
         {
-            genericParameterUsage[parameter.Position] = specifics;
+            genericParameterUsage[parameter.Number] = specifics;
             foreach (TypeDefinition nestedType in OriginalType.NestedTypes)
             {
                 var nestedContext = AssemblyContext.GlobalContext.GetNewTypeForOriginal(nestedType);

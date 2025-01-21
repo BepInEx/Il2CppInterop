@@ -27,7 +27,7 @@ public static class Pass21GenerateValueTypeFields
                 {
                     var newType = typeContext.NewType;
 
-                    if (!typeContext.OriginalType.HasGenericParameters)
+                    if (!typeContext.OriginalType.HasGenericParameters())
                         newType.Attributes = (newType.Attributes & ~TypeAttributes.LayoutMask) |
                                              TypeAttributes.ExplicitLayout;
                     else
@@ -36,9 +36,10 @@ public static class Pass21GenerateValueTypeFields
                     if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct)
                     {
                         var boxedType = typeContext.BoxedTypeContext.NewType;
-                        var genericBoxedType = new GenericInstanceType(assemblyContext.Imports.Module.ImportReference(boxedType));
+                        var typeRef = assemblyContext.Imports.Module.DefaultImporter.ImportType(boxedType);
+                        var genericBoxedType = new GenericInstanceTypeSignature(typeRef, typeRef.IsValueType);
                         foreach (GenericParameter parameter in newType.GenericParameters)
-                            genericBoxedType.GenericArguments.Add(parameter);
+                            genericBoxedType.TypeArguments.Add(parameter.ToTypeSignature());
                         ILGeneratorEx.GenerateBoxMethod(assemblyContext.Imports, newType, typeContext.ClassPointerFieldRef,
                             genericBoxedType);
                     }
@@ -53,15 +54,15 @@ public static class Pass21GenerateValueTypeFields
                         var field = fieldContext.OriginalField;
                         if (field.IsStatic) continue;
 
-                        TypeReference rewriteTypeRef;
-                        if (!field.Signature!.FieldType.IsValueType && !field.FieldType.IsPointer && !field.FieldType.IsGenericParameter)
+                        TypeSignature rewriteTypeRef;
+                        if (!field.Signature!.FieldType.IsValueType && field.Signature.FieldType is not PointerTypeSignature and not GenericParameterSignature)
                             rewriteTypeRef = assemblyContext.Imports.Module.IntPtr();
                         else
-                            rewriteTypeRef = assemblyContext.RewriteTypeRef(field.Signature.FieldType, false);
+                            rewriteTypeRef = assemblyContext.RewriteTypeRef(field.Signature.FieldType, field.DeclaringType!.GetGenericParameterContext());
 
                         var newField = new FieldDefinition(fieldContext.UnmangledName, field.Attributes.ForcePublic(), rewriteTypeRef);
 
-                        if (!typeContext.OriginalType.HasGenericParameters)
+                        if (!typeContext.OriginalType.HasGenericParameters())
                             newField.FieldOffset = field.ExtractFieldOffset();
 
 
@@ -70,7 +71,7 @@ public static class Pass21GenerateValueTypeFields
                         {
                             if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct)
                             {
-                                newField.FieldType = assemblyContext.Imports.NativeBoolean;
+                                newField.Signature.FieldType = assemblyContext.Imports.NativeBoolean;
                             }
                             else
                             {

@@ -51,7 +51,7 @@ public class FieldRewriteContext
         var accessModString = MethodAccessTypeLabels[(int)(field.Attributes & FieldAttributes.FieldAccessMask)];
         var staticString = field.IsStatic ? "_Static" : "";
         return "field_" + accessModString + staticString + "_" +
-               DeclaringType.AssemblyContext.RewriteTypeRef(field.Signature!.FieldType, false).GetUnmangledName(field.DeclaringType);
+               DeclaringType.AssemblyContext.RewriteTypeRef(field.Signature!.FieldType, field.DeclaringType!.GetGenericParameterContext()).GetUnmangledName(field.DeclaringType);
     }
 
     private string UnmangleFieldName(FieldDefinition field, GeneratorOptions options,

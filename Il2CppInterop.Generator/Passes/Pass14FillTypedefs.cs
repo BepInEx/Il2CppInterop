@@ -1,10 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
-using Il2CppInterop.Common;
 using AsmResolver.DotNet;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
-using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -22,7 +19,7 @@ public static class Pass14FillTypedefs
                         originalParameter.Attributes.StripValueTypeConstraint());
                     typeContext.NewType.GenericParameters.Add(newParameter);
 
-                    var parameterSpecifics = typeContext.genericParameterUsage[originalParameter.Position];
+                    var parameterSpecifics = typeContext.genericParameterUsage[originalParameter.Number];
                     if (parameterSpecifics == TypeRewriteContext.GenericParameterSpecifics.Strict ||
                         (parameterSpecifics == TypeRewriteContext.GenericParameterSpecifics.AffectsBlittability &&
                          typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct))
@@ -45,6 +42,6 @@ public static class Pass14FillTypedefs
         foreach (var assemblyContext in context.Assemblies)
             foreach (var typeContext in assemblyContext.Types)
                 if (!typeContext.OriginalType.IsEnum && !typeContext.ComputedTypeSpecifics.IsBlittable())
-                    typeContext.NewType.BaseType = assemblyContext.RewriteTypeRef(typeContext.OriginalType.BaseType, false);
+                    typeContext.NewType.BaseType = assemblyContext.RewriteTypeRef(typeContext.OriginalType.BaseType, typeContext.OriginalType.GetGenericParameterContext(), false);
     }
 }

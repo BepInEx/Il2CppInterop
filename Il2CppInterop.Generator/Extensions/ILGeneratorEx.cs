@@ -216,13 +216,6 @@ public static class ILGeneratorEx
             body.AddLoadArgument(argumentIndex);
             body.Add(OpCodes.Call, imports.IL2CPP_ManagedStringToIl2Cpp.Value);
         }
-        else if (originalType.IsPointer)
-        {
-            body.AddLoadArgument(argumentIndex);
-            //TODO ensure works
-            body.Add(OpCodes.Call, new MethodReference("op_Explicit", imports.Module.IntPtr(), imports.Module.IntPtr())
-            { Parameters = { new ParameterDefinition(imports.Module.ImportReference(typeof(void*))) } });
-        }
         else
         {
             body.AddLoadArgument(argumentIndex);
@@ -359,14 +352,6 @@ public static class ILGeneratorEx
                     imports.Module.IntPtr());
             body.Add(OpCodes.Call, methodRef);
         }
-        else if (originalReturnType.IsPointer)
-        {
-            body.Add(OpCodes.Ldloc, pointerVariable);
-            //TODO ensure works
-            body.Add(OpCodes.Call,
-                new MethodReference("op_Explicit", imports.Module.ImportReference(typeof(void*)), imports.Module.IntPtr())
-                { Parameters = { new ParameterDefinition(imports.Module.IntPtr()) } });
-        }
         else
         {
             var createPoolObject = new CilInstructionLabel();
@@ -399,7 +384,7 @@ public static class ILGeneratorEx
         body.Add(unboxValueType ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
 
         body.Add(OpCodes.Call,
-            imports.Module.DefaultImporter.ImportMethod(imports.IL2CPP_PointerToRefValueGeneric.Value.MakeGenericInstanceMethod(newReturnType)));
+            imports.Module.DefaultImporter.ImportMethod(imports.IL2CPP_PointerToValueGeneric.Value.MakeGenericInstanceMethod(newReturnType)));
     }
 
     public static void GenerateBoxMethod(RuntimeAssemblyReferences imports, TypeDefinition targetType,
