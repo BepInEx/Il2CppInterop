@@ -72,11 +72,25 @@ public class AssemblyRewriteContext
         return NewAssembly.ManifestModule!.DefaultImporter.ImportMethod(newMethod);
     }
 
+    /// <summary>
+    /// Rewrite passes type
+    /// </summary>
+    /// <param name="typeRef">type</param>
+    /// <param name="context">generic context. Ensure you pass NEW types here</param>
+    /// <param name="typeIsBoxed">are we rewriting boxed variant</param>
+    /// <returns>new type</returns>
     public ITypeDefOrRef RewriteTypeRef(ITypeDescriptor typeRef, GenericParameterContext context = default, bool typeIsBoxed = false)
     {
         return RewriteTypeRef(typeRef?.ToTypeSignature(), context, typeIsBoxed).ToTypeDefOrRef();
     }
 
+    /// <summary>
+    /// Rewrite passes type
+    /// </summary>
+    /// <param name="typeRef">type</param>
+    /// <param name="context">generic context. Ensure you pass NEW types here</param>
+    /// <param name="typeIsBoxed">are we rewriting boxed variant</param>
+    /// <returns>new type</returns>
     public TypeSignature RewriteTypeRef(TypeSignature? typeRef, GenericParameterContext context = default, bool typeIsBoxed = false)
     {
         if (typeRef == null)

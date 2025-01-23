@@ -24,7 +24,7 @@ public static class Pass19CopyMethodParameters
                             : originalMethodParameter.Name;
 
                         var newParameter = newMethod.AddParameter(
-                            assemblyContext.RewriteTypeRef(originalMethodParameter.ParameterType, originalMethod.GetGenericParameterContext(), typeContext.isBoxedTypeVariant),
+                            assemblyContext.RewriteTypeRef(originalMethodParameter.ParameterType, newMethod.GetGenericParameterContext(), typeContext.isBoxedTypeVariant),
                             newName,
                             originalMethodParameter.GetOrCreateDefinition().Attributes & ~ParameterAttributes.HasFieldMarshal);
 

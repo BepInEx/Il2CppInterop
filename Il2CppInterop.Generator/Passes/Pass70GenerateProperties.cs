@@ -25,12 +25,12 @@ public static class Pass70GenerateProperties
                     var unmangledPropertyName = UnmanglePropertyName(assemblyContext, oldProperty, typeContext.NewType,
                         propertyCountsByName);
 
-                    var propertyType = assemblyContext.RewriteTypeRef(oldProperty.Signature!.ReturnType, type.GetGenericParameterContext(), typeContext.isBoxedTypeVariant);
+                    var propertyType = assemblyContext.RewriteTypeRef(oldProperty.Signature!.ReturnType, typeContext.NewType.GetGenericParameterContext(), typeContext.isBoxedTypeVariant);
                     var signature = oldProperty.Signature.HasThis
                         ? PropertySignature.CreateInstance(propertyType)
                         : PropertySignature.CreateStatic(propertyType);
                     foreach (var oldParameter in oldProperty.Signature.ParameterTypes)
-                        signature.ParameterTypes.Add(assemblyContext.RewriteTypeRef(oldParameter, type.GetGenericParameterContext(), typeContext.isBoxedTypeVariant));
+                        signature.ParameterTypes.Add(assemblyContext.RewriteTypeRef(oldParameter, typeContext.NewType.GetGenericParameterContext(), typeContext.isBoxedTypeVariant));
 
                     var property = new PropertyDefinition(unmangledPropertyName, oldProperty.Attributes, signature);
 
@@ -77,12 +77,12 @@ public static class Pass70GenerateProperties
     }
 
     private static string UnmanglePropertyName(AssemblyRewriteContext assemblyContext, PropertyDefinition prop,
-        ITypeDefOrRef declaringType, Dictionary<string, int> countsByBaseName)
+        TypeDefinition declaringType, Dictionary<string, int> countsByBaseName)
     {
         if (assemblyContext.GlobalContext.Options.PassthroughNames ||
             !prop.Name.IsObfuscated(assemblyContext.GlobalContext.Options)) return prop.Name!;
 
-        var baseName = "prop_" + assemblyContext.RewriteTypeRef(prop.Signature!.ReturnType, prop.DeclaringType!.GetGenericParameterContext()).GetUnmangledName(prop.DeclaringType);
+        var baseName = "prop_" + assemblyContext.RewriteTypeRef(prop.Signature!.ReturnType, declaringType.GetGenericParameterContext()).GetUnmangledName(prop.DeclaringType);
 
         countsByBaseName.TryGetValue(baseName, out var index);
         countsByBaseName[baseName] = index + 1;

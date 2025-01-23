@@ -58,7 +58,7 @@ public static class Pass21GenerateValueTypeFields
                         if (!field.Signature!.FieldType.IsValueType && field.Signature.FieldType is not PointerTypeSignature and not GenericParameterSignature)
                             rewriteTypeRef = assemblyContext.Imports.Module.IntPtr();
                         else
-                            rewriteTypeRef = assemblyContext.RewriteTypeRef(field.Signature.FieldType, field.DeclaringType!.GetGenericParameterContext());
+                            rewriteTypeRef = assemblyContext.RewriteTypeRef(field.Signature.FieldType, newType.GetGenericParameterContext());
 
                         var newField = new FieldDefinition(fieldContext.UnmangledName, field.Attributes.ForcePublic(), rewriteTypeRef);
 
