@@ -1,17 +1,15 @@
-using System.Runtime.CompilerServices;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using AsmResolver;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Collections;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
-using Il2CppInterop.Common;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Passes;
 using Il2CppInterop.Generator.Utils;
-using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Generator.Contexts;
 

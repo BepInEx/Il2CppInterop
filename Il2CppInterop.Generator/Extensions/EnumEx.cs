@@ -1,5 +1,5 @@
-using Il2CppInterop.Generator.Contexts;
 using AsmResolver.PE.DotNet.Metadata.Tables;
+using Il2CppInterop.Generator.Contexts;
 
 namespace Il2CppInterop.Generator.Extensions;
 

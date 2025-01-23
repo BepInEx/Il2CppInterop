@@ -143,7 +143,7 @@ public class RuntimeAssemblyReferences
 
         Il2CppException = new TypeReference(Module, assemblyRef, "Il2CppInterop.Runtime", "Il2CppException").ToTypeSignature();
 
-        NativeBoolean = new TypeReference(Module, assemblyRef,"Il2CppInterop.Runtime", "NativeBoolean").ToTypeSignature(true);
+        NativeBoolean = new TypeReference(Module, assemblyRef, "Il2CppInterop.Runtime", "NativeBoolean").ToTypeSignature(true);
 
         allTypes["Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"] = Il2CppObjectBase;
         allTypes["Il2CppInterop.Runtime.Runtime.Il2CppObjectPool"] = Il2CppObjectPool;
