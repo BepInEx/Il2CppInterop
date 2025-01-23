@@ -18,7 +18,7 @@ public static class Pass13CreateGenericNonBlittableTypes
     private static void CreateBoxedType(TypeRewriteContext typeContext, TypeDefinition? parentType = null)
     {
         AssemblyRewriteContext assemblyContext = typeContext.AssemblyContext;
-        var typeName = typeContext.NewType.Name;
+        var typeName = typeContext.NewType.Name!;
         // Append _unboxed to blittable type for compatibility
         typeContext.NewType.Name = GetUnboxedName(typeName);
 

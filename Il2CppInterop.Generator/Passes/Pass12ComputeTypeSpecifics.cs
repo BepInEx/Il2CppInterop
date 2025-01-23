@@ -52,39 +52,38 @@ public static class Pass12ComputeTypeSpecifics
         }
     }
 
-    private static void ScanTypeUsage(TypeSignature? fieldType, GenericParameterContext parameterContext)
+    private static void ScanTypeUsage(TypeSignature? typeRef, GenericParameterContext parameterContext)
     {
-        while (fieldType is PointerTypeSignature pointerType)
+        while (typeRef is PointerTypeSignature pointerType)
         {
-            fieldType = pointerType.BaseType;
+            typeRef = pointerType.BaseType;
         }
 
-        while (fieldType is ArrayTypeSignature arrayType)
+        while (typeRef is ArrayTypeSignature arrayType)
         {
-            fieldType = arrayType.BaseType;
+            typeRef = arrayType.BaseType;
         }
 
-        if (fieldType is GenericInstanceTypeSignature genericInstanceType)
+        if (typeRef is not GenericInstanceTypeSignature genericInstanceType) return;
+
+        foreach (TypeSignature typeReference in genericInstanceType.TypeArguments)
         {
-            foreach (TypeSignature typeReference in genericInstanceType.TypeArguments)
-            {
-                ScanTypeUsage(typeReference, parameterContext);
-            }
+            ScanTypeUsage(typeReference, parameterContext);
+        }
 
-            TypeDefinition typeDef = fieldType.Resolve()!;
-            if (typeDef?.BaseType == null || !typeDef.BaseType.Name!.Equals("ValueType")) return;
+        TypeDefinition typeDef = typeRef.Resolve()!;
+        if (typeDef?.BaseType == null || !typeDef.BaseType.Name!.Equals("ValueType")) return;
 
 
-            if (!typeUsageDictionary.TryGetValue(typeDef, out ParameterUsage usage))
-            {
-                usage = new ParameterUsage(genericInstanceType.TypeArguments.Count);
-                typeUsageDictionary.Add(typeDef, usage);
-            }
+        if (!typeUsageDictionary.TryGetValue(typeDef, out ParameterUsage usage))
+        {
+            usage = new ParameterUsage(genericInstanceType.TypeArguments.Count);
+            typeUsageDictionary.Add(typeDef, usage);
+        }
 
-            for (var i = 0; i < genericInstanceType.TypeArguments.Count; i++)
-            {
-                usage.AddUsage(i, genericInstanceType.TypeArguments[i], parameterContext);
-            }
+        for (var i = 0; i < genericInstanceType.TypeArguments.Count; i++)
+        {
+            usage.AddUsage(i, genericInstanceType.TypeArguments[i], parameterContext);
         }
     }
 
@@ -192,7 +191,7 @@ public static class Pass12ComputeTypeSpecifics
 
     internal class ParameterUsage
     {
-        public List<INameProvider>[] usageData;
+        private readonly List<INameProvider>[] usageData;
 
         public ParameterUsage(int paramCount)
         {
@@ -203,11 +202,11 @@ public static class Pass12ComputeTypeSpecifics
             }
         }
 
-        public void AddUsage(int index, TypeSignature type, GenericParameterContext parameterContext)
+        public void AddUsage(int index, TypeSignature type, GenericParameterContext context)
         {
             if (type is GenericParameterSignature parameterSignature)
             {
-                var genericParameter = parameterContext.GetGenericParameter(parameterSignature)!;
+                var genericParameter = context.GetGenericParameter(parameterSignature)!;
                 var declaringName = GetDeclaringName(genericParameter);
 
                 if (usageData[index].All(reference =>

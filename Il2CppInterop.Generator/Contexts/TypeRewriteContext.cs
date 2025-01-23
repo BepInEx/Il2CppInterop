@@ -35,7 +35,7 @@ public class TypeRewriteContext
     private readonly Dictionary<MethodDefinition, MethodRewriteContext> myMethodContexts = new();
     private readonly Dictionary<string, MethodRewriteContext> myMethodContextsByName = new();
     public readonly TypeDefinition NewType;
-    public TypeRewriteContext BoxedTypeContext;
+    public TypeRewriteContext? BoxedTypeContext;
     public bool isBoxedTypeVariant;
 
     public readonly bool OriginalNameWasObfuscated;
