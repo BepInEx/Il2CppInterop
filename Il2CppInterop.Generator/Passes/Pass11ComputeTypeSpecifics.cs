@@ -17,11 +17,11 @@ public static class Pass11ComputeTypeSpecifics
         typeUsageDictionary.Clear();
 
         foreach (var assemblyContext in context.Assemblies)
-        foreach (var typeContext in assemblyContext.Types)
-        {
-            ComputeGenericParameterUsageSpecifics(typeContext);
-            ScanTypeContextUsage(typeContext);
-        }
+            foreach (var typeContext in assemblyContext.Types)
+            {
+                ComputeGenericParameterUsageSpecifics(typeContext);
+                ScanTypeContextUsage(typeContext);
+            }
 
         foreach (var assemblyContext in context.Assemblies)
             foreach (var typeContext in assemblyContext.Types)
@@ -33,7 +33,7 @@ public static class Pass11ComputeTypeSpecifics
     }
 
 
-        private static void ComputeGenericParameterUsageSpecifics(TypeRewriteContext typeContext)
+    private static void ComputeGenericParameterUsageSpecifics(TypeRewriteContext typeContext)
     {
         if (typeContext.genericParameterUsageComputed) return;
         typeContext.genericParameterUsageComputed = true;
