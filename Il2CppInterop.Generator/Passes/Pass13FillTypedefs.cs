@@ -5,7 +5,7 @@ using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Passes;
 
-public static class Pass14FillTypedefs
+public static class Pass13FillTypedefs
 {
     public static void DoPass(RewriteGlobalContext context)
     {

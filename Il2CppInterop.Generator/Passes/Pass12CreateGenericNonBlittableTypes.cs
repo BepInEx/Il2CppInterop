@@ -3,7 +3,7 @@ using Il2CppInterop.Generator.Contexts;
 
 namespace Il2CppInterop.Generator.Passes;
 
-public static class Pass13CreateGenericNonBlittableTypes
+public static class Pass12CreateGenericNonBlittableTypes
 {
     public static void DoPass(RewriteGlobalContext context)
     {

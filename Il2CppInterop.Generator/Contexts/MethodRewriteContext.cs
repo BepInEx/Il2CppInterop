@@ -90,9 +90,9 @@ public class MethodRewriteContext
             }
         }
 
-        if (!Pass16GenerateMemberContexts.HasObfuscatedMethods && !passthroughNames &&
+        if (!Pass15GenerateMemberContexts.HasObfuscatedMethods && !passthroughNames &&
             originalMethod.Name.IsObfuscated(declaringType.AssemblyContext.GlobalContext.Options))
-            Pass16GenerateMemberContexts.HasObfuscatedMethods = true;
+            Pass15GenerateMemberContexts.HasObfuscatedMethods = true;
 
         FileOffset = originalMethod.ExtractOffset();
         // Workaround for garbage file offsets passed by Cpp2IL
@@ -286,8 +286,8 @@ public class MethodRewriteContext
         }
 
         var address = Rva;
-        if (address != 0 && Pass16GenerateMemberContexts.HasObfuscatedMethods &&
-            !Pass17ScanMethodRefs.NonDeadMethods.Contains(address)) builder.Append("_PDM");
+        if (address != 0 && Pass15GenerateMemberContexts.HasObfuscatedMethods &&
+            !Pass16ScanMethodRefs.NonDeadMethods.Contains(address)) builder.Append("_PDM");
 
         return builder.ToString();
     }
@@ -342,13 +342,13 @@ public class MethodRewriteContext
             if (a[i].ParameterType.FullName != b[i].ParameterType.FullName)
                 return false;
 
-        if (Pass16GenerateMemberContexts.HasObfuscatedMethods)
+        if (Pass15GenerateMemberContexts.HasObfuscatedMethods)
         {
             var addressA = otherRewriteContext.Rva;
             var addressB = Rva;
             if (addressA != 0 && addressB != 0)
-                if (Pass17ScanMethodRefs.NonDeadMethods.Contains(addressA) !=
-                    Pass17ScanMethodRefs.NonDeadMethods.Contains(addressB))
+                if (Pass16ScanMethodRefs.NonDeadMethods.Contains(addressA) !=
+                    Pass16ScanMethodRefs.NonDeadMethods.Contains(addressB))
                     return false;
         }
 

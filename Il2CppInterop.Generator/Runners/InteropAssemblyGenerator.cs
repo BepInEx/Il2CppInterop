@@ -69,32 +69,32 @@ internal class InteropAssemblyGeneratorRunner : IRunner
 
         using (new TimingCookie("Computing struct blittability"))
         {
-            Pass12ComputeTypeSpecifics.DoPass(rewriteContext);
+            Pass11ComputeTypeSpecifics.DoPass(rewriteContext);
         }
 
         using (new TimingCookie("Creating unboxed struct types"))
         {
-            Pass13CreateGenericNonBlittableTypes.DoPass(rewriteContext);
+            Pass12CreateGenericNonBlittableTypes.DoPass(rewriteContext);
         }
 
         using (new TimingCookie("Filling typedefs"))
         {
-            Pass14FillTypedefs.DoPass(rewriteContext);
+            Pass13FillTypedefs.DoPass(rewriteContext);
         }
 
         using (new TimingCookie("Filling generic constraints"))
         {
-            Pass15FillGenericConstraints.DoPass(rewriteContext);
+            Pass14FillGenericConstraints.DoPass(rewriteContext);
         }
 
         using (new TimingCookie("Creating members"))
         {
-            Pass16GenerateMemberContexts.DoPass(rewriteContext);
+            Pass15GenerateMemberContexts.DoPass(rewriteContext);
         }
 
         using (new TimingCookie("Scanning method cross-references"))
         {
-            Pass17ScanMethodRefs.DoPass(rewriteContext, options);
+            Pass16ScanMethodRefs.DoPass(rewriteContext, options);
         }
 
         using (new TimingCookie("Finalizing method declarations"))
@@ -210,8 +210,8 @@ internal class InteropAssemblyGeneratorRunner : IRunner
 
         using (new TimingCookie("Clearing static data"))
         {
-            Pass17ScanMethodRefs.MapOfCallers = new Dictionary<long, List<XrefInstance>>();
-            Pass17ScanMethodRefs.NonDeadMethods = [];
+            Pass16ScanMethodRefs.MapOfCallers = new Dictionary<long, List<XrefInstance>>();
+            Pass16ScanMethodRefs.NonDeadMethods = [];
         }
 
         Logger.Instance.LogInformation("Done!");

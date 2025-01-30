@@ -7,7 +7,7 @@ using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Passes;
 
-public static class Pass12ComputeTypeSpecifics
+public static class Pass11ComputeTypeSpecifics
 {
     private static RewriteGlobalContext globalContext;
 

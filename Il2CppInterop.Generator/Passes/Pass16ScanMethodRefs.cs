@@ -8,7 +8,7 @@ using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Passes;
 
-public static class Pass17ScanMethodRefs
+public static class Pass16ScanMethodRefs
 {
     internal static HashSet<long> NonDeadMethods = new();
     internal static IDictionary<long, List<XrefInstance>> MapOfCallers = new Dictionary<long, List<XrefInstance>>();
@@ -17,7 +17,7 @@ public static class Pass17ScanMethodRefs
     {
         if (string.IsNullOrEmpty(options.GameAssemblyPath))
         {
-            Pass16GenerateMemberContexts.HasObfuscatedMethods = false;
+            Pass15GenerateMemberContexts.HasObfuscatedMethods = false;
             return;
         }
 
@@ -37,7 +37,7 @@ public static class Pass17ScanMethodRefs
         context.HasGcWbarrierFieldWrite =
             FindByteSequence(gameAssemblyPtr, accessor.Capacity, "il2cpp_gc_wbarrier_set_field");
 
-        if (!Pass16GenerateMemberContexts.HasObfuscatedMethods) return;
+        if (!Pass15GenerateMemberContexts.HasObfuscatedMethods) return;
 
         var methodToCallersMap = new ConcurrentDictionary<long, List<XrefInstance>>();
         var methodToCalleesMap = new ConcurrentDictionary<long, List<nint>>();
