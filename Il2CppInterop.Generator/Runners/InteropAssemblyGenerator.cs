@@ -67,11 +67,6 @@ internal class InteropAssemblyGeneratorRunner : IRunner
             Pass10CreateTypedefs.DoPass(rewriteContext);
         }
 
-        using (new TimingCookie("Computing generic parameter usage"))
-        {
-            Pass11ComputeGenericParameterSpecifics.DoPass(rewriteContext);
-        }
-
         using (new TimingCookie("Computing struct blittability"))
         {
             Pass12ComputeTypeSpecifics.DoPass(rewriteContext);
