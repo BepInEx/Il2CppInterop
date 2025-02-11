@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Cloning;
 using AsmResolver.DotNet.Signatures;
@@ -28,9 +29,10 @@ public static class Pass61ImplementAwaiters
     public static void DoPass(RewriteGlobalContext context)
     {
         var corlib = context.CorLib;
+        
         var actionUntyped = corlib.GetTypeByName("System.Action");
 
-        var actionConversion = actionUntyped.NewType.Methods.FirstOrDefault(m => m.Name == "op_Implicit") ?? throw new MissingMethodException("Untyped action conversion");
+        var actionConversion = actionUntyped.NewType.Methods.Single(m => m.Name == "op_Implicit");
 
         foreach (var assemblyContext in context.Assemblies)
         {
@@ -51,22 +53,16 @@ public static class Pass61ImplementAwaiters
                 if (typeContext.OriginalType.IsInterface || typeContext.OriginalType.Interfaces.Count == 0)
                     continue;
 
-                var interfaceImplementation = typeContext.OriginalType.Interfaces.FirstOrDefault(interfaceImpl => interfaceImpl.Interface?.Name == nameof(INotifyCompletion));
+                Type iNotifyCompletion = typeof(INotifyCompletion);
+                var interfaceImplementation = typeContext.OriginalType.Interfaces.SingleOrDefault(interfaceImpl => interfaceImpl.Interface?.Namespace == iNotifyCompletion.Namespace && interfaceImpl.Interface?.Name == iNotifyCompletion.Name);
                 if (interfaceImplementation is null)
                     continue;
 
-                var allOnCompleted = typeContext.NewType.Methods.Where(m => m.Name == nameof(INotifyCompletion.OnCompleted)).ToArray();
-                if (allOnCompleted.Length == 0)
-                {
-                    // Likely defined as INotifyCompletion.OnCompleted & the name is unhollowed as something like "System_Runtime_CompilerServices_INotifyCompletion_OnCompleted"
-                    allOnCompleted = typeContext.NewType.Methods.Where(m => ((string?)m.Name)?.EndsWith(nameof(INotifyCompletion.OnCompleted)) ?? false).ToArray();
-                    var typeName = typeContext.OriginalType.FullName;
-                    Logger.Instance.LogInformation("Found explicit implementation of INotifyCompletion on {typeName}", typeName);
-                }
+                var allOnCompleted = typeContext.Methods.Where(m => m.OriginalMethod.Name == nameof(INotifyCompletion.OnCompleted)).Select(mc => mc.NewMethod).ToArray();
 
                 // Conversion spits out an Il2CppSystem.Action, so look for methods that take that (and only that) in & return void, so the stack is balanced
-                // And use IsAssignableTo because otherwise equality checks would fail due to the TypeSignatures being different references
-                var interopOnCompleted = allOnCompleted.FirstOrDefault(m => m.Parameters.Count == 1 && m.Signature is not null && m.Signature.ReturnType == voidRef && SignatureComparer.Default.Equals(m.Signature.ParameterTypes[0], actionConversion.Signature?.ReturnType));
+                // And use SignatureComparer because otherwise equality checks would fail due to the TypeSignatures being different references
+                var interopOnCompleted = allOnCompleted.FirstOrDefault(m => !m.IsStatic && m.Parameters.Count == 1 && m.Signature is not null && SignatureComparer.Default.Equals(m.Signature.ReturnType, voidRef) && SignatureComparer.Default.Equals(m.Signature.ParameterTypes[0], actionConversion.Signature?.ReturnType));
 
                 if (interopOnCompleted is null)
                 {
@@ -90,7 +86,6 @@ public static class Pass61ImplementAwaiters
                 typeContext.NewType.Interfaces.Add(new(notifyCompletionRef.Value));
 
                 var instructions = body.Instructions;
-                instructions.Add(CilOpCodes.Nop);
                 instructions.Add(CilOpCodes.Ldarg_0); // load "this"
                 instructions.Add(CilOpCodes.Ldarg_1); // not static, so ldarg1 loads "continuation"
                 instructions.Add(CilOpCodes.Call, actionConversionRef.Value);
@@ -111,7 +106,6 @@ public static class Pass61ImplementAwaiters
                     instructions.Add(CilOpCodes.Call, interopOnCompleted);
                 }
 
-                instructions.Add(CilOpCodes.Nop);
                 instructions.Add(CilOpCodes.Ret);
             }
         }
