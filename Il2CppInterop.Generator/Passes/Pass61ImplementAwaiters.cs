@@ -1,9 +1,9 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Cloning;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Cil;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Microsoft.Extensions.Logging;
@@ -12,24 +12,10 @@ namespace Il2CppInterop.Generator.Passes;
 
 public static class Pass61ImplementAwaiters
 {
-    private class ParameterCloneListener(TypeSignature corLibAction) : MemberClonerListener
-    {
-        public override void OnClonedMethod(MethodDefinition original, MethodDefinition cloned)
-        {
-            if (cloned.Signature is not null && cloned.Signature.ParameterTypes.Count > 0)
-                cloned.Signature.ParameterTypes[0] = corLibAction;
-
-            cloned.Name = nameof(INotifyCompletion.OnCompleted); // in case it's explicitly implemented and was unhollowed as "System_Runtime_CompilerServices_INotifyCompletion_OnCompleted"
-            cloned.CilMethodBody = new(cloned);
-            cloned.CustomAttributes.Clear();
-            original.DeclaringType?.Methods.Add(cloned);
-        }
-    }
-
     public static void DoPass(RewriteGlobalContext context)
     {
         var corlib = context.CorLib;
-        
+
         var actionUntyped = corlib.GetTypeByName("System.Action");
 
         var actionConversion = actionUntyped.NewType.Methods.Single(m => m.Name == "op_Implicit");
@@ -53,7 +39,7 @@ public static class Pass61ImplementAwaiters
                 if (typeContext.OriginalType.IsInterface || typeContext.OriginalType.Interfaces.Count == 0)
                     continue;
 
-                Type iNotifyCompletion = typeof(INotifyCompletion);
+                var iNotifyCompletion = typeof(INotifyCompletion);
                 var interfaceImplementation = typeContext.OriginalType.Interfaces.SingleOrDefault(interfaceImpl => interfaceImpl.Interface?.Namespace == iNotifyCompletion.Namespace && interfaceImpl.Interface?.Name == iNotifyCompletion.Name);
                 if (interfaceImplementation is null)
                     continue;
@@ -72,18 +58,17 @@ public static class Pass61ImplementAwaiters
                     continue;
                 }
 
-                var cloner = new MemberCloner(typeContext.NewType.Module, new ParameterCloneListener(actionUntypedRef.Value.ToTypeSignature()))
-                    .Include(interopOnCompleted);
-                var cloneResult = cloner.Clone();
+                var onCompletedAttr = MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual;
+                var sig = MethodSignature.CreateInstance(voidRef, [actionUntypedRef.Value.ToTypeSignature()]);
 
-                // Established that INotifyCompletion.OnCompleted is implemented, & interop method is defined, now clone it to create the .NET interface implementation method that jumps straight to it
-                var proxyOnCompleted = (MethodDefinition)cloneResult.ClonedMembers.Single();
-                proxyOnCompleted.Signature!.ParameterTypes[0] = actionUntypedRef.Value.ToTypeSignature();
+                var proxyOnCompleted = new MethodDefinition(nameof(INotifyCompletion.OnCompleted), onCompletedAttr, sig);
                 var parameter = proxyOnCompleted.Parameters[0].GetOrCreateDefinition();
+                parameter.Name = "continuation";
 
                 var body = proxyOnCompleted.CilMethodBody ??= new(proxyOnCompleted);
 
                 typeContext.NewType.Interfaces.Add(new(notifyCompletionRef.Value));
+                typeContext.NewType.Methods.Add(proxyOnCompleted);
 
                 var instructions = body.Instructions;
                 instructions.Add(CilOpCodes.Ldarg_0); // load "this"
