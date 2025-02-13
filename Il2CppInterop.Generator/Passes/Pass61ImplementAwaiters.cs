@@ -31,10 +31,6 @@ public static class Pass61ImplementAwaiters
 
             foreach (var typeContext in assemblyContext.Types)
             {
-                // Used later for MemberCloner, just putting up here as an early exit in case .Module is ever null
-                if (typeContext.NewType.Module is null)
-                    continue;
-
                 // Odds are a majority of types won't implement any interfaces. Skip them to save time.
                 if (typeContext.OriginalType.IsInterface || typeContext.OriginalType.Interfaces.Count == 0)
                     continue;
