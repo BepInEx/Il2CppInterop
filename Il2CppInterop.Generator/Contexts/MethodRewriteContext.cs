@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using AsmResolver;
 using AsmResolver.DotNet;
+using AsmResolver.DotNet.Collections;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Common.XrefScans;
@@ -74,9 +75,18 @@ public class MethodRewriteContext
 
             foreach (var oldParameter in genericParams)
             {
-                newMethod.GenericParameters.Add(new GenericParameter(
-                    oldParameter.Name.MakeValidInSource(),
-                    oldParameter.Attributes.StripValueTypeConstraint()));
+                var genericParameter = new GenericParameter(oldParameter.Name.MakeValidInSource());
+                if (ShouldParameterBeBlittable(originalMethod, oldParameter.ToTypeSignature()))
+                {
+                    genericParameter.Attributes = oldParameter.Attributes;
+                    genericParameter.MakeUnmanaged(DeclaringType.AssemblyContext);
+                }
+                else
+                {
+                    genericParameter.Attributes = oldParameter.Attributes.StripValueTypeConstraint();
+                }
+
+                newMethod.GenericParameters.Add(genericParameter);
             }
         }
 
@@ -92,6 +102,38 @@ public class MethodRewriteContext
             declaringType.AssemblyContext.GlobalContext.MethodStartAddresses.Add(FileOffset);
     }
 
+    private bool ShouldParameterBeBlittable(MethodDefinition method, GenericParameterSignature genericParameter)
+    {
+        if (HasGenericParameter(method.Signature!.ReturnType, genericParameter, out GenericParameter? parameter))
+        {
+            return parameter!.IsUnmanaged();
+        }
+
+        foreach (Parameter methodParameter in method.Parameters)
+        {
+            if (HasGenericParameter(methodParameter.ParameterType, genericParameter, out parameter))
+            {
+                return parameter!.IsUnmanaged();
+            }
+        }
+
+        return false;
+    }
+
+    private bool HasGenericParameter(TypeSignature typeReference, GenericParameterSignature inputGenericParameter, out GenericParameter? typeGenericParameter)
+    {
+        typeGenericParameter = null;
+        if (typeReference is not GenericInstanceTypeSignature genericInstance) return false;
+
+        var index = genericInstance.TypeArguments.IndexOf(inputGenericParameter);
+        if (index < 0) return false;
+
+        var globalContext = DeclaringType.AssemblyContext.GlobalContext;
+        var returnTypeContext = globalContext.GetNewTypeForOriginal(typeReference.Resolve()!);
+        typeGenericParameter = returnTypeContext.NewType.GenericParameters[index];
+        return true;
+    }
+
     public Utf8String? UnmangledName { get; private set; }
     public string? UnmangledNameWithSignature { get; private set; }
 
@@ -104,11 +146,14 @@ public class MethodRewriteContext
 
     public void CtorPhase2()
     {
-        UnmangledName = UnmangleMethodName();
-        UnmangledNameWithSignature = UnmangleMethodNameWithSignature();
+        // Make context manually, NewMethod.DeclaringType is null for now
+        var genericContext = new GenericParameterContext(DeclaringType.NewType, NewMethod);
+
+        UnmangledName = UnmangleMethodName(genericContext);
+        UnmangledNameWithSignature = UnmangleMethodNameWithSignature(genericContext);
 
         NewMethod.Name = UnmangledName;
-        NewMethod.Signature!.ReturnType = DeclaringType.AssemblyContext.RewriteTypeRef(OriginalMethod.Signature?.ReturnType);
+        NewMethod.Signature!.ReturnType = DeclaringType.AssemblyContext.RewriteTypeRef(OriginalMethod.Signature?.ReturnType, genericContext, DeclaringType.isBoxedTypeVariant);
 
         var nonGenericMethodInfoPointerField = new FieldDefinition(
             "NativeMethodInfoPtr_" + UnmangledNameWithSignature,
@@ -153,8 +198,9 @@ public class MethodRewriteContext
                         continue;
                     }
 
-                    newParameter.Constraints.Add(new GenericParameterConstraint(
-                        DeclaringType.AssemblyContext.RewriteTypeRef(oldConstraint.Constraint?.ToTypeSignature()).ToTypeDefOrRef()));
+                    var newType = DeclaringType.AssemblyContext.RewriteTypeRef(oldConstraint.Constraint?.ToTypeSignature(), default, DeclaringType.isBoxedTypeVariant)
+                        .ToTypeDefOrRef();
+                    newParameter.Constraints.Add(new GenericParameterConstraint(newType));
                 }
             }
 
@@ -184,7 +230,7 @@ public class MethodRewriteContext
         return original;
     }
 
-    private string UnmangleMethodName()
+    private string UnmangleMethodName(GenericParameterContext context)
     {
         var method = OriginalMethod;
 
@@ -198,12 +244,12 @@ public class MethodRewriteContext
             return ".ctor";
 
         if (method.Name.IsObfuscated(DeclaringType.AssemblyContext.GlobalContext.Options))
-            return UnmangleMethodNameWithSignature();
+            return UnmangleMethodNameWithSignature(context);
 
         return method.Name.MakeValidInSource();
     }
 
-    private string ProduceMethodSignatureBase()
+    private string ProduceMethodSignatureBase(GenericParameterContext context)
     {
         var method = OriginalMethod;
 
@@ -231,12 +277,12 @@ public class MethodRewriteContext
                     builder.Append(str);
 
         builder.Append('_');
-        builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(method.Signature?.ReturnType).GetUnmangledName(method.DeclaringType, method));
+        builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(method.Signature?.ReturnType, context, DeclaringType.isBoxedTypeVariant).GetUnmangledName(method.DeclaringType, method));
 
         foreach (var param in method.Parameters)
         {
             builder.Append('_');
-            builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(param.ParameterType).GetUnmangledName(method.DeclaringType, method));
+            builder.Append(DeclaringType.AssemblyContext.RewriteTypeRef(param.ParameterType, context, DeclaringType.isBoxedTypeVariant).GetUnmangledName(method.DeclaringType, method));
         }
 
         var address = Rva;
@@ -247,9 +293,9 @@ public class MethodRewriteContext
     }
 
 
-    private string UnmangleMethodNameWithSignature()
+    private string UnmangleMethodNameWithSignature(GenericParameterContext context)
     {
-        var unmangleMethodNameWithSignature = ProduceMethodSignatureBase() + "_" + DeclaringType.Methods
+        var unmangleMethodNameWithSignature = ProduceMethodSignatureBase(context) + "_" + DeclaringType.Methods
             .Where(ParameterSignatureMatchesThis).TakeWhile(it => it != this).Count();
 
         if (DeclaringType.AssemblyContext.GlobalContext.Options.RenameMap.TryGetValue(

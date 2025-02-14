@@ -2,6 +2,7 @@
 using AsmResolver.DotNet.Collections;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
+using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Extensions;
 
@@ -103,5 +104,15 @@ internal static class AsmResolverExtensions
     public static GenericParameterSignature ToTypeSignature(this GenericParameter genericParameter)
     {
         return new GenericParameterSignature(genericParameter.Owner is ITypeDescriptor ? GenericParameterType.Type : GenericParameterType.Method, genericParameter.Number);
+    }
+
+    public static GenericParameterContext GetGenericParameterContext(this TypeDefinition type)
+    {
+        return new GenericParameterContext(type, null);
+    }
+
+    public static GenericParameterContext GetGenericParameterContext(this MethodDefinition method)
+    {
+        return new GenericParameterContext(method.DeclaringType, method);
     }
 }

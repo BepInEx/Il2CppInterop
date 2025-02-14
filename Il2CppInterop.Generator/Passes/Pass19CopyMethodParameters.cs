@@ -24,7 +24,7 @@ public static class Pass19CopyMethodParameters
                             : originalMethodParameter.Name;
 
                         var newParameter = newMethod.AddParameter(
-                            assemblyContext.RewriteTypeRef(originalMethodParameter.ParameterType),
+                            assemblyContext.RewriteTypeRef(originalMethodParameter.ParameterType, newMethod.GetGenericParameterContext(), typeContext.isBoxedTypeVariant),
                             newName,
                             originalMethodParameter.GetOrCreateDefinition().Attributes & ~ParameterAttributes.HasFieldMarshal);
 
@@ -40,7 +40,7 @@ public static class Pass19CopyMethodParameters
                     }
 
                     var paramsMethod = context.CreateParamsMethod(originalMethod, newMethod, assemblyContext.Imports,
-                        type => assemblyContext.RewriteTypeRef(type));
+                        type => assemblyContext.RewriteTypeRef(type, default, typeContext.isBoxedTypeVariant));
                     if (paramsMethod != null) typeContext.NewType.Methods.Add(paramsMethod);
                 }
             }
