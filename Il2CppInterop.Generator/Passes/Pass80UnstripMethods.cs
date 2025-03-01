@@ -200,9 +200,12 @@ public static class Pass80UnstripMethods
             if (resolvedElementType == null) return null;
             if (resolvedElementType.FullName == "System.String")
                 return imports.Il2CppStringArray;
-            var genericBase = resolvedElementType.IsValueType
-                ? imports.Il2CppStructArray
-                : imports.Il2CppReferenceArray;
+            var genericBase = resolvedElementType switch
+            {
+                GenericParameterSignature => imports.Il2CppArrayBase,
+                { IsValueType: true } => imports.Il2CppStructArray,
+                _ => imports.Il2CppReferenceArray
+            };
             return new GenericInstanceTypeSignature(genericBase.ToTypeDefOrRef(), false, resolvedElementType);
         }
 
