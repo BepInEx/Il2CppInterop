@@ -1,5 +1,6 @@
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
+using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Extensions;
 

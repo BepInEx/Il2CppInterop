@@ -2,6 +2,7 @@ using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Contexts;
+using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Passes;
@@ -16,13 +17,13 @@ public static class Pass40GenerateFieldAccessors
             {
                 foreach (var fieldContext in typeContext.Fields)
                 {
-                    if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.BlittableStruct &&
+                    if (typeContext.ComputedTypeSpecifics.IsBlittable() &&
                         !fieldContext.OriginalField.IsStatic) continue;
 
                     var field = fieldContext.OriginalField;
                     var unmangleFieldName = fieldContext.UnmangledName;
 
-                    var propertyType = assemblyContext.RewriteTypeRef(fieldContext.OriginalField.Signature!.FieldType);
+                    var propertyType = assemblyContext.RewriteTypeRef(field.Signature!.FieldType, typeContext.NewType!.GetGenericParameterContext(), typeContext.isBoxedTypeVariant);
                     var signature = field.IsStatic
                         ? PropertySignature.CreateStatic(propertyType)
                         : PropertySignature.CreateInstance(propertyType);

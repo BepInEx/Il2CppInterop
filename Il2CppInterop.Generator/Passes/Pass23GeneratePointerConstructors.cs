@@ -14,7 +14,7 @@ public static class Pass23GeneratePointerConstructors
         foreach (var assemblyContext in context.Assemblies)
             foreach (var typeContext in assemblyContext.Types)
             {
-                if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.BlittableStruct ||
+                if (typeContext.ComputedTypeSpecifics.IsBlittable() ||
                     typeContext.OriginalType.IsEnum) continue;
 
                 var newType = typeContext.NewType;
