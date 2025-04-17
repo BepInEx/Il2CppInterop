@@ -67,9 +67,6 @@ public static class XrefScanner
             decoder.Decode(out var instruction);
             if (decoder.LastError == DecoderError.NoMoreBytes) yield break;
 
-            if (instruction.FlowControl == FlowControl.Return)
-                yield break;
-
             if (instruction.Mnemonic == Mnemonic.Int || instruction.Mnemonic == Mnemonic.Int1)
                 yield break;
 
