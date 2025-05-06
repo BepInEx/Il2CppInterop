@@ -78,15 +78,6 @@ public static unsafe partial class ClassInjector
     private static readonly ConcurrentDictionary<(Type type, FieldAttributes attrs), IntPtr>
         _injectedFieldTypes = new();
 
-    private static readonly VoidCtorDelegate FinalizeDelegate = Finalize;
-
-    public static void ProcessNewObject(Il2CppObjectBase obj)
-    {
-        var pointer = obj.Pointer;
-        var handle = GCHandle.Alloc(obj, GCHandleType.Normal);
-        AssignGcHandle(pointer, handle);
-    }
-
     public static IntPtr DerivedConstructorPointer<T>()
     {
         return IL2CPP.il2cpp_object_new(Il2CppClassPointerStore<T>
@@ -97,7 +88,8 @@ public static unsafe partial class ClassInjector
     {
         if (objectBase.isWrapped)
             return;
-        var fields = objectBase.GetType()
+        var type = objectBase.GetType();
+        var fields = type
             .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
             .Where(IsFieldEligible)
             .ToArray();
@@ -107,16 +99,12 @@ public static unsafe partial class ClassInjector
                     new[] { typeof(Il2CppObjectBase), typeof(string) }, Array.Empty<ParameterModifier>())
                 .Invoke(new object[] { objectBase, field.Name })
             );
-        var ownGcHandle = GCHandle.Alloc(objectBase, GCHandleType.Normal);
-        AssignGcHandle(objectBase.Pointer, ownGcHandle);
+        AddToPool(objectBase);
+        if (TypeShouldFinalizeManually(type))
+            Il2CppFinalizers.OverrideFinalize(objectBase, objectBase.CreateFinalizerContainer());
     }
 
-    public static void AssignGcHandle(IntPtr pointer, GCHandle gcHandle)
-    {
-        var handleAsPointer = GCHandle.ToIntPtr(gcHandle);
-        if (pointer == IntPtr.Zero) throw new NullReferenceException(nameof(pointer));
-        ClassInjectorBase.GetInjectedData(pointer)->managedGcHandle = GCHandle.ToIntPtr(gcHandle);
-    }
+    public static void AddToPool(Il2CppObjectBase obj) => Il2CppObjectPool.InternWeak(obj);
 
 
     public static bool IsTypeRegisteredInIl2Cpp<T>() where T : class
@@ -311,7 +299,7 @@ public static unsafe partial class ClassInjector
         var methodPointerArray = (Il2CppMethodInfo**)Marshal.AllocHGlobal(methodCount * IntPtr.Size);
         classPointer.Methods = methodPointerArray;
 
-        methodPointerArray[0] = ConvertStaticMethod(FinalizeDelegate, "Finalize", classPointer);
+        methodPointerArray[0] = ConvertStaticMethod(CreateFinalizeMethod(type), "Finalize", classPointer);
         var finalizeMethod = UnityVersionHandler.Wrap(methodPointerArray[0]);
         var fieldsToInitialize = type
             .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
@@ -734,6 +722,61 @@ public static unsafe partial class ClassInjector
         return converted.MethodInfoPointer;
     }
 
+    private static void DefaultFinalize(IntPtr ptr) { }
+
+    private static bool TypeShouldFinalizeManually(Type? targetType)
+    {
+        while (targetType != null && targetType != typeof(Il2CppObjectBase))
+        {
+            if (targetType.GetMethod("Finalize", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly) != null)
+            {
+                // Finalize method in some subclass:
+                return true;
+            }
+            targetType = targetType.BaseType;
+        }
+
+        return false;
+    }
+
+    private static VoidCtorDelegate CreateFinalizeMethod(Type targetType)
+    {
+        if (!TypeShouldFinalizeManually(targetType)) return DefaultFinalize;
+
+        var method = new DynamicMethod("FinalizeIl2CppObject", MethodAttributes.Public | MethodAttributes.Static,
+            CallingConventions.Standard, typeof(void), new[] { typeof(IntPtr) }, targetType, true);
+
+        var body = method.GetILGenerator();
+
+        // Check whether finalizing is necessary *before* getting the managed object:
+        Label escape = body.DefineLabel();
+        body.Emit(OpCodes.Ldarg_0);
+        body.Emit(OpCodes.Call,
+            typeof(Il2CppFinalizers).GetMethod(nameof(Il2CppFinalizers.ShouldFinalize),
+                    BindingFlags.NonPublic | BindingFlags.Static)!);
+        body.Emit(OpCodes.Brfalse_S, escape);
+
+        // Finalize from within the object pool:
+        body.BeginExceptionBlock();
+        body.Emit(OpCodes.Ldarg_0);
+        body.Emit(OpCodes.Call,
+            typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!.MakeGenericMethod(targetType));
+        body.Emit(OpCodes.Call,
+            typeof(Il2CppFinalizers).GetMethod(nameof(Il2CppFinalizers.Finalize),
+                    BindingFlags.NonPublic | BindingFlags.Static)!);
+        body.BeginCatchBlock(typeof(Exception));
+        body.Emit(OpCodes.Ldstr, "Injected object finalizer");
+        body.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(LogException), BindingFlags.Static | BindingFlags.NonPublic)!);
+        body.EndExceptionBlock();
+
+        body.MarkLabel(escape);
+        body.Emit(OpCodes.Ret);
+
+        var @delegate = (VoidCtorDelegate)method.CreateDelegate(typeof(VoidCtorDelegate));
+        GCHandle.Alloc(@delegate); // pin it forever
+        return @delegate;
+    }
+
     private static VoidCtorDelegate CreateEmptyCtor(Type targetType, FieldInfo[] fieldsToInitialize)
     {
         var method = new DynamicMethod("FromIl2CppCtorDelegate", MethodAttributes.Public | MethodAttributes.Static,
@@ -786,19 +829,26 @@ public static unsafe partial class ClassInjector
             body.Emit(OpCodes.Stfld, field);
         }
 
-        body.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(ProcessNewObject))!);
+        body.Emit(OpCodes.Dup);
+        body.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(AddToPool))!);
+        if (TypeShouldFinalizeManually(targetType))
+        {
+            body.Emit(OpCodes.Dup);
+            body.Emit(OpCodes.Call, typeof(Il2CppObjectBase).GetMethod(nameof(Il2CppObjectBase.CreateFinalizerContainer),
+                BindingFlags.NonPublic | BindingFlags.Instance)!);
+            body.Emit(OpCodes.Call, typeof(Il2CppFinalizers).GetMethod(nameof(Il2CppFinalizers.OverrideFinalize),
+                BindingFlags.NonPublic | BindingFlags.Static)!);
+        }
+        else
+        {
+            body.Emit(OpCodes.Pop);
+        }
 
         body.Emit(OpCodes.Ret);
 
         var @delegate = (VoidCtorDelegate)method.CreateDelegate(typeof(VoidCtorDelegate));
         GCHandle.Alloc(@delegate); // pin it forever
         return @delegate;
-    }
-
-    public static void Finalize(IntPtr ptr)
-    {
-        var gcHandle = ClassInjectorBase.GetGcHandlePtrFromIl2CppObject(ptr);
-        GCHandle.FromIntPtr(gcHandle).Free();
     }
 
     private static Delegate GetOrCreateInvoker(MethodInfo monoMethod)
@@ -937,8 +987,7 @@ public static unsafe partial class ClassInjector
 
         body.Emit(OpCodes.Ldarg_0);
         body.Emit(OpCodes.Call,
-            typeof(ClassInjectorBase).GetMethod(nameof(ClassInjectorBase.GetMonoObjectFromIl2CppPointer))!);
-        body.Emit(OpCodes.Castclass, monoMethod.DeclaringType);
+            typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!.MakeGenericMethod(monoMethod.DeclaringType));
 
         var indirectVariables = new LocalBuilder[managedParameters.Length];
 
@@ -1030,16 +1079,9 @@ public static unsafe partial class ClassInjector
         }
         // body.Emit(OpCodes.Ret); // breaks coreclr
 
-        var exceptionLocal = body.DeclareLocal(typeof(Exception));
         body.BeginCatchBlock(typeof(Exception));
-        body.Emit(OpCodes.Stloc, exceptionLocal);
-        body.Emit(OpCodes.Ldstr, "Exception in IL2CPP-to-Managed trampoline, not passing it to il2cpp: ");
-        body.Emit(OpCodes.Ldloc, exceptionLocal);
-        body.Emit(OpCodes.Callvirt, typeof(object).GetMethod(nameof(ToString))!);
-        body.Emit(OpCodes.Call,
-            typeof(string).GetMethod(nameof(string.Concat), new[] { typeof(string), typeof(string) })!);
-        body.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(LogError), BindingFlags.Static | BindingFlags.NonPublic)!);
-
+        body.Emit(OpCodes.Ldstr, "IL2CPP-to-Managed trampoline");
+        body.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(LogException), BindingFlags.Static | BindingFlags.NonPublic)!);
         body.EndExceptionBlock();
 
         if (managedReturnVariable != null)
@@ -1058,9 +1100,9 @@ public static unsafe partial class ClassInjector
         return @delegate;
     }
 
-    private static void LogError(string message)
+    private static void LogException(Exception ex, string location)
     {
-        Logger.Instance.LogError("{Message}", message);
+        Logger.Instance.LogError($"Exception in {location}, not passing it to il2cpp: {ex}");
     }
 
     private static string ExtractSignature(MethodInfo monoMethod)

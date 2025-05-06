@@ -3,22 +3,53 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
+using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
+
+public enum Il2CppObjectFinalizerState
+{
+    Now = 0,
+    NotYet = 1,
+    NotAgainPlease = 2,
+}
 
 public class Il2CppObjectBase
 {
     private static readonly MethodInfo _unboxMethod = typeof(Il2CppObjectBase).GetMethod(nameof(Unbox));
     internal bool isWrapped;
     internal IntPtr pooledPtr;
+    internal Il2CppObjectFinalizerState finalizerState;
 
+    private bool wasDestroyed;
     private nint myGcHandle;
 
     public Il2CppObjectBase(IntPtr pointer)
     {
         CreateGCHandle(pointer);
+    }
+
+    ~Il2CppObjectBase()
+    {
+        switch (finalizerState)
+        {
+            case Il2CppObjectFinalizerState.Now:
+                Il2CppObjectPool.Free(myGcHandle, pooledPtr);
+                break;
+            case Il2CppObjectFinalizerState.NotYet:
+                throw new NotSupportedException("Object was garbage collected too early");
+            case Il2CppObjectFinalizerState.NotAgainPlease:
+                Logger.Instance.LogWarning($"Object {this} was garbage collected multiple times.");
+                break;
+        }
+
+        // In the worst, worst, worst case scenario,
+        // a poorly-behaved finalizer might resurrect the object.
+        // For this case, we don't want any double-frees so we do something else.
+        GC.SuppressFinalize(this);
+        finalizerState = Il2CppObjectFinalizerState.NotAgainPlease;
     }
 
     public IntPtr ObjectClass => IL2CPP.il2cpp_object_get_class(Pointer);
@@ -54,6 +85,15 @@ public class Il2CppObjectBase
             return;
 
         myGcHandle = IL2CPP.il2cpp_gchandle_new(objHdl, false);
+    }
+
+    internal FinalizerContainer CreateFinalizerContainer()
+    {
+        return new FinalizerContainer()
+        {
+            gcHandle = myGcHandle,
+            pooledPtr = pooledPtr,
+        };
     }
 
     public T Cast<T>() where T : Il2CppObjectBase
@@ -156,19 +196,11 @@ public class Il2CppObjectBase
         if (!IL2CPP.il2cpp_class_is_assignable_from(nestedTypeClassPointer, ownClass))
             return null;
 
-        if (RuntimeSpecificsStore.IsInjected(ownClass))
-        {
-            if (ClassInjectorBase.GetMonoObjectFromIl2CppPointer(Pointer) is T monoObject) return monoObject;
-        }
+        // if (RuntimeSpecificsStore.IsInjected(ownClass))
+        // {
+        //     if (ClassInjectorBase.GetMonoObjectFromIl2CppPointer(Pointer) is T monoObject) return monoObject;
+        // }
 
         return InitializerStore<T>.Initializer(Pointer);
-    }
-
-    ~Il2CppObjectBase()
-    {
-        IL2CPP.il2cpp_gchandle_free(myGcHandle);
-
-        if (pooledPtr == IntPtr.Zero) return;
-        Il2CppObjectPool.Remove(pooledPtr);
     }
 }
