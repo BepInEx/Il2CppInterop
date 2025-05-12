@@ -3,6 +3,7 @@ using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
 using Il2CppInterop.Generator.Extensions;
+using Il2CppInterop.Generator.Passes;
 using Il2CppInterop.Generator.Utils;
 
 namespace Il2CppInterop.Generator.Contexts;
@@ -16,7 +17,16 @@ public class TypeRewriteContext
         Computing,
         ReferenceType,
         BlittableStruct,
+        GenericBlittableStruct,
         NonBlittableStruct
+    }
+
+    public enum GenericParameterSpecifics
+    {
+        Unused,
+        Relaxed,
+        AffectsBlittability,
+        Strict,
     }
 
     public readonly AssemblyRewriteContext AssemblyContext;
@@ -25,6 +35,8 @@ public class TypeRewriteContext
     private readonly Dictionary<MethodDefinition, MethodRewriteContext> myMethodContexts = new();
     private readonly Dictionary<string, MethodRewriteContext> myMethodContextsByName = new();
     public readonly TypeDefinition NewType;
+    public TypeRewriteContext? BoxedTypeContext;
+    public bool isBoxedTypeVariant;
 
     public readonly bool OriginalNameWasObfuscated;
 #nullable disable
@@ -34,6 +46,8 @@ public class TypeRewriteContext
 #nullable enable
 
     public TypeSpecifics ComputedTypeSpecifics;
+    public GenericParameterSpecifics[] genericParameterUsage;
+    public bool genericParameterUsageComputed;
 
     public TypeRewriteContext(AssemblyRewriteContext assemblyContext, TypeDefinition? originalType,
         TypeDefinition newType)
@@ -44,7 +58,9 @@ public class TypeRewriteContext
 
         if (OriginalType == null) return;
 
-        OriginalNameWasObfuscated = OriginalType.Name != NewType.Name;
+        genericParameterUsage = new GenericParameterSpecifics[OriginalType.GenericParameters.Count];
+        OriginalNameWasObfuscated = OriginalType.Name != NewType.Name &&
+                                    Pass12CreateGenericNonBlittableTypes.GetUnboxedName(originalType.Name) != NewType.Name;
         if (OriginalNameWasObfuscated)
             NewType.CustomAttributes.Add(new CustomAttribute(
                 (ICustomAttributeType)assemblyContext.Imports.ObfuscatedNameAttributector.Value,
@@ -54,8 +70,6 @@ public class TypeRewriteContext
             ComputedTypeSpecifics = TypeSpecifics.ReferenceType;
         else if (OriginalType.IsEnum)
             ComputedTypeSpecifics = TypeSpecifics.BlittableStruct;
-        else if (OriginalType.HasGenericParameters())
-            ComputedTypeSpecifics = TypeSpecifics.NonBlittableStruct; // not reference type, covered by first if
     }
 
     // These are initialized in AddMembers, which is called from an early rewrite pass.
@@ -181,6 +195,49 @@ public class TypeRewriteContext
         }
 
         return null;
+    }
+
+    public void SetGenericParameterUsageSpecifics(int position, GenericParameterSpecifics specifics)
+    {
+        if (position >= 0 && position < genericParameterUsage.Length)
+        {
+            var genericParameter = OriginalType.GenericParameters[position];
+            SetGenericParameterSpecificsDown(genericParameter, specifics);
+        }
+    }
+
+    private void SetGenericParameterSpecificsDown(GenericParameter parameter, GenericParameterSpecifics specifics)
+    {
+        if (OriginalType.DeclaringType != null)
+        {
+            var declaringContext = AssemblyContext.GlobalContext.GetNewTypeForOriginal(OriginalType.DeclaringType);
+            var declaringTypeParameter = OriginalType.DeclaringType.GenericParameters
+                .FirstOrDefault(param => param.Name.Equals(parameter.Name));
+
+            if (declaringTypeParameter != null)
+            {
+                declaringContext.SetGenericParameterSpecificsDown(declaringTypeParameter, specifics);
+                return;
+            }
+        }
+
+        SetGenericParameterSpecificsUp(parameter, specifics);
+    }
+
+    private void SetGenericParameterSpecificsUp(GenericParameter parameter, GenericParameterSpecifics specifics)
+    {
+        if (specifics > genericParameterUsage[parameter.Number])
+        {
+            genericParameterUsage[parameter.Number] = specifics;
+            foreach (TypeDefinition nestedType in OriginalType.NestedTypes)
+            {
+                var nestedContext = AssemblyContext.GlobalContext.GetNewTypeForOriginal(nestedType);
+                var nestedTypeParameter = nestedType.GenericParameters
+                    .FirstOrDefault(param => param.Name.Equals(parameter.Name));
+                if (nestedTypeParameter != null)
+                    nestedContext.SetGenericParameterSpecificsUp(nestedTypeParameter, specifics);
+            }
+        }
     }
 
     private string GetDebuggerDisplay()

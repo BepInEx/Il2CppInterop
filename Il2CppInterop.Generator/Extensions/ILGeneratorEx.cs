@@ -382,6 +382,7 @@ public static class ILGeneratorEx
 
         body.Add(extraDerefForNonValueTypes ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
         body.Add(unboxValueType ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
+
         body.Add(OpCodes.Call,
             imports.Module.DefaultImporter.ImportMethod(imports.IL2CPP_PointerToValueGeneric.Value.MakeGenericInstanceMethod(newReturnType)));
     }

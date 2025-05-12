@@ -90,6 +90,8 @@ public class RuntimeAssemblyReferences
     public TypeSignature DelegateSupport { get; private set; }
     public TypeSignature Il2CppException { get; private set; }
 #nullable enable
+    public TypeSignature NativeBoolean { get; private set; }
+
     private TypeSignature ResolveType(string typeName)
     {
         return allTypes[typeName];
@@ -141,6 +143,8 @@ public class RuntimeAssemblyReferences
 
         Il2CppException = new TypeReference(Module, assemblyRef, "Il2CppInterop.Runtime", "Il2CppException").ToTypeSignature();
 
+        NativeBoolean = new TypeReference(Module, assemblyRef, "Il2CppInterop.Runtime", "NativeBoolean").ToTypeSignature(true);
+
         allTypes["Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"] = Il2CppObjectBase;
         allTypes["Il2CppInterop.Runtime.Runtime.Il2CppObjectPool"] = Il2CppObjectPool;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppArrayBase"] = nonGenericIl2CppArrayBase;
@@ -150,6 +154,7 @@ public class RuntimeAssemblyReferences
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<T>"] = Il2CppStructArray;
         allTypes["Il2CppInterop.Runtime.Il2CppException"] = Il2CppException;
         allTypes["Il2CppInterop.Runtime.IL2CPP"] = Il2Cpp;
+        allTypes["Il2CppInterop.Runtime.NativeBoolean"] = NativeBoolean;
     }
 
     private void InitMethodRefs()

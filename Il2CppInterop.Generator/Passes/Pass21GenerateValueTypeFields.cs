@@ -20,33 +20,64 @@ public static class Pass21GenerateValueTypeFields
 
             foreach (var typeContext in assemblyContext.Types)
             {
-                if (typeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.BlittableStruct ||
+                if (!typeContext.ComputedTypeSpecifics.IsBlittable() ||
                     typeContext.OriginalType.IsEnum) continue;
 
                 try
                 {
                     var newType = typeContext.NewType;
-                    newType.Attributes = (newType.Attributes & ~TypeAttributes.LayoutMask) |
-                                         TypeAttributes.ExplicitLayout;
 
-                    ILGeneratorEx.GenerateBoxMethod(assemblyContext.Imports, newType, typeContext.ClassPointerFieldRef,
-                        il2CppSystemTypeRef);
+                    if (!typeContext.OriginalType.HasGenericParameters())
+                        newType.Attributes = (newType.Attributes & ~TypeAttributes.LayoutMask) |
+                                             TypeAttributes.ExplicitLayout;
+                    else
+                        newType.IsSequentialLayout = true;
+
+                    if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct)
+                    {
+                        var boxedType = typeContext.BoxedTypeContext.NewType;
+                        var typeRef = assemblyContext.Imports.Module.DefaultImporter.ImportType(boxedType);
+                        var genericBoxedType = new GenericInstanceTypeSignature(typeRef, typeRef.IsValueType);
+                        foreach (GenericParameter parameter in newType.GenericParameters)
+                            genericBoxedType.TypeArguments.Add(parameter.ToTypeSignature());
+                        ILGeneratorEx.GenerateBoxMethod(assemblyContext.Imports, newType, typeContext.ClassPointerFieldRef,
+                            genericBoxedType);
+                    }
+                    else
+                    {
+                        ILGeneratorEx.GenerateBoxMethod(assemblyContext.Imports, newType, typeContext.ClassPointerFieldRef,
+                            il2CppSystemTypeRef);
+                    }
 
                     foreach (var fieldContext in typeContext.Fields)
                     {
                         var field = fieldContext.OriginalField;
                         if (field.IsStatic) continue;
 
-                        var newField = new FieldDefinition(fieldContext.UnmangledName, field.Attributes.ForcePublic(),
-                            !field.Signature!.FieldType.IsValueType
-                                ? assemblyContext.Imports.Module.IntPtr()
-                                : assemblyContext.RewriteTypeRef(field.Signature.FieldType));
+                        TypeSignature rewriteTypeRef;
+                        if (!field.Signature!.FieldType.IsValueType && field.Signature.FieldType is not PointerTypeSignature and not GenericParameterSignature)
+                            rewriteTypeRef = assemblyContext.Imports.Module.IntPtr();
+                        else
+                            rewriteTypeRef = assemblyContext.RewriteTypeRef(field.Signature.FieldType, newType.GetGenericParameterContext());
 
-                        newField.FieldOffset = field.ExtractFieldOffset();
+                        var newField = new FieldDefinition(fieldContext.UnmangledName, field.Attributes.ForcePublic(), rewriteTypeRef);
+
+                        if (!typeContext.OriginalType.HasGenericParameters())
+                            newField.FieldOffset = field.ExtractFieldOffset();
+
 
                         // Special case: bools in Il2Cpp are bytes
                         if (newField.Signature!.FieldType.FullName == "System.Boolean")
-                            newField.MarshalDescriptor = new SimpleMarshalDescriptor(NativeType.U1);
+                        {
+                            if (typeContext.ComputedTypeSpecifics == TypeRewriteContext.TypeSpecifics.GenericBlittableStruct)
+                            {
+                                newField.Signature.FieldType = assemblyContext.Imports.NativeBoolean;
+                            }
+                            else
+                            {
+                                newField.MarshalDescriptor = new SimpleMarshalDescriptor(NativeType.U1);
+                            }
+                        }
 
                         newType.Fields.Add(newField);
                     }

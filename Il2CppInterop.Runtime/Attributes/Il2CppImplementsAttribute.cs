@@ -2,7 +2,7 @@
 
 namespace Il2CppInterop.Runtime.Attributes;
 
-[AttributeUsage(AttributeTargets.Class)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public class Il2CppImplementsAttribute : Attribute
 {
     public Il2CppImplementsAttribute(params Type[] interfaces)

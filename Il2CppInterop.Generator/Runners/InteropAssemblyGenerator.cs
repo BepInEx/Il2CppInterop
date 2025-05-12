@@ -72,14 +72,19 @@ internal class InteropAssemblyGeneratorRunner : IRunner
             Pass11ComputeTypeSpecifics.DoPass(rewriteContext);
         }
 
+        using (new TimingCookie("Creating unboxed struct types"))
+        {
+            Pass12CreateGenericNonBlittableTypes.DoPass(rewriteContext);
+        }
+
         using (new TimingCookie("Filling typedefs"))
         {
-            Pass12FillTypedefs.DoPass(rewriteContext);
+            Pass13FillTypedefs.DoPass(rewriteContext);
         }
 
         using (new TimingCookie("Filling generic constraints"))
         {
-            Pass13FillGenericConstraints.DoPass(rewriteContext);
+            Pass14FillGenericConstraints.DoPass(rewriteContext);
         }
 
         using (new TimingCookie("Creating members"))
@@ -196,6 +201,7 @@ internal class InteropAssemblyGeneratorRunner : IRunner
         {
             Pass89GenerateMethodXrefCache.DoPass(rewriteContext, options);
         }
+
 
         using (new TimingCookie("Writing assemblies"))
         {
