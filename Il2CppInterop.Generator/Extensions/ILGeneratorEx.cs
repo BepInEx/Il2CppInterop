@@ -194,7 +194,9 @@ public static class ILGeneratorEx
             Debug.Assert(newType.IsPointerLike());
             body.AddLoadArgument(argumentIndex);
         }
-        else if (originalType.IsValueType)
+        // A temporary fix for AsmResolver returning IsValueType true for System.Enum
+        // See https://github.com/BepInEx/Il2CppInterop/issues/211 for the discussion
+        else if (originalType.IsValueType && originalType.FullName != "System.Enum")
         {
             if (newType.IsValueType)
             {

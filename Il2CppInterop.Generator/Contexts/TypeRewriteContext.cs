@@ -50,7 +50,9 @@ public class TypeRewriteContext
                 (ICustomAttributeType)assemblyContext.Imports.ObfuscatedNameAttributector.Value,
                 new CustomAttributeSignature(new CustomAttributeArgument(assemblyContext.Imports.Module.String(), OriginalType.FullName))));
 
-        if (!OriginalType.IsValueType)
+        // A temporary fix for AsmResolver returning IsValueType true for System.Enum
+        // See https://github.com/BepInEx/Il2CppInterop/issues/211 for the discussion
+        if (!OriginalType.IsValueType || OriginalType.FullName == "System.Enum")
             ComputedTypeSpecifics = TypeSpecifics.ReferenceType;
         else if (OriginalType.IsEnum)
             ComputedTypeSpecifics = TypeSpecifics.BlittableStruct;

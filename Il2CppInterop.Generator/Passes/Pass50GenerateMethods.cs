@@ -177,8 +177,12 @@ public static class Pass50GenerateMethods
 
                     }
 
+                    // A temporary fix for AsmResolver returning IsValueType true for System.Enum
+                    // See https://github.com/BepInEx/Il2CppInterop/issues/211 for the discussion
+                    var isSystemEnum = originalMethod.DeclaringType!.FullName == "System.Enum";
+
                     if (!originalMethod.DeclaringType!.IsSealed && !originalMethod.IsFinal &&
-                        ((originalMethod.IsVirtual && !originalMethod.DeclaringType.IsValueType) || originalMethod.IsAbstract))
+                        ((originalMethod.IsVirtual && (!originalMethod.DeclaringType.IsValueType || isSystemEnum)) || originalMethod.IsAbstract))
                     {
                         bodyBuilder.Add(OpCodes.Ldarg_0);
                         bodyBuilder.Add(OpCodes.Call, imports.IL2CPP_Il2CppObjectBaseToPtr.Value);
