@@ -38,7 +38,7 @@ public static class Pass21GenerateValueTypeFields
                         if (field.IsStatic) continue;
 
                         var newField = new FieldDefinition(fieldContext.UnmangledName, field.Attributes.ForcePublic(),
-                            !field.Signature!.FieldType.IsValueType
+                            !field.Signature!.FieldType.IsValueType()
                                 ? assemblyContext.Imports.Module.IntPtr()
                                 : assemblyContext.RewriteTypeRef(field.Signature.FieldType));
 

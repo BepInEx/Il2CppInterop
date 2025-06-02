@@ -48,4 +48,9 @@ public static class TypeReferenceEx
 
         return type.Namespace;
     }
+
+    public static bool IsValueType(this ITypeDescriptor type)
+    {
+        return type.IsValueType && type.FullName != "System.Enum";
+    }
 }
