@@ -30,14 +30,14 @@ public static class UnstripGenerator
         invokeMethod.ImplAttributes = MethodImplAttributes.CodeTypeMask;
         delegateType.Methods.Add(invokeMethod);
 
-        invokeMethod.Signature!.ReturnType = convertedMethod.Signature!.ReturnType.IsValueType
+        invokeMethod.Signature!.ReturnType = convertedMethod.Signature!.ReturnType.IsValueType()
             ? convertedMethod.Signature.ReturnType
             : imports.Module.IntPtr();
         if (!convertedMethod.IsStatic)
             invokeMethod.AddParameter(imports.Module.IntPtr(), "@this");
         foreach (var convertedParameter in convertedMethod.Parameters)
             invokeMethod.AddParameter(
-                convertedParameter.ParameterType.IsValueType
+                convertedParameter.ParameterType.IsValueType()
                     ? convertedParameter.ParameterType
                     : imports.Module.IntPtr(),
                 convertedParameter.Name,
@@ -64,7 +64,7 @@ public static class UnstripGenerator
         {
             var param = newMethod.Parameters[i];
             var paramType = param.ParameterType;
-            if (paramType.IsValueType || (paramType is ByReferenceTypeSignature && paramType.GetElementType().IsValueType))
+            if (paramType.IsValueType() || (paramType is ByReferenceTypeSignature && paramType.GetElementType().IsValueType()))
             {
                 body.AddLoadArgument(i + argOffset);
             }

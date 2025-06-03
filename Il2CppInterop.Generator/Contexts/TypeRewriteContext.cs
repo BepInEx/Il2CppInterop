@@ -50,7 +50,7 @@ public class TypeRewriteContext
                 (ICustomAttributeType)assemblyContext.Imports.ObfuscatedNameAttributector.Value,
                 new CustomAttributeSignature(new CustomAttributeArgument(assemblyContext.Imports.Module.String(), OriginalType.FullName))));
 
-        if (!OriginalType.IsValueType)
+        if (!OriginalType.IsValueType())
             ComputedTypeSpecifics = TypeSpecifics.ReferenceType;
         else if (OriginalType.IsEnum)
             ComputedTypeSpecifics = TypeSpecifics.BlittableStruct;
@@ -69,13 +69,13 @@ public class TypeRewriteContext
     {
         if (NewType.HasGenericParameters())
         {
-            var genericInstanceType = new GenericInstanceTypeSignature(NewType, NewType.IsValueType);
+            var genericInstanceType = new GenericInstanceTypeSignature(NewType, NewType.IsValueType());
             foreach (var newTypeGenericParameter in NewType.GenericParameters)
                 genericInstanceType.TypeArguments.Add(newTypeGenericParameter.ToTypeSignature());
             SelfSubstitutedRef = NewType.Module!.DefaultImporter.ImportTypeSignature(genericInstanceType).ToTypeDefOrRef();
             var genericTypeRef = new GenericInstanceTypeSignature(
                 AssemblyContext.Imports.Il2CppClassPointerStore.ToTypeDefOrRef(),
-                AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType,
+                AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType(),
                 SelfSubstitutedRef.ToTypeSignature());
             ClassPointerFieldRef = ReferenceCreator.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
                 NewType.Module.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
@@ -85,7 +85,7 @@ public class TypeRewriteContext
             SelfSubstitutedRef = NewType;
             var genericTypeRef = new GenericInstanceTypeSignature(
                 AssemblyContext.Imports.Il2CppClassPointerStore.ToTypeDefOrRef(),
-                AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType);
+                AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType());
             if (OriginalType.ToTypeSignature().IsPrimitive() || OriginalType.FullName == "System.String")
                 genericTypeRef.TypeArguments.Add(
                     NewType.Module!.ImportCorlibReference(OriginalType.FullName));

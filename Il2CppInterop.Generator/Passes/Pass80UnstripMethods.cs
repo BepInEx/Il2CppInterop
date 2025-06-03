@@ -234,7 +234,7 @@ public static class Pass80UnstripMethods
         {
             var baseRef = ResolveTypeInNewAssembliesRaw(context, genericInstance.GenericType.ToTypeSignature(), imports);
             if (baseRef == null) return null;
-            var newInstance = new GenericInstanceTypeSignature(baseRef.ToTypeDefOrRef(), baseRef.IsValueType);
+            var newInstance = new GenericInstanceTypeSignature(baseRef.ToTypeDefOrRef(), baseRef.IsValueType());
             foreach (var unityGenericArgument in genericInstance.TypeArguments)
             {
                 var resolvedArgument = ResolveTypeInNewAssemblies(context, unityGenericArgument, imports);

@@ -24,13 +24,13 @@ internal static class FieldAccessorGenerator
         CilLocalVariable local0;
         if (field.IsStatic)
         {
-            local0 = new CilLocalVariable(property.Signature.ReturnType.IsValueType
+            local0 = new CilLocalVariable(property.Signature.ReturnType.IsValueType()
                 ? property.Signature.ReturnType
                 : imports.Module.IntPtr());
             getter.CilMethodBody.LocalVariables.Add(local0);
 
             var localIsPointer = false;
-            if (field.Signature!.FieldType.IsValueType && !property.Signature.ReturnType.IsValueType)
+            if (field.Signature!.FieldType.IsValueType() && !property.Signature.ReturnType.IsValueType())
             {
                 var pointerStore = imports.Il2CppClassPointerStore.MakeGenericInstanceType(property.Signature.ReturnType).ToTypeDefOrRef();
                 var pointerStoreType = property.DeclaringType.Module!.DefaultImporter.ImportType(pointerStore);
@@ -53,7 +53,7 @@ internal static class FieldAccessorGenerator
             getterBody.Add(OpCodes.Conv_U);
             getterBody.Add(OpCodes.Call, imports.IL2CPP_il2cpp_field_static_get_value.Value);
 
-            if (property.Signature.ReturnType.IsValueType)
+            if (property.Signature.ReturnType.IsValueType())
             {
                 getterBody.Add(OpCodes.Ldloc, local0);
                 getterBody.Add(OpCodes.Ret);
