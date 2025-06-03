@@ -71,7 +71,7 @@ public static class Pass05CreateRenameGroups
             .Where(it => !it!.Name.IsObfuscated(context.Options));
         var accessName = ClassAccessNames[(int)(typeDefinition.Attributes & TypeAttributes.VisibilityMask)];
 
-        var classifier = typeDefinition.IsInterface ? "Interface" : typeDefinition.IsValueType ? "Struct" : "Class";
+        var classifier = typeDefinition.IsInterface ? "Interface" : typeDefinition.IsValueType() ? "Struct" : "Class";
         var compilerGenertaedString = typeDefinition.Name.StartsWith("<") ? "CompilerGenerated" : "";
         var abstractString = typeDefinition.IsAbstract ? "Abstract" : "";
         var sealedString = typeDefinition.IsSealed ? "Sealed" : "";

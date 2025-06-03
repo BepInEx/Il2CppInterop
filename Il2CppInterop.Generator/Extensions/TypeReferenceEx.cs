@@ -48,4 +48,11 @@ public static class TypeReferenceEx
 
         return type.Namespace;
     }
+
+    // A temporary fix for AsmResolver returning IsValueType true for System.Enum
+    // See https://github.com/BepInEx/Il2CppInterop/issues/211 for the discussion
+    public static bool IsValueType(this ITypeDescriptor type)
+    {
+        return type.IsValueType && type.FullName != "System.Enum";
+    }
 }

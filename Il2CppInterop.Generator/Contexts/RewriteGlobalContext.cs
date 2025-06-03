@@ -223,7 +223,7 @@ public class RewriteGlobalContext : IDisposable
                     {
                         var convertedElementType = resolve(elementType)!;
 
-                        constructorReference = imports.Module.DefaultImporter.ImportMethod(convertedElementType.IsValueType
+                        constructorReference = imports.Module.DefaultImporter.ImportMethod(convertedElementType.IsValueType()
                             ? imports.Il2CppStructArrayctor.Get(convertedElementType)
                             : imports.Il2CppRefrenceArrayctor.Get(convertedElementType));
                     }

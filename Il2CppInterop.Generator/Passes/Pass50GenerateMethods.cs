@@ -60,7 +60,7 @@ public static class Pass50GenerateMethods
                         bodyBuilder.Add(OpCodes.Newobj, imports.Module.DefaultImporter.ImportMethod(originalElementType.FullName switch
                         {
                             "System.String" => imports.Il2CppStringArrayctor_size.Value,
-                            _ when originalElementType.IsValueType => imports.Il2CppStructArrayctor_size.Get(((GenericInstanceTypeSignature)newParameter.ParameterType).TypeArguments[0]),
+                            _ when originalElementType.IsValueType() => imports.Il2CppStructArrayctor_size.Get(((GenericInstanceTypeSignature)newParameter.ParameterType).TypeArguments[0]),
                             _ => imports.Il2CppRefrenceArrayctor_size.Get(((GenericInstanceTypeSignature)newParameter.ParameterType).TypeArguments[0])
                         }));
                         bodyBuilder.Add(OpCodes.Starg, newParameter);
@@ -122,7 +122,7 @@ public static class Pass50GenerateMethods
                         var newParam = newMethod.Parameters[i];
                         // NOTE(Kas): out parameters of value type are passed directly as a pointer to the il2cpp method
                         // since we don't need to perform any additional copies
-                        if (newParam.Definition!.IsOut && !newParam.ParameterType.GetElementType().IsValueType)
+                        if (newParam.Definition!.IsOut && !newParam.ParameterType.GetElementType().IsValueType())
                         {
                             var elementType = newParam.ParameterType.GetElementType();
 
@@ -178,7 +178,7 @@ public static class Pass50GenerateMethods
                     }
 
                     if (!originalMethod.DeclaringType!.IsSealed && !originalMethod.IsFinal &&
-                        ((originalMethod.IsVirtual && !originalMethod.DeclaringType.IsValueType) || originalMethod.IsAbstract))
+                        ((originalMethod.IsVirtual && !originalMethod.DeclaringType.IsValueType()) || originalMethod.IsAbstract))
                     {
                         bodyBuilder.Add(OpCodes.Ldarg_0);
                         bodyBuilder.Add(OpCodes.Call, imports.IL2CPP_Il2CppObjectBaseToPtr.Value);
