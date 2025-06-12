@@ -124,6 +124,16 @@ public static class Pass80UnstripMethods
                         var property = GetOrCreateProperty(unityMethod, newMethod);
                         property.SetMethod = newMethod;
                     }
+                    else if (unityMethod.IsAddMethod)
+                    {
+                        var @event = GetOrCreateEvent(unityMethod, newMethod);
+                        @event.AddMethod = newMethod;
+                    }
+                    else if (unityMethod.IsRemoveMethod)
+                    {
+                        var @event = GetOrCreateEvent(unityMethod, newMethod);
+                        @event.RemoveMethod = newMethod;
+                    }
 
                     var paramsMethod = context.CreateParamsMethod(unityMethod, newMethod, imports,
                         type => ResolveTypeInNewAssemblies(context, type, imports));
@@ -169,6 +179,21 @@ public static class Pass80UnstripMethods
         }
 
         return newProperty;
+    }
+
+    private static EventDefinition GetOrCreateEvent(MethodDefinition unityMethod, MethodDefinition newMethod)
+    {
+        var unityEvent =
+            unityMethod.DeclaringType!.Events.Single(
+                it => it.AddMethod == unityMethod || it.RemoveMethod == unityMethod);
+        var newEvent = newMethod.DeclaringType!.Events.SingleOrDefault(it => it.Name == unityEvent.Name);
+        if (newEvent == null)
+        {
+            newEvent = new EventDefinition(unityEvent.Name, unityEvent.Attributes, newMethod.Signature!.ParameterTypes.Single().ToTypeDefOrRef());
+            newMethod.DeclaringType.Events.Add(newEvent);
+        }
+
+        return newEvent;
     }
 
     internal static TypeSignature? ResolveTypeInNewAssemblies(RewriteGlobalContext context, TypeSignature? unityType,
