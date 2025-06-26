@@ -1,58 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.InteropTypes;
-using Microsoft.Extensions.Logging;
 using Object = Il2CppSystem.Object;
 
 namespace Il2CppInterop.Runtime.Runtime;
 
-// NB: Since we may call GC.SuppressFinalize on managed objects, we need another object (this one) to handle the cleanup.
-// The objects' lifetimes are linked by the s_finalizers ephemeron on Il2CppFinalizers.
-internal class FinalizerContainer
-{
-    public nint gcHandle;
-    public IntPtr pooledPtr;
-
-    ~FinalizerContainer() => Il2CppObjectPool.Free(gcHandle, pooledPtr);
-}
-
-internal static class Il2CppFinalizers
-{
-    // Dying objects are never duplicated.
-    internal static readonly ConcurrentDictionary<IntPtr, byte> s_dying = new();
-    internal static readonly ConditionalWeakTable<Il2CppObjectBase, FinalizerContainer> s_finalizers = new();
-
-    internal static void OnDeath(IntPtr ptr)
-    {
-        s_dying.Remove(ptr, out _);
-    }
-
-    internal static bool ShouldFinalize(IntPtr ptr)
-    {
-        return !s_dying.ContainsKey(ptr);
-    }
-
-    internal static void Finalize(Il2CppObjectBase obj)
-    {
-        obj.finalizerState = Il2CppObjectFinalizerState.Now;
-        s_dying[obj.Pointer] = 0;
-        GC.ReRegisterForFinalize(obj);
-    }
-
-    internal static void OverrideFinalize(Il2CppObjectBase obj, FinalizerContainer finalizer)
-    {
-        GC.SuppressFinalize(obj);
-        obj.finalizerState = Il2CppObjectFinalizerState.NotYet;
-        s_finalizers.Add(obj, finalizer);
-    }
-}
-
 public static class Il2CppObjectPool
 {
-    internal static bool DisableCaching { get; set; }
+    public static bool DisableCaching { get; set; }
 
     private static readonly ConcurrentDictionary<IntPtr, WeakReference<Il2CppObjectBase>> s_cache = new();
 
@@ -63,8 +18,9 @@ public static class Il2CppObjectPool
 
     internal static void Free(nint unmanagedGcHandle, IntPtr ptr)
     {
-        IL2CPP.il2cpp_gchandle_free(unmanagedGcHandle);
-        if (ptr != IntPtr.Zero) Il2CppObjectPool.Remove(ptr);
+        if (IL2CPP.il2cpp_gchandle_get_target(unmanagedGcHandle) != IntPtr.Zero)
+            IL2CPP.il2cpp_gchandle_free(unmanagedGcHandle);
+        Remove(ptr);
     }
 
     public static void InternWeak(Il2CppObjectBase obj)
@@ -74,16 +30,14 @@ public static class Il2CppObjectPool
         s_cache[ptr] = new(obj);
     }
 
-    internal static bool ReferenceIsDead(IntPtr ptr)
-    {
-        return s_cache.TryGetValue(ptr, out var reference) && !reference.TryGetTarget(out _);
-    }
-
     public static T Get<T>(IntPtr ptr)
     {
-        if (ptr == IntPtr.Zero || Il2CppFinalizers.s_dying.ContainsKey(ptr)) return default;
+        if (ptr == IntPtr.Zero || Il2CppFinalizers.s_dying.ContainsKey(ptr))
+        {
+            return default!;
+        }
 
-        if (DisableCaching) return Il2CppObjectBase.InitializerStore<T>.Initializer(ptr);
+        if (DisableCaching) return Il2CppObjectInitializer.New<T>(ptr);
 
         if (s_cache.TryGetValue(ptr, out var reference))
         {
@@ -98,7 +52,7 @@ public static class Il2CppObjectPool
             Remove(ptr);
         }
 
-        var newObj = Il2CppObjectBase.InitializerStore<T>.Initializer(ptr);
+        var newObj = Il2CppObjectInitializer.New<T>(ptr);
         unsafe
         {
             var nativeClassStruct = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<T>.NativeClassPtr);
@@ -108,9 +62,6 @@ public static class Il2CppObjectPool
             }
         }
 
-        var il2CppObjectBase = Unsafe.As<T, Il2CppObjectBase>(ref newObj);
-        if (il2CppObjectBase.Pointer != ptr) Logger.Instance.LogError("Pointer interned at wrong address!");
-        InternWeak(il2CppObjectBase);
         return newObj;
     }
 }

@@ -5,12 +5,10 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Text;
-using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Fields;
 using Il2CppInterop.Runtime.Runtime;
-using Microsoft.Extensions.Logging;
 using Object = Il2CppSystem.Object;
 using ValueType = Il2CppSystem.ValueType;
 
@@ -196,8 +194,9 @@ public static class DelegateSupport
         }
 
         bodyBuilder.BeginCatchBlock(typeof(Exception));
-        bodyBuilder.Emit(OpCodes.Call, typeof(DelegateSupport).GetMethod(nameof(LogException), BindingFlags.Static | BindingFlags.NonPublic)!);
-        bodyBuilder.Emit(OpCodes.Ldstr, "Exception in IL2CPP-to-Managed trampoline, not passing it to il2cpp: ");
+        bodyBuilder.Emit(OpCodes.Ldstr, "IL2CPP-to-Managed delegate trampoline");
+        bodyBuilder.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(ClassInjector.LogException),
+            BindingFlags.Static | BindingFlags.NonPublic)!);
 
         bodyBuilder.EndExceptionBlock();
 
@@ -206,11 +205,6 @@ public static class DelegateSupport
         bodyBuilder.Emit(OpCodes.Ret);
 
         return trampoline.CreateDelegate(GetOrCreateDelegateType(signature, managedMethod));
-    }
-
-    private static void LogException(Exception exception)
-    {
-        Logger.Instance.LogError($"Exception in IL2CPP-to-Managed trampoline, not passing it to il2cpp: {exception}");
     }
 
     public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppObjectBase
