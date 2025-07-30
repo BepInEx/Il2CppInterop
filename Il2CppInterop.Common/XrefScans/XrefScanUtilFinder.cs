@@ -94,10 +94,4 @@ internal static class XrefScanUtilFinder
                 return 0;
         }
     }
-
-    private static IntPtr ConvertUlongToIntPtr(ulong address)
-    {
-        if (Environment.Is64BitProcess) return address <= long.MaxValue ? new IntPtr((long)address) : new IntPtr(unchecked((long)address));
-        else return address <= int.MaxValue ? new IntPtr((int)address) : new IntPtr(unchecked((int)address));
-    }
 }
