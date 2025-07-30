@@ -72,7 +72,7 @@ internal static class XrefScanUtilFinder
             if (instruction.Mnemonic == Mnemonic.Mov && seenCall)
                 if (instruction.Op0Kind == OpKind.Memory && (instruction.MemorySize == MemorySize.Int8 ||
                                                              instruction.MemorySize == MemorySize.UInt8))
-                    return ConvertUlongToIntPtr(instruction.IPRelativeMemoryAddress);
+                    return unchecked((IntPtr)instruction.IPRelativeMemoryAddress);
         }
     }
 
