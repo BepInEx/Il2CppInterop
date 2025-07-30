@@ -34,7 +34,7 @@ internal static class XrefScanUtilFinder
                 if (instruction.Op0Kind == OpKind.Register && instruction.Op0Register == Register.ECX &&
                     instruction.Op1Kind == OpKind.Memory && instruction.IsIPRelativeMemoryOperand)
                 {
-                    var movTarget = ConvertUlongToIntPtr(instruction.IPRelativeMemoryAddress);
+                    var movTarget = unchecked((IntPtr)instruction.IPRelativeMemoryAddress);
                     if (instruction.MemorySize != MemorySize.UInt32 && instruction.MemorySize != MemorySize.Int32)
                         continue;
 
