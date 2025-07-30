@@ -34,7 +34,7 @@ internal static class XrefScanUtilFinder
                 if (instruction.Op0Kind == OpKind.Register && instruction.Op0Register == Register.ECX &&
                     instruction.Op1Kind == OpKind.Memory && instruction.IsIPRelativeMemoryOperand)
                 {
-                    var movTarget = new IntPtr(unchecked((long)instruction.IPRelativeMemoryAddress));
+                    var movTarget = ConvertUlongToIntPtr(instruction.IPRelativeMemoryAddress);
                     if (instruction.MemorySize != MemorySize.UInt32 && instruction.MemorySize != MemorySize.Int32)
                         continue;
 
@@ -72,7 +72,7 @@ internal static class XrefScanUtilFinder
             if (instruction.Mnemonic == Mnemonic.Mov && seenCall)
                 if (instruction.Op0Kind == OpKind.Memory && (instruction.MemorySize == MemorySize.Int8 ||
                                                              instruction.MemorySize == MemorySize.UInt8))
-                    return new IntPtr(unchecked((long)instruction.IPRelativeMemoryAddress));
+                    return ConvertUlongToIntPtr(instruction.IPRelativeMemoryAddress);
         }
     }
 
@@ -93,5 +93,11 @@ internal static class XrefScanUtilFinder
             default:
                 return 0;
         }
+    }
+
+    private static IntPtr ConvertUlongToIntPtr(ulong address)
+    {
+        if (Environment.Is64BitProcess) return address <= long.MaxValue ? new IntPtr((long)address) : new IntPtr(unchecked((long)address));
+        else return address <= int.MaxValue ? new IntPtr((int)address) : new IntPtr(unchecked((int)address));
     }
 }
