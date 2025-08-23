@@ -86,7 +86,7 @@ public static class Pass79UnstripTypes
 
             // Unity assemblies sometimes have struct layouts on classes.
             // This gets overlooked on mono but not on coreclr.
-            if (!clonedType.IsValueType && (clonedType.IsExplicitLayout || clonedType.IsSequentialLayout))
+            if (!clonedType.IsValueType() && (clonedType.IsExplicitLayout || clonedType.IsSequentialLayout))
             {
                 clonedType.IsExplicitLayout = clonedType.IsSequentialLayout = false;
                 clonedType.IsAutoLayout = true;
@@ -119,7 +119,7 @@ public static class Pass79UnstripTypes
 
     private static bool HasNonBlittableFields(TypeDefinition type)
     {
-        if (!type.IsValueType) return false;
+        if (!type.IsValueType()) return false;
 
         var typeSignature = type.ToTypeSignature();
         foreach (var fieldDefinition in type.Fields)
@@ -127,7 +127,7 @@ public static class Pass79UnstripTypes
             if (fieldDefinition.IsStatic || SignatureComparer.Default.Equals(fieldDefinition.Signature?.FieldType, typeSignature))
                 continue;
 
-            if (!fieldDefinition.Signature!.FieldType.IsValueType)
+            if (!fieldDefinition.Signature!.FieldType.IsValueType())
                 return true;
 
             if (fieldDefinition.Signature.FieldType.Namespace?.StartsWith("System") ?? false &&

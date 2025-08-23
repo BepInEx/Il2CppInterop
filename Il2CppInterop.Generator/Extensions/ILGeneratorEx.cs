@@ -38,7 +38,7 @@ public static class ILGeneratorEx
             body.Add(OpCodes.Stobj, newType.ToTypeDefOrRef());
             body.Add(OpCodes.Pop);
         }
-        else if (originalType.IsValueType)
+        else if (originalType.IsValueType())
         {
             var typeSpecifics = enclosingType.AssemblyContext.GlobalContext.JudgeSpecificsByOriginalType(originalType);
             if (typeSpecifics == TypeRewriteContext.TypeSpecifics.BlittableStruct)
@@ -52,7 +52,7 @@ public static class ILGeneratorEx
                 body.AddLoadArgument(argumentIndex);
                 body.Add(OpCodes.Call, imports.IL2CPP_Il2CppObjectBaseToPtr.Value);
                 body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_object_unbox.Value);
-                var classPointerTypeRef = new GenericInstanceTypeSignature(imports.Il2CppClassPointerStore.ToTypeDefOrRef(), imports.Il2CppClassPointerStore.IsValueType, newType);
+                var classPointerTypeRef = new GenericInstanceTypeSignature(imports.Il2CppClassPointerStore.ToTypeDefOrRef(), imports.Il2CppClassPointerStore.IsValueType(), newType);
                 var classPointerFieldRef =
                     ReferenceCreator.CreateFieldReference("NativeClassPtr", imports.Module.IntPtr(), classPointerTypeRef.ToTypeDefOrRef());
                 body.Add(OpCodes.Ldsfld, enclosingType.NewType.Module!.DefaultImporter.ImportField(classPointerFieldRef));
@@ -162,12 +162,12 @@ public static class ILGeneratorEx
         var imports = enclosingType.AssemblyContext.Imports;
         if (originalType is ByReferenceTypeSignature)
         {
-            if (newType.GetElementType().IsValueType)
+            if (newType.GetElementType().IsValueType())
             {
                 body.AddLoadArgument(argumentIndex);
                 body.Add(OpCodes.Conv_I);
             }
-            else if (originalType.GetElementType().IsValueType)
+            else if (originalType.GetElementType().IsValueType())
             {
                 body.AddLoadArgument(argumentIndex);
                 body.Add(OpCodes.Ldind_Ref);
@@ -194,9 +194,9 @@ public static class ILGeneratorEx
             Debug.Assert(newType.IsPointerLike());
             body.AddLoadArgument(argumentIndex);
         }
-        else if (originalType.IsValueType)
+        else if (originalType.IsValueType())
         {
-            if (newType.IsValueType)
+            if (newType.IsValueType())
             {
                 if (argumentIndex == 0 && valueTypeArgument0IsAPointer)
                     body.Add(OpCodes.Ldarg_0);
@@ -302,9 +302,9 @@ public static class ILGeneratorEx
             Debug.Assert(convertedReturnType.IsPointerLike());
             body.Add(OpCodes.Ldloc, pointerVariable);
         }
-        else if (originalReturnType.IsValueType)
+        else if (originalReturnType.IsValueType())
         {
-            if (convertedReturnType.IsValueType)
+            if (convertedReturnType.IsValueType())
             {
                 body.Add(OpCodes.Ldloc, pointerVariable);
                 if (unboxValueType) body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_object_unbox.Value);
@@ -319,7 +319,7 @@ public static class ILGeneratorEx
                 else
                 {
                     Debug.Assert(enclosingType.NewType.Module is not null);
-                    var classPointerTypeRef = new GenericInstanceTypeSignature(imports.Il2CppClassPointerStore.ToTypeDefOrRef(), imports.Il2CppClassPointerStore.IsValueType, convertedReturnType);
+                    var classPointerTypeRef = new GenericInstanceTypeSignature(imports.Il2CppClassPointerStore.ToTypeDefOrRef(), imports.Il2CppClassPointerStore.IsValueType(), convertedReturnType);
                     var classPointerFieldRef =
                         ReferenceCreator.CreateFieldReference("NativeClassPtr", imports.Module.IntPtr(),
                             classPointerTypeRef.ToTypeDefOrRef());

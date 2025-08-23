@@ -49,7 +49,7 @@ internal static class AsmResolverExtensions
                 : method.Parameters[argumentIndex - 1];
     }
 
-    public static bool IsReferenceType(this TypeDefinition type) => !type.IsValueType;
+    public static bool IsReferenceType(this TypeDefinition type) => !type.IsValueType();
 
     public static bool HasGenericParameters(this TypeDefinition type) => type.GenericParameters.Count > 0;
 
@@ -69,7 +69,7 @@ internal static class AsmResolverExtensions
 
     public static bool IsPointerLike(this TypeSignature type) => type is PointerTypeSignature or ByReferenceTypeSignature;
 
-    public static bool IsValueTypeLike(this TypeSignature type) => type.IsValueType || type.IsPointerLike();
+    public static bool IsValueTypeLike(this TypeSignature type) => type.IsValueType() || type.IsPointerLike();
 
     public static bool IsSystemEnum(this GenericParameterConstraint constraint) => constraint.Constraint?.FullName is "System.Enum";
 
