@@ -53,7 +53,7 @@ namespace Il2CppInterop.Runtime.Injection
             InjectedAssembly = UnityVersionHandler.NewAssembly();
             InjectedImage = UnityVersionHandler.NewImage();
 
-            InjectedAssembly.Name.Name = Marshal.StringToHGlobalAnsi("InjectedMonoTypes");
+            InjectedAssembly.Name.Name = Marshal.StringToCoTaskMemUTF8("InjectedMonoTypes");
 
             InjectedImage.Assembly = InjectedAssembly.AssemblyPointer;
             InjectedImage.Dynamic = 1;
