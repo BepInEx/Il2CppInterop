@@ -19,7 +19,7 @@ public static unsafe class EnumInjector
     // fieldInfo : defaultValueBlob
     private static readonly ConcurrentDictionary<IntPtr, IntPtr> s_DefaultValueOverrides = new();
 
-    private static readonly IntPtr value__Cached = Marshal.StringToHGlobalAnsi("value__");
+    private static readonly IntPtr value__Cached = Marshal.StringToCoTaskMemUTF8("value__");
 
     internal static bool GetDefaultValueOverride(Il2CppFieldInfo* fieldInfo, out IntPtr defaultValueBlob)
     {
@@ -73,7 +73,7 @@ public static unsafe class EnumInjector
         {
             var offset = fieldIdx * UnityVersionHandler.FieldInfoSize();
             var newField = UnityVersionHandler.Wrap(newFields + offset);
-            newField.Name = Marshal.StringToHGlobalAnsi(newData.Key);
+            newField.Name = Marshal.StringToCoTaskMemUTF8(newData.Key);
             newField.Type = enumElementType.TypePointer;
             newField.Parent = il2cppEnum.ClassPointer;
             newField.Offset = 0;
@@ -221,8 +221,8 @@ public static unsafe class EnumInjector
         il2cppEnum.HasFinalize = true;
         il2cppEnum.IsVtableInitialized = true;
 
-        il2cppEnum.Name = Marshal.StringToHGlobalAnsi(type.Name);
-        il2cppEnum.Namespace = Marshal.StringToHGlobalAnsi(type.Namespace ?? string.Empty);
+        il2cppEnum.Name = Marshal.StringToCoTaskMemUTF8(type.Name);
+        il2cppEnum.Namespace = Marshal.StringToCoTaskMemUTF8(type.Namespace ?? string.Empty);
 
         var token = InjectorHelpers.CreateClassToken(il2cppEnum.Pointer);
         il2cppEnum.ThisArg.Data = il2cppEnum.ByValArg.Data = (IntPtr)token;
@@ -271,7 +271,7 @@ public static unsafe class EnumInjector
         {
             var fieldValue = enumValues.GetValue(i - 1);
             var il2cppField = UnityVersionHandler.Wrap(il2cppFields + i * UnityVersionHandler.FieldInfoSize());
-            il2cppField.Name = Marshal.StringToHGlobalAnsi(enumNames[i - 1]);
+            il2cppField.Name = Marshal.StringToCoTaskMemUTF8(enumNames[i - 1]);
             il2cppField.Type = enumConstType.TypePointer;
             il2cppField.Parent = il2cppEnum.ClassPointer;
             il2cppField.Offset = 0;

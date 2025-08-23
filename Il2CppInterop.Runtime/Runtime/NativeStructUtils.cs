@@ -8,7 +8,7 @@ public static class NativeStructUtils
     public static IntPtr GetMethodInfoForMissingMethod(string methodName)
     {
         var methodInfo = UnityVersionHandler.NewMethod();
-        methodInfo.Name = Marshal.StringToHGlobalAnsi(methodName);
+        methodInfo.Name = Marshal.StringToCoTaskMemUTF8(methodName);
         methodInfo.Slot = ushort.MaxValue;
         return methodInfo.Pointer;
     }

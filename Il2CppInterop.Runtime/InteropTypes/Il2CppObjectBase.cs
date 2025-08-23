@@ -59,7 +59,7 @@ public class Il2CppObjectBase
     public T Cast<T>() where T : Il2CppObjectBase
     {
         return TryCast<T>() ?? throw new InvalidCastException(
-            $"Can't cast object of type {IL2CPP.il2cpp_class_get_name(IL2CPP.il2cpp_object_get_class(Pointer))} to type {typeof(T)}");
+            $"Can't cast object of type {IL2CPP.il2cpp_class_get_name_(IL2CPP.il2cpp_object_get_class(Pointer))} to type {typeof(T)}");
     }
 
     internal static unsafe T UnboxUnsafe<T>(IntPtr pointer)
@@ -71,7 +71,7 @@ public class Il2CppObjectBase
         var ownClass = IL2CPP.il2cpp_object_get_class(pointer);
         if (!IL2CPP.il2cpp_class_is_assignable_from(nestedTypeClassPointer, ownClass))
             throw new InvalidCastException(
-                $"Can't cast object of type {IL2CPP.il2cpp_class_get_name(ownClass)} to type {typeof(T)}");
+                $"Can't cast object of type {IL2CPP.il2cpp_class_get_name_(ownClass)} to type {typeof(T)}");
 
         return Unsafe.AsRef<T>(IL2CPP.il2cpp_object_unbox(pointer).ToPointer());
     }
