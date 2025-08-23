@@ -239,10 +239,15 @@ public static unsafe class IL2CPP
             if (Marshal.PtrToStringAnsi(il2cpp_class_get_name(nestedTypePtr)) == nestedTypeName)
                 return nestedTypePtr;
 
-        Logger.Instance.LogError(
-            "Nested type {NestedTypeName} on {EnclosingTypeName} not found!", nestedTypeName, Marshal.PtrToStringUTF8(il2cpp_class_get_name(enclosingType)));
+        Logger.Instance.LogTrace("Failed to find nested type through enumeration, falling back to reflection");
 
-        return IntPtr.Zero;
+        var result = RuntimeReflectionHelper.GetNestedTypeViaReflection(enclosingType, nestedTypeName);
+
+        if (result == IntPtr.Zero)
+            Logger.Instance.LogError(
+                "Nested type {NestedTypeName} on {EnclosingTypeName} not found!", nestedTypeName, Marshal.PtrToStringUTF8(il2cpp_class_get_name(enclosingType)));
+
+        return result;
     }
 
     public static void ThrowIfNull(object arg)
