@@ -196,10 +196,24 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             ? new ConcreteGenericFieldAnalysisContext(infoStore, initializationType.MakeGenericInstanceType(initializationType.GenericParameters))
                             : infoStore;
 
+                        var offsetStore = initializationType.InjectFieldContext(
+                            $"FieldOffset_Static_{index}",
+                            appContext.SystemTypes.SystemInt32Type,
+                            FieldAttributes.Assembly | FieldAttributes.Static | FieldAttributes.InitOnly);
+                        staticField.OffsetStorage = offsetStore;
+
+                        FieldAnalysisContext instantiatedOffsetStore = initializationType.GenericParameters.Count > 0
+                            ? new ConcreteGenericFieldAnalysisContext(offsetStore, initializationType.MakeGenericInstanceType(initializationType.GenericParameters))
+                            : offsetStore;
+
                         instructions.Add(new Instruction(OpCodes.Ldsfld, concreteClassPointerField));
                         instructions.Add(new Instruction(OpCodes.Ldstr, staticField.DefaultName));
                         instructions.Add(new Instruction(OpCodes.Call, getIl2CppField));
+                        instructions.Add(new Instruction(OpCodes.Dup));
                         instructions.Add(new Instruction(OpCodes.Stsfld, instantiatedInfoStore));
+                        instructions.Add(new Instruction(OpCodes.Call, il2CppFieldGetOffset));
+                        instructions.Add(new Instruction(OpCodes.Conv_I4));
+                        instructions.Add(new Instruction(OpCodes.Stsfld, instantiatedOffsetStore));
                     }
 
                     // MethodInfoPtr_0
