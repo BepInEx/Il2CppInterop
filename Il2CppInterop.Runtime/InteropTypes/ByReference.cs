@@ -27,6 +27,17 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
         Il2CppTypeHelper.WriteToPointer(value, _pointer);
     }
 
+    public readonly void Clear()
+    {
+        ThrowIfNull();
+        Span<byte> span = new(_pointer, ReferenceSize);
+        span.Clear();
+    }
+
+    public readonly void CopyFrom(in T? value) => SetValue(value);
+
+    public readonly void CopyTo(out T? value) => value = GetValue();
+
     public readonly void* ToPointer() => _pointer;
 
     private static int ReferenceSize => T.Size;
