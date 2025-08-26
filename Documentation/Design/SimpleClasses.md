@@ -41,7 +41,7 @@ public readonly record struct ObjectPointer(IntPtr Value)
 
 ## Static classes
 
-### Option 1: Make class abstract but not sealed and inject a private constructor
+We make the class abstract but not sealed and inject a private constructor.
 
 ```cs
 public abstract class StaticClass
@@ -58,7 +58,7 @@ public abstract class StaticClass
 }
 ```
 
-### Option 2: Inject a nested class to use as a type parameter
+### Alternative: Inject a nested class to use as a type parameter
 
 ```cs
 public static class StaticClass
@@ -75,8 +75,4 @@ public static class StaticClass
 }
 ```
 
-### Comparison
-
-Option 1 is more friendly to the rest of the generation process, but option 2 is more representative of the actual situation and allows extension methods to function as intended.
-
-Recommendation: option 1.
+This is more representative of the actual situation and allows extension methods to function as intended, but the way we chose is more friendly to the rest of the generation process.

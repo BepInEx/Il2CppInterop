@@ -28,7 +28,7 @@ When returning from a method, we check the pool to see if the object already exi
 
 ```cs
 // Maybe instead Il2CppObjectPool.Get should perform this null check?
-return (intPtr != (System.IntPtr)0) ? (ReturnType)Il2CppObjectPool.Get(intPtr) : null;
+return (ReturnType?)Il2CppObjectPool.Get(intPtr);
 ```
 
 In the event that a factory method has not been registered, we throw an exception. If we pre-register factory methods for all generic type instances this should never happen.
