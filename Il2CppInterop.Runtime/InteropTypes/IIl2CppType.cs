@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime.Runtime;
 
@@ -8,31 +7,12 @@ namespace Il2CppInterop.Runtime.InteropTypes;
 public interface IIl2CppType
 {
     static abstract int Size { get; }
-}
-internal interface IObject2 : IIl2CppValueType
-{
-
-}
-internal class Object2 : IObject2
-{
-    int IIl2CppValueType.Size => throw new NotImplementedException();
-
-    nint IIl2CppValueType.ObjectClass => throw new NotImplementedException();
-
-    void IIl2CppValueType.ReadFromSpan(ReadOnlySpan<byte> span) => throw new NotImplementedException();
-    void IIl2CppValueType.WriteToSpan(Span<byte> span) => throw new NotImplementedException();
+    IntPtr ObjectClass { get; }
 }
 public interface IIl2CppType<TSelf> : IIl2CppType where TSelf : notnull, IIl2CppType<TSelf>
 {
     static abstract void WriteToSpan(TSelf? value, Span<byte> span);
     static abstract TSelf? ReadFromSpan(ReadOnlySpan<byte> span);
-}
-public interface IIl2CppValueType
-{
-    int Size { get; }
-    IntPtr ObjectClass { get; }
-    void WriteToSpan(Span<byte> span);
-    void ReadFromSpan(ReadOnlySpan<byte> span);
 }
 internal interface IIl2CppByReference
 {
@@ -41,12 +21,27 @@ internal interface IIl2CppByReference
     void WriteReferenceToSpan(Span<byte> span);
     void ReadReferenceFromSpan(ReadOnlySpan<byte> span);
 }
+internal interface IObject2 : IIl2CppType<IObject2>
+{
+    static int IIl2CppType.Size => IntPtr.Size;
+    static void IIl2CppType<IObject2>.WriteToSpan(IObject2? value, Span<byte> span)
+    {
+        Il2CppTypeHelper.WritePointer(value.Box(), span);
+    }
+    static IObject2? IIl2CppType<IObject2>.ReadFromSpan(ReadOnlySpan<byte> span)
+    {
+        IntPtr pointer = Il2CppTypeHelper.ReadPointer(span);
+        return (IObject2?)Il2CppObjectPool.Get(pointer);
+    }
+}
 internal struct ValueTuple2<T1, T2> : IIl2CppType<ValueTuple2<T1, T2>> where T1 : IIl2CppType<T1> where T2 : IIl2CppType<T2>
 {
-    public T1 Item1;
-    public T2 Item2;
+    public T1? Item1;
+    public T2? Item2;
 
     static int IIl2CppType.Size => Il2CppInternals_ValueTuple2<T1, T2>.Size;
+
+    readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<ValueTuple2<T1, T2>>.NativeClassPtr;
 
     static ValueTuple2<T1, T2> IIl2CppType<ValueTuple2<T1, T2>>.ReadFromSpan(ReadOnlySpan<byte> span)
     {
@@ -83,23 +78,17 @@ internal class Class : IIl2CppType<Class>, IIl2CppObjectBase
     static int IIl2CppType.Size => IntPtr.Size;
 
     nint IIl2CppObjectBase.Pointer => throw new NotImplementedException();
-
     bool IIl2CppObjectBase.WasCollected => throw new NotImplementedException();
-
-    int IIl2CppValueType.Size => throw new NotImplementedException();
 
     static Class? IIl2CppType<Class>.ReadFromSpan(ReadOnlySpan<byte> span)
     {
-        return Il2CppTypeHelper.ReadClass<Class>(span);
+        return Il2CppTypeHelper.ReadReference<Class>(span);
     }
 
     static void IIl2CppType<Class>.WriteToSpan(Class? value, Span<byte> span)
     {
         Il2CppTypeHelper.WriteClass(value, span);
     }
-
-    void IIl2CppValueType.ReadFromSpan(ReadOnlySpan<byte> span) => throw new NotImplementedException();
-    void IIl2CppValueType.WriteToSpan(Span<byte> span) => throw new NotImplementedException();
 }
 internal struct Int48 : IIl2CppType<Int48>
 {
@@ -107,6 +96,9 @@ internal struct Int48 : IIl2CppType<Int48>
     private ushort _high;
 
     static int IIl2CppType.Size => 6;
+
+    readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Int48>.NativeClassPtr;
+
     static Int48 IIl2CppType<Int48>.ReadFromSpan(ReadOnlySpan<byte> span)
     {
         return MemoryMarshal.Read<Int48>(span);

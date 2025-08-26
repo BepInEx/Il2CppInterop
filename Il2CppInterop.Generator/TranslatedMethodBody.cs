@@ -280,12 +280,20 @@ public class TranslatedMethodBody : MethodBodyBase
                         // This is Il2CppReferenceArray<T>.set_Item but the T is not known because the operand is null.
                         return False(out translatedMethodBody);
 
-                    case >= CilCode.Ldind_I1 and <= CilCode.Ldind_Ref:
-                        // This is for by ref parameters
+                    case >= CilCode.Ldind_I1 and < CilCode.Ldind_Ref:
+                        // This is for by ref and pointers
                         goto default;
 
-                    case >= CilCode.Stind_Ref and <= CilCode.Stind_R8:
-                        // This is for by ref parameters
+                    case CilCode.Ldind_Ref:
+                        // This is for by ref and pointers
+                        return False(out translatedMethodBody);
+
+                    case CilCode.Stind_Ref:
+                        // This is for by ref and pointers
+                        return False(out translatedMethodBody);
+
+                    case > CilCode.Stind_Ref and <= CilCode.Stind_R8:
+                        // This is for by ref and pointers
                         goto default;
 
                     case CilCode.Refanytype:
@@ -427,10 +435,16 @@ public class TranslatedMethodBody : MethodBodyBase
             {
                 var translatedType = visitor.Replace(type);
 
-                if (originalCode.Code is CilCode.Castclass or CilCode.Constrained or CilCode.Cpobj or CilCode.Initobj or CilCode.Isinst or CilCode.Ldobj or CilCode.Sizeof or CilCode.Stobj or CilCode.Unbox_Any)
+                if (originalCode.Code is CilCode.Castclass or CilCode.Constrained or CilCode.Cpobj or CilCode.Initobj or CilCode.Isinst or CilCode.Ldobj or CilCode.Stobj or CilCode.Unbox_Any)
                 {
                     translatedInstruction.Code = originalCode;
                     translatedInstruction.Operand = translatedType;
+                }
+                else if (originalCode == OpCodes.Sizeof)
+                {
+                    // Not implemented yet
+                    // Probably need to use Il2CppTypeHelper.SizeOf to get the correct semantics.
+                    return False(out translatedMethodBody);
                 }
                 else if (originalCode == OpCodes.Box)
                 {

@@ -20,7 +20,7 @@ public static unsafe class RuntimeInvokeHelper
     }
 
     public static TResult? InvokeFunction<TResult>(IntPtr method, IntPtr obj, void** parameters)
-        where TResult : IIl2CppValueType
+        where TResult : IIl2CppType<TResult>
     {
         IntPtr result = Il2CppRuntimeInvoke(method, obj, parameters);
         if (IsPointerOrByRef<TResult>())
@@ -31,10 +31,8 @@ public static unsafe class RuntimeInvokeHelper
         else if (IsValueType<TResult>())
         {
             // This is a performance optimization. The other code path would also return the correct result.
-            TResult returnValue = default!;
             byte* data = (byte*)IL2CPP.il2cpp_object_unbox(result);
-            returnValue.ReadFromSpan(new ReadOnlySpan<byte>(data, returnValue.Size));
-            return returnValue;
+            return Il2CppTypeHelper.ReadFromPointer<TResult>(data);
         }
         else
         {
@@ -63,7 +61,7 @@ public static unsafe class RuntimeInvokeHelper
     }
 
     public static int RequiredStackAllocationSize<T>()
-        where T : IIl2CppValueType
+        where T : IIl2CppType
     {
         if (IsPointer<T>())
         {
@@ -75,7 +73,7 @@ public static unsafe class RuntimeInvokeHelper
         }
         else if (IsValueType<T>())
         {
-            return default(T)!.Size;
+            return T.Size;
         }
         else
         {
@@ -84,7 +82,7 @@ public static unsafe class RuntimeInvokeHelper
     }
 
     public static IntPtr PrepareParameter<T>(T? parameter, byte* parameter_stackAllocData)
-         where T : IIl2CppValueType
+         where T : IIl2CppType<T>
     {
         if (IsPointer<T>())
         {
@@ -108,101 +106,11 @@ public static unsafe class RuntimeInvokeHelper
     }
 
     public static void CleanupParameter<T>(T? parameter, byte* parameter_stackAllocData)
-         where T : IIl2CppValueType
     {
         if (IsByRef<T>())
         {
-            var il2CppByRef = ((IIl2CppByReference)parameter!);
+            var il2CppByRef = (IIl2CppByReference)parameter!;
             il2CppByRef.ReadReferenceFromSpan(new ReadOnlySpan<byte>(parameter_stackAllocData, il2CppByRef.ReferenceSize));
         }
-    }
-
-    private static void ExampleInvokeAction<T1, T2>(IntPtr method, IntPtr obj, T1? param1, T2? param2)
-         where T1 : IIl2CppValueType
-         where T2 : IIl2CppValueType
-    {
-        IntPtr* parameters = stackalloc IntPtr[2];
-
-        // Parameter 1
-        int param1_stackAllocSize = RequiredStackAllocationSize<T1>();
-        byte* param1_stackAllocData;
-        if (param1_stackAllocSize > 0)
-        {
-            byte* temp = stackalloc byte[param1_stackAllocSize];
-            param1_stackAllocData = temp;
-        }
-        else
-        {
-            param1_stackAllocData = null;
-        }
-        parameters[0] = PrepareParameter(param1, param1_stackAllocData);
-
-        // Parameter 2
-        int param2_stackAllocSize = RequiredStackAllocationSize<T1>();
-        byte* param2_stackAllocData;
-        if (param2_stackAllocSize > 0)
-        {
-            byte* temp = stackalloc byte[param2_stackAllocSize];
-            param2_stackAllocData = temp;
-        }
-        else
-        {
-            param2_stackAllocData = null;
-        }
-        parameters[1] = PrepareParameter(param2, param2_stackAllocData);
-
-        InvokeAction(method, obj, (void**)parameters);
-
-        CleanupParameter(param1, param1_stackAllocData);
-        CleanupParameter(param2, param2_stackAllocData);
-    }
-
-    private static TResult? ExampleInvokeFunction<T1, T2, TResult>(IntPtr method, IntPtr obj, T1? param1, T2? param2)
-         where T1 : IIl2CppValueType
-         where T2 : IIl2CppValueType
-         where TResult : IIl2CppValueType
-    {
-        IntPtr* parameters = stackalloc IntPtr[2];
-
-        // Parameter 1
-        int param1_stackAllocSize = RequiredStackAllocationSize<T1>();
-        byte* param1_stackAllocData;
-        if (param1_stackAllocSize > 0)
-        {
-            byte* temp = stackalloc byte[param1_stackAllocSize];
-            param1_stackAllocData = temp;
-        }
-        else
-        {
-            param1_stackAllocData = null;
-        }
-        parameters[0] = PrepareParameter(param1, param1_stackAllocData);
-
-        // Parameter 2
-        int param2_stackAllocSize = RequiredStackAllocationSize<T1>();
-        byte* param2_stackAllocData;
-        if (param2_stackAllocSize > 0)
-        {
-            byte* temp = stackalloc byte[param2_stackAllocSize];
-            param2_stackAllocData = temp;
-        }
-        else
-        {
-            param2_stackAllocData = null;
-        }
-        parameters[1] = PrepareParameter(param2, param2_stackAllocData);
-
-        var result = InvokeFunction<TResult>(method, obj, (void**)parameters);
-
-        CleanupParameter(param1, param1_stackAllocData);
-        CleanupParameter(param2, param2_stackAllocData);
-
-        return result;
-    }
-
-    private static TResult? ExampleInvokeFunction<TResult>(IntPtr method, IntPtr obj)
-         where TResult : IIl2CppValueType
-    {
-        return InvokeFunction<TResult>(method, obj, null);
     }
 }

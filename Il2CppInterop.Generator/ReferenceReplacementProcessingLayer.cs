@@ -81,7 +81,7 @@ public class ReferenceReplacementProcessingLayer : Cpp2IlProcessingLayer
                 }
                 foreach (var parameter in method.Parameters)
                 {
-                    parameter.OverrideParameterType = ReplaceExceptTopLevelByRef(visitor, parameter.ParameterType);
+                    parameter.OverrideParameterType = visitor.Replace(parameter.ParameterType);
                 }
                 foreach (var genericParameter in method.GenericParameters)
                 {
@@ -91,34 +91,13 @@ public class ReferenceReplacementProcessingLayer : Cpp2IlProcessingLayer
 
             foreach (var property in type.Properties)
             {
-                property.OverridePropertyType = ReplaceExceptTopLevelByRef(visitor, property.PropertyType);
+                property.OverridePropertyType = visitor.Replace(property.PropertyType);
             }
 
             foreach (var @event in type.Events)
             {
                 @event.OverrideEventType = visitor.Replace(@event.EventType);
             }
-        }
-    }
-
-    private static TypeAnalysisContext ReplaceExceptTopLevelByRef(TypeConversionVisitor visitor, TypeAnalysisContext type)
-    {
-        if (type is ByRefTypeAnalysisContext byRefType)
-        {
-            var elementType = byRefType.ElementType;
-            var replacedElementType = visitor.Replace(elementType);
-            if (replacedElementType == elementType)
-            {
-                return byRefType;
-            }
-            else
-            {
-                return replacedElementType.MakeByReferenceType();
-            }
-        }
-        else
-        {
-            return visitor.Replace(type);
         }
     }
 }

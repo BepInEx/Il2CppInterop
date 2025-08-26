@@ -15,12 +15,12 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
     public override string Id => "native_method_body_processor";
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
-        var iil2CppValueType = appContext.ResolveTypeOrThrow(typeof(IIl2CppValueType));
-        var iil2CppValueType_get_Size = iil2CppValueType.GetMethodByName($"get_{nameof(IIl2CppValueType.Size)}");
+        var iil2CppTypeGeneric = appContext.ResolveTypeOrThrow(typeof(IIl2CppType<>));
 
-        var iil2CppValueTypeExtensions = appContext.ResolveTypeOrThrow(typeof(IIl2CppValueTypeExtensions));
-        var iil2CppValueType_ReadFromPointer = iil2CppValueTypeExtensions.GetMethodByName(nameof(IIl2CppValueTypeExtensions.ReadFromPointer));
-        var iil2CppValueType_WriteToPointer = iil2CppValueTypeExtensions.GetMethodByName(nameof(IIl2CppValueTypeExtensions.WriteToPointer));
+        var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeHelper));
+        var il2CppTypeHelper_SizeOf = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.SizeOf));
+        var il2CppTypeHelper_ReadFromPointer = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.ReadFromPointer));
+        var il2CppTypeHelper_WriteToPointer = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.WriteToPointer));
 
         var runtimeInvokeHelper = appContext.ResolveTypeOrThrow(typeof(RuntimeInvokeHelper));
         var invokeAction = runtimeInvokeHelper.GetMethodByName(nameof(RuntimeInvokeHelper.InvokeAction));
@@ -89,7 +89,7 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
 
                             AddParameterForMethodInfo(actionMethod);
                             AddParameterForObjectPointer(actionMethod);
-                            AddNormalAndGenericParameters(actionMethod, parameterCount, iil2CppValueType);
+                            AddNormalAndGenericParameters(actionMethod, parameterCount, iil2CppTypeGeneric);
 
                             actionDictionary[parameterCount] = actionMethod;
 
@@ -162,8 +162,8 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
 
                             AddParameterForMethodInfo(functionMethod);
                             AddParameterForObjectPointer(functionMethod);
-                            AddNormalAndGenericParameters(functionMethod, parameterCount, iil2CppValueType);
-                            AddReturnGenericParameterAndSetReturnType(functionMethod, iil2CppValueType);
+                            AddNormalAndGenericParameters(functionMethod, parameterCount, iil2CppTypeGeneric);
+                            AddReturnGenericParameterAndSetReturnType(functionMethod, iil2CppTypeGeneric);
 
                             functionDictionary[method.Parameters.Count] = functionMethod;
 
@@ -258,10 +258,7 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
                             valueTypeDataPointer = new LocalVariable(bytePointerType);
                             var declaringTypeInstantiated = method.DeclaringType.SelfInstantiateIfGeneric();
 
-                            instructions.Add(OpCodes.Ldarg, This.Instance);
-                            instructions.Add(OpCodes.Ldobj, declaringTypeInstantiated);
-                            instructions.Add(OpCodes.Box, declaringTypeInstantiated);
-                            instructions.Add(OpCodes.Callvirt, iil2CppValueType_get_Size);
+                            instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod([declaringTypeInstantiated]));
                             instructions.Add(OpCodes.Conv_U);
                             instructions.Add(OpCodes.Localloc);
                             instructions.Add(OpCodes.Stloc, valueTypeDataPointer);
@@ -269,7 +266,7 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(OpCodes.Ldarg, This.Instance);
                             instructions.Add(OpCodes.Ldobj, declaringTypeInstantiated);
                             instructions.Add(OpCodes.Ldloc, valueTypeDataPointer);
-                            instructions.Add(OpCodes.Call, iil2CppValueType_WriteToPointer.MakeGenericInstanceMethod(declaringTypeInstantiated));
+                            instructions.Add(OpCodes.Call, il2CppTypeHelper_WriteToPointer.MakeGenericInstanceMethod(declaringTypeInstantiated));
 
                             instructions.Add(OpCodes.Ldsfld, method.GetInstantiatedMethodInfoField());
                             instructions.Add(OpCodes.Ldloc, valueTypeDataPointer);
@@ -310,9 +307,12 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
 
                         if (valueTypeDataPointer is not null)
                         {
+                            var declaringTypeInstantiated = method.DeclaringType.SelfInstantiateIfGeneric();
+
                             instructions.Add(OpCodes.Ldarg, This.Instance);
                             instructions.Add(OpCodes.Ldloc, valueTypeDataPointer);
-                            instructions.Add(OpCodes.Call, iil2CppValueType_ReadFromPointer.MakeGenericInstanceMethod(method.DeclaringType.SelfInstantiateIfGeneric()));
+                            instructions.Add(OpCodes.Call, il2CppTypeHelper_ReadFromPointer.MakeGenericInstanceMethod(declaringTypeInstantiated));
+                            instructions.Add(OpCodes.Stobj, declaringTypeInstantiated);
                         }
 
                         instructions.Add(OpCodes.Ret);
@@ -450,7 +450,7 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
             method));
     }
 
-    private static void AddNormalAndGenericParameters(InjectedMethodAnalysisContext method, int parameterCount, TypeAnalysisContext iil2CppValueType)
+    private static void AddNormalAndGenericParameters(InjectedMethodAnalysisContext method, int parameterCount, TypeAnalysisContext iil2CppTypeGeneric)
     {
         for (var i = 0; i < parameterCount; i++)
         {
@@ -462,7 +462,7 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
                 method);
             method.GenericParameters.Add(genericParameter);
 
-            genericParameter.ConstraintTypes.Add(iil2CppValueType);
+            genericParameter.ConstraintTypes.Add(iil2CppTypeGeneric.MakeGenericInstanceType([genericParameter]));
 
             var parameter = new InjectedParameterAnalysisContext(
                 "parameter_" + i,
@@ -474,7 +474,7 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
         }
     }
 
-    private static void AddReturnGenericParameterAndSetReturnType(InjectedMethodAnalysisContext method, TypeAnalysisContext iil2CppValueType)
+    private static void AddReturnGenericParameterAndSetReturnType(InjectedMethodAnalysisContext method, TypeAnalysisContext iil2CppTypeGeneric)
     {
         var genericParameter = new GenericParameterTypeAnalysisContext(
             "TResult",
@@ -484,7 +484,7 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
             method);
         method.GenericParameters.Add(genericParameter);
 
-        genericParameter.ConstraintTypes.Add(iil2CppValueType);
+        genericParameter.ConstraintTypes.Add(iil2CppTypeGeneric.MakeGenericInstanceType([genericParameter]));
 
         method.SetDefaultReturnType(genericParameter);
     }

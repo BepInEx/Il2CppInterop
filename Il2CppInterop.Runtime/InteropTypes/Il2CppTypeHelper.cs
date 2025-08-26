@@ -19,27 +19,37 @@ public static class Il2CppTypeHelper
         return T.Size;
     }
 
-    public static void WriteToSpan<T>(T value, Span<byte> span) where T : IIl2CppType<T>
+    public static void WriteToSpan<T>(this T? value, Span<byte> span) where T : IIl2CppType<T>
     {
         T.WriteToSpan(value, span);
     }
 
-    public static T ReadFromSpan<T>(ReadOnlySpan<byte> span) where T : IIl2CppType<T>
+    public static T? ReadFromSpan<T>(ReadOnlySpan<byte> span) where T : IIl2CppType<T>
     {
         return T.ReadFromSpan(span);
     }
 
-    public static unsafe T ReadFromPointer<T>(IntPtr ptr) where T : IIl2CppType<T>
+    public static unsafe void WriteToPointer<T>(this T? value, void* ptr) where T : IIl2CppType<T>
     {
-        return T.ReadFromSpan(new ReadOnlySpan<byte>(ptr.ToPointer(), T.Size));
+        T.WriteToSpan(value, new Span<byte>(ptr, T.Size));
     }
 
-    public static T? ReadClass<T>(ReadOnlySpan<byte> span) where T : class, IIl2CppObjectBase
+    public static unsafe T? ReadFromPointer<T>(void* ptr) where T : IIl2CppType<T>
+    {
+        return T.ReadFromSpan(new ReadOnlySpan<byte>(ptr, T.Size));
+    }
+
+    public static T? ReadReference<T>(ReadOnlySpan<byte> span) where T : IIl2CppType<T>
     {
         return (T?)Il2CppObjectPool.Get(ReadPointer(span));
     }
 
-    public static void WriteClass<T>(T? value, Span<byte> span) where T : class, IIl2CppObjectBase
+    public static void WriteReference<T>(T? value, Span<byte> span) where T : IIl2CppType<T>
+    {
+        WritePointer(value.Box(), span);
+    }
+
+    public static void WriteClass(IIl2CppObjectBase? value, Span<byte> span)
     {
         if (value == null)
         {
@@ -72,6 +82,29 @@ public static class Il2CppTypeHelper
         else
         {
             BinaryPrimitives.WriteIntPtrBigEndian(span, pointer);
+        }
+    }
+
+    public static unsafe IntPtr Box<T>(this T? value) where T : IIl2CppType<T>
+    {
+        if (value is null)
+        {
+            return IntPtr.Zero;
+        }
+        else if (value is IIl2CppObjectBase @object)
+        {
+            return @object.Pointer;
+        }
+        else if (value.GetType().IsValueType)
+        {
+            byte* data = stackalloc byte[T.Size];
+            WriteToPointer(value, data);
+            IntPtr boxedPtr = IL2CPP.il2cpp_value_box(value.ObjectClass, (IntPtr)data);
+            return boxedPtr;
+        }
+        else
+        {
+            throw new InvalidCastException();
         }
     }
 }
