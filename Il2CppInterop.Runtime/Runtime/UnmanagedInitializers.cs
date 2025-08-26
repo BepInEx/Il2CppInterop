@@ -32,7 +32,7 @@ public static class InitializerStore
         private static unsafe object Initialize(IntPtr ptr)
         {
             var unboxedPointer = IL2CPP.il2cpp_object_unbox(ptr);
-            return Il2CppTypeHelper.ReadFromPointer<T>(unboxedPointer);
+            return Il2CppTypeHelper.ReadFromPointer<T>((void*)unboxedPointer);
         }
     }
 
