@@ -18,18 +18,6 @@ public static class Pass90WriteToDisk
         {
             var module = asmContext.NewAssembly.ManifestModule!;
 
-            // Rewrite corlib references.
-            foreach (var reference in module.AssemblyReferences)
-            {
-                // System.Private.CoreLib needs rewriting because references can get created during the rewrite process.
-                // mscorlib and netstandard are included for completeness.
-                if (reference.Name?.Value is "System.Private.CoreLib" or "mscorlib" or "netstandard")
-                {
-                    CorlibReferences.RewriteCorlibReference(reference);
-                    continue;
-                }
-            }
-
             // Add TargetFrameworkAttribute to the assembly.
             {
                 var importedConstructor = (ICustomAttributeType)module.DefaultImporter.ImportMethod(targetAttributeConstructor);
@@ -47,6 +35,18 @@ public static class Pass90WriteToDisk
                 targetFrameworkAttribute.Signature.NamedArguments.Add(namedArgument);
 
                 asmContext.NewAssembly.CustomAttributes.Add(targetFrameworkAttribute);
+            }
+
+            // Rewrite corlib references.
+            foreach (var reference in module.AssemblyReferences)
+            {
+                // System.Private.CoreLib needs rewriting because references can get created during the rewrite process.
+                // mscorlib and netstandard are included for completeness.
+                if (reference.Name?.Value is "System.Private.CoreLib" or "mscorlib" or "netstandard")
+                {
+                    CorlibReferences.RewriteCorlibReference(reference);
+                    continue;
+                }
             }
 
             // Optimize macros in all methods and assign tokens.
