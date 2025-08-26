@@ -8,7 +8,7 @@ public static class Il2CppType
 {
     public static Type TypeFromPointer(IntPtr classPointer, string typeName = "<unknown type>")
     {
-        return TypeFromPointerInternal(classPointer, typeName, true);
+        return TypeFromPointerInternal(classPointer, typeName, true)!;
     }
 
     private static Type? TypeFromPointerInternal(IntPtr classPointer, string typeName, bool throwOnFailure)
@@ -33,10 +33,10 @@ public static class Il2CppType
 
     public static Type From(System.Type type)
     {
-        return From(type, true);
+        return From(type, true)!;
     }
 
-    public static Type From(System.Type type, bool throwOnFailure)
+    public static Type? From(System.Type type, bool throwOnFailure)
     {
         var pointer = Il2CppClassPointerStore.GetNativeClassPointer(type);
         return TypeFromPointerInternal(pointer, type.Name, throwOnFailure);
@@ -44,10 +44,10 @@ public static class Il2CppType
 
     public static Type Of<T>()
     {
-        return Of<T>(true);
+        return Of<T>(true)!;
     }
 
-    public static Type Of<T>(bool throwOnFailure)
+    public static Type? Of<T>(bool throwOnFailure)
     {
         var classPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
         return TypeFromPointerInternal(classPointer, typeof(T).Name, throwOnFailure);

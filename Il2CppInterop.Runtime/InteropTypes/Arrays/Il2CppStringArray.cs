@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-public class Il2CppStringArray : Il2CppArrayBase<string>
+public sealed class Il2CppStringArray : Il2CppArrayBase<string>
 {
     static Il2CppStringArray()
     {

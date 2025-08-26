@@ -5,7 +5,7 @@ using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-public class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObjectBase?
+public sealed class Il2CppReferenceArray<T> : Il2CppArrayBase<T> where T : Il2CppObjectBase?
 {
     private static readonly int ourElementTypeSize;
     private static readonly bool ourElementIsValueType;

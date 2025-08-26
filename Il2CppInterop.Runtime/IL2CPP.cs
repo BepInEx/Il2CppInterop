@@ -1,16 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.RegularExpressions;
 using Il2CppInterop.Common;
-using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Runtime.InteropTypes;
-using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
 
@@ -192,6 +188,22 @@ public static unsafe class IL2CPP
                                                                string.Join(", ", argTypes) + ")");
     }
 
+    public static IntPtr GetIl2CppGenericInstanceMethod(IntPtr methodInfoPointer, IntPtr declaringTypeClassPointer, params IntPtr[] genericMethodArguments)
+    {
+        var types = new Il2CppSystem.Type[genericMethodArguments.Length];
+        for (var i = 0; i < genericMethodArguments.Length; i++)
+        {
+            types[i] = Il2CppSystem.Type.internal_from_handle(il2cpp_class_get_type(genericMethodArguments[i]));
+        }
+        var methodInfo = new Il2CppSystem.Reflection.MethodInfo(il2cpp_method_get_object(methodInfoPointer, declaringTypeClassPointer));
+        return il2cpp_method_get_from_reflection(Il2CppObjectBaseToPtrNotNull(methodInfo.MakeGenericMethod(types)));
+    }
+
+    public static ObjectPointer NewObjectPointer<T>()
+    {
+        return (ObjectPointer)il2cpp_object_new(Il2CppClassPointerStore<T>.NativeClassPtr);
+    }
+
     public static string? Il2CppStringToManaged(IntPtr il2CppString)
     {
         if (il2CppString == IntPtr.Zero) return null;
@@ -245,12 +257,6 @@ public static unsafe class IL2CPP
         return IntPtr.Zero;
     }
 
-    public static void ThrowIfNull(object arg)
-    {
-        if (arg == null)
-            throw new NullReferenceException();
-    }
-
     public static T ResolveICall<T>(string signature) where T : Delegate
     {
         var icallPtr = il2cpp_resolve_icall(signature);
@@ -272,7 +278,7 @@ public static unsafe class IL2CPP
         var bodyBuilder = trampoline.GetILGenerator();
 
         bodyBuilder.Emit(OpCodes.Ldstr, $"ICall with signature {signature} was not resolved");
-        bodyBuilder.Emit(OpCodes.Newobj, typeof(Exception).GetConstructor(new[] { typeof(string) })!);
+        bodyBuilder.Emit(OpCodes.Newobj, typeof(Exception).GetConstructor([typeof(string)])!);
         bodyBuilder.Emit(OpCodes.Throw);
 
         return (T)trampoline.CreateDelegate(typeof(T));
@@ -292,7 +298,7 @@ public static unsafe class IL2CPP
             objectPointer = il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, objectPointer);
 
         if (typeof(T) == typeof(string))
-            return (T)(object)Il2CppStringToManaged(objectPointer);
+            return (T?)(object?)Il2CppStringToManaged(objectPointer);
 
         if (objectPointer == IntPtr.Zero)
             return default;
@@ -301,64 +307,6 @@ public static unsafe class IL2CPP
             return Il2CppObjectBase.UnboxUnsafe<T>(objectPointer);
 
         return Il2CppObjectPool.Get<T>(objectPointer);
-    }
-
-    public static string RenderTypeName<T>(bool addRefMarker = false)
-    {
-        return RenderTypeName(typeof(T), addRefMarker);
-    }
-
-    public static string RenderTypeName(Type t, bool addRefMarker = false)
-    {
-        if (addRefMarker) return RenderTypeName(t) + "&";
-        if (t.IsArray) return RenderTypeName(t.GetElementType()) + "[]";
-        if (t.IsByRef) return RenderTypeName(t.GetElementType()) + "&";
-        if (t.IsPointer) return RenderTypeName(t.GetElementType()) + "*";
-        if (t.IsGenericParameter) return t.Name;
-
-        if (t.IsGenericType)
-        {
-            if (t.TypeHasIl2CppArrayBase())
-                return RenderTypeName(t.GetGenericArguments()[0]) + "[]";
-
-            var builder = new StringBuilder();
-            builder.Append(t.GetGenericTypeDefinition().FullNameObfuscated().TrimIl2CppPrefix());
-            builder.Append('<');
-            var genericArguments = t.GetGenericArguments();
-            for (var i = 0; i < genericArguments.Length; i++)
-            {
-                if (i != 0) builder.Append(',');
-                builder.Append(RenderTypeName(genericArguments[i]));
-            }
-
-            builder.Append('>');
-            return builder.ToString();
-        }
-
-        if (t == typeof(Il2CppStringArray))
-            return "System.String[]";
-
-        return t.FullNameObfuscated().TrimIl2CppPrefix();
-    }
-
-    private static string FullNameObfuscated(this Type t)
-    {
-        var obfuscatedNameAnnotations = t.GetCustomAttribute<ObfuscatedNameAttribute>();
-        if (obfuscatedNameAnnotations == null) return t.FullName;
-        return obfuscatedNameAnnotations.ObfuscatedName;
-    }
-
-    private static string TrimIl2CppPrefix(this string s)
-    {
-        return s.StartsWith("Il2Cpp") ? s.Substring("Il2Cpp".Length) : s;
-    }
-
-    private static bool TypeHasIl2CppArrayBase(this Type type)
-    {
-        if (type == null) return false;
-        if (type.IsConstructedGenericType) type = type.GetGenericTypeDefinition();
-        if (type == typeof(Il2CppArrayBase<>)) return true;
-        return TypeHasIl2CppArrayBase(type.BaseType);
     }
 
     // this is called if there's no actual il2cpp_gc_wbarrier_set_field()

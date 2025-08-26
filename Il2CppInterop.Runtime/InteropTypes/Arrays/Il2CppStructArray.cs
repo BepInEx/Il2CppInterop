@@ -1,9 +1,10 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-public class Il2CppStructArray<T> : Il2CppArrayBase<T> where T : unmanaged
+public sealed class Il2CppStructArray<T> : Il2CppArrayBase<T> where T : unmanaged
 {
     static Il2CppStructArray()
     {
@@ -32,6 +33,11 @@ public class Il2CppStructArray<T> : Il2CppArrayBase<T> where T : unmanaged
     public unsafe Span<T> AsSpan()
     {
         return new Span<T>(ArrayStartPointer.ToPointer(), Length);
+    }
+
+    private protected override Span<byte> GetUnsafeSpanForElement(int index)
+    {
+        return MemoryMarshal.AsBytes(AsSpan().Slice(index, 1));
     }
 
     [return: NotNullIfNotNull(nameof(arr))]

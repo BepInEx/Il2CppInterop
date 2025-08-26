@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection;
-using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
 using Object = Il2CppSystem.Object;
@@ -247,11 +246,11 @@ public static class DelegateSupport
         var nativeDelegateInvokeMethod = il2CppDelegateType.GetMethod("Invoke");
 
         var nativeParameters = nativeDelegateInvokeMethod.GetParameters();
-        if (nativeParameters.Count != parameterInfos.Length)
+        if (nativeParameters.Length != parameterInfos.Length)
             throw new ArgumentException(
-                $"Managed delegate has {parameterInfos.Length} parameters, native has {nativeParameters.Count}, these should match");
+                $"Managed delegate has {parameterInfos.Length} parameters, native has {nativeParameters.Length}, these should match");
 
-        for (var i = 0; i < nativeParameters.Count; i++)
+        for (var i = 0; i < nativeParameters.Length; i++)
         {
             var nativeType = nativeParameters[i].ParameterType;
             var managedType = parameterInfos[i].ParameterType;
@@ -311,7 +310,7 @@ public static class DelegateSupport
         {
             // U2021.2.0+ hack in case the constructor did the wrong thing anyway
             converted.invoke_impl = converted.method_ptr;
-            converted.method_code = converted.m_target.Pointer;
+            converted.method_code = delegateReference.Pointer;
         }
 
         return converted.Cast<TIl2Cpp>();

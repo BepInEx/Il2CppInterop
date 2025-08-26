@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31402.337
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36109.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Il2CppInterop.Generator", "Il2CppInterop.Generator\Il2CppInterop.Generator.csproj", "{7C3FD45B-A563-47AF-90DF-8B051A8C33A0}"
 EndProject
@@ -9,10 +9,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Il2CppInterop.Runtime", "Il
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{463B7E3B-94E8-4EEB-B54A-EF15AD9C7C7E}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
 		.gitignore = .gitignore
-		README.md = README.md
-		Directory.Build.props = Directory.Build.props
 		build.cake = build.cake
+		Directory.Build.props = Directory.Build.props
+		nuget.config = nuget.config
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentation", "{99E71726-78FB-4376-89DA-90E5C08F5CD4}"
@@ -20,8 +22,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentat
 		Documentation\Class-Injection.md = Documentation\Class-Injection.md
 		Documentation\Command-Line-Usage.md = Documentation\Command-Line-Usage.md
 		Documentation\Common-Problems.md = Documentation\Common-Problems.md
-		Documentation\Injected-Components-In-Asset-Bundles.md = Documentation\Injected-Components-In-Asset-Bundles.md
 		Documentation\Implementing-Interfaces.md = Documentation\Implementing-Interfaces.md
+		Documentation\Injected-Components-In-Asset-Bundles.md = Documentation\Injected-Components-In-Asset-Bundles.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Il2CppInterop.CLI", "Il2CppInterop.CLI\Il2CppInterop.CLI.csproj", "{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}"
@@ -37,6 +39,16 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Il2CppInterop.Common", "Il2CppInterop.Common\Il2CppInterop.Common.csproj", "{E7D3A81B-11CD-402C-A447-015B00DCA3FD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Il2CppInterop.HarmonySupport", "Il2CppInterop.HarmonySupport\Il2CppInterop.HarmonySupport.csproj", "{EBC23884-3417-4F24-8623-E913C5151CC3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WasmDisassembler", "..\Cpp2IL\WasmDisassembler\WasmDisassembler.csproj", "{F61399FE-51BF-0358-EBBC-88636B75357E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibCpp2IL", "..\Cpp2IL\LibCpp2IL\LibCpp2IL.csproj", "{D7328358-903E-9D70-C7F7-BC1EE9F82CBD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StableNameDotNet", "..\Cpp2IL\StableNameDotNet\StableNameDotNet.csproj", "{2CBE46ED-AB73-4BCD-3810-94999BE7FB95}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cpp2IL.Core", "..\Cpp2IL\Cpp2IL.Core\Cpp2IL.Core.csproj", "{95C7729A-C4BA-EB0F-FD42-1B3D98BC4168}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Il2Cppmscorlib", "Il2Cppmscorlib\Il2Cppmscorlib.csproj", "{78406496-DB4C-4012-B5DE-D7CDF27652B8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -68,6 +80,26 @@ Global
 		{EBC23884-3417-4F24-8623-E913C5151CC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EBC23884-3417-4F24-8623-E913C5151CC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EBC23884-3417-4F24-8623-E913C5151CC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F61399FE-51BF-0358-EBBC-88636B75357E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F61399FE-51BF-0358-EBBC-88636B75357E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F61399FE-51BF-0358-EBBC-88636B75357E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F61399FE-51BF-0358-EBBC-88636B75357E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7328358-903E-9D70-C7F7-BC1EE9F82CBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7328358-903E-9D70-C7F7-BC1EE9F82CBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7328358-903E-9D70-C7F7-BC1EE9F82CBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7328358-903E-9D70-C7F7-BC1EE9F82CBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CBE46ED-AB73-4BCD-3810-94999BE7FB95}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CBE46ED-AB73-4BCD-3810-94999BE7FB95}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CBE46ED-AB73-4BCD-3810-94999BE7FB95}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CBE46ED-AB73-4BCD-3810-94999BE7FB95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95C7729A-C4BA-EB0F-FD42-1B3D98BC4168}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95C7729A-C4BA-EB0F-FD42-1B3D98BC4168}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95C7729A-C4BA-EB0F-FD42-1B3D98BC4168}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95C7729A-C4BA-EB0F-FD42-1B3D98BC4168}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78406496-DB4C-4012-B5DE-D7CDF27652B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78406496-DB4C-4012-B5DE-D7CDF27652B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78406496-DB4C-4012-B5DE-D7CDF27652B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78406496-DB4C-4012-B5DE-D7CDF27652B8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

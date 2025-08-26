@@ -4,7 +4,7 @@
     <PackageId>Il2CppInterop.Runtime</PackageId>
     <Authors>knah, BepInEx et al.</Authors>
     <Description>Runtime tools for bridging .NET and Il2Cpp together</Description>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>Il2CppInterop.Runtime</RootNamespace>
     <Configurations>Debug;Release</Configurations>
@@ -21,25 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Il2Cppmscorlib">
-      <Private>false</Private>
-      <HintPath>Libs\Il2Cppmscorlib.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Libs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Iced" Version="1.17.0" />
-    <PackageReference Include="PolySharp" Version="1.14.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj" />
+    <ProjectReference Include="..\Il2Cppmscorlib\Il2Cppmscorlib.csproj" />
   </ItemGroup>
 </Project>

@@ -4,20 +4,27 @@
     <PackageId>Il2CppInterop.Generator</PackageId>
     <Authors>knah, BepInEx et al.</Authors>
     <Description>Library for generating assemblies and metadata for calling Il2Cpp functions from .NET</Description>
-    <TargetFrameworks>netstandard2.1;net472</TargetFrameworks>
+    <TargetFrameworks>net9.0</TargetFrameworks>
     <RootNamespace>Il2CppInterop.Generator</RootNamespace>
     <Configurations>Debug;Release</Configurations>
     <Platforms>AnyCPU</Platforms>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
+    <UseLocalCpp2IL>true</UseLocalCpp2IL>
   </PropertyGroup>
 
+  <ItemGroup Condition="$(UseLocalCpp2IL) == 'true'">
+    <ProjectReference Include="..\..\Cpp2IL\Cpp2IL.Core\Cpp2IL.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(UseLocalCpp2IL) == 'false'">
+    <PackageReference Include="Samboy063.Cpp2IL.Core" Version="2022.1.0-development.1312" />
+  </ItemGroup>
+
   <ItemGroup>
-    <PackageReference Include="AsmResolver.DotNet" Version="6.0.0-beta.5" />
-    <PackageReference Include="MonoMod.Backports" Version="1.1.2">
-      <Aliases>MonoModBackports</Aliases><!-- Transitive dependency from AsmResolver. Extern alias prevents it from affecting us. -->
-    </PackageReference>
-    <PackageReference Include="PolySharp" Version="1.14.1">
+    <PackageReference Include="AsmResolver.DotNet" Version="6.0.0-beta.3" />
+    <PackageReference Include="AssetRipper.CIL" Version="1.1.6" />
+    <PackageReference Include="PolySharp" Version="1.15.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -25,5 +32,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj" />
+    <ProjectReference Include="..\Il2CppInterop.Runtime\Il2CppInterop.Runtime.csproj" />
   </ItemGroup>
 </Project>
