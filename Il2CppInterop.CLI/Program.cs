@@ -42,7 +42,7 @@ Console.WriteLine("Done!");
 
 /*
 Todo:
-- Il2Cppmscorlib cyclical dependency resolution - solved?
+- Il2Cppmscorlib cyclical dependency resolution - it still uses system arrays, which can be fixed with UnsafeAccessor and UnsafeAccessorType on .NET 10
 - Object/ValueType/Enum special handling
 - Creation method registration
 - ICall
@@ -53,5 +53,4 @@ Todo:
 - Finalizers might need renamed/removed
 - Improve ByReference<T> and Pointer<T> semantics in unstripped methods
 - out parameter overloads
-- Il2CppClassPointerStore for generic types
 */

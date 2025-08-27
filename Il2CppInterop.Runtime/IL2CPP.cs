@@ -199,6 +199,16 @@ public static unsafe class IL2CPP
         return il2cpp_method_get_from_reflection(Il2CppObjectBaseToPtrNotNull(methodInfo.MakeGenericMethod(types)));
     }
 
+    public static IntPtr GetIl2CppGenericInstanceType(IntPtr typeClassPointer, params IntPtr[] genericTypeArguments)
+    {
+        var types = new Il2CppSystem.Type[genericTypeArguments.Length];
+        for (var i = 0; i < genericTypeArguments.Length; i++)
+        {
+            types[i] = Il2CppSystem.Type.internal_from_handle(il2cpp_class_get_type(genericTypeArguments[i]));
+        }
+        return il2cpp_class_from_type(Il2CppSystem.Type.internal_from_handle(il2cpp_class_get_type(typeClassPointer)).MakeGenericType(types).TypeHandle.value);
+    }
+
     public static ObjectPointer NewObjectPointer<T>()
     {
         return (ObjectPointer)il2cpp_object_new(Il2CppClassPointerStore<T>.NativeClassPtr);

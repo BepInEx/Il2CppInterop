@@ -45,4 +45,6 @@ public abstract class Type : Object
     public abstract String FullName { get; }
 
     public abstract ConstructorInfo[] GetConstructors(BindingFlags bindingAttr);
+
+    public Type MakeGenericType(Type[] typeArguments) => throw null;
 }
