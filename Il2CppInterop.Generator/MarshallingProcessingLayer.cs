@@ -51,6 +51,22 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                 var instantiatedIl2CppTypeGeneric = iil2CppTypeGeneric.MakeGenericInstanceType([instantiatedType]);
                 type.InterfaceContexts.Add(instantiatedIl2CppTypeGeneric);
 
+                // Generic constraints
+                foreach (var genericParameter in type.GenericParameters)
+                {
+                    genericParameter.ConstraintTypes.Add(iil2CppTypeGeneric.MakeGenericInstanceType([genericParameter]));
+                }
+                foreach (var method in type.Methods)
+                {
+                    if (method.IsInjected)
+                        continue;
+
+                    foreach (var genericParameter in method.GenericParameters)
+                    {
+                        genericParameter.ConstraintTypes.Add(iil2CppTypeGeneric.MakeGenericInstanceType([genericParameter]));
+                    }
+                }
+
                 // Size
                 {
                     var methodName = $"{iil2CppType.FullName}.get_{nameof(IIl2CppType.Size)}";
