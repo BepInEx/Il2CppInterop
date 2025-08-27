@@ -52,8 +52,8 @@ internal struct ValueTuple2<T1, T2> : IIl2CppType<ValueTuple2<T1, T2>> where T1 
         else
         {
             ValueTuple2<T1, T2> result = default;
-            result.Item1 = Il2CppTypeHelper.ReadFromSpan<T1>(span.Slice(Il2CppInternals_ValueTuple2<T1, T2>.FieldOffset_Instance_0, Il2CppTypeHelper.SizeOf<T1>()));
-            result.Item2 = Il2CppTypeHelper.ReadFromSpan<T2>(span.Slice(Il2CppInternals_ValueTuple2<T1, T2>.FieldOffset_Instance_1, Il2CppTypeHelper.SizeOf<T2>()));
+            result.Item1 = Il2CppTypeHelper.ReadFromSpanAtOffset<T1>(span, Il2CppInternals_ValueTuple2<T1, T2>.FieldOffset_Instance_0);
+            result.Item2 = Il2CppTypeHelper.ReadFromSpanAtOffset<T2>(span, Il2CppInternals_ValueTuple2<T1, T2>.FieldOffset_Instance_1);
             return result;
         }
     }
@@ -66,8 +66,8 @@ internal struct ValueTuple2<T1, T2> : IIl2CppType<ValueTuple2<T1, T2>> where T1 
         }
         else
         {
-            Il2CppTypeHelper.WriteToSpan(value.Item1, span.Slice(Il2CppInternals_ValueTuple2<T1, T2>.FieldOffset_Instance_0, Il2CppTypeHelper.SizeOf<T1>()));
-            Il2CppTypeHelper.WriteToSpan(value.Item2, span.Slice(Il2CppInternals_ValueTuple2<T1, T2>.FieldOffset_Instance_1, Il2CppTypeHelper.SizeOf<T2>()));
+            Il2CppTypeHelper.WriteToSpanAtOffset(value.Item1, span, Il2CppInternals_ValueTuple2<T1, T2>.FieldOffset_Instance_0);
+            Il2CppTypeHelper.WriteToSpanAtOffset(value.Item2, span, Il2CppInternals_ValueTuple2<T1, T2>.FieldOffset_Instance_1);
         }
     }
 }

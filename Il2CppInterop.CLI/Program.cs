@@ -24,6 +24,7 @@ Il2CppGame.Process(
         // Call analysis goes here or anywhere after this
         new InitializationClassProcessingLayer(),
         new PointerConstructorProcessingLayer(),
+        new MarshallingProcessingLayer(),
         new PrimitiveImplicitConversionProcessingLayer(),
         new EnumProcessingLayer(),
         new FieldAccessorProcessingLayer(),
@@ -39,7 +40,6 @@ Console.WriteLine("Done!");
 
 /*
 Todo:
-- Interface implementation for marshalling
 - Il2Cppmscorlib cyclical dependency resolution - solved?
 - Object/ValueType/Enum special handling
 - Creation method registration
@@ -51,4 +51,5 @@ Todo:
 - Finalizers might need renamed/removed
 - Improve ByReference<T> and Pointer<T> semantics in unstripped methods
 - out parameter overloads
+- Il2CppClassPointerStore for generic types
 */

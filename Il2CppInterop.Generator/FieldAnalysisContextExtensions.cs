@@ -65,5 +65,18 @@ internal static class FieldAnalysisContextExtensions
                 field.DeclaringType.MakeGenericInstanceType(declaringTypeGenericArguments)
             );
         }
+
+        public FieldAnalysisContext MaybeMakeConcreteGeneric(IEnumerable<TypeAnalysisContext> declaringTypeGenericArguments)
+        {
+            if (field.DeclaringType.GenericParameters.Count == 0)
+                return field;
+            else
+                return field.MakeConcreteGeneric(declaringTypeGenericArguments);
+        }
+
+        public FieldAnalysisContext SelfInstantiateIfNecessary()
+        {
+            return field.MaybeMakeConcreteGeneric(field.DeclaringType.GenericParameters);
+        }
     }
 }

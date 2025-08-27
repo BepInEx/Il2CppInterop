@@ -1,6 +1,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
@@ -27,6 +28,26 @@ public static class Il2CppTypeHelper
     public static T? ReadFromSpan<T>(ReadOnlySpan<byte> span) where T : IIl2CppType<T>
     {
         return T.ReadFromSpan(span);
+    }
+
+    public static void WriteToSpanAtOffset<T>(this T? value, Span<byte> span, int offset) where T : IIl2CppType<T>
+    {
+        T.WriteToSpan(value, span.Slice(offset, T.Size));
+    }
+
+    public static T? ReadFromSpanAtOffset<T>(ReadOnlySpan<byte> span, int offset) where T : IIl2CppType<T>
+    {
+        return T.ReadFromSpan(span.Slice(offset, T.Size));
+    }
+
+    public static void WriteToSpanBlittable<T>(T value, Span<byte> span) where T : unmanaged
+    {
+        MemoryMarshal.Write(span, in value);
+    }
+
+    public static T ReadFromSpanBlittable<T>(ReadOnlySpan<byte> span) where T : unmanaged
+    {
+        return MemoryMarshal.Read<T>(span);
     }
 
     public static unsafe void WriteToPointer<T>(this T? value, void* ptr) where T : IIl2CppType<T>

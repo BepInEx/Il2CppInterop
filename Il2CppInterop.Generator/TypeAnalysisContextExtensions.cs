@@ -11,6 +11,37 @@ internal static class TypeAnalysisContextExtensions
         public bool IsModuleType => type.DeclaringType is null && string.IsNullOrEmpty(type.DefaultNamespace) && type.DefaultName == "<Module>";
         public bool IsPrivateImplementationDetailsType => type.DeclaringType is null && string.IsNullOrEmpty(type.DefaultNamespace) && type.DefaultName == "<PrivateImplementationDetails>";
         public bool HasGenericParameters => type.GenericParameters.Count > 0;
+        public bool IsIl2CppPrimitive
+        {
+            get
+            {
+                if (type is ReferencedTypeAnalysisContext)
+                    return false;
+
+                if (type.Namespace != "Il2CppSystem")
+                    return false;
+
+                if (type.DeclaringAssembly.Name != "Il2Cppmscorlib")
+                    return false;
+
+                return type.Name is
+                    "Boolean" or
+                    "Byte" or
+                    "SByte" or
+                    "Int16" or
+                    "UInt16" or
+                    "Int32" or
+                    "UInt32" or
+                    "Int64" or
+                    "UInt64" or
+                    "Single" or
+                    "Double" or
+                    "Char" or
+                    "IntPtr" or
+                    "UIntPtr" or
+                    "Void";
+            }
+        }
 
         [MaybeNull]
         public Type SourceType
