@@ -33,6 +33,7 @@ internal static class InjectedTypeAnalysisContextExtensions
                     fieldInfo.Attributes);
             }
 
+            Dictionary<MethodBase, MethodAnalysisContext> methodMap = new();
             foreach (var method in GetPublicAndProtectedMethods(sourceType))
             {
                 if (method.DeclaringType != sourceType)
@@ -63,6 +64,8 @@ internal static class InjectedTypeAnalysisContextExtensions
                 }
                 type.Methods.Add(methodContext);
 
+                methodMap.Add(method, methodContext);
+
                 var resolver = new ContextResolver(methodContext);
 
                 var returnType = method switch
@@ -78,6 +81,49 @@ internal static class InjectedTypeAnalysisContextExtensions
                     var parameterContext = (InjectedParameterAnalysisContext)methodContext.Parameters[i];
                     parameterContext.SetDefaultParameterType(parameterType);
                 }
+            }
+
+            foreach (var property in sourceType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+            {
+                if (property.DeclaringType != sourceType)
+                    continue;
+
+                var getMethod = methodMap.TryGetValue(property.GetMethod);
+                var setMethod = methodMap.TryGetValue(property.SetMethod);
+                if (getMethod == null && setMethod == null)
+                    continue;
+
+                var resolver = new ContextResolver(type);
+
+                var propertyType = resolver.ResolveOrThrow(property.PropertyType);
+                type.InjectPropertyContext(
+                    property.Name,
+                    propertyType,
+                    getMethod,
+                    setMethod,
+                    property.Attributes);
+            }
+
+            foreach (var eventInfo in sourceType.GetEvents(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+            {
+                if (eventInfo.DeclaringType != sourceType)
+                    continue;
+
+                var addMethod = methodMap.TryGetValue(eventInfo.AddMethod);
+                var removeMethod = methodMap.TryGetValue(eventInfo.RemoveMethod);
+                var raiseMethod = methodMap.TryGetValue(eventInfo.RaiseMethod);
+                if (addMethod == null && removeMethod == null && raiseMethod == null)
+                    continue;
+
+                var resolver = new ContextResolver(type);
+                var eventType = resolver.ResolveOrThrow(eventInfo.EventHandlerType!);
+                type.InjectEventContext(
+                    eventInfo.Name,
+                    eventType,
+                    addMethod,
+                    removeMethod,
+                    raiseMethod,
+                    eventInfo.Attributes);
             }
         }
 
