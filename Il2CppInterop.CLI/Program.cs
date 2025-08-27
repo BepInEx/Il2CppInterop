@@ -3,6 +3,7 @@ using Il2CppInterop.Generator;
 
 string gameExePath = args[0];
 string outputFolder = args[1];
+string unstripDirectory = args[2];
 Il2CppGame.Process(
     gameExePath,
     outputFolder,
@@ -35,7 +36,8 @@ Il2CppGame.Process(
         // new SystemInterfaceRecoveryProcessingLayer(), // Should handle INotifyCompletion, IEnumerable, IEquatable, etc
         new ConstantInitializationProcessingLayer(),
         new StaticConstructorProcessingLayer(),
-    ]);
+    ],
+    [new(UnstripBaseProcessingLayer.DirectoryKey, unstripDirectory)]);
 Console.WriteLine("Done!");
 
 /*
