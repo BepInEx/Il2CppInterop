@@ -12,7 +12,7 @@ public class Exception : Object
     {
     }
 
-    public String ToString(bool needFileLineInfo, bool needMessage)
+    public String ToString(Boolean needFileLineInfo, Boolean needMessage)
     {
         throw null;
     }

@@ -2,7 +2,7 @@
 
 public static class RuntimeHelpers
 {
-    public static void InitializeArray(Array array, nint fldHandle)
+    public static void InitializeArray(Array array, IntPtr fldHandle)
     {
         throw null;
     }

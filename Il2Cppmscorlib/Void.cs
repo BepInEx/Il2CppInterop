@@ -1,5 +1,5 @@
 ﻿namespace Il2CppSystem;
 
-public class Void : Object
+public struct Void
 {
 }

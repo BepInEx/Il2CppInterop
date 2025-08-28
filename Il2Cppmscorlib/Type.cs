@@ -21,7 +21,7 @@ public abstract class Type : Object
         }
     }
 
-    public bool IsPrimitive
+    public Boolean IsPrimitive
     {
         get
         {
@@ -29,7 +29,7 @@ public abstract class Type : Object
         }
     }
 
-    public bool IsByRef
+    public Boolean IsByRef
     {
         get
         {
