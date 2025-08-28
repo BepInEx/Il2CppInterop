@@ -52,4 +52,5 @@ Todo:
 - Finalizers might need renamed/removed
 - Improve ByReference<T> and Pointer<T> semantics in unstripped methods
 - out parameter overloads
+- overloads with arrays, delegates, primitives
 */

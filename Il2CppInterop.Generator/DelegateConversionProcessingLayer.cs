@@ -202,14 +202,14 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                 }
 
                 var concreteType = type.HasGenericParameters ? type.MakeGenericInstanceType(type.GenericParameters) : type;
-                var implicitConversion = new InjectedMethodAnalysisContext(
+                var explicitConversion = new InjectedMethodAnalysisContext(
                     type,
-                    "op_Implicit",
+                    "op_Explicit",
                     concreteType,
                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
                     [managedDelegateType]);
-                type.Methods.Add(implicitConversion);
-                implicitConversion.PutExtraData<TranslatedMethodBody>(new()
+                type.Methods.Add(explicitConversion);
+                explicitConversion.PutExtraData<TranslatedMethodBody>(new()
                 {
                     Instructions =
                     [
