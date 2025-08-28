@@ -36,7 +36,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var getIl2CppMethod = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppMethod));
         var getIl2CppMethodByToken = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppMethodByToken));
         var getIl2CppGenericInstanceMethod = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppGenericInstanceMethod));
-        var il2CppClassValueSize = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.il2cpp_class_value_size));
+        var getIl2CppValueSize = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2cppValueSize));
         var resolveICall = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.ResolveICall));
 
         var multicastDelegateType = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.MulticastDelegate");
@@ -150,15 +150,8 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             ? new ConcreteGenericFieldAnalysisContext(sizeStore, initializationType.MakeGenericInstanceType(initializationType.GenericParameters))
                             : sizeStore;
 
-                        LocalVariable tempLocal = new() { Type = appContext.SystemTypes.SystemUInt32Type };
-                        localVariables.Add(tempLocal);
-
-                        instructions.Add(new Instruction(OpCodes.Ldc_I4_0));
-                        instructions.Add(new Instruction(OpCodes.Stloc, tempLocal));
-
                         instructions.Add(new Instruction(OpCodes.Ldsfld, concreteClassPointerField));
-                        instructions.Add(new Instruction(OpCodes.Ldloca, tempLocal));
-                        instructions.Add(new Instruction(OpCodes.Call, il2CppClassValueSize));
+                        instructions.Add(new Instruction(OpCodes.Call, getIl2CppValueSize));
                         instructions.Add(new Instruction(OpCodes.Stsfld, instantiatedSizeStore));
                     }
 

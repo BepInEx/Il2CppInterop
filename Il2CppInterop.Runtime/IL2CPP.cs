@@ -69,6 +69,12 @@ public static unsafe class IL2CPP
         return field;
     }
 
+    public static int GetIl2cppValueSize(IntPtr klass)
+    {
+        uint align = 0;
+        return il2cpp_class_value_size(klass, ref align);
+    }
+
     public static IntPtr GetIl2CppMethodByToken(IntPtr clazz, int token)
     {
         if (clazz == IntPtr.Zero)

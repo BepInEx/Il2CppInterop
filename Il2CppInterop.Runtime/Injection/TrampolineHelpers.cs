@@ -48,8 +48,7 @@ internal static class TrampolineHelpers
         else if (managedType.IsSubclassOf(typeof(Il2CppSystem.ValueType)) && !Environment.Is64BitProcess)
         {
             // Struct that's passed on the stack => handle as general struct
-            uint align = 0;
-            var fixedSize = IL2CPP.il2cpp_class_value_size(Il2CppClassPointerStore.GetNativeClassPointer(managedType), ref align);
+            var fixedSize = IL2CPP.GetIl2cppValueSize(Il2CppClassPointerStore.GetNativeClassPointer(managedType));
             return GetFixedSizeStructType(fixedSize);
         }
         else if (managedType == typeof(string) || managedType.IsSubclassOf(typeof(Il2CppObjectBase))) // General reference type
