@@ -32,11 +32,16 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
                 if (type.IsInjected)
                     continue;
 
+                if (type.IsInterface)
+                {
+                    continue; // We don't add method overloads to interfaces
+                }
+
                 // for instead of foreach because we might be modifying the collection
                 for (var methodIndex = 0; methodIndex < type.Methods.Count; methodIndex++)
                 {
                     var method = type.Methods[methodIndex];
-                    if (method.IsInjected)
+                    if (method.IsInjected || !method.IsPublic)
                         continue;
 
                     if (!method.Parameters.Any(p => p.DefaultParameterType is ByRefTypeAnalysisContext))
@@ -86,11 +91,6 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
 
                         var newParameter = new InjectedParameterAnalysisContext(parameter.Name, parameterType, parameter.Attributes, parameter.ParameterIndex, newMethod);
                         newMethod.Parameters.Add(newParameter);
-                    }
-
-                    if (type.IsInterface)
-                    {
-                        continue; // We don't add method bodies to interfaces
                     }
 
                     List<Instruction> instructions = new();

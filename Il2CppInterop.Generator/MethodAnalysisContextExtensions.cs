@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Cpp2IL.Core.Model.Contexts;
 
 namespace Il2CppInterop.Generator;
@@ -36,6 +37,7 @@ internal static class MethodAnalysisContextExtensions
         public bool IsInstanceConstructor => method.Name == ".ctor";
         public bool IsStaticConstructor => method.Name == ".cctor";
         public bool IsConstructor => method.IsInstanceConstructor || method.IsStaticConstructor;
+        public bool IsPublic => (method.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public;
 
         public bool ImplementsAnInterfaceMethod
         {
