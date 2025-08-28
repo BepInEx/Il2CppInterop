@@ -166,27 +166,6 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
                 });
                 il2CppType.Methods.Add(implicitConversion);
             }
-
-            // Mono -> Il2Cpp, ByRef
-            {
-                // Might not be necessary
-
-                var method = new InjectedMethodAnalysisContext(
-                    il2CppType,
-                    "ConvertReference",
-                    il2CppType.MakeByReferenceType(),
-                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
-                    [monoType.MakeByReferenceType()]);
-                method.IsInjected = true;
-                method.PutExtraData(new TranslatedMethodBody()
-                {
-                    Instructions = [
-                        new Instruction(OpCodes.Ldarg_0),
-                        new Instruction(OpCodes.Ret),
-                    ]
-                });
-                il2CppType.Methods.Add(method);
-            }
         }
     }
     
