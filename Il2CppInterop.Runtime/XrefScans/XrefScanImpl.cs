@@ -1,45 +1,52 @@
-﻿using System;
+﻿using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Il2CppSystem;
 using Il2CppSystem.Reflection;
-using BindingFlags = System.Reflection.BindingFlags;
 
 namespace Il2CppInterop.Runtime.XrefScans;
 
 internal class XrefScanImpl : IXrefScannerImpl
 {
-    private static Func<AppDomain, Il2CppReferenceArray<Assembly>>? getAssemblies;
-
-    public unsafe (XrefScanUtil.InitMetadataForMethod, IntPtr)? GetMetadataResolver()
+    public unsafe (XrefScanUtil.InitMetadataForMethod, nint)? GetMetadataResolver()
     {
-        getAssemblies ??=
-            typeof(AppDomain).GetMethod("GetAssemblies", BindingFlags.Public | BindingFlags.Static)
-                    ?.CreateDelegate(typeof(Func<AppDomain, Il2CppReferenceArray<Assembly>>)) as
-                Func<AppDomain, Il2CppReferenceArray<Assembly>>;
-
-        var unityObjectCctor = getAssemblies(AppDomain.CurrentDomain)
+        var unityObjectCctor = GetAssembliesInCurrentDomain()
             .Single(it => it.GetName().Name == "UnityEngine.CoreModule").GetType("UnityEngine.Object")
-            .GetConstructors(Il2CppSystem.Reflection.BindingFlags.Static |
-                             Il2CppSystem.Reflection.BindingFlags.NonPublic).Single();
+            .GetConstructors(BindingFlags.Static | BindingFlags.NonPublic)
+            .Single();
         var nativeMethodInfo = IL2CPP.il2cpp_method_get_from_reflection(unityObjectCctor.Pointer);
-        var ourMetadataInitForMethodPointer = XrefScannerLowLevel.JumpTargets(*(IntPtr*)nativeMethodInfo).First();
+        var ourMetadataInitForMethodPointer = XrefScannerLowLevel.JumpTargets(*(nint*)nativeMethodInfo).First();
         var ourMetadataInitForMethodDelegate =
             Marshal.GetDelegateForFunctionPointer<XrefScanUtil.InitMetadataForMethod>(ourMetadataInitForMethodPointer);
         return (ourMetadataInitForMethodDelegate, ourMetadataInitForMethodPointer);
     }
 
-    public bool XrefGlobalClassFilter(IntPtr movTarget)
+    public bool XrefGlobalClassFilter(nint movTarget)
     {
-        var valueAtMov = (IntPtr)Marshal.ReadInt64(movTarget);
-        if (valueAtMov != IntPtr.Zero)
+        var valueAtMov = (nint)Marshal.ReadInt64(movTarget);
+        if (valueAtMov != nint.Zero)
         {
-            var targetClass = (IntPtr)Marshal.ReadInt64(valueAtMov);
-            return targetClass == Il2CppClassPointerStore<string>.NativeClassPtr ||
+            var targetClass = (nint)Marshal.ReadInt64(valueAtMov);
+            return targetClass == Il2CppClassPointerStore<String>.NativeClassPtr ||
                    targetClass == Il2CppClassPointerStore<Type>.NativeClassPtr;
         }
 
         return false;
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "GetAssemblies")]
+    [return: UnsafeAccessorType($"Il2CppInterop.Runtime.InteropTypes.Arrays.{nameof(Il2CppArrayBase<>)}`1[[Il2CppSystem.Reflection.Assembly, Il2Cppmscorlib]]")]
+    private static extern object GetAssemblies([UnsafeAccessorType("Il2CppSystem.AppDomain, Il2Cppmscorlib")] object appDomain);
+
+    [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "get_CurrentDomain")]
+    [return: UnsafeAccessorType("Il2CppSystem.AppDomain, Il2Cppmscorlib")]
+    private static extern object GetCurrentDomain();
+
+    private static IEnumerable<Assembly> GetAssembliesInCurrentDomain()
+    {
+        return (IEnumerable<Assembly>)GetAssemblies(GetCurrentDomain());
     }
 }
