@@ -1087,13 +1087,11 @@ public static unsafe partial class ClassInjector
         if (type.IsArray)
         {
             var elementType = type.GetElementType();
-            if (elementType!.FullName == "System.String") return typeof(Il2CppStringArray);
 
             var convertedElementType = RewriteType(elementType);
             if (elementType.IsGenericParameter) return typeof(Il2CppArrayBase<>).MakeGenericType(convertedElementType);
 
-            return (convertedElementType.IsValueType ? typeof(Il2CppStructArray<>) : typeof(Il2CppReferenceArray<>))
-                .MakeGenericType(convertedElementType);
+            return typeof(Il2CppArrayBase<>).MakeGenericType(convertedElementType);
         }
 
         if (type.FullName!.StartsWith("System"))
@@ -1105,7 +1103,7 @@ public static unsafe partial class ClassInjector
 
             return AppDomain.CurrentDomain.GetAssemblies()
                 .Select(a => a.GetType(fullName, false))
-                .First(t => t != null);
+                .First(t => t != null)!;
         }
 
         return type;

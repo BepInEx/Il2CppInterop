@@ -23,8 +23,6 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
         [
             typeof(Il2CppArrayBase),
             typeof(Il2CppArrayBase<>),
-            typeof(Il2CppUnmanagedArray<>),
-            typeof(Il2CppStringArray),
             typeof(Il2CppException),
             typeof(IL2CPP),
             typeof(Il2CppClassPointerStore<>),

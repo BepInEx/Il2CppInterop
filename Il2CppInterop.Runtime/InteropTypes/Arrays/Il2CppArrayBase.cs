@@ -56,34 +56,47 @@ public abstract class Il2CppArrayBase : Il2CppSystem.Array, IEnumerable, ICollec
         element = value;
     }
 
-    private protected virtual Span<byte> GetUnsafeSpanForElement(int index) => throw new NotSupportedException("This array type does not support unsafe element access");
+    private protected abstract Span<byte> GetUnsafeSpanForElement(int index);
 
     private protected abstract void CopyTo(Array array, int index);
 
     void ICollection.CopyTo(Array array, int index) => CopyTo(array, index);
 
-    private static Il2CppUnmanagedArray<byte> Get()
+    public static Il2CppArrayBase<T> Create<T>(ReadOnlySpan<T> span) where T : IIl2CppType<T>
     {
-        Set(0, 1, 2);
-        return [0, 1, 2];
-    }
-
-    private static void Set(params Il2CppUnmanagedArray<byte> arr)
-    {
-    }
-
-    public static Il2CppUnmanagedArray<T> CreateUnmanaged<T>(ReadOnlySpan<T> arr) where T : unmanaged
-    {
-        return new Il2CppUnmanagedArray<T>(arr);
+        return new Il2CppArrayBase<T>(span);
     }
 }
-public abstract class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyList<T>
+[CollectionBuilder(typeof(Il2CppArrayBase), nameof(Create))]
+public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyList<T> where T : IIl2CppType<T>
 {
-    private protected Il2CppArrayBase(IntPtr pointer) : base(pointer)
+    static Il2CppArrayBase()
+    {
+        var nativeClassPtr = Il2CppClassPointerStore<T>.NativeClassPtr;
+        if (nativeClassPtr == IntPtr.Zero)
+            return;
+
+        var targetClassType = IL2CPP.il2cpp_array_class_get(nativeClassPtr, 1);
+        if (targetClassType == IntPtr.Zero)
+            return;
+
+        Il2CppClassPointerStore<Il2CppArrayBase<T>>.NativeClassPtr = targetClassType;
+    }
+    public Il2CppArrayBase(IntPtr pointer) : base(pointer)
     {
     }
-    private protected Il2CppArrayBase(ObjectPointer pointer) : base(pointer)
+    public Il2CppArrayBase(ObjectPointer pointer) : base(pointer)
     {
+    }
+
+    public Il2CppArrayBase(long size) : base(AllocateArray(size))
+    {
+    }
+
+    public Il2CppArrayBase(ReadOnlySpan<T> arr) : base(AllocateArray(arr.Length))
+    {
+        for (var i = 0; i < arr.Length; i++)
+            this[i] = arr[i];
     }
 
     public sealed override IEnumerator<T> GetEnumerator()
@@ -148,21 +161,29 @@ public abstract class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyL
         ThrowImmutableLength();
     }
 
-    public abstract T this[int index] { get; set; }
-
-    private protected static void StaticCtorBody(Type ownType)
+    public T this[int index]
     {
-        var nativeClassPtr = Il2CppClassPointerStore<T>.NativeClassPtr;
-        if (nativeClassPtr == IntPtr.Zero)
-            return;
+        get
+        {
+            ThrowIfIndexOutOfRange(index);
+            return T.ReadFromSpan(AsSpan().Slice(index * T.Size, T.Size))!;
+        }
+        set
+        {
+            ThrowIfIndexOutOfRange(index);
+            T.WriteToSpan(value, AsSpan().Slice(index * T.Size, T.Size));
+        }
+    }
 
-        var targetClassType = IL2CPP.il2cpp_array_class_get(nativeClassPtr, 1);
-        if (targetClassType == IntPtr.Zero)
-            return;
+    private unsafe Span<byte> AsSpan()
+    {
+        return new Span<byte>(ArrayStartPointer.ToPointer(), Length * T.Size);
+    }
 
-        Il2CppClassPointerStore.SetNativeClassPointer(ownType, targetClassType);
-        Il2CppClassPointerStore.SetNativeClassPointer(typeof(Il2CppArrayBase<T>), targetClassType);
-        Il2CppClassPointerStore<Il2CppArrayBase<T>>.CreatedTypeRedirect = ownType;
+    private protected override unsafe Span<byte> GetUnsafeSpanForElement(int index)
+    {
+        ThrowIfIndexOutOfRange(index);
+        return new Span<byte>((byte*)ArrayStartPointer.ToPointer() + index * T.Size, T.Size);
     }
 
     [return: NotNullIfNotNull(nameof(il2CppArray))]
@@ -178,20 +199,26 @@ public abstract class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyL
         return arr;
     }
 
-    public static Il2CppArrayBase<T>? WrapNativeGenericArrayPointer(IntPtr pointer)
+
+    [return: NotNullIfNotNull(nameof(arr))]
+    public static implicit operator Il2CppArrayBase<T>?(T[]? arr)
     {
-        if (pointer == IntPtr.Zero)
+        if (arr == null)
             return null;
 
-        if (typeof(T) == typeof(string))
-            return new Il2CppStringArray(pointer) as Il2CppArrayBase<T>;
-        if (typeof(T).IsValueType) // can't construct required types here directly because of unfulfilled generic constraint
-            return Activator.CreateInstance(typeof(Il2CppStructArray<>).MakeGenericType(typeof(T)), pointer) as Il2CppArrayBase<T>;
-        if (typeof(Il2CppObjectBase).IsAssignableFrom(typeof(T)))
-            return Activator.CreateInstance(typeof(Il2CppReferenceArray<>).MakeGenericType(typeof(T)), pointer) as Il2CppArrayBase<T>;
+        return new Il2CppArrayBase<T>(arr);
+    }
 
-        throw new ArgumentException(
-            $"{typeof(T)} is not a value type, not a string and not an IL2CPP object; it can't be used in IL2CPP arrays");
+    private static IntPtr AllocateArray(long size)
+    {
+        if (size < 0)
+            throw new ArgumentOutOfRangeException(nameof(size), "Array size must not be negative");
+
+        var elementTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
+        if (elementTypeClassPointer == IntPtr.Zero)
+            throw new ArgumentException(
+                $"{nameof(Il2CppArrayBase<T>)} requires an Il2Cpp type, which {typeof(T)} isn't");
+        return IL2CPP.il2cpp_array_new(elementTypeClassPointer, (ulong)size);
     }
 
     private sealed class IndexEnumerator : IEnumerator<T>
