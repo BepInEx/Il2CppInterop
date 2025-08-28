@@ -174,6 +174,118 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
                 }
                 #endregion
 
+                #region Bitwise Operators
+                // &
+                {
+                    var method = new InjectedMethodAnalysisContext(
+                        type,
+                        "op_BitwiseAnd",
+                        type,
+                        MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig | MethodAttributes.SpecialName,
+                        [type, type])
+                    {
+                        IsInjected = true,
+                    };
+
+                    type.Methods.Add(method);
+
+                    method.PutExtraData(new NativeMethodBody()
+                    {
+                        Instructions = [
+                            new Instruction(OpCodes.Ldarg_0),
+                            new Instruction(OpCodes.Call, conversionEnumMono),
+                            new Instruction(OpCodes.Ldarg_1),
+                            new Instruction(OpCodes.Call, conversionEnumMono),
+                            new Instruction(OpCodes.And),
+                            new Instruction(OpCodes.Call, conversionMonoEnum),
+                            new Instruction(OpCodes.Ret)
+                        ]
+                    });
+                }
+
+                // |
+                {
+                    var method = new InjectedMethodAnalysisContext(
+                        type,
+                        "op_BitwiseOr",
+                        type,
+                        MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig | MethodAttributes.SpecialName,
+                        [type, type])
+                    {
+                        IsInjected = true,
+                    };
+
+                    type.Methods.Add(method);
+
+                    method.PutExtraData(new NativeMethodBody()
+                    {
+                        Instructions = [
+                            new Instruction(OpCodes.Ldarg_0),
+                            new Instruction(OpCodes.Call, conversionEnumMono),
+                            new Instruction(OpCodes.Ldarg_1),
+                            new Instruction(OpCodes.Call, conversionEnumMono),
+                            new Instruction(OpCodes.Or),
+                            new Instruction(OpCodes.Call, conversionMonoEnum),
+                            new Instruction(OpCodes.Ret)
+                        ]
+                    });
+                }
+
+                // ^
+                {
+                    var method = new InjectedMethodAnalysisContext(
+                        type,
+                        "op_ExclusiveOr",
+                        type,
+                        MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig | MethodAttributes.SpecialName,
+                        [type, type])
+                    {
+                        IsInjected = true,
+                    };
+
+                    type.Methods.Add(method);
+
+                    method.PutExtraData(new NativeMethodBody()
+                    {
+                        Instructions = [
+                            new Instruction(OpCodes.Ldarg_0),
+                            new Instruction(OpCodes.Call, conversionEnumMono),
+                            new Instruction(OpCodes.Ldarg_1),
+                            new Instruction(OpCodes.Call, conversionEnumMono),
+                            new Instruction(OpCodes.Xor),
+                            new Instruction(OpCodes.Call, conversionMonoEnum),
+                            new Instruction(OpCodes.Ret)
+                        ]
+                    });
+                }
+
+                // ~
+                {
+                    var method = new InjectedMethodAnalysisContext(
+                        type,
+                        "op_OnesComplement",
+                        type,
+                        MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig | MethodAttributes.SpecialName,
+                        [type])
+                    {
+                        IsInjected = true,
+                    };
+
+                    type.Methods.Add(method);
+
+                    method.PutExtraData(new NativeMethodBody()
+                    {
+                        Instructions = [
+                            new Instruction(OpCodes.Ldarg_0),
+                            new Instruction(OpCodes.Call, conversionEnumMono),
+                            new Instruction(OpCodes.Not),
+                            new Instruction(OpCodes.Call, conversionMonoEnum),
+                            new Instruction(OpCodes.Ret)
+                        ]
+                    });
+                }
+                #endregion
+
                 #region Implicit Interfaces
                 foreach (var @interface in (ReadOnlySpan<TypeAnalysisContext>)[icomparable, iformattable, iconvertible])
                 {
