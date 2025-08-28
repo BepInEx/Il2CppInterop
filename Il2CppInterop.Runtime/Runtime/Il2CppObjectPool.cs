@@ -41,7 +41,7 @@ public static class Il2CppObjectPool
         unsafe
         {
             var nativeClassStruct = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<T>.NativeClassPtr);
-            if (!nativeClassStruct.HasFinalize)
+            if (nativeClassStruct?.HasFinalize is false)
             {
                 Il2CppSystem.GC.ReRegisterForFinalize(newObj as Object ?? new Object(ptr));
             }
