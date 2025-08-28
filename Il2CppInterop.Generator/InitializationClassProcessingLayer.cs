@@ -10,6 +10,7 @@ using Cpp2IL.Core.Model.Contexts;
 using Cpp2IL.Core.Utils;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.InteropTypes;
 using LibCpp2IL.BinaryStructures;
 
 namespace Il2CppInterop.Generator;
@@ -42,6 +43,13 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var multicastDelegateType = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.MulticastDelegate");
         var asyncCallbackType = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.AsyncCallback");
         var iasyncResultType = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.IAsyncResult");
+
+        var byReference = appContext.ResolveTypeOrThrow(typeof(ByReference<>));
+        var byReference_CopyFrom = byReference.GetMethodByName(nameof(ByReference<>.CopyFrom));
+        var byReference_CopyTo = byReference.GetMethodByName(nameof(ByReference<>.CopyTo));
+        var byReference_Constructor = byReference.GetMethodByName(".ctor");
+
+        var il2CppTypeHelper_SizeOf = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeHelper)).GetMethodByName(nameof(Il2CppTypeHelper.SizeOf));
 
         var tokenLessMethodCount = 0;
 
@@ -353,8 +361,20 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                 $"ICall_Delegate_Type_{index}",
                                 multicastDelegateType);
 
-                            List<TypeAnalysisContext> parameterTypes = method.Parameters.Select(p => p.ParameterType).ToList();
-                            List<string> parameterNames = method.Parameters.Select(p => p.Name).ToList();
+                            TypeAnalysisContext returnType = method.ReturnType;
+                            IEnumerable<TypeAnalysisContext> parameterTypes;
+                            IEnumerable<string> parameterNames;
+                            if (method.IsStatic)
+                            {
+                                parameterTypes = method.Parameters.Select(p => p.ParameterType);
+                                parameterNames = Enumerable.Range(0, method.Parameters.Count).Select(i => $"param_{i}");
+                            }
+                            else
+                            {
+                                var thisParameterType = type.IsValueType ? byReference.MakeGenericInstanceType([type]) : type;
+                                parameterTypes = method.Parameters.Select(p => p.ParameterType).Prepend(thisParameterType);
+                                parameterNames = Enumerable.Range(0, method.Parameters.Count).Select(i => $"param_{i}").Prepend("this");
+                            }
 
                             // Constructor
                             {
@@ -375,7 +395,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                 invokeMethod = new InjectedMethodAnalysisContext(
                                     delegateType,
                                     "Invoke",
-                                    appContext.SystemTypes.SystemVoidType,
+                                    returnType,
                                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
                                     parameterTypes.ToArray(),
                                     parameterNames.ToArray(),
@@ -406,7 +426,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                 delegateType.Methods.Add(new InjectedMethodAnalysisContext(
                                     delegateType,
                                     "EndInvoke",
-                                    appContext.SystemTypes.SystemVoidType,
+                                    returnType,
                                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
                                     [iasyncResultType],
                                     ["result"],
@@ -424,6 +444,62 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                 $"ICall_Delegate_Field_{index}",
                                 delegateType,
                                 FieldAttributes.Assembly | FieldAttributes.Static | FieldAttributes.InitOnly);
+                        }
+
+                        // Method body
+                        {
+                            List<Instruction> methodInstructions = [];
+
+                            LocalVariable? thisLocal;
+                            if (method.IsStatic)
+                            {
+                                thisLocal = null;
+                                methodInstructions.Add(new Instruction(OpCodes.Ldsfld, delegateField));
+                            }
+                            else if (type.IsValueType)
+                            {
+                                thisLocal = new LocalVariable(byReference.MakeGenericInstanceType([type]));
+
+                                methodInstructions.Add(new Instruction(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(type)));
+                                methodInstructions.Add(new Instruction(OpCodes.Conv_U));
+                                methodInstructions.Add(new Instruction(OpCodes.Localloc));
+                                methodInstructions.Add(new Instruction(OpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([type], [])));
+                                methodInstructions.Add(new Instruction(OpCodes.Stloc, thisLocal));
+
+                                methodInstructions.Add(new Instruction(OpCodes.Ldloca, thisLocal));
+                                methodInstructions.Add(new Instruction(OpCodes.Ldarg, This.Instance));
+                                methodInstructions.Add(new Instruction(OpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([type], [])));
+
+                                methodInstructions.Add(new Instruction(OpCodes.Ldsfld, delegateField));
+                                methodInstructions.Add(new Instruction(OpCodes.Ldloc, thisLocal));
+                            }
+                            else
+                            {
+                                thisLocal = null; // Not needed for reference types
+                                methodInstructions.Add(new Instruction(OpCodes.Ldsfld, delegateField));
+                                methodInstructions.Add(new Instruction(OpCodes.Ldarg, This.Instance));
+                            }
+
+                            foreach (var parameter in method.Parameters)
+                            {
+                                methodInstructions.Add(new Instruction(OpCodes.Ldarg, parameter));
+                            }
+                            methodInstructions.Add(new Instruction(OpCodes.Callvirt, invokeMethod));
+
+                            if (thisLocal is not null)
+                            {
+                                methodInstructions.Add(new Instruction(OpCodes.Ldloca, thisLocal));
+                                methodInstructions.Add(new Instruction(OpCodes.Ldarg, This.Instance));
+                                methodInstructions.Add(new Instruction(OpCodes.Call, byReference_CopyTo.MakeConcreteGeneric([type], [])));
+                            }
+
+                            methodInstructions.Add(new Instruction(OpCodes.Ret));
+
+                            method.PutExtraData(new NativeMethodBody()
+                            {
+                                Instructions = methodInstructions,
+                                LocalVariables = thisLocal is not null ? [thisLocal] : [],
+                            });
                         }
 
                         // Static constructor instructions

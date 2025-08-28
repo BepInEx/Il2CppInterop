@@ -136,12 +136,14 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
 
                     managedDelegateType.CopyGenericParameters(type);
 
+                    TypeAnalysisContext returnType;
                     List<TypeAnalysisContext> parameterTypes = invokeMethod.Parameters.Select(p => p.ParameterType).ToList();
                     {
                         var genericParameterDictionary = Enumerable.Range(0, type.GenericParameters.Count)
                             .ToDictionary<int, TypeAnalysisContext, TypeAnalysisContext>(i => type.GenericParameters[i], i => managedDelegateType.GenericParameters[i]);
                         var replacementVisitor = new TypeReplacementVisitor(genericParameterDictionary);
                         replacementVisitor.Replace(parameterTypes);
+                        returnType = replacementVisitor.Replace(invokeMethod.ReturnType);
                     }
 
                     // Constructor
@@ -163,7 +165,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                         managedDelegateType.Methods.Add(new InjectedMethodAnalysisContext(
                             managedDelegateType,
                             "Invoke",
-                            appContext.SystemTypes.SystemVoidType,
+                            returnType,
                             MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
                             parameterTypes.ToArray(),
                             defaultImplAttributes: MethodImplAttributes.Runtime)
@@ -191,7 +193,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                         managedDelegateType.Methods.Add(new InjectedMethodAnalysisContext(
                             managedDelegateType,
                             "EndInvoke",
-                            appContext.SystemTypes.SystemVoidType,
+                            returnType,
                             MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
                             [iasyncResultType],
                             defaultImplAttributes: MethodImplAttributes.Runtime)

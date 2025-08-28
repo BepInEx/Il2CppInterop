@@ -282,7 +282,7 @@ public static unsafe class IL2CPP
             return GenerateDelegateForMissingICall<T>(signature);
         }
 
-        return Marshal.GetDelegateForFunctionPointer<T>(icallPtr);
+        return GenerateDelegateForICall<T>(icallPtr);
     }
 
     private static T GenerateDelegateForMissingICall<T>(string signature) where T : Delegate
@@ -294,6 +294,21 @@ public static unsafe class IL2CPP
         var bodyBuilder = trampoline.GetILGenerator();
 
         bodyBuilder.Emit(OpCodes.Ldstr, $"ICall with signature {signature} was not resolved");
+        bodyBuilder.Emit(OpCodes.Newobj, typeof(Exception).GetConstructor([typeof(string)])!);
+        bodyBuilder.Emit(OpCodes.Throw);
+
+        return (T)trampoline.CreateDelegate(typeof(T));
+    }
+
+    private static T GenerateDelegateForICall<T>(IntPtr icallPtr) where T : Delegate
+    {
+        var invoke = typeof(T).GetMethod("Invoke")!;
+
+        var trampoline = new DynamicMethod("(icall delegate) " + typeof(T).FullName,
+            invoke.ReturnType, invoke.GetParameters().Select(it => it.ParameterType).ToArray(), typeof(IL2CPP), true);
+        var bodyBuilder = trampoline.GetILGenerator();
+
+        bodyBuilder.Emit(OpCodes.Ldstr, "ICall delegate generation has not been implemented");
         bodyBuilder.Emit(OpCodes.Newobj, typeof(Exception).GetConstructor([typeof(string)])!);
         bodyBuilder.Emit(OpCodes.Throw);
 
