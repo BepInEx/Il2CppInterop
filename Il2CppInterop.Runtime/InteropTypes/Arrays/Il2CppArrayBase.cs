@@ -187,7 +187,7 @@ public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyLis
     }
 
     [return: NotNullIfNotNull(nameof(il2CppArray))]
-    public static implicit operator T[]?(Il2CppArrayBase<T>? il2CppArray)
+    public static explicit operator T[]?(Il2CppArrayBase<T>? il2CppArray)
     {
         if (il2CppArray == null)
             return null;
@@ -199,13 +199,32 @@ public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyLis
         return arr;
     }
 
+    public static explicit operator ReadOnlySpan<T>(Il2CppArrayBase<T>? il2CppArray)
+    {
+        return (ReadOnlySpan<T>)(T[]?)il2CppArray;
+    }
+
+    public static explicit operator Span<T>(Il2CppArrayBase<T>? il2CppArray)
+    {
+        return (Span<T>)(T[]?)il2CppArray;
+    }
 
     [return: NotNullIfNotNull(nameof(arr))]
-    public static implicit operator Il2CppArrayBase<T>?(T[]? arr)
+    public static explicit operator Il2CppArrayBase<T>?(T[]? arr)
     {
         if (arr == null)
             return null;
 
+        return new Il2CppArrayBase<T>(arr);
+    }
+
+    public static explicit operator Il2CppArrayBase<T>?(ReadOnlySpan<T> arr)
+    {
+        return new Il2CppArrayBase<T>(arr);
+    }
+
+    public static explicit operator Il2CppArrayBase<T>?(Span<T> arr)
+    {
         return new Il2CppArrayBase<T>(arr);
     }
 
