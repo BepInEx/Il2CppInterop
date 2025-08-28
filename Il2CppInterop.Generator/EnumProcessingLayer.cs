@@ -35,7 +35,7 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
 
                 var valueField = type.Fields.First(f => f.Name == "value__");
 
-                valueField.OverrideAttributes = FieldAttributes.Private | FieldAttributes.InitOnly;
+                valueField.OverrideAttributes = FieldAttributes.Private;
 
                 Debug.Assert(valueField.FieldType == valueField.DefaultFieldType, "Field type should not be overriden.");
 
