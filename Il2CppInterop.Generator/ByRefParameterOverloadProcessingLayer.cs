@@ -41,7 +41,7 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
                 for (var methodIndex = 0; methodIndex < type.Methods.Count; methodIndex++)
                 {
                     var method = type.Methods[methodIndex];
-                    if (method.IsInjected || !method.IsPublic)
+                    if (method.IsInjected || !method.IsPublic || method.IsSpecialName)
                         continue;
 
                     if (!method.Parameters.Any(p => p.DefaultParameterType is ByRefTypeAnalysisContext))
