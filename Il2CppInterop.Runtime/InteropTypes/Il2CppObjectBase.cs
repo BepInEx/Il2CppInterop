@@ -1,24 +1,42 @@
 using System;
-using System.Reflection;
-using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
+using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 
+public enum Il2CppObjectFinalizerState
+{
+    Free = 0,
+    Glued = 1,
+}
+
 public class Il2CppObjectBase
 {
-    private static readonly MethodInfo _unboxMethod = typeof(Il2CppObjectBase).GetMethod(nameof(Unbox));
     internal bool isWrapped;
     internal IntPtr pooledPtr;
+    internal Il2CppObjectFinalizerState finalizerState;
 
+    private bool wasDestroyed;
     private nint myGcHandle;
 
     public Il2CppObjectBase(IntPtr pointer)
     {
         CreateGCHandle(pointer);
+    }
+
+    ~Il2CppObjectBase()
+    {
+        switch (finalizerState)
+        {
+            case Il2CppObjectFinalizerState.Free:
+                Il2CppObjectPool.Free(myGcHandle, pooledPtr);
+                break;
+            case Il2CppObjectFinalizerState.Glued:
+                throw new NotSupportedException("Object was garbage collected too early. Perhaps GC.ReRegisterForFinalize was incorrectly called?");
+        }
     }
 
     public IntPtr ObjectClass => IL2CPP.il2cpp_object_get_class(Pointer);
@@ -54,6 +72,16 @@ public class Il2CppObjectBase
             return;
 
         myGcHandle = IL2CPP.il2cpp_gchandle_new(objHdl, false);
+        isWrapped = true;
+    }
+
+    internal FinalizerContainer CreateFinalizerContainer()
+    {
+        return new FinalizerContainer()
+        {
+            gcHandle = myGcHandle,
+            ptr = Pointer,
+        };
     }
 
     public T Cast<T>() where T : Il2CppObjectBase
@@ -81,71 +109,6 @@ public class Il2CppObjectBase
         return UnboxUnsafe<T>(Pointer);
     }
 
-    private static readonly Type[] _intPtrTypeArray = { typeof(IntPtr) };
-    private static readonly MethodInfo _getUninitializedObject = typeof(RuntimeHelpers).GetMethod(nameof(RuntimeHelpers.GetUninitializedObject))!;
-    private static readonly MethodInfo _getTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
-    private static readonly MethodInfo _createGCHandle = typeof(Il2CppObjectBase).GetMethod(nameof(CreateGCHandle), BindingFlags.Instance | BindingFlags.NonPublic)!;
-    private static readonly FieldInfo _isWrapped = typeof(Il2CppObjectBase).GetField(nameof(isWrapped), BindingFlags.Instance | BindingFlags.NonPublic)!;
-
-    internal static class InitializerStore<T>
-    {
-        private static Func<IntPtr, T>? _initializer;
-
-        private static Func<IntPtr, T> Create()
-        {
-            var type = Il2CppClassPointerStore<T>.CreatedTypeRedirect ?? typeof(T);
-
-            var dynamicMethod = new DynamicMethod($"Initializer<{typeof(T).AssemblyQualifiedName}>", type, _intPtrTypeArray);
-            dynamicMethod.DefineParameter(0, ParameterAttributes.None, "pointer");
-
-            var il = dynamicMethod.GetILGenerator();
-
-            if (type.GetConstructor(new[] { typeof(IntPtr) }) is { } pointerConstructor)
-            {
-                // Base case: Il2Cpp constructor => call it directly
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Newobj, pointerConstructor);
-            }
-            else
-            {
-                // Special case: We have a parameterless constructor
-                // However, it could be be user-made or implicit
-                // In that case we set the GCHandle and then call the ctor and let GC destroy any objects created by DerivedConstructorPointer
-
-                // var obj = (T)RuntimeHelpers.GetUninitializedObject(type);
-                il.Emit(OpCodes.Ldtoken, type);
-                il.Emit(OpCodes.Call, _getTypeFromHandle);
-                il.Emit(OpCodes.Call, _getUninitializedObject);
-                il.Emit(OpCodes.Castclass, type);
-
-                // obj.CreateGCHandle(pointer);
-                il.Emit(OpCodes.Dup);
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Callvirt, _createGCHandle);
-
-                // obj.isWrapped = true;
-                il.Emit(OpCodes.Dup);
-                il.Emit(OpCodes.Ldc_I4_1);
-                il.Emit(OpCodes.Stfld, _isWrapped);
-
-                var parameterlessConstructor = type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, Type.EmptyTypes);
-                if (parameterlessConstructor != null)
-                {
-                    // obj..ctor();
-                    il.Emit(OpCodes.Dup);
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Callvirt, parameterlessConstructor);
-                }
-            }
-
-            il.Emit(OpCodes.Ret);
-
-            return dynamicMethod.CreateDelegate<Func<IntPtr, T>>();
-        }
-
-        public static Func<IntPtr, T> Initializer => _initializer ??= Create();
-    }
-
     public T? TryCast<T>() where T : Il2CppObjectBase
     {
         var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
@@ -156,19 +119,6 @@ public class Il2CppObjectBase
         if (!IL2CPP.il2cpp_class_is_assignable_from(nestedTypeClassPointer, ownClass))
             return null;
 
-        if (RuntimeSpecificsStore.IsInjected(ownClass))
-        {
-            if (ClassInjectorBase.GetMonoObjectFromIl2CppPointer(Pointer) is T monoObject) return monoObject;
-        }
-
-        return InitializerStore<T>.Initializer(Pointer);
-    }
-
-    ~Il2CppObjectBase()
-    {
-        IL2CPP.il2cpp_gchandle_free(myGcHandle);
-
-        if (pooledPtr == IntPtr.Zero) return;
-        Il2CppObjectPool.Remove(pooledPtr);
+        return Il2CppObjectInitializer.New<T>(Pointer);
     }
 }

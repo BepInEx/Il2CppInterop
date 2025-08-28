@@ -79,24 +79,69 @@ var someInstance = new MyClass(pointer);
 
 * `[HideFromIl2Cpp]` can be used to prevent a method from being exposed to il2cpp
 
-## Caveats
+## Garbage Collection
 
-* Injected class instances are handled by IL2CPP garbage collection. This means that an object may be collected even if
-  it's referenced from managed domain. Attempting to use that object afterwards will result
-  in `ObjectCollectedException`. Conversely, managed representation of injected object will not be garbage collected as
-  long as it's referenced from IL2CPP domain.
-* It might be possible to create a cross-domain reference loop that will prevent objects from being garbage collected.
-  Avoid doing anything that will result in injected class instances (indirectly) storing references to itself. The
-  simplest example of how to leak memory is this:
+* Managed instances of injected classes hold strong handles to their unmanaged counterparts.
+  This means it is unlikely for an unmanaged object to be collected while it is referenced from the managed domain.
+  If this rare case does occur, an attempt to use to injected instance will throw an `ObjectCollectedException`.
+* If there are no extant references to the managed instance, it will be garbage collected,
+  releasing the strong handle it holds and allowing the underlying unmanaged object to eventually be collected in turn.
+  When this occurs, however, the finalizer for the managed instance will not be run,
+  delaying execution until the unmanaged object is also ready to be garbage collected.
+* The unmanaged-to-managed mapping is a one-to-many relationship. While during typical execution there will be exactly zero,
+  or exactly one extant managed object, in certain situations, such as when the object pool is disabled, there may be any number.
+* Due to the implementation of finalizers, calling `System.GC.SuppressFinalize` or `System.GC.ReRegisterForFinalize` is invalid
+  for all injected types with finalizers, leading to `ObjectCollectedExeption`s at best, and memory safety issues at worst.
+  The methods on `Il2CppSystem.GC` will always work as intended, however.
+  As a corrolary, once an managed instance is finalized, it is no longer valid,
+  so the "resurrection pattern" is not functional for injected types.
+
+<details>
+<summary>A detailed example of finalizer behavior for injected classes</summary>
+<br>
+
+Consider the following example:
 
 ```c#
-class Injected: Il2CppSystem.Object {
-    Il2CppSystem.Collections.Generic.List<Il2CppSystem.Object> list = new ...;
-    public Injected() {
-        list.Add(this); // reference to itself through an IL2CPP list. This will prevent both this and list from being garbage collected, ever.
+class Foo : Il2CppSystem.Object
+{
+    public Foo(IntPtr ptr) : base(ptr) { }
+    public Foo() : this(ClassInjector.DerivedConstructorPointer<Foo>())
+    {
+        ClassInjector.DerivedConstructorBody(this);
+    }
+    ~Foo()
+    {
+        // ...
     }
 }
+
+Foo foobar = new();
+// ... function ends ...
 ```
+
+In the above example, the events occur in this order:
+
+1. The parameterless `Foo` constructor is called:
+  * An unmanaged instance of the injected class is created.
+  * A strong handle to the unmanaged instance is put into the managed instance of `Foo`.
+  * The finalizer of the managed instance itself is suppressed,
+    but a hook is installed to watch for its collection.
+2. The managed instance of `Foo` goes out of scope,
+   allowing the managed instance to be garbage collected (without running its finalizer).
+3. Some time later, the managed instance is collected and the hook is triggered:
+  * The strong handle to the unmanaged instance is released
+  * Assuming no other managed or unmanaged references to the object exist,
+    the unmanaged instance of `Foo` can now be garbage collected.
+4. Before this happens, the unmanaged object's finalizer is called:
+  * A fresh managed instance of `Foo` is created and _its_ finalizer is called directly.
+  * This new managed instance is immediately invalidated and forgotten.
+5. The unmanaged object, which has no extant references, is garbage collected with its managed finalizer having run exactly once.
+
+Note that this complexity is present only for injected classes with finalizers.
+Injected classes without finalizers are collected following a more standard procedure.
+
+</details>
 
 ## Fields injection
 
@@ -107,4 +152,3 @@ class Injected: Il2CppSystem.Object {
 * Not all members are exposed to Il2Cpp side - no properties, events or static methods will be visible to
   Il2Cpp reflection. Fields are exported, but the feature is fairly limited.
 * Only a limited set of types is supported for method signatures
- 

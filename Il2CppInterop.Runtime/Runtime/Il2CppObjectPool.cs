@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
 using Il2CppInterop.Runtime.InteropTypes;
 using Object = Il2CppSystem.Object;
 
@@ -8,7 +7,7 @@ namespace Il2CppInterop.Runtime.Runtime;
 
 public static class Il2CppObjectPool
 {
-    internal static bool DisableCaching { get; set; }
+    public static bool DisableCaching { get; set; }
 
     private static readonly ConcurrentDictionary<IntPtr, WeakReference<Il2CppObjectBase>> s_cache = new();
 
@@ -17,27 +16,43 @@ public static class Il2CppObjectPool
         s_cache.TryRemove(ptr, out _);
     }
 
+    internal static void Free(nint unmanagedGcHandle, IntPtr ptr)
+    {
+        if (IL2CPP.il2cpp_gchandle_get_target(unmanagedGcHandle) != IntPtr.Zero)
+            IL2CPP.il2cpp_gchandle_free(unmanagedGcHandle);
+        Remove(ptr);
+    }
+
+    public static void InternWeak(Il2CppObjectBase obj)
+    {
+        IntPtr ptr = obj.Pointer;
+        obj.pooledPtr = ptr;
+        s_cache[ptr] = new(obj);
+    }
+
     public static T Get<T>(IntPtr ptr)
     {
-        if (ptr == IntPtr.Zero) return default;
-
-        var ownClass = IL2CPP.il2cpp_object_get_class(ptr);
-        if (RuntimeSpecificsStore.IsInjected(ownClass))
+        if (ptr == IntPtr.Zero || Il2CppFinalizers.s_dying.ContainsKey(ptr))
         {
-            var monoObject = ClassInjectorBase.GetMonoObjectFromIl2CppPointer(ptr);
-            if (monoObject is T monoObjectT) return monoObjectT;
+            return default!;
         }
 
-        if (DisableCaching) return Il2CppObjectBase.InitializerStore<T>.Initializer(ptr);
+        if (DisableCaching) return Il2CppObjectInitializer.New<T>(ptr);
 
-        if (s_cache.TryGetValue(ptr, out var reference) && reference.TryGetTarget(out var cachedObject))
+        if (s_cache.TryGetValue(ptr, out var reference))
         {
-            if (cachedObject is T cachedObjectT) return cachedObjectT;
-            cachedObject.pooledPtr = IntPtr.Zero;
-            // This leaves the case when you cast to an interface handled as if nothing was cached
+            if (reference.TryGetTarget(out var cachedObject))
+            {
+                if (cachedObject is T cachedObjectT) return cachedObjectT;
+
+                // This leaves the case when you cast to an interface, handled as if nothing was cached
+            }
+
+            // If the cached object no longer exists, delete the irrelevant entry if we can:
+            Remove(ptr);
         }
 
-        var newObj = Il2CppObjectBase.InitializerStore<T>.Initializer(ptr);
+        var newObj = Il2CppObjectInitializer.New<T>(ptr);
         unsafe
         {
             var nativeClassStruct = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<T>.NativeClassPtr);
@@ -47,9 +62,6 @@ public static class Il2CppObjectPool
             }
         }
 
-        var il2CppObjectBase = Unsafe.As<T, Il2CppObjectBase>(ref newObj);
-        s_cache[ptr] = new WeakReference<Il2CppObjectBase>(il2CppObjectBase);
-        il2CppObjectBase.pooledPtr = ptr;
         return newObj;
     }
 }

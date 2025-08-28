@@ -5,11 +5,10 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Text;
-using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppInterop.Runtime.InteropTypes.Fields;
 using Il2CppInterop.Runtime.Runtime;
-using Microsoft.Extensions.Logging;
 using Object = Il2CppSystem.Object;
 using ValueType = Il2CppSystem.ValueType;
 
@@ -133,10 +132,14 @@ public static class DelegateSupport
 
         bodyBuilder.Emit(OpCodes.Ldarg_0);
         bodyBuilder.Emit(OpCodes.Call,
-            typeof(ClassInjectorBase).GetMethod(nameof(ClassInjectorBase.GetMonoObjectFromIl2CppPointer))!);
-        bodyBuilder.Emit(OpCodes.Castclass, typeof(Il2CppToMonoDelegateReference));
+            typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!
+                .MakeGenericMethod(typeof(Il2CppToMonoDelegateReference)));
         bodyBuilder.Emit(OpCodes.Ldfld,
-            typeof(Il2CppToMonoDelegateReference).GetField(nameof(Il2CppToMonoDelegateReference.ReferencedDelegate)));
+            typeof(Il2CppToMonoDelegateReference).GetField(nameof(Il2CppToMonoDelegateReference.MethodInfo)));
+        bodyBuilder.Emit(OpCodes.Call,
+            typeof(Il2CppValueField<IntPtr>).GetMethod(nameof(Il2CppValueField<IntPtr>.Get)));
+        bodyBuilder.Emit(OpCodes.Call,
+            typeof(DelegateSupport).GetMethod(nameof(DelegateSupport.GetStoredDelegate), BindingFlags.NonPublic | BindingFlags.Static));
 
         for (var i = 0; i < managedParameters.Length; i++)
         {
@@ -190,15 +193,10 @@ public static class DelegateSupport
             bodyBuilder.Emit(OpCodes.Stloc, returnLocal);
         }
 
-        var exceptionLocal = bodyBuilder.DeclareLocal(typeof(Exception));
         bodyBuilder.BeginCatchBlock(typeof(Exception));
-        bodyBuilder.Emit(OpCodes.Stloc, exceptionLocal);
-        bodyBuilder.Emit(OpCodes.Ldstr, "Exception in IL2CPP-to-Managed trampoline, not passing it to il2cpp: ");
-        bodyBuilder.Emit(OpCodes.Ldloc, exceptionLocal);
-        bodyBuilder.Emit(OpCodes.Callvirt, typeof(object).GetMethod(nameof(ToString))!);
-        bodyBuilder.Emit(OpCodes.Call,
-            typeof(string).GetMethod(nameof(string.Concat), new[] { typeof(string), typeof(string) })!);
-        bodyBuilder.Emit(OpCodes.Call, typeof(DelegateSupport).GetMethod(nameof(LogError), BindingFlags.Static | BindingFlags.NonPublic)!);
+        bodyBuilder.Emit(OpCodes.Ldstr, "IL2CPP-to-Managed delegate trampoline");
+        bodyBuilder.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(ClassInjector.LogException),
+            BindingFlags.Static | BindingFlags.NonPublic)!);
 
         bodyBuilder.EndExceptionBlock();
 
@@ -207,11 +205,6 @@ public static class DelegateSupport
         bodyBuilder.Emit(OpCodes.Ret);
 
         return trampoline.CreateDelegate(GetOrCreateDelegateType(signature, managedMethod));
-    }
-
-    private static void LogError(string message)
-    {
-        Logger.Instance.LogError("{Message}", message);
     }
 
     public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppObjectBase
@@ -289,6 +282,8 @@ public static class DelegateSupport
         methodInfo.IsMarshalledFromNative = true;
 
         var delegateReference = new Il2CppToMonoDelegateReference(@delegate, methodInfo.Pointer);
+        // Leak the object so we never have to do this again.
+        GCHandle.Alloc(delegateReference);
 
         Il2CppSystem.Delegate converted;
         if (UnityVersionHandler.MustUseDelegateConstructor)
@@ -316,6 +311,9 @@ public static class DelegateSupport
 
         return converted.Cast<TIl2Cpp>();
     }
+
+    private static readonly ConcurrentDictionary<IntPtr, Delegate> s_storedDelegates = new();
+    private static Delegate GetStoredDelegate(IntPtr methodInfoPtr) => s_storedDelegates[methodInfoPtr];
 
     internal class MethodSignature : IEquatable<MethodSignature>
     {
@@ -390,8 +388,7 @@ public static class DelegateSupport
 
     private class Il2CppToMonoDelegateReference : Object
     {
-        public IntPtr MethodInfo;
-        public Delegate ReferencedDelegate;
+        public Il2CppValueField<IntPtr> MethodInfo;
 
         public Il2CppToMonoDelegateReference(IntPtr obj0) : base(obj0)
         {
@@ -402,15 +399,15 @@ public static class DelegateSupport
         {
             ClassInjector.DerivedConstructorBody(this);
 
-            ReferencedDelegate = referencedDelegate;
-            MethodInfo = methodInfo;
+            MethodInfo!.Set(methodInfo);
+            s_storedDelegates[methodInfo] = referencedDelegate;
         }
 
         ~Il2CppToMonoDelegateReference()
         {
             Marshal.FreeHGlobal(MethodInfo);
-            MethodInfo = IntPtr.Zero;
-            ReferencedDelegate = null;
+            MethodInfo.Set(IntPtr.Zero);
+            s_storedDelegates.TryRemove(MethodInfo, out _);
         }
     }
 }
