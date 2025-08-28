@@ -8,7 +8,7 @@ public abstract class Type : Object
 
     public abstract Type GetNestedType(String name, BindingFlags bindingAttr);
 
-    public static Type internal_from_handle(System.IntPtr handle)
+    public static Type internal_from_handle(IntPtr handle)
     {
         throw null;
     }
@@ -43,8 +43,6 @@ public abstract class Type : Object
     }
 
     public abstract String FullName { get; }
-
-    public abstract ConstructorInfo[] GetConstructors(BindingFlags bindingAttr);
 
     public Type MakeGenericType(Type[] typeArguments) => throw null;
 }

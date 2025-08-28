@@ -2,5 +2,4 @@
 
 public abstract class MethodBase : MemberInfo
 {
-    public virtual ParameterInfo[] GetParameters() => [];
 }

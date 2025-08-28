@@ -1,9 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
+﻿using System.Linq;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common.XrefScans;
-using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Il2CppInterop.Runtime.InteropTypes.CoreLib;
 using Il2CppSystem;
 using Il2CppSystem.Reflection;
 
@@ -13,7 +11,7 @@ internal class XrefScanImpl : IXrefScannerImpl
 {
     public unsafe (XrefScanUtil.InitMetadataForMethod, nint)? GetMetadataResolver()
     {
-        var unityObjectCctor = GetAssembliesInCurrentDomain()
+        var unityObjectCctor = AppDomainAccessor.GetAssembliesInCurrentDomain()
             .Single(it => it.GetName().Name == "UnityEngine.CoreModule").GetType("UnityEngine.Object")
             .GetConstructors(BindingFlags.Static | BindingFlags.NonPublic)
             .Single();
@@ -35,18 +33,5 @@ internal class XrefScanImpl : IXrefScannerImpl
         }
 
         return false;
-    }
-
-    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "GetAssemblies")]
-    [return: UnsafeAccessorType($"Il2CppInterop.Runtime.InteropTypes.Arrays.{nameof(Il2CppArrayBase<>)}`1[[Il2CppSystem.Reflection.Assembly, Il2Cppmscorlib]]")]
-    private static extern object GetAssemblies([UnsafeAccessorType("Il2CppSystem.AppDomain, Il2Cppmscorlib")] object appDomain);
-
-    [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "get_CurrentDomain")]
-    [return: UnsafeAccessorType("Il2CppSystem.AppDomain, Il2Cppmscorlib")]
-    private static extern object GetCurrentDomain();
-
-    private static IEnumerable<Assembly> GetAssembliesInCurrentDomain()
-    {
-        return (IEnumerable<Assembly>)GetAssemblies(GetCurrentDomain());
     }
 }
