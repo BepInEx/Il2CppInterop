@@ -34,6 +34,7 @@ Il2CppGame.Process(
         new NativeMethodBodyProcessingLayer(),
         new DelegateConversionProcessingLayer(),
         new ByRefParameterOverloadProcessingLayer(),
+        new UserFriendlyOverloadProcessingLayer(),
         // new SystemInterfaceRecoveryProcessingLayer(), // Should handle INotifyCompletion, IEnumerable, IEquatable, etc
         new ConstantInitializationProcessingLayer(),
         new StaticConstructorProcessingLayer(),
@@ -43,7 +44,6 @@ Console.WriteLine("Done!");
 
 /*
 Todo:
-- Il2Cppmscorlib cyclical dependency resolution - it still uses system arrays, which can be fixed with UnsafeAccessor and UnsafeAccessorType on .NET 10
 - Object/ValueType/Enum special handling
 - Creation method registration
 - ICall
