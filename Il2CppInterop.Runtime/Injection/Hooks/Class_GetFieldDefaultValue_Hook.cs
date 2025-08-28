@@ -42,7 +42,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 mask = "xxxxxxxxxxxxxx?xxxxxxxxxxxxx",
                 xref = false
             },
-            
+
             // V Rising - Unity 2022.3.23 (x64)
             new MemoryUtils.SignatureDefinition
             {
@@ -71,6 +71,13 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 mask = "xxxxxxxx????xxxxxxx",
                 xref = false
             },
+            // Idle Slayer - Unity 2021.3.23 (x64)
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\x40\x53\x48\x83\xEC\x20\x48\x8B\xDA\xE8\xCC\xCC\xCC\xCC\x4C",
+                mask = "xxxxxxxxxx????x",
+                xref = false
+            }
         };
 
         private static nint FindClassGetFieldDefaultValueXref(bool forceICallMethod = false)
@@ -106,7 +113,16 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 var getStaticFieldValue = XrefScannerLowLevel.JumpTargets(getStaticFieldValueAPI).Single();
                 Logger.Instance.LogTrace("Field::StaticGetValue: 0x{GetStaticFieldValueAddress}", getStaticFieldValue.ToInt64().ToString("X2"));
 
-                var getStaticFieldValueInternal = XrefScannerLowLevel.JumpTargets(getStaticFieldValue).Last();
+                var getStaticFieldValueTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValue).ToList();
+
+                // Sometimes the compiler can do an optimization and omit 'retn' instruction,
+                // which then causes code following to grab wrong function pointer. A correct match should not contain more than 4 jumps
+                // This optimization also causes Field::StaticGetValueInternal method to be located right under Field::StaticGetValue method
+                // Example: https://discord.com/channels/623153565053222947/754333645199900723/1104817647171932283
+                if (getStaticFieldValueTargets.Count > 4)
+                    return getStaticFieldValueTargets[^2];
+
+                var getStaticFieldValueInternal = getStaticFieldValueTargets[^1];
                 Logger.Instance.LogTrace("Field::StaticGetValueInternal: 0x{GetStaticFieldValueInternalAddress}", getStaticFieldValueInternal.ToInt64().ToString("X2"));
 
                 var getStaticFieldValueInternalTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).ToArray();
