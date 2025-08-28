@@ -33,6 +33,7 @@ Il2CppGame.Process(
         new MethodBodyTranslationProcessingLayer(),
         new NativeMethodBodyProcessingLayer(),
         new DelegateConversionProcessingLayer(),
+        new ByRefParameterOverloadProcessingLayer(),
         // new SystemInterfaceRecoveryProcessingLayer(), // Should handle INotifyCompletion, IEnumerable, IEquatable, etc
         new ConstantInitializationProcessingLayer(),
         new StaticConstructorProcessingLayer(),
@@ -51,6 +52,5 @@ Todo:
 - Unstripped class injection
 - Finalizers might need renamed/removed
 - Improve ByReference<T> and Pointer<T> semantics in unstripped methods
-- out parameter overloads
 - overloads with arrays, delegates, primitives
 */

@@ -27,6 +27,12 @@ internal static class MethodAnalysisContextExtensions
             set => method.PutExtraData("MethodInfoField", value);
         }
 
+        public MethodAnalysisContext MostUserFriendlyOverload
+        {
+            get => method.GetExtraData<MethodAnalysisContext>("MostUserFriendlyOverload") ?? method;
+            set => method.PutExtraData("MostUserFriendlyOverload", value);
+        }
+
         public bool IsInstanceConstructor => method.Name == ".ctor";
         public bool IsStaticConstructor => method.Name == ".cctor";
         public bool IsConstructor => method.IsInstanceConstructor || method.IsStaticConstructor;
@@ -63,6 +69,18 @@ internal static class MethodAnalysisContextExtensions
             {
                 return methodInfoField.MakeConcreteGeneric(methodInfoGenericArguments);
             }
+        }
+
+        public ConcreteGenericMethodAnalysisContext MakeConcreteGeneric(IEnumerable<TypeAnalysisContext> typeArguments, IEnumerable<TypeAnalysisContext> methodArguments)
+        {
+            return new ConcreteGenericMethodAnalysisContext(method, typeArguments, methodArguments);
+        }
+
+        public MethodAnalysisContext MaybeMakeConcreteGeneric(IReadOnlyCollection<TypeAnalysisContext> typeArguments, IReadOnlyCollection<TypeAnalysisContext> methodArguments)
+        {
+            if (typeArguments.Count == 0 && methodArguments.Count == 0)
+                return method;
+            return method.MakeConcreteGeneric(typeArguments, methodArguments);
         }
     }
 }
