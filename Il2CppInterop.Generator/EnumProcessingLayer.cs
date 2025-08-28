@@ -22,7 +22,7 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
 
         foreach (var assembly in appContext.Assemblies)
         {
-            if (assembly.IsReferenceAssembly)
+            if (assembly.IsReferenceAssembly || assembly.IsInjected)
                 continue;
 
             foreach (var type in assembly.Types)

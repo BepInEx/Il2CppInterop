@@ -29,7 +29,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
 
         foreach (var assembly in appContext.Assemblies)
         {
-            if (assembly.IsReferenceAssembly)
+            if (assembly.IsReferenceAssembly || assembly.IsInjected)
                 continue;
 
             // for rather than foreach, as we will be adding items to the collection
