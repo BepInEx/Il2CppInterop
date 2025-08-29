@@ -601,7 +601,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     }
                     else
                     {
-                        // This should only occur for special cases like String::_firstChar.
+                        // This should not occur.
                         return False(out translatedMethodBody);
                     }
 

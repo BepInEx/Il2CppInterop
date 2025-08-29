@@ -34,12 +34,9 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                 if (type.IsInjected)
                     continue;
 
-                var il2CppTypeInfo = type.GetExtraData<Il2CppTypeInfo>();
-                Debug.Assert(il2CppTypeInfo is not null);
-
-                var fields = il2CppTypeInfo.Blittability == TypeBlittability.ReferenceType
-                    ? il2CppTypeInfo.InstanceFields.Concat(il2CppTypeInfo.StaticFields)
-                    : il2CppTypeInfo.StaticFields;
+                var fields = type.IsValueType
+                    ? type.Fields.Where(f => f.IsStatic).ToArray()
+                    : type.Fields.ToArray();
 
                 foreach (var field in fields)
                 {
@@ -48,6 +45,9 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                         Debug.Assert(field.IsStatic);
                         continue; // Skip fields with constant values, as they are not suitable for property conversion.
                     }
+
+                    if (field.IsInjected)
+                        continue;
 
                     var methodAttributes = field.IsStatic
                         ? MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Static

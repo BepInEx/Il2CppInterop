@@ -65,9 +65,6 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                 if (type.IsInjected)
                     continue;
 
-                var typeInfo = type.GetExtraData<Il2CppTypeInfo>();
-                Debug.Assert(typeInfo is not null);
-
                 var initializationType = assembly.InjectType(
                     "Il2CppInterop.Generated",
                     $"Il2CppInternals_{HashString(type.FullName):x16}",
@@ -146,7 +143,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                     instructions.Add(new Instruction(OpCodes.Call, il2CppRuntimeClassInit));
 
                     // Size = IL2CPP.il2cpp_class_value_size(Il2CppClassPointerStore<Class>.NativeClassPtr, ref align);
-                    if (typeInfo.Blittability != TypeBlittability.ReferenceType)
+                    if (type.IsValueType)
                     {
                         var sizeStore = initializationType.InjectFieldContext(
                             "Size",
@@ -163,67 +160,36 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         instructions.Add(new Instruction(OpCodes.Stsfld, instantiatedSizeStore));
                     }
 
-                    // FieldOffset_Instance_0 = (int)IL2CPP.il2cpp_field_get_offset(IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Class>.NativeClassPtr, "field_name"));
-                    for (var index = 0; index < typeInfo.InstanceFields.Count; index++)
+                    // FieldOffset_0 = (int)IL2CPP.il2cpp_field_get_offset(IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Class>.NativeClassPtr, "field_name"));
+                    for (var index = 0; index < type.Fields.Count; index++)
                     {
-                        var instanceField = typeInfo.InstanceFields[index];
+                        var field = type.Fields[index];
+
+                        if (field.IsInjected)
+                            continue;
 
                         var infoStore = initializationType.InjectFieldContext(
-                            $"FieldInfoPtr_Instance_{index}",
+                            $"FieldInfoPtr_{index}",
                             appContext.SystemTypes.SystemIntPtrType,
                             FieldAttributes.Assembly | FieldAttributes.Static | FieldAttributes.InitOnly);
-                        instanceField.FieldInfoAddressStorage = infoStore;
+                        field.FieldInfoAddressStorage = infoStore;
 
                         FieldAnalysisContext instantiatedInfoStore = initializationType.GenericParameters.Count > 0
                             ? new ConcreteGenericFieldAnalysisContext(infoStore, initializationType.MakeGenericInstanceType(initializationType.GenericParameters))
                             : infoStore;
 
                         var offsetStore = initializationType.InjectFieldContext(
-                            $"FieldOffset_Instance_{index}",
+                            $"FieldOffset_{index}",
                             appContext.SystemTypes.SystemInt32Type,
                             FieldAttributes.Assembly | FieldAttributes.Static | FieldAttributes.InitOnly);
-                        instanceField.OffsetStorage = offsetStore;
+                        field.OffsetStorage = offsetStore;
 
                         FieldAnalysisContext instantiatedOffsetStore = initializationType.GenericParameters.Count > 0
                             ? new ConcreteGenericFieldAnalysisContext(offsetStore, initializationType.MakeGenericInstanceType(initializationType.GenericParameters))
                             : offsetStore;
 
                         instructions.Add(new Instruction(OpCodes.Ldsfld, concreteClassPointerField));
-                        instructions.Add(new Instruction(OpCodes.Ldstr, instanceField.DefaultName));
-                        instructions.Add(new Instruction(OpCodes.Call, getIl2CppField));
-                        instructions.Add(new Instruction(OpCodes.Dup));
-                        instructions.Add(new Instruction(OpCodes.Stsfld, instantiatedInfoStore));
-                        instructions.Add(new Instruction(OpCodes.Call, il2CppFieldGetOffset));
-                        instructions.Add(new Instruction(OpCodes.Conv_I4));
-                        instructions.Add(new Instruction(OpCodes.Stsfld, instantiatedOffsetStore));
-                    }
-
-                    // FieldInfoPtr_Static_0 = IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Class>.NativeClassPtr, "field_name");
-                    for (var index = 0; index < typeInfo.StaticFields.Count; index++)
-                    {
-                        var staticField = typeInfo.StaticFields[index];
-                        var infoStore = initializationType.InjectFieldContext(
-                            $"FieldInfoPtr_Static_{index}",
-                            appContext.SystemTypes.SystemIntPtrType,
-                            FieldAttributes.Assembly | FieldAttributes.Static | FieldAttributes.InitOnly);
-                        staticField.FieldInfoAddressStorage = infoStore;
-
-                        FieldAnalysisContext instantiatedInfoStore = initializationType.GenericParameters.Count > 0
-                            ? new ConcreteGenericFieldAnalysisContext(infoStore, initializationType.MakeGenericInstanceType(initializationType.GenericParameters))
-                            : infoStore;
-
-                        var offsetStore = initializationType.InjectFieldContext(
-                            $"FieldOffset_Static_{index}",
-                            appContext.SystemTypes.SystemInt32Type,
-                            FieldAttributes.Assembly | FieldAttributes.Static | FieldAttributes.InitOnly);
-                        staticField.OffsetStorage = offsetStore;
-
-                        FieldAnalysisContext instantiatedOffsetStore = initializationType.GenericParameters.Count > 0
-                            ? new ConcreteGenericFieldAnalysisContext(offsetStore, initializationType.MakeGenericInstanceType(initializationType.GenericParameters))
-                            : offsetStore;
-
-                        instructions.Add(new Instruction(OpCodes.Ldsfld, concreteClassPointerField));
-                        instructions.Add(new Instruction(OpCodes.Ldstr, staticField.DefaultName));
+                        instructions.Add(new Instruction(OpCodes.Ldstr, field.DefaultName));
                         instructions.Add(new Instruction(OpCodes.Call, getIl2CppField));
                         instructions.Add(new Instruction(OpCodes.Dup));
                         instructions.Add(new Instruction(OpCodes.Stsfld, instantiatedInfoStore));

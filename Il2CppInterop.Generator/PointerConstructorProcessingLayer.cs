@@ -28,10 +28,7 @@ public class PointerConstructorProcessingLayer : Cpp2IlProcessingLayer
 
                 Debug.Assert(!type.IsStatic, "Static types should have been marked as instance types by now.");
 
-                var typeInfo = type.GetExtraData<Il2CppTypeInfo>();
-                Debug.Assert(typeInfo is not null);
-
-                if (typeInfo.Blittability != TypeBlittability.ReferenceType)
+                if (type.IsValueType)
                     continue;
 
                 // Constructors for formerly static types should be private

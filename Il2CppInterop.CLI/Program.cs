@@ -12,7 +12,6 @@ Il2CppGame.Process(
         new AttributeAnalysisProcessingLayer(), // Needed for recovery of params and unmanaged constraints
         new StableRenamingProcessingLayer(),
         new UnstripProcessingLayer(), // Can be disabled for performance during development
-        new TypeInfoProcessingLayer(),
         new Il2CppRenamingProcessingLayer(),
         new CleanRenamingProcessingLayer(),
         new AttributesOverrideProcessingLayer(),

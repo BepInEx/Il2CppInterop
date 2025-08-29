@@ -22,12 +22,6 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
         {
             var il2CppType = il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.String");
             var monoType = mscorlib.GetTypeByFullNameOrThrow("System.String");
-            var typeInfo = il2CppType.GetExtraData<Il2CppTypeInfo>()!;
-            foreach (var instanceField in typeInfo.InstanceFields)
-            {
-                il2CppType.Fields.Remove(instanceField);
-            }
-            typeInfo.InstanceFields.Clear();
 
             var objectPointerType = appContext.ResolveTypeOrThrow(typeof(ObjectPointer));
             var objectPointerConversionFromIntPtr = objectPointerType.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);
@@ -121,9 +115,7 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
         {
             var il2CppType = il2CppMscorlib.GetTypeByFullNameOrThrow(il2CppTypeName);
             var monoType = mscorlib.GetTypeByFullNameOrThrow(monoTypeName);
-            var typeInfo = il2CppType.GetExtraData<Il2CppTypeInfo>()!;
-            Debug.Assert(typeInfo.InstanceFields.Count == 1, $"Expected exactly one instance field for {il2CppTypeName}");
-            var field = typeInfo.InstanceFields[0];
+            var field = il2CppType.Fields.Single(f => !f.IsStatic);
             field.OverrideFieldType = monoType;
 
             // Il2Cpp -> Mono
