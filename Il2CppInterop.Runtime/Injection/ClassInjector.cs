@@ -9,7 +9,6 @@ using System.Runtime.Serialization;
 using System.Text;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Attributes;
-using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppInterop.Runtime.InteropTypes.Fields;
 using Il2CppInterop.Runtime.Runtime;
@@ -60,8 +59,6 @@ public class RegisterTypeOptions
     public static readonly RegisterTypeOptions Default = new();
 
     public bool LogSuccess { get; init; } = true;
-    public Func<Type, Type[]>? InterfacesResolver { get; init; } = null;
-    public Il2CppInterfaceCollection? Interfaces { get; init; } = null;
 }
 
 public static unsafe partial class ClassInjector
@@ -162,12 +159,10 @@ public static unsafe partial class ClassInjector
 
     public static void RegisterTypeInIl2Cpp(Type type, RegisterTypeOptions options)
     {
-        var interfaces = options.Interfaces;
-        if (interfaces == null)
+        Il2CppInterfaceCollection interfaces;
         {
             var interfacesAttribute = type.GetCustomAttribute<Il2CppImplementsAttribute>();
-            interfaces = interfacesAttribute?.Interfaces ??
-                         options.InterfacesResolver?.Invoke(type) ?? Array.Empty<Type>();
+            interfaces = interfacesAttribute?.Interfaces ?? Array.Empty<Type>();
         }
 
         if (type == null)

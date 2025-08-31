@@ -10,6 +10,7 @@ using Cpp2IL.Core.Model.Contexts;
 using Cpp2IL.Core.Utils;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using LibCpp2IL.BinaryStructures;
 
@@ -39,6 +40,12 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var getIl2CppGenericInstanceMethod = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppGenericInstanceMethod));
         var getIl2CppValueSize = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2cppValueSize));
         var resolveICall = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.ResolveICall));
+
+        var classInjector = appContext.ResolveTypeOrThrow(typeof(ClassInjector));
+        var registerTypeInIl2Cpp = classInjector.Methods.Single(m =>
+        {
+            return m.Name == nameof(ClassInjector.RegisterTypeInIl2Cpp) && m.Parameters.Count is 0 && m.GenericParameters.Count == 1;
+        });
 
         var multicastDelegateType = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.MulticastDelegate");
         var asyncCallbackType = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.AsyncCallback");
@@ -101,42 +108,49 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         : type.MakeGenericInstanceType(initializationType.GenericParameters);
 
                     var concreteClassPointerField = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([typeToInitialize]));
-                    if (typeToInitialize.DeclaringType is not null)
+                    if (type.IsUnstripped)
                     {
-                        // Ensure declaring type is initialized first
-                        instructions.Add(new Instruction(OpCodes.Ldtoken, typeToInitialize.DeclaringType));
-                        instructions.Add(new Instruction(OpCodes.Call, runClassConstructor));
-
-                        // Il2CppClassPointerStore<NestedClass>.NativeClassPtr = IL2CPP.GetIl2CppNestedType(Il2CppClassPointerStore<DeclaringType>.NativeClassPtr, "NestedClass");
-                        var declaringTypeClassPointerField = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([typeToInitialize.DeclaringType]));
-                        instructions.Add(new Instruction(OpCodes.Ldsfld, declaringTypeClassPointerField));
-                        instructions.Add(new Instruction(OpCodes.Ldstr, type.DefaultName));// typeToInitialize can have the wrong DefaultName
-                        instructions.Add(new Instruction(OpCodes.Call, getIl2CppNestedType));
+                        instructions.Add(new Instruction(OpCodes.Call, registerTypeInIl2Cpp.MakeGenericInstanceMethod(typeToInitialize)));
                     }
                     else
                     {
-                        // Il2CppClassPointerStore<Class>.NativeClassPtr = IL2CPP.GetIl2CppClass("Assembly-CSharp.dll", "", "Class");
-                        instructions.Add(new Instruction(OpCodes.Ldstr, $"{assembly.DefaultName}.dll"));
-                        instructions.Add(new Instruction(OpCodes.Ldstr, type.DefaultNamespace));
-                        instructions.Add(new Instruction(OpCodes.Ldstr, type.DefaultName));
-                        instructions.Add(new Instruction(OpCodes.Call, getIl2CppClass));
-                    }
-                    if (type.GenericParameters.Count > 0)
-                    {
-                        instructions.Add(new Instruction(OpCodes.Ldc_I4, type.GenericParameters.Count));
-                        instructions.Add(new Instruction(OpCodes.Newarr, appContext.SystemTypes.SystemIntPtrType));
-                        for (var j = 0; j < type.GenericParameters.Count; j++)
+                        if (typeToInitialize.DeclaringType is not null)
                         {
-                            instructions.Add(new Instruction(OpCodes.Dup));
-                            instructions.Add(new Instruction(OpCodes.Ldc_I4, j));
-                            var genericParameter = initializationType.GenericParameters[j];
-                            var classPointerForGenericParameter = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([genericParameter]));
-                            instructions.Add(new Instruction(OpCodes.Ldsfld, classPointerForGenericParameter));
-                            instructions.Add(new Instruction(OpCodes.Stelem_I));
+                            // Ensure declaring type is initialized first
+                            instructions.Add(new Instruction(OpCodes.Ldtoken, typeToInitialize.DeclaringType));
+                            instructions.Add(new Instruction(OpCodes.Call, runClassConstructor));
+
+                            // Il2CppClassPointerStore<NestedClass>.NativeClassPtr = IL2CPP.GetIl2CppNestedType(Il2CppClassPointerStore<DeclaringType>.NativeClassPtr, "NestedClass");
+                            var declaringTypeClassPointerField = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([typeToInitialize.DeclaringType]));
+                            instructions.Add(new Instruction(OpCodes.Ldsfld, declaringTypeClassPointerField));
+                            instructions.Add(new Instruction(OpCodes.Ldstr, type.DefaultName));// typeToInitialize can have the wrong DefaultName
+                            instructions.Add(new Instruction(OpCodes.Call, getIl2CppNestedType));
                         }
-                        instructions.Add(new Instruction(OpCodes.Call, getIl2CppGenericInstanceType));
+                        else
+                        {
+                            // Il2CppClassPointerStore<Class>.NativeClassPtr = IL2CPP.GetIl2CppClass("Assembly-CSharp.dll", "", "Class");
+                            instructions.Add(new Instruction(OpCodes.Ldstr, $"{assembly.DefaultName}.dll"));
+                            instructions.Add(new Instruction(OpCodes.Ldstr, type.DefaultNamespace));
+                            instructions.Add(new Instruction(OpCodes.Ldstr, type.DefaultName));
+                            instructions.Add(new Instruction(OpCodes.Call, getIl2CppClass));
+                        }
+                        if (type.GenericParameters.Count > 0)
+                        {
+                            instructions.Add(new Instruction(OpCodes.Ldc_I4, type.GenericParameters.Count));
+                            instructions.Add(new Instruction(OpCodes.Newarr, appContext.SystemTypes.SystemIntPtrType));
+                            for (var j = 0; j < type.GenericParameters.Count; j++)
+                            {
+                                instructions.Add(new Instruction(OpCodes.Dup));
+                                instructions.Add(new Instruction(OpCodes.Ldc_I4, j));
+                                var genericParameter = initializationType.GenericParameters[j];
+                                var classPointerForGenericParameter = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([genericParameter]));
+                                instructions.Add(new Instruction(OpCodes.Ldsfld, classPointerForGenericParameter));
+                                instructions.Add(new Instruction(OpCodes.Stelem_I));
+                            }
+                            instructions.Add(new Instruction(OpCodes.Call, getIl2CppGenericInstanceType));
+                        }
+                        instructions.Add(new Instruction(OpCodes.Stsfld, concreteClassPointerField));
                     }
-                    instructions.Add(new Instruction(OpCodes.Stsfld, concreteClassPointerField));
 
                     // IL2CPP.il2cpp_runtime_class_init(Il2CppClassPointerStore<Class>.NativeClassPtr);
                     instructions.Add(new Instruction(OpCodes.Ldsfld, concreteClassPointerField));

@@ -2,8 +2,10 @@
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Generator;
 
@@ -23,9 +25,10 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
         [
             typeof(Il2CppArrayBase),
             typeof(Il2CppArrayBase<>),
-            typeof(Il2CppException),
+            typeof(Il2CppInterop.Runtime.Il2CppException),
             typeof(IL2CPP),
             typeof(Il2CppClassPointerStore<>),
+            typeof(ClassInjector),
             typeof(DelegateSupport),
             typeof(Pointer<>),
             typeof(ByReference<>),
@@ -37,6 +40,11 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(IIl2CppException),
             typeof(RuntimeInvokeHelper),
             typeof(Il2CppTypeHelper),
+
+            // Because of ClassInjector
+            typeof(RegisterTypeOptions),
+            typeof(Il2CppClass),
+            typeof(Il2CppTypeStruct),
         ];
         InjectTypes(appContext, typeof(Il2CppArrayBase).Assembly, il2CppInteropRuntimeTypes);
     }
