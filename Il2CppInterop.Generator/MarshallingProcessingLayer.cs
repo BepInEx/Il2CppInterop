@@ -97,7 +97,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         ],
                     });
 
-                    var propertyName = $"{type.FullName}.{nameof(IIl2CppType.Size)}";
+                    var propertyName = $"{iil2CppType.FullName}.{nameof(IIl2CppType.Size)}";
                     var property = new InjectedPropertyAnalysisContext(
                         propertyName,
                         method.ReturnType,
@@ -134,7 +134,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         ],
                     });
 
-                    var propertyName = $"{type.FullName}.{nameof(IIl2CppType.ObjectClass)}";
+                    var propertyName = $"{iil2CppType.FullName}.{nameof(IIl2CppType.ObjectClass)}";
                     var property = new InjectedPropertyAnalysisContext(
                         propertyName,
                         method.ReturnType,
