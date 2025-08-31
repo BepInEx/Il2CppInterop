@@ -1,22 +1,40 @@
 # Injection
 
+## Major Flaw
+
+Current injection has a major flaw. It waits until the last minute to allocate a new type. This can cause problems with:
+
+* Cyclical field types (two classes have a field on each other)
+* Self-referential field type
+* Injected type used in base type or interfaces
+
 ## Class
 
 ```cs
 // User code
 
+// This attribute is for source generation and has no runtime impact.
 [InjectInIl2Cpp(Assembly = "OptionalAssemblyName")] // By default, types are injected into Assembly-CSharp
 public partial class MyMonoBehaviour : MonoBehaviour
 {
     [Il2CppField]
-    public static partial int staticField { get; set; }
+    public static partial Int32 staticField { get; set; }
     [Il2CppField]
-    public partial bool instanceField { get; set; }
+    public partial Boolean instanceField { get; set; }
 
-    [HideFromIl2Cpp] // This attribute is valid on types, methods, properties. Injected classes cannot have uninjected instance fields and static fields are ignored by default.
+    // Note: Injected classes cannot have uninjected instance fields and static fields are always ignored.
+
+    [Il2CppMethod]
+    public static void DoSomething(String s)
+    {
+    }
+
     public static void DoAnything(string s) // If this wasn't hidden, it would be invalid because string is not a valid Il2Cpp parameter type.
     {
     }
+
+    [Il2CppProperty]
+    public static Int32 MyProperty { get => default; set {} }
 }
 
 // Source generated
@@ -25,7 +43,7 @@ partial class MyMonoBehaviour
 {
     static MyMonoBehaviour()
     {
-        ClassInjector.Inject(typeof(MyMonoBehaviour));
+        ClassInjector.RegisterTypeInIl2Cpp<MyMonoBehaviour>();
     }
 
     // Required
@@ -53,20 +71,20 @@ file static class Il2CppInternals // If the injected class is generic, this will
 public partial struct MyStruct<T>
 {
     [Il2CppField]
-    public static partial T staticField { get; set; } // Fine because the injected field is static
+    public static partial T staticField { get; set; }
+
     // [Il2CppField] is optional for struct instance fields.
     public bool instanceField;
-    // public T unconstrainedGenericField; // Error: Injected generic fields in structs must be constrained value types.
-    // public Il2CppSystem.Collection.Generic.List<T> listField; // Fine
 }
 
 // Source generated
 
-partial struct MyStruct<T>
+partial struct MyStruct<T> : IIl2CppType<MyStruct<T>>
+    where T : IIl2CppType<T>
 {
     static MyStruct()
     {
-        ClassInjector.Inject(typeof(MyStruct));
+        ClassInjector.RegisterTypeInIl2Cpp<MyStruct>());
     }
 
     public static partial T staticField { get => Il2CppInternals.staticField.Get(); set => Il2CppInternals.staticField.Set(value); }
@@ -77,3 +95,19 @@ file static class Il2CppInternals<T>
     private static IntPtr GetClassPointer() => Il2CppClassPointerStore<MyStruct>.NativeClassPtr;
 }
 ```
+
+## New Design
+
+### Design Constraints
+
+A class pointer needs registered in `Il2CppClassPointerStore` before anything else can reference this type. In other words, the class pointer needs registered before setting:
+
+* Declaring type
+* Nested types
+* Base type
+* Interface implementations
+* Types in member signatures
+
+In addition, we need to know the virtual table slot count when allocating data for the class because the virtual table is always positioned in method directly after the class struct.
+
+Ideally, no Il2Cpp APIs should be called while class structs are partially initialized.

@@ -119,7 +119,7 @@ public static unsafe partial class ClassInjector
     }
 
 
-    public static bool IsTypeRegisteredInIl2Cpp<T>() where T : class
+    public static bool IsTypeRegisteredInIl2Cpp<T>()
     {
         return IsTypeRegisteredInIl2Cpp(typeof(T));
     }
@@ -145,7 +145,7 @@ public static unsafe partial class ClassInjector
         return false;
     }
 
-    public static void RegisterTypeInIl2Cpp<T>() where T : class
+    public static void RegisterTypeInIl2Cpp<T>()
     {
         RegisterTypeInIl2Cpp(typeof(T));
     }
@@ -155,7 +155,7 @@ public static unsafe partial class ClassInjector
         RegisterTypeInIl2Cpp(type, RegisterTypeOptions.Default);
     }
 
-    public static void RegisterTypeInIl2Cpp<T>(RegisterTypeOptions options) where T : class
+    public static void RegisterTypeInIl2Cpp<T>(RegisterTypeOptions options)
     {
         RegisterTypeInIl2Cpp(typeof(T), options);
     }

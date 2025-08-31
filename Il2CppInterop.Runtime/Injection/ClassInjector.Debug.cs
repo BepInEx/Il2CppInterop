@@ -28,7 +28,7 @@ public unsafe partial class ClassInjector
 
     public static void Dump(Il2CppClass* il2CppClass)
     {
-        if (il2CppClass == default) throw new ArgumentNullException(nameof(il2CppClass));
+        ArgumentNullException.ThrowIfNull(il2CppClass);
 
         InjectorHelpers.Setup();
         InjectorHelpers.ClassInit(il2CppClass);
