@@ -61,7 +61,7 @@ public static unsafe class RuntimeInvokeHelper
     }
 
     public static int RequiredStackAllocationSize<T>()
-        where T : IIl2CppType
+        where T : IIl2CppType<T>
     {
         if (IsPointer<T>())
         {

@@ -15,10 +15,10 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
         var iil2CppType = appContext.ResolveTypeOrThrow(typeof(IIl2CppType));
-        var iil2CppType_get_Size = iil2CppType.GetMethodByName($"get_{nameof(IIl2CppType.Size)}");
         var iil2CppType_get_ObjectClass = iil2CppType.GetMethodByName($"get_{nameof(IIl2CppType.ObjectClass)}");
 
         var iil2CppTypeGeneric = appContext.ResolveTypeOrThrow(typeof(IIl2CppType<>));
+        var iil2CppTypeGeneric_get_Size = iil2CppTypeGeneric.GetMethodByName($"get_{nameof(IIl2CppType<>.Size)}");
         var iil2CppTypeGeneric_get_AssemblyName = iil2CppTypeGeneric.GetMethodByName($"get_{nameof(IIl2CppType<>.AssemblyName)}");
         var iil2CppTypeGeneric_get_Namespace = iil2CppTypeGeneric.GetMethodByName($"get_{nameof(IIl2CppType<>.Namespace)}");
         var iil2CppTypeGeneric_get_Name = iil2CppTypeGeneric.GetMethodByName($"get_{nameof(IIl2CppType<>.Name)}");
@@ -70,50 +70,6 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     }
                 }
 
-                // Size
-                {
-                    var methodName = $"{iil2CppType.FullName}.get_{nameof(IIl2CppType.Size)}";
-                    var method = new InjectedMethodAnalysisContext(
-                        type,
-                        methodName,
-                        iil2CppType_get_Size.ReturnType,
-                        MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
-                        [])
-                    {
-                        IsInjected = true,
-                    };
-                    type.Methods.Add(method);
-                    method.OverridesList.Add(iil2CppType_get_Size);
-
-                    var instantiatedSizeStorage = type.SizeStorage is null
-                        ? null
-                        : type.GenericParameters.Count > 0
-                            ? type.SizeStorage!.MakeConcreteGeneric(type.GenericParameters)
-                            : type.SizeStorage;
-
-                    method.PutExtraData(new NativeMethodBody()
-                    {
-                        Instructions =
-                        [
-                            instantiatedSizeStorage is not null ? new Instruction(OpCodes.Ldsfld, instantiatedSizeStorage) : new Instruction(OpCodes.Call, intPtr_get_Size),
-                            new Instruction(OpCodes.Ret),
-                        ],
-                    });
-
-                    var propertyName = $"{iil2CppType.FullName}.{nameof(IIl2CppType.Size)}";
-                    var property = new InjectedPropertyAnalysisContext(
-                        propertyName,
-                        method.ReturnType,
-                        method,
-                        null,
-                        PropertyAttributes.None,
-                        type)
-                    {
-                        IsInjected = true,
-                    };
-                    type.Properties.Add(property);
-                }
-
                 // ObjectClass
                 {
                     var methodName = $"{iil2CppType.FullName}.get_{nameof(IIl2CppType.ObjectClass)}";
@@ -138,6 +94,51 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     });
 
                     var propertyName = $"{iil2CppType.FullName}.{nameof(IIl2CppType.ObjectClass)}";
+                    var property = new InjectedPropertyAnalysisContext(
+                        propertyName,
+                        method.ReturnType,
+                        method,
+                        null,
+                        PropertyAttributes.None,
+                        type)
+                    {
+                        IsInjected = true,
+                    };
+                    type.Properties.Add(property);
+                }
+
+                // Size
+                {
+                    var instantiated_iil2CppTypeGeneric_get_Size = new ConcreteGenericMethodAnalysisContext(iil2CppTypeGeneric_get_Size, [instantiatedType], []);
+                    var methodName = $"{instantiatedIl2CppTypeGeneric.FullName}.get_{nameof(IIl2CppType<>.Size)}";
+                    var method = new InjectedMethodAnalysisContext(
+                        type,
+                        methodName,
+                        instantiated_iil2CppTypeGeneric_get_Size.ReturnType,
+                        MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
+                        [])
+                    {
+                        IsInjected = true,
+                    };
+                    type.Methods.Add(method);
+                    method.OverridesList.Add(instantiated_iil2CppTypeGeneric_get_Size);
+
+                    var instantiatedSizeStorage = type.SizeStorage is null
+                        ? null
+                        : type.GenericParameters.Count > 0
+                            ? type.SizeStorage!.MakeConcreteGeneric(type.GenericParameters)
+                            : type.SizeStorage;
+
+                    method.PutExtraData(new NativeMethodBody()
+                    {
+                        Instructions =
+                        [
+                            instantiatedSizeStorage is not null ? new Instruction(OpCodes.Ldsfld, instantiatedSizeStorage) : new Instruction(OpCodes.Call, intPtr_get_Size),
+                            new Instruction(OpCodes.Ret),
+                        ],
+                    });
+
+                    var propertyName = $"{instantiatedIl2CppTypeGeneric.FullName}.{nameof(IIl2CppType<>.Size)}";
                     var property = new InjectedPropertyAnalysisContext(
                         propertyName,
                         method.ReturnType,

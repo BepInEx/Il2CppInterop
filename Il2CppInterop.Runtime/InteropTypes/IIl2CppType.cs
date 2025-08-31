@@ -6,11 +6,11 @@ namespace Il2CppInterop.Runtime.InteropTypes;
 
 public interface IIl2CppType
 {
-    static abstract int Size { get; }
     IntPtr ObjectClass { get; }
 }
 public interface IIl2CppType<TSelf> : IIl2CppType where TSelf : notnull, IIl2CppType<TSelf>
 {
+    static abstract int Size { get; }
     static virtual string AssemblyName => typeof(TSelf).Assembly.GetName().Name ?? "";
     static virtual string Namespace => typeof(TSelf).Namespace ?? "";
     static virtual string Name => typeof(TSelf).Name;
@@ -26,7 +26,7 @@ internal interface IIl2CppByReference
 }
 internal interface IObject2 : IIl2CppType<IObject2>
 {
-    static int IIl2CppType.Size => IntPtr.Size;
+    static int IIl2CppType<IObject2>.Size => IntPtr.Size;
     static void IIl2CppType<IObject2>.WriteToSpan(IObject2? value, Span<byte> span)
     {
         Il2CppTypeHelper.WritePointer(value.Box(), span);
@@ -42,7 +42,7 @@ internal struct ValueTuple2<T1, T2> : IIl2CppType<ValueTuple2<T1, T2>> where T1 
     public T1? Item1;
     public T2? Item2;
 
-    static int IIl2CppType.Size => Il2CppInternals_ValueTuple2<T1, T2>.Size;
+    static int IIl2CppType<ValueTuple2<T1, T2>>.Size => Il2CppInternals_ValueTuple2<T1, T2>.Size;
 
     readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<ValueTuple2<T1, T2>>.NativeClassPtr;
 
@@ -78,7 +78,7 @@ internal class Class : IIl2CppType<Class>, IIl2CppObjectBase
 {
     public IntPtr Pointer;
 
-    static int IIl2CppType.Size => IntPtr.Size;
+    static int IIl2CppType<Class>.Size => IntPtr.Size;
 
     nint IIl2CppObjectBase.Pointer => throw new NotImplementedException();
     bool IIl2CppObjectBase.WasCollected => throw new NotImplementedException();
@@ -98,7 +98,7 @@ internal struct Int48 : IIl2CppType<Int48>
     private uint _low;
     private ushort _high;
 
-    static int IIl2CppType.Size => 6;
+    static int IIl2CppType<Int48>.Size => 6;
 
     readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Int48>.NativeClassPtr;
 

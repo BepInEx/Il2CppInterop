@@ -40,7 +40,7 @@ public unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>>
         }
     }
 
-    static int IIl2CppType.Size => IntPtr.Size;
+    static int IIl2CppType<Pointer<T>>.Size => IntPtr.Size;
 
     readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Pointer<T>>.NativeClassPtr;
 

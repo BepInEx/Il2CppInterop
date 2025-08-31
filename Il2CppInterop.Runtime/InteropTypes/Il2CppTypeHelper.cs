@@ -8,14 +8,14 @@ namespace Il2CppInterop.Runtime.InteropTypes;
 
 public static class Il2CppTypeHelper
 {
-    public static bool IsBlittable<T>() where T : IIl2CppType
+    public static bool IsBlittable<T>() where T : IIl2CppType<T>
     {
         return T.Size == Unsafe.SizeOf<T>()
             && !RuntimeHelpers.IsReferenceOrContainsReferences<T>()
             && !typeof(T).IsGenericType;
     }
 
-    public static int SizeOf<T>() where T : IIl2CppType
+    public static int SizeOf<T>() where T : IIl2CppType<T>
     {
         return T.Size;
     }

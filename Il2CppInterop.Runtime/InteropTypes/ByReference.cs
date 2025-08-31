@@ -46,9 +46,9 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
 
     readonly nint IIl2CppByReference.ReferenceObjectClass => Il2CppClassPointerStore<T>.NativeClassPtr;
 
-    static int IIl2CppType.Size => IntPtr.Size;
-
     readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<ByReference<T>>.NativeClassPtr;
+
+    static int IIl2CppType<ByReference<T>>.Size => IntPtr.Size;
 
     public static explicit operator ByReference<T>(void* value) => new(value);
     public static explicit operator void*(ByReference<T> pointer) => pointer._pointer;
