@@ -20,6 +20,21 @@ public static class Il2CppTypeHelper
         return T.Size;
     }
 
+    public static string GetAssemblyName<T>() where T : IIl2CppType<T>
+    {
+        return T.AssemblyName;
+    }
+
+    public static string GetNamespace<T>() where T : IIl2CppType<T>
+    {
+        return T.Namespace;
+    }
+
+    public static string GetName<T>() where T : IIl2CppType<T>
+    {
+        return T.Name;
+    }
+
     public static void WriteToSpan<T>(this T? value, Span<byte> span) where T : IIl2CppType<T>
     {
         T.WriteToSpan(value, span);
