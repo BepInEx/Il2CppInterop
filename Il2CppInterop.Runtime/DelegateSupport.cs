@@ -317,7 +317,7 @@ public static class DelegateSupport
         return converted.Cast<TIl2Cpp>();
     }
 
-    internal class MethodSignature : IEquatable<MethodSignature>
+    internal sealed class MethodSignature : IEquatable<MethodSignature>
     {
         public readonly bool ConstructedFromNative;
         public readonly bool HasThis;
@@ -362,27 +362,24 @@ public static class DelegateSupport
             return _hashCode;
         }
 
-        public bool Equals(MethodSignature other)
+        public bool Equals(MethodSignature? other)
         {
-            if (ReferenceEquals(null, other)) return false;
+            if (other is null) return false;
             if (ReferenceEquals(this, other)) return true;
             return _hashCode.GetHashCode() == other.GetHashCode();
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != GetType()) return false;
-            return Equals((MethodSignature)obj);
+            return Equals(obj as MethodSignature);
         }
 
-        public static bool operator ==(MethodSignature left, MethodSignature right)
+        public static bool operator ==(MethodSignature? left, MethodSignature? right)
         {
             return Equals(left, right);
         }
 
-        public static bool operator !=(MethodSignature left, MethodSignature right)
+        public static bool operator !=(MethodSignature? left, MethodSignature? right)
         {
             return !Equals(left, right);
         }
