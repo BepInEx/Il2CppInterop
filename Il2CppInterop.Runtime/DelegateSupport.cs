@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection;
+using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.CoreLib;
 using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
@@ -385,7 +386,7 @@ public static class DelegateSupport
         }
     }
 
-    private class Il2CppToMonoDelegateReference : Object
+    private class Il2CppToMonoDelegateReference : Object, IIl2CppType<Il2CppToMonoDelegateReference>
     {
         public IntPtr MethodInfo;
         public Delegate ReferencedDelegate;
@@ -407,7 +408,21 @@ public static class DelegateSupport
         {
             Marshal.FreeHGlobal(MethodInfo);
             MethodInfo = IntPtr.Zero;
-            ReferencedDelegate = null;
+            ReferencedDelegate = null!;
+        }
+
+        static int IIl2CppType<Il2CppToMonoDelegateReference>.Size => nint.Size;
+
+        nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPtr;
+
+        static Il2CppToMonoDelegateReference? IIl2CppType<Il2CppToMonoDelegateReference>.ReadFromSpan(ReadOnlySpan<byte> span)
+        {
+            return Il2CppTypeHelper.ReadReference<Il2CppToMonoDelegateReference>(span);
+        }
+
+        static void IIl2CppType<Il2CppToMonoDelegateReference>.WriteToSpan(Il2CppToMonoDelegateReference? value, Span<byte> span)
+        {
+            Il2CppTypeHelper.WriteReference(value, span);
         }
     }
 }
