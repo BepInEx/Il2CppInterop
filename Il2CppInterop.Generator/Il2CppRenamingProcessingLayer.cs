@@ -25,7 +25,7 @@ public class Il2CppRenamingProcessingLayer : Cpp2IlProcessingLayer
                 assembly.OverrideName = "Il2Cpp" + assembly.Name;
             }
 
-            foreach (var type in assembly.Types)
+            foreach (var type in assembly.TopLevelTypes)
             {
                 if (!IsUnity(type.Namespace))
                 {
