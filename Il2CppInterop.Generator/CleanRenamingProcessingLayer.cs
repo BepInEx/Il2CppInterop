@@ -47,7 +47,7 @@ public partial class CleanRenamingProcessingLayer : Cpp2IlProcessingLayer
                 continue;
             }
 
-            if (TryMatchGenericType(type.Name, out var typeName, out var genericCount))
+            if (GenericTypeName.TryMatch(type.Name, out var typeName, out var genericCount))
             {
                 type.OverrideName = $"{ReplaceInvalidWithUnderscore(typeName)}`{genericCount}";
             }
@@ -229,24 +229,4 @@ public partial class CleanRenamingProcessingLayer : Cpp2IlProcessingLayer
 
     [GeneratedRegex(@"^<(\w+)>k__BackingField$")]
     private static partial Regex PropertyBackingFieldRegex { get; }
-
-    private static bool TryMatchGenericType(string genericName, [NotNullWhen(true)] out string? typeName, [NotNullWhen(true)] out string? genericCount)
-    {
-        var match = GenericTypeRegex.Match(genericName);
-        if (match.Success)
-        {
-            typeName = match.Groups[1].Value;
-            genericCount = match.Groups[2].Value;
-            return true;
-        }
-        else
-        {
-            typeName = null;
-            genericCount = null;
-            return false;
-        }
-    }
-
-    [GeneratedRegex(@"^(.+)`(\d+)$")]
-    private static partial Regex GenericTypeRegex { get; }
 }
