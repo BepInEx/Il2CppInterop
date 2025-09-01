@@ -29,18 +29,18 @@ public String GetString<T>(Int32 param1, T param2, IInterface param3) where T : 
     void* obj = (void*)this.Pointer;
 
     // Param 1
-    byte* data_param1 = stackalloc byte[Il2CppTypeHelper.SizeOf<Int32>()];
-    Il2CppTypeHelper.WriteToPointer<Int32>(param1, data_param1);
+    ByReference<Int32> data_param1 = new ByReference<Int32>(stackalloc byte[Il2CppTypeHelper.SizeOf<Int32>()]);
+    data_param1.SetValue(param1);
 
     // Param 2
-    byte* data_param2 = stackalloc byte[Il2CppTypeHelper.SizeOf<T>()];
-    Il2CppTypeHelper.WriteToPointer<T>(param2, data_param2);
+    ByReference<T> data_param2 = new ByReference<T>(stackalloc byte[Il2CppTypeHelper.SizeOf<T>()]);
+    data_param2.SetValue(param2);
 
     // Param 3
-    byte* data_param3 = stackalloc byte[Il2CppTypeHelper.SizeOf<IInterface>()];
-    Il2CppTypeHelper.WriteToPointer<IInterface>(param3, data_param3);
+    ByReference<IInterface> data_param3 = new ByReference<IInterface>(stackalloc byte[Il2CppTypeHelper.SizeOf<IInterface>()]);
+    data_param3.SetValue(param3);
 
-    String result = Unsafe_GetString<T>(obj, new ByReference<Int32>(data_param1), new ByReference<T>(data_param2), new ByReference<IInterface>(data_param3));
+    String result = Unsafe_GetString<T>(obj, data_param1, data_param2, data_param3);
 
     // Value type
     this = Il2CppTypeHelper.ReadFromPointer<Self>(obj);
@@ -102,14 +102,58 @@ public static Boolean Unsafe_Compare(ByReference<Self> param1, ByReference<Self>
     ByReference.SetValue<String>(result_call2, data_local2);
 
     // Locals 1 and 2 loaded onto the stack
-    data_local1.GetValue()
-    data_local2.GetValue()
+    data_local1.GetValue();
+    data_local2.GetValue();
 
     // Locals popped off the stack and stored in call data
     ByReference.SetValue<String>(/* from stack */, data_call3_param2);
     ByReference.SetValue<String>(/* from stack */, data_call3_param1);
 
     return String.Unsafe_op_Equality(data_call3_param1, data_call3_param2);
+}
+```
+
+## Constructors
+
+> Note: for brevity, neither of these constructors has any parameters, but they obviously could just like a normal method.
+
+### Unstripped constructor calling native base constructor
+
+```cs
+// Pointer constructor
+public UnstrippedClass(ObjectPointer ptr) : base(ptr)
+{
+}
+
+public UnstrippedClass() : this(NewPointer()) // NewPointer() is an irrelevant implementation detail.
+{
+    void* obj = this.Pointer;
+    Unsafe_Constructor(obj);
+}
+
+public static void Unsafe_Constructor(void* obj)
+{
+    // Since the Il2Cpp object has already been created and allocated, field accessors can be called.
+    this.Field = 42;
+
+    base.Unsafe_Constructor(obj);
+
+    // Other stuff
+}
+```
+
+### Unstripped method calling any constructor
+
+```cs
+// Before: newobj Class::.ctor
+// After: call Class:Unsafe_Create
+
+public static Class Unsafe_Create()
+{
+    Class c = new(NewPointer());
+    void* obj = c.Pointer;
+    Unsafe_Constructor(obj);
+    return c;
 }
 ```
 

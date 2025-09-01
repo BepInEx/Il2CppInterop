@@ -34,6 +34,26 @@ internal static class MethodAnalysisContextExtensions
             set => method.PutExtraData("MostUserFriendlyOverload", value);
         }
 
+        /// <summary>
+        /// The unsafe invoke method for this method.
+        /// </summary>
+        [MaybeNull]
+        public MethodAnalysisContext UnsafeInvokeMethod
+        {
+            get => method.GetExtraData<MethodAnalysisContext>("UnsafeInvokeMethod");
+            set => method.PutExtraData("UnsafeInvokeMethod", value);
+        }
+
+        /// <summary>
+        /// The unsafe create method for this constructor.
+        /// </summary>
+        [MaybeNull]
+        public MethodAnalysisContext UnsafeCreateMethod
+        {
+            get => method.GetExtraData<MethodAnalysisContext>("UnsafeCreateMethod");
+            set => method.PutExtraData("UnsafeCreateMethod", value);
+        }
+
         public bool IsInstanceConstructor => method.Name == ".ctor";
         public bool IsStaticConstructor => method.Name == ".cctor";
         public bool IsConstructor => method.IsInstanceConstructor || method.IsStaticConstructor;

@@ -32,6 +32,7 @@ Il2CppGame.Process(
         new FieldAccessorProcessingLayer(),
         new EventProcessingLayer(),
         new ExceptionHierarchyProcessingLayer(),
+        new MethodInvokerProcessingLayer(),
         new MethodBodyTranslationProcessingLayer(),
         new NativeMethodBodyProcessingLayer(),
         new DelegateConversionProcessingLayer(),

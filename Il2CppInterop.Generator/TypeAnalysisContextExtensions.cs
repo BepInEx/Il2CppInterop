@@ -43,6 +43,29 @@ internal static class TypeAnalysisContextExtensions
             }
         }
 
+        /// <summary>
+        /// The fields, methods, properties, and events of this type.
+        /// </summary>
+        public IEnumerable<HasCustomAttributesAndName> Members
+        {
+            get
+            {
+                return ((IEnumerable<HasCustomAttributesAndName>)type.Fields).Concat(type.Methods).Concat(type.Properties).Concat(type.Events);
+            }
+        }
+
+        public string CSharpName
+        {
+            get
+            {
+                if (GenericTypeName.TryMatch(type.Name, out var result, out _))
+                {
+                    return result;
+                }
+                return type.Name;
+            }
+        }
+
         [MaybeNull]
         public Type SourceType
         {
