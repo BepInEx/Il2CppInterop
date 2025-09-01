@@ -18,6 +18,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
         var byReference = appContext.ResolveTypeOrThrow(typeof(ByReference<>));
         var byReference_GetValue = byReference.GetMethodByName(nameof(ByReference<>.GetValue));
+        var byReference_SetValue = byReference.GetMethodByName(nameof(ByReference<>.SetValue));
         var byReference_CopyFrom = byReference.GetMethodByName(nameof(ByReference<>.CopyFrom));
         var byReference_CopyTo = byReference.GetMethodByName(nameof(ByReference<>.CopyTo));
         var byReference_Clear = byReference.GetMethodByName(nameof(ByReference<>.Clear));
@@ -202,6 +203,108 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         {
                             Instructions = instructions,
                             LocalVariables = [local],
+                        });
+                    }
+
+                    // Method body
+                    {
+                        List<Instruction> instructions = new();
+
+                        if (method.IsInstanceConstructor && !type.IsValueType)
+                        {
+                            Debug.Assert(type.PointerConstructor is not null);
+
+                            instructions.Add(OpCodes.Ldarg, This.Instance);
+                            instructions.Add(OpCodes.Call, newObjectPointer.MakeGenericInstanceMethod(instantiatedType));
+                            instructions.Add(OpCodes.Call, type.PointerConstructor!.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        }
+
+                        LocalVariable? valueTypeLocal;
+                        if (method.IsStatic)
+                        {
+                            valueTypeLocal = null;
+                        }
+                        else if (type.IsValueType)
+                        {
+                            valueTypeLocal = new(byReference.MakeGenericInstanceType([instantiatedType]));
+
+                            instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(instantiatedType));
+                            instructions.Add(OpCodes.Conv_U);
+                            instructions.Add(OpCodes.Localloc);
+                            instructions.Add(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [instantiatedType], []));
+                            instructions.Add(OpCodes.Stloc, valueTypeLocal);
+
+                            instructions.Add(OpCodes.Ldloca, valueTypeLocal);
+                            instructions.Add(OpCodes.Call, byReference_Clear.MakeConcreteGeneric([instantiatedType], []));
+                        }
+                        else
+                        {
+                            valueTypeLocal = null;
+                        }
+
+                        LocalVariable[] localVariables;
+                        Span<LocalVariable> parameterLocals;
+                        if (valueTypeLocal is not null)
+                        {
+                            localVariables = new LocalVariable[method.Parameters.Count + 1];
+                            localVariables[0] = valueTypeLocal;
+                            parameterLocals = localVariables.AsSpan(1);
+                        }
+                        else
+                        {
+                            localVariables = new LocalVariable[method.Parameters.Count];
+                            parameterLocals = localVariables;
+                        }
+
+                        for (var i = 0; i < method.Parameters.Count; i++)
+                        {
+                            var parameter = method.Parameters[i];
+                            var parameterLocal = new LocalVariable(byReference.MakeGenericInstanceType([parameter.ParameterType]));
+                            parameterLocals[i] = parameterLocal;
+
+                            instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
+                            instructions.Add(OpCodes.Conv_U);
+                            instructions.Add(OpCodes.Localloc);
+                            instructions.Add(OpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([parameter.ParameterType], []));
+                            instructions.Add(OpCodes.Stloc, parameterLocal);
+
+                            instructions.Add(OpCodes.Ldloca, parameterLocal);
+                            instructions.Add(OpCodes.Ldarg, parameter);
+                            instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
+                        }
+
+                        if (valueTypeLocal is not null)
+                        {
+                            instructions.Add(OpCodes.Ldloca, valueTypeLocal);
+                            instructions.Add(OpCodes.Call, byReference_ToPointer.MakeConcreteGeneric([instantiatedType], []));
+                        }
+                        else if (!method.IsStatic)
+                        {
+                            instructions.Add(OpCodes.Ldarg, This.Instance);
+                            instructions.Add(OpCodes.Call, iil2CppObjectBase_get_Pointer);
+                            instructions.Add(OpCodes.Conv_U);
+                        }
+
+                        foreach (var parameterLocal in parameterLocals)
+                        {
+                            instructions.Add(OpCodes.Ldloc, parameterLocal);
+                        }
+
+                        instructions.Add(OpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+
+                        if (valueTypeLocal is not null)
+                        {
+                            instructions.Add(OpCodes.Ldloca, valueTypeLocal);
+                            instructions.Add(OpCodes.Ldarg, This.Instance);
+                            instructions.Add(OpCodes.Call, byReference_CopyTo.MakeConcreteGeneric([instantiatedType], []));
+                        }
+
+                        instructions.Add(OpCodes.Ret);
+
+                        method.PutExtraData(new NativeMethodBody()
+                        {
+                            Instructions = instructions,
+                            LocalVariables = localVariables,
                         });
                     }
                 }

@@ -125,7 +125,7 @@ public UnstrippedClass(ObjectPointer ptr) : base(ptr)
 {
 }
 
-public UnstrippedClass() : this(NewPointer()) // NewPointer() is an irrelevant implementation detail.
+public UnstrippedClass() : this(IL2CPP.NewObjectPointer<UnstrippedClass>())
 {
     void* obj = this.Pointer;
     Unsafe_Constructor(obj);
@@ -150,7 +150,7 @@ public static void Unsafe_Constructor(void* obj)
 
 public static Class Unsafe_Create()
 {
-    Class c = new(NewPointer());
+    Class c = new(IL2CPP.NewObjectPointer<Class>());
     void* obj = c.Pointer;
     Unsafe_Constructor(obj);
     return c;
