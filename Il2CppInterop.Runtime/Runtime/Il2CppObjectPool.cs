@@ -23,7 +23,7 @@ public static class Il2CppObjectPool
         Remove(ptr);
     }
 
-    public static void InternWeak(Il2CppObjectBase obj)
+    public static void Intern(Il2CppObjectBase obj)
     {
         IntPtr ptr = obj.Pointer;
         obj.pooledPtr = ptr;
@@ -32,7 +32,7 @@ public static class Il2CppObjectPool
 
     public static T Get<T>(IntPtr ptr)
     {
-        if (ptr == IntPtr.Zero || Il2CppFinalizers.s_dying.ContainsKey(ptr))
+        if (ptr == IntPtr.Zero)
         {
             return default!;
         }

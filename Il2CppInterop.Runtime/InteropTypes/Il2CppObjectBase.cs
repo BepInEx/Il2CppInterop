@@ -1,23 +1,14 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime;
-using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
-
-public enum Il2CppObjectFinalizerState
-{
-    Free = 0,
-    Glued = 1,
-}
 
 public class Il2CppObjectBase
 {
     internal bool isWrapped;
     internal IntPtr pooledPtr;
-    internal Il2CppObjectFinalizerState finalizerState;
 
     private bool wasDestroyed;
     private nint myGcHandle;
@@ -29,14 +20,7 @@ public class Il2CppObjectBase
 
     ~Il2CppObjectBase()
     {
-        switch (finalizerState)
-        {
-            case Il2CppObjectFinalizerState.Free:
-                Il2CppObjectPool.Free(myGcHandle, pooledPtr);
-                break;
-            case Il2CppObjectFinalizerState.Glued:
-                throw new NotSupportedException("Object was garbage collected too early. Perhaps GC.ReRegisterForFinalize was incorrectly called?");
-        }
+        Il2CppObjectPool.Free(myGcHandle, pooledPtr);
     }
 
     public IntPtr ObjectClass => IL2CPP.il2cpp_object_get_class(Pointer);
@@ -72,16 +56,24 @@ public class Il2CppObjectBase
             return;
 
         myGcHandle = IL2CPP.il2cpp_gchandle_new(objHdl, false);
+
         isWrapped = true;
     }
 
-    internal FinalizerContainer CreateFinalizerContainer()
+    internal static void Downgrade(Il2CppObjectBase obj)
     {
-        return new FinalizerContainer()
-        {
-            gcHandle = myGcHandle,
-            ptr = Pointer,
-        };
+        nint strong = obj.myGcHandle;
+        obj.myGcHandle = IL2CPP.il2cpp_gchandle_new_weakref(obj.Pointer, false);
+        IL2CPP.il2cpp_gchandle_free(strong);
+    }
+
+    internal static void Upgrade(Il2CppObjectBase obj)
+    {
+        nint weak = obj.myGcHandle;
+        obj.myGcHandle = IL2CPP.il2cpp_gchandle_new(obj.Pointer, false);
+        IL2CPP.il2cpp_gchandle_free(weak);
+        Il2CppObjectPool.Intern(obj);
+
     }
 
     public T Cast<T>() where T : Il2CppObjectBase
@@ -120,5 +112,10 @@ public class Il2CppObjectBase
             return null;
 
         return Il2CppObjectInitializer.New<T>(Pointer);
+    }
+
+    public static void Resurrect(Il2CppObjectBase obj)
+    {
+        Upgrade(obj);
     }
 }

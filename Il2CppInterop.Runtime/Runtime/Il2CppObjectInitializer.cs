@@ -1,13 +1,12 @@
 using System;
-using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
-using Il2CppInterop.Runtime.Runtime;
+
+namespace Il2CppInterop.Runtime.Runtime;
 
 internal static class Il2CppObjectInitializer
 {
@@ -16,10 +15,12 @@ internal static class Il2CppObjectInitializer
         return InitializerStore<T>.Initialize(ptr);
     }
 
-    /// <summary> Identical to <code>New</code> except skipping the glue code for injected finalizers.</summary>
-    internal static T NewWithoutGlue<T>(IntPtr ptr) where T : Il2CppObjectBase
+    /// <summary>
+    /// Creates a proxy to a new <c>T</c> without holding a strong handle.
+    /// </summary>
+    internal static T NewWeak<T>(IntPtr ptr) where T : Il2CppObjectBase
     {
-        return InitializerStore<T>.InitializeWithoutGlue(ptr);
+        return InitializerStore<T>.InitializeWeak(ptr);
     }
 
     private static readonly MethodInfo _getUninitializedObject = typeof(RuntimeHelpers).GetMethod(nameof(RuntimeHelpers.GetUninitializedObject))!;
@@ -69,20 +70,18 @@ internal static class Il2CppObjectInitializer
         EmitGCHandling(il, type, false);
     }
 
-    private static readonly MethodInfo _internWeak = typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.InternWeak))!;
-    private static readonly MethodInfo _glue = typeof(Il2CppFinalizers).GetMethod(nameof(Il2CppFinalizers.FinalizerGlue), BindingFlags.NonPublic | BindingFlags.Static)!;
+    private static readonly MethodInfo _intern = typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Intern))!;
+    private static readonly MethodInfo _downgrade = typeof(Il2CppObjectBase).GetMethod(nameof(Il2CppObjectBase.Downgrade), BindingFlags.NonPublic | BindingFlags.Static)!;
 
-    private static void EmitGCHandling(ILGenerator il, Type type, bool useGlue)
+    private static void EmitGCHandling(ILGenerator il, Type type, bool weak)
     {
-        if (useGlue && ClassInjector.IsTypeManuallyFinalizable(type))
+        if (!weak)
         {
-            il.Emit(OpCodes.Dup);
-            il.Emit(OpCodes.Call, _internWeak);
-            il.Emit(OpCodes.Call, _glue);
+            il.Emit(OpCodes.Call, _intern);
         }
         else
         {
-            il.Emit(OpCodes.Call, _internWeak);
+            il.Emit(OpCodes.Call, _downgrade);
         }
     }
 
@@ -109,10 +108,10 @@ internal static class Il2CppObjectInitializer
 
         public static Initializer? initialize;
         public static Initializer? initializeWithoutGlue;
-        public static Initializer Initialize => initialize ??= Create(true);
-        public static Initializer InitializeWithoutGlue => initializeWithoutGlue ??= Create(false);
+        public static Initializer Initialize => initialize ??= Create(false);
+        public static Initializer InitializeWeak => initializeWithoutGlue ??= Create(true);
 
-        private static Initializer Create(bool useGlue)
+        private static Initializer Create(bool weak)
         {
             var type = Il2CppClassPointerStore<T>.CreatedTypeRedirect ?? typeof(T);
 
@@ -121,7 +120,7 @@ internal static class Il2CppObjectInitializer
                 .Where(ClassInjector.IsFieldEligible)
                 .ToArray();
 
-            string methodName = useGlue ? "Initialize" : "InitializeWithoutGlue";
+            string methodName = weak ? "InitializeWeak" : "Initialize";
             var dynamicMethod = new DynamicMethod($"{methodName}<{typeof(T).AssemblyQualifiedName}>", type, _intPtrTypeArray);
             dynamicMethod.DefineParameter(0, ParameterAttributes.None, "pointer");
 
@@ -129,46 +128,10 @@ internal static class Il2CppObjectInitializer
             EmitCtorCall(il, type);
             EmitFieldInitialization(il, type, fieldsToInitialize);
             il.Emit(OpCodes.Dup);
-            EmitGCHandling(il, type, useGlue);
+            EmitGCHandling(il, type, weak);
             il.Emit(OpCodes.Ret);
 
             return dynamicMethod.CreateDelegate<Initializer>();
         }
     }
 }
-
-// NB: Since a managed object might be garbage collected before its unmanaged counterpart is ready,
-//     we need another object (this one) to handle the cleanup.
-//     The objects' lifetimes are linked by the s_finalizers ephemeron on Il2CppFinalizers.
-internal class FinalizerContainer
-{
-    public nint gcHandle;
-    public IntPtr ptr;
-
-    ~FinalizerContainer()
-    {
-        Il2CppObjectPool.Free(gcHandle, ptr);
-    }
-}
-
-internal static class Il2CppFinalizers
-{
-    internal static readonly ConcurrentDictionary<IntPtr, byte> s_dying = new();
-    internal static readonly ConditionalWeakTable<Il2CppObjectBase, FinalizerContainer> s_ephemeron = new();
-
-    internal static void RunFinalizer<T>(IntPtr ptr) where T : Il2CppObjectBase
-    {
-        T ephemeral = Il2CppObjectInitializer.NewWithoutGlue<T>(ptr);
-        Action<T> finalize = (Action<T>)ClassInjector.ManualFinalizeCache[typeof(T)];
-        finalize(ephemeral);
-        GC.SuppressFinalize(ephemeral);
-    }
-
-    internal static void FinalizerGlue(Il2CppObjectBase obj)
-    {
-        s_ephemeron.Add(obj, obj.CreateFinalizerContainer());
-        obj.finalizerState = Il2CppObjectFinalizerState.Glued;
-        GC.SuppressFinalize(obj);
-    }
-}
-

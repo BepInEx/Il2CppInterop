@@ -403,7 +403,7 @@ public static class DelegateSupport
             s_storedDelegates[methodInfo] = referencedDelegate;
         }
 
-        ~Il2CppToMonoDelegateReference()
+        private void Il2CppFinalize()
         {
             Marshal.FreeHGlobal(MethodInfo);
             MethodInfo.Set(IntPtr.Zero);

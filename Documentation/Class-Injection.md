@@ -55,13 +55,13 @@ public class MyClass : SomeIL2CPPClass
 {
     // Used by IL2CPP when creating new instances of this class
     public MyClass(IntPtr ptr) : base(ptr) { }
-    
+
     // Used by managed code when creating new instances of this class
     public MyClass() : base(ClassInjector.DerivedConstructorPointer<MyClass>())
     {
         ClassInjector.DerivedConstructorBody(this);
     }
-    
+
     // Any other methods
 }
 
@@ -110,7 +110,8 @@ class Foo : Il2CppSystem.Object
     {
         ClassInjector.DerivedConstructorBody(this);
     }
-    ~Foo()
+
+    private void Il2CppFinalize()
     {
         // ...
     }

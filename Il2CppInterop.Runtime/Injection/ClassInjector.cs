@@ -63,6 +63,17 @@ public class RegisterTypeOptions
     public Il2CppInterfaceCollection? Interfaces { get; init; } = null;
 }
 
+internal record FinalizerChain(Delegate finalizer, FinalizerChain? next)
+{
+    public FinalizerChain? next = next;
+
+    public void Execute<T>(T obj) where T : Il2CppObjectBase
+    {
+        ((Action<T>)finalizer)(obj);
+        next?.Execute<T>(obj);
+    }
+}
+
 public static unsafe partial class ClassInjector
 {
     /// <summary> type.FullName </summary>
@@ -74,7 +85,7 @@ public static unsafe partial class ClassInjector
 
     private static readonly ConcurrentDictionary<string, Delegate> InvokerCache = new();
     private static readonly ConcurrentDictionary<Type, InjectedInitializationDelegate> DerivedConstructorBodyCache = new();
-    internal static readonly ConcurrentDictionary<Type, Delegate> ManualFinalizeCache = new();
+    internal static readonly ConcurrentDictionary<Type, FinalizerChain?> FinalizerChainCache = new();
 
     private static readonly ConcurrentDictionary<(Type type, FieldAttributes attrs), IntPtr>
         _injectedFieldTypes = new();
@@ -209,19 +220,30 @@ public static unsafe partial class ClassInjector
                     $"Type with FullName {type.FullName} is already injected. Don't inject the same type twice, or use a different namespace");
         }
 
-        MethodInfo? DiscernIfTypeIsManuallyFinalizable(Type type)
+        static void InternFinalizerChain(Type? type)
         {
-            if (type == typeof(Il2CppObjectBase))
-                return null;
-            if (type.GetMethod("Finalize", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly) is MethodInfo m)
-                return m;
-            return type.BaseType != null ? DiscernIfTypeIsManuallyFinalizable(type.BaseType) : null;
+            FinalizerChain? last = null;
+            while (type != null)
+            {
+                if (FinalizerChainCache.TryGetValue(type, out FinalizerChain? next))
+                {
+                    if (last != null) last.next = next;
+                    break;
+                }
+
+                if (type.GetMethod("Il2CppFinalize", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly) is MethodInfo m)
+                {
+                    next = new(m.CreateDelegate(typeof(Action<>).MakeGenericType(type)), last);
+                    if (last != null) last.next = next;
+                    FinalizerChainCache[type] = next;
+                    last = next;
+                }
+
+                type = type.BaseType;
+            }
         }
 
-        if (DiscernIfTypeIsManuallyFinalizable(type) is MethodInfo finalize)
-        {
-            ManualFinalizeCache[type] = finalize.CreateDelegate(typeof(Action<>).MakeGenericType(type));
-        }
+        InternFinalizerChain(type);
 
         var interfaceFunctionCount = interfaces.Sum(i => i.MethodCount);
         var classPointer = UnityVersionHandler.NewClass(baseClassPointer.VtableCount + interfaceFunctionCount);
@@ -737,7 +759,13 @@ public static unsafe partial class ClassInjector
 
     internal static bool IsTypeManuallyFinalizable(Type targetType)
     {
-        return ManualFinalizeCache.ContainsKey(targetType);
+        return FinalizerChainCache.ContainsKey(targetType);
+    }
+
+    private static void RunFinalizer<T>(IntPtr ptr) where T : Il2CppObjectBase
+    {
+        T ephemeral = Il2CppObjectInitializer.NewWeak<T>(ptr);
+        ClassInjector.FinalizerChainCache[typeof(T)]!.Execute(ephemeral);
     }
 
     private static VoidCtorDelegate CreateFinalizeMethod(Type targetType)
@@ -753,7 +781,7 @@ public static unsafe partial class ClassInjector
         // Finalize from within the object pool:
         body.Emit(OpCodes.Ldarg_0);
         body.Emit(OpCodes.Call,
-            typeof(Il2CppFinalizers).GetMethod(nameof(Il2CppFinalizers.RunFinalizer),
+            typeof(ClassInjector).GetMethod(nameof(ClassInjector.RunFinalizer),
                     BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(targetType));
 
         // Catch any exceptions:
