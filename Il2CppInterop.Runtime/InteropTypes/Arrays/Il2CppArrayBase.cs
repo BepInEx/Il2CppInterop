@@ -9,10 +9,7 @@ namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
 public abstract class Il2CppArrayBase : Il2CppSystem.Array, IEnumerable, ICollection
 {
-    private protected Il2CppArrayBase(IntPtr pointer) : base(pointer)
-    {
-    }
-    private protected Il2CppArrayBase(ObjectPointer pointer) : base((nint)pointer)
+    private protected Il2CppArrayBase(ObjectPointer pointer) : base(pointer)
     {
     }
 
@@ -81,9 +78,6 @@ public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyLis
             return;
 
         Il2CppClassPointerStore<Il2CppArrayBase<T>>.NativeClassPtr = targetClassType;
-    }
-    public Il2CppArrayBase(IntPtr pointer) : base(pointer)
-    {
     }
     public Il2CppArrayBase(ObjectPointer pointer) : base(pointer)
     {
@@ -212,10 +206,7 @@ public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyLis
     [return: NotNullIfNotNull(nameof(arr))]
     public static explicit operator Il2CppArrayBase<T>?(T[]? arr)
     {
-        if (arr == null)
-            return null;
-
-        return new Il2CppArrayBase<T>(arr);
+        return arr is null ? null : new Il2CppArrayBase<T>(arr);
     }
 
     public static explicit operator Il2CppArrayBase<T>?(ReadOnlySpan<T> arr)
@@ -228,16 +219,15 @@ public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyLis
         return new Il2CppArrayBase<T>(arr);
     }
 
-    private static IntPtr AllocateArray(long size)
+    private static ObjectPointer AllocateArray(long size)
     {
-        if (size < 0)
-            throw new ArgumentOutOfRangeException(nameof(size), "Array size must not be negative");
+        ArgumentOutOfRangeException.ThrowIfNegative(size);
 
         var elementTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
         if (elementTypeClassPointer == IntPtr.Zero)
             throw new ArgumentException(
-                $"{nameof(Il2CppArrayBase<T>)} requires an Il2Cpp type, which {typeof(T)} isn't");
-        return IL2CPP.il2cpp_array_new(elementTypeClassPointer, (ulong)size);
+                $"{nameof(Il2CppArrayBase<>)} requires an Il2Cpp type, which {typeof(T)} isn't");
+        return (ObjectPointer)IL2CPP.il2cpp_array_new(elementTypeClassPointer, (ulong)size);
     }
 
     private sealed class IndexEnumerator : IEnumerator<T>

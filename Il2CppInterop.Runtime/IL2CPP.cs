@@ -413,7 +413,7 @@ public static unsafe class IL2CPP
     public static extern IntPtr il2cpp_array_new_specific(IntPtr arrayTypeInfo, ulong length);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern IntPtr il2cpp_array_new_full(IntPtr array_class, ref ulong lengths, ref ulong lower_bounds);
+    public static extern IntPtr il2cpp_array_new_full(IntPtr array_class, ulong* lengths, ulong* lower_bounds);
 
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr il2cpp_bounded_array_class_get(IntPtr element_class, uint rank,
