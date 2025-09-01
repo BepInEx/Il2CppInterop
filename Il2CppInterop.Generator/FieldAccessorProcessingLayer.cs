@@ -2,7 +2,9 @@
 using System.Reflection;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
+using Cpp2IL.Core.Model.CustomAttributes;
 using Il2CppInterop.Generator.Operands;
+using Il2CppInterop.Runtime.Attributes;
 using Il2CppInterop.Runtime.InteropTypes;
 
 namespace Il2CppInterop.Generator;
@@ -24,6 +26,12 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
             ? setInstanceFieldValue_Wbarrior
             : setInstanceFieldValue_Pointer;
 
+        var il2CppFieldAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppFieldAttribute));
+        var il2CppFieldAttributeConstructor = il2CppFieldAttribute.GetMethodByName(".ctor");
+
+        var il2CppMemberAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppMemberAttribute));
+        var il2CppMemberAttributeName = il2CppMemberAttribute.GetPropertyByName(nameof(Il2CppMemberAttribute.Name));
+
         foreach (var assembly in appContext.Assemblies)
         {
             if (assembly.IsReferenceAssembly || assembly.IsInjected)
@@ -34,12 +42,11 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                 if (type.IsInjected)
                     continue;
 
-                var fields = type.IsValueType
-                    ? type.Fields.Where(f => f.IsStatic).ToArray()
-                    : type.Fields.ToArray();
+                var isValueType = type.IsValueType;
 
-                foreach (var field in fields)
+                for (var i = type.Fields.Count - 1; i >= 0; i--)
                 {
+                    var field = type.Fields[i];
                     if (field.ConstantValue is not null)
                     {
                         Debug.Assert(field.IsStatic);
@@ -48,6 +55,22 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
 
                     if (field.IsInjected)
                         continue;
+
+                    if (isValueType && !field.IsStatic)
+                    {
+                        // Instance fields in value types do not get converted into properties.
+
+                        var attribute = new AnalyzedCustomAttribute(il2CppFieldAttributeConstructor);
+                        if (field.Name != field.DefaultName)
+                        {
+                            var parameter = new CustomAttributePrimitiveParameter(field.DefaultName, attribute, CustomAttributeParameterKind.Property, 0);
+                            attribute.Properties.Add(new CustomAttributeProperty(il2CppMemberAttributeName, parameter));
+                        }
+                        field.CustomAttributes ??= new(1);
+                        field.CustomAttributes.Add(attribute);
+
+                        continue;
+                    }
 
                     var methodAttributes = field.IsStatic
                         ? MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Static
@@ -132,13 +155,23 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                         field.DeclaringType)
                     {
                         IsInjected = true,
+                        OriginalField = field,
                     };
+                    field.PropertyAccessor = property;
                     field.DeclaringType.Properties.Add(property);
 
-                    property.OriginalField = field;
-                    field.PropertyAccessor = property;
+                    // Il2CppFieldAttribute
+                    {
+                        var attribute = new AnalyzedCustomAttribute(il2CppFieldAttributeConstructor);
+                        if (property.Name != field.DefaultName)
+                        {
+                            var parameter = new CustomAttributePrimitiveParameter(field.DefaultName, attribute, CustomAttributeParameterKind.Property, 0);
+                            attribute.Properties.Add(new CustomAttributeProperty(il2CppMemberAttributeName, parameter));
+                        }
+                        property.CustomAttributes = [attribute];
+                    }
 
-                    field.DeclaringType.Fields.Remove(field);
+                    field.DeclaringType.Fields.RemoveAt(i);
                 }
             }
         }

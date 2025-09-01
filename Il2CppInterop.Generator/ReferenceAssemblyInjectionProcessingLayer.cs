@@ -2,6 +2,7 @@
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.Attributes;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
@@ -40,6 +41,12 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(IIl2CppException),
             typeof(RuntimeInvokeHelper),
             typeof(Il2CppTypeHelper),
+
+            typeof(Il2CppMemberAttribute),
+            typeof(Il2CppMethodAttribute),
+            typeof(Il2CppFieldAttribute),
+            typeof(Il2CppPropertyAttribute),
+            typeof(Il2CppEventAttribute),
 
             // Because of ClassInjector
             typeof(RegisterTypeOptions),

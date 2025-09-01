@@ -125,15 +125,7 @@ internal static class TypeAnalysisContextExtensions
 
         public FieldAnalysisContext GetFieldByName(string? name)
         {
-            for (var i = type.Fields.Count - 1; i >= 0; i--)
-            {
-                var field = type.Fields[i];
-                if (field.Name == name)
-                {
-                    return field;
-                }
-            }
-            throw new Exception($"Field {name} not found in type {type.Name}");
+            return type.TryGetFieldByName(name) ?? throw new Exception($"Field {name} not found in type {type.Name}");
         }
 
         public FieldAnalysisContext? TryGetFieldByName(string? name)
@@ -155,19 +147,28 @@ internal static class TypeAnalysisContextExtensions
             return field is not null;
         }
 
-        public bool TryGetPropertyByName(string? name, [NotNullWhen(true)] out PropertyAnalysisContext? property)
+        public PropertyAnalysisContext GetPropertyByName(string? name)
+        {
+            return type.TryGetPropertyByName(name) ?? throw new Exception($"Property {name} not found in type {type.Name}");
+        }
+
+        public PropertyAnalysisContext? TryGetPropertyByName(string? name)
         {
             for (var i = type.Properties.Count - 1; i >= 0; i--)
             {
-                var prop = type.Properties[i];
-                if (prop.Name == name)
+                var property = type.Properties[i];
+                if (property.Name == name)
                 {
-                    property = prop;
-                    return true;
+                    return property;
                 }
             }
-            property = null;
-            return false;
+            return null;
+        }
+
+        public bool TryGetPropertyByName(string? name, [NotNullWhen(true)] out PropertyAnalysisContext? property)
+        {
+            property = type.TryGetPropertyByName(name);
+            return property is not null;
         }
 
         public MethodAnalysisContext GetImplicitConversionFrom(TypeAnalysisContext sourceType)

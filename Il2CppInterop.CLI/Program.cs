@@ -28,7 +28,9 @@ Il2CppGame.Process(
         new MarshallingProcessingLayer(),
         new PrimitiveImplicitConversionProcessingLayer(),
         new EnumProcessingLayer(),
+        new MemberAttributeProcessingLayer(),
         new FieldAccessorProcessingLayer(),
+        new EventProcessingLayer(),
         new ExceptionHierarchyProcessingLayer(),
         new MethodBodyTranslationProcessingLayer(),
         new NativeMethodBodyProcessingLayer(),
@@ -49,7 +51,6 @@ Todo:
 - ICall runtime delegate creation
 - System interfaces
 - Multidimensional arrays https://github.com/js6pak/libil2cpp-archive/blob/90c6b7ed1c291d54b257d751a4d743d07dea8d62/vm/Array.cpp#L273-L286
-- Attributes marking Il2Cpp members
 - Improve ByReference<T> and Pointer<T> semantics in unstripped methods
 - overloads with arrays, delegates, primitives
 */
