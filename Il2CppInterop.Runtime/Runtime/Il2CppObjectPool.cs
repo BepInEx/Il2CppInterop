@@ -7,7 +7,7 @@ namespace Il2CppInterop.Runtime.Runtime;
 
 public static class Il2CppObjectPool
 {
-    public static bool DisableCaching { get; set; }
+    internal static bool DisableCaching { get; set; }
 
     private static readonly ConcurrentDictionary<IntPtr, WeakReference<Il2CppObjectBase>> s_cache = new();
 
