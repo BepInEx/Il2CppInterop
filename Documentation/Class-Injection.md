@@ -100,7 +100,7 @@ var someInstance = new MyClass(pointer);
 
 <details>
 <summary>A detailed example of finalizer behavior for injected classes</summary>
-<br>The new managed instance has its `Il2CppFinalize` method called
+<br>
 
 Consider the following example:
 
