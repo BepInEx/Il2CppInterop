@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Cpp2IL.Core.Model.Contexts;
 
 namespace Il2CppInterop.Generator;
@@ -6,6 +7,22 @@ namespace Il2CppInterop.Generator;
 internal class TypeReplacementVisitor(Dictionary<TypeAnalysisContext, TypeAnalysisContext> replacements) : DefaultTypeVisitor<TypeAnalysisContext>
 {
     private readonly Dictionary<TypeAnalysisContext, TypeAnalysisContext> _replacements = replacements;
+
+    public static TypeReplacementVisitor CreateForMethodCopying(MethodAnalysisContext source, MethodAnalysisContext destination)
+    {
+        Debug.Assert(source.GenericParameters.Count == destination.GenericParameters.Count);
+        Debug.Assert(source.DeclaringType == destination.DeclaringType);
+        if (source.GenericParameters.Count == 0)
+            return new([]);
+
+        var replacements = new Dictionary<TypeAnalysisContext, TypeAnalysisContext>(source.GenericParameters.Count);
+        for (var i = source.GenericParameters.Count - 1; i >= 0; i--)
+        {
+            replacements.Add(source.GenericParameters[i], destination.GenericParameters[i]);
+        }
+
+        return new TypeReplacementVisitor(replacements);
+    }
 
     [return: NotNullIfNotNull(nameof(type))]
     public TypeAnalysisContext? Replace(TypeAnalysisContext? type)

@@ -76,7 +76,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             invoker.GenericParameters.Add(new GenericParameterTypeAnalysisContext(gp.Name, gp.Index, gp.Type, gp.Attributes, invoker));
                         }
 
-                        TypeReplacementVisitor visitor = new(Enumerable.Range(0, method.GenericParameters.Count).ToDictionary<int, TypeAnalysisContext, TypeAnalysisContext>(i => method.GenericParameters[i], i => invoker.GenericParameters[i]));
+                        var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, invoker);
 
                         for (var i = 0; i < method.GenericParameters.Count; i++)
                         {

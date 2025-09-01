@@ -61,7 +61,7 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
                         newMethod.GenericParameters.Add(new GenericParameterTypeAnalysisContext(gp.Name, gp.Index, gp.Type, gp.Attributes, newMethod));
                     }
 
-                    TypeReplacementVisitor visitor = new(Enumerable.Range(0, method.GenericParameters.Count).ToDictionary<int, TypeAnalysisContext, TypeAnalysisContext>(i => method.GenericParameters[i], i => newMethod.GenericParameters[i]));
+                    var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, newMethod);
 
                     for (var i = 0; i < method.GenericParameters.Count; i++)
                     {
