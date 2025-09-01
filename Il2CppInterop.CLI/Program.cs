@@ -14,6 +14,7 @@ Il2CppGame.Process(
         new UnstripProcessingLayer(), // Can be disabled for performance during development
         new Il2CppRenamingProcessingLayer(),
         new CleanRenamingProcessingLayer(),
+        new ConflictRenamingProcessingLayer(),
         new AttributesOverrideProcessingLayer(),
         new PublicizerProcessingLayer(),
         new MscorlibAssemblyInjectionProcessingLayer(),
@@ -49,7 +50,6 @@ Todo:
 - System interfaces
 - Multidimensional arrays https://github.com/js6pak/libil2cpp-archive/blob/90c6b7ed1c291d54b257d751a4d743d07dea8d62/vm/Array.cpp#L273-L286
 - Attributes marking Il2Cpp members
-- Finalizers might need renamed/removed
 - Improve ByReference<T> and Pointer<T> semantics in unstripped methods
 - overloads with arrays, delegates, primitives
 */
