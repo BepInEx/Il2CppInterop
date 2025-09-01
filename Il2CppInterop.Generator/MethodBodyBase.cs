@@ -63,7 +63,7 @@ public abstract class MethodBodyBase
             var instruction = Instructions[i];
             var operand = instruction.Operand switch
             {
-                This => method.Parameters.ThisParameter,
+                This => method.Parameters.ThisParameter ?? throw new NullReferenceException("This parameter should not be null."),
                 LocalVariable localVariable => localVariableMap[localVariable],
                 TypeAnalysisContext type => type.ToTypeSignature(module).ToTypeDefOrRef(),
                 MethodAnalysisContext methodOperand => methodOperand.ToMethodDescriptor(module),
