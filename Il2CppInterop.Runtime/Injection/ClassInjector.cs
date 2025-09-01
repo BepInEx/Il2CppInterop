@@ -236,7 +236,7 @@ public static unsafe partial class ClassInjector
                     break;
                 }
 
-                if (type.GetMethod("Il2CppFinalize", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly) is MethodInfo m)
+                if (type.GetMethod("Il2CppFinalize", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly, new Type[0]) is MethodInfo m)
                 {
                     next = new(m.CreateDelegate(typeof(Action<>).MakeGenericType(type)), last);
                     if (last != null) last.next = next;
