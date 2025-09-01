@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using AsmResolver.PE.DotNet.Cil;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Generator.Operands;
@@ -11,32 +10,18 @@ namespace Il2CppInterop.Generator;
 
 public class TranslatedMethodBody : MethodBodyBase
 {
-    public static bool MaybeStoreTranslatedMethodBody(MethodAnalysisContext method)
-    {
-        if (TryTranslateOriginalMethodBody(method, out var translatedMethodBody))
-        {
-            method.PutExtraData(translatedMethodBody);
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
     // Notes:
     //
     // There are subtle flaws in this implementation, in regards to exception handling.
     // Certain instructions (eg `castclass` and `callvirt`) can throw exceptions.
     // These exceptions will have System types, not Il2Cpp types.
     //
-    // 
+    //
 
-    private static bool TryTranslateOriginalMethodBody(MethodAnalysisContext methodContext, [NotNullWhen(true)] out TranslatedMethodBody? translatedMethodBody)
+    public static bool TryTranslateOriginalMethodBody(MethodAnalysisContext methodContext)
     {
         if (!methodContext.TryGetExtraData(out OriginalMethodBody? originalMethodBody))
         {
-            translatedMethodBody = null;
             return false;
         }
 
@@ -75,7 +60,7 @@ public class TranslatedMethodBody : MethodBodyBase
                 switch (originalCode.Code)
                 {
                     case CilCode.Arglist:
-                        return False(out translatedMethodBody);
+                        return false;
 
                     case CilCode.Ldlen:
                         // This is Il2CppArrayBase.Length
@@ -274,11 +259,11 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     case CilCode.Ldelem_Ref:
                         // This is Il2CppReferenceArray<T>.get_Item but the T is not known because the operand is null.
-                        return False(out translatedMethodBody);
+                        return false;
 
                     case CilCode.Stelem_Ref:
                         // This is Il2CppReferenceArray<T>.set_Item but the T is not known because the operand is null.
-                        return False(out translatedMethodBody);
+                        return false;
 
                     case >= CilCode.Ldind_I1 and < CilCode.Ldind_Ref:
                         // This is for by ref and pointers
@@ -286,11 +271,11 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     case CilCode.Ldind_Ref:
                         // This is for by ref and pointers
-                        return False(out translatedMethodBody);
+                        return false;
 
                     case CilCode.Stind_Ref:
                         // This is for by ref and pointers
-                        return False(out translatedMethodBody);
+                        return false;
 
                     case > CilCode.Stind_Ref and <= CilCode.Stind_R8:
                         // This is for by ref and pointers
@@ -298,7 +283,7 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     case CilCode.Refanytype:
                         // Not implemented yet
-                        return False(out translatedMethodBody);
+                        return false;
 
                     case CilCode.Throw:
                         {
@@ -392,7 +377,7 @@ public class TranslatedMethodBody : MethodBodyBase
                 else
                 {
                     Debug.Fail($"Unexpected CIL code: {originalCode}");
-                    return False(out translatedMethodBody);
+                    return false;
                 }
             }
             else if (originalOperand is LocalVariable localVariable)
@@ -428,7 +413,7 @@ public class TranslatedMethodBody : MethodBodyBase
                 else
                 {
                     Debug.Fail($"Unexpected CIL code: {originalCode}");
-                    return False(out translatedMethodBody);
+                    return false;
                 }
             }
             else if (originalOperand is TypeAnalysisContext type)
@@ -444,7 +429,7 @@ public class TranslatedMethodBody : MethodBodyBase
                 {
                     // Not implemented yet
                     // Probably need to use Il2CppTypeHelper.SizeOf to get the correct semantics.
-                    return False(out translatedMethodBody);
+                    return false;
                 }
                 else if (originalCode == OpCodes.Box)
                 {
@@ -486,7 +471,7 @@ public class TranslatedMethodBody : MethodBodyBase
                 else if (originalCode == OpCodes.Newarr)
                 {
                     // Not implemented yet
-                    return False(out translatedMethodBody);
+                    return false;
                 }
                 else if (originalCode == OpCodes.Ldelem)
                 {
@@ -514,17 +499,17 @@ public class TranslatedMethodBody : MethodBodyBase
                 else if (originalCode == OpCodes.Ldelema)
                 {
                     // Not implemented yet
-                    return False(out translatedMethodBody);
+                    return false;
                 }
                 else if (originalCode.Code is CilCode.Mkrefany or CilCode.Refanyval)
                 {
                     // Not implemented yet
-                    return False(out translatedMethodBody);
+                    return false;
                 }
                 else
                 {
                     Debug.Fail($"Unexpected CIL code: {originalCode}");
-                    return False(out translatedMethodBody);
+                    return false;
                 }
             }
             else if (originalOperand is MethodAnalysisContext method)
@@ -562,21 +547,21 @@ public class TranslatedMethodBody : MethodBodyBase
                 else if (originalCode == OpCodes.Ldtoken)
                 {
                     // Not sure this can happen in normal CIL code, but we check for it just in case.
-                    return False(out translatedMethodBody);
+                    return false;
                 }
                 else if (originalCode == OpCodes.Ldftn || originalCode == OpCodes.Ldvirtftn)
                 {
-                    return False(out translatedMethodBody);
+                    return false;
                 }
                 else if (originalCode == OpCodes.Jmp)
                 {
                     // This shouldn't happen in normal CIL code, but we check for it just in case.
-                    return False(out translatedMethodBody);
+                    return false;
                 }
                 else
                 {
                     Debug.Fail($"Unexpected CIL code: {originalCode}");
-                    return False(out translatedMethodBody);
+                    return false;
                 }
             }
             else if (originalOperand is FieldAnalysisContext field)
@@ -602,7 +587,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     else
                     {
                         // This should not occur.
-                        return False(out translatedMethodBody);
+                        return false;
                     }
 
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, field.FieldType);
@@ -629,34 +614,34 @@ public class TranslatedMethodBody : MethodBodyBase
                     else
                     {
                         // This should only occur for special cases like String::_firstChar.
-                        return False(out translatedMethodBody);
+                        return false;
                     }
                 }
                 else if (originalCode == OpCodes.Ldflda || originalCode == OpCodes.Ldsflda)
                 {
                     // Load field address
                     // Not implemented yet
-                    return False(out translatedMethodBody);
+                    return false;
                 }
                 else if (originalCode == OpCodes.Ldtoken)
                 {
                     // Not sure this can happen in normal CIL code, but we check for it just in case.
-                    return False(out translatedMethodBody);
+                    return false;
                 }
                 else
                 {
                     Debug.Fail($"Unexpected CIL code: {originalCode}");
-                    return False(out translatedMethodBody);
+                    return false;
                 }
             }
             else if (originalOperand is MultiDimensionalArrayMethod)
             {
                 // Not implemented yet
-                return False(out translatedMethodBody);
+                return false;
             }
             else
             {
-                return False(out translatedMethodBody);
+                return false;
             }
         }
 
@@ -715,12 +700,12 @@ public class TranslatedMethodBody : MethodBodyBase
             exceptionHandlers[i] = translatedExceptionHandler;
         }
 
-        translatedMethodBody = new TranslatedMethodBody
+        methodContext.PutExtraData(new TranslatedMethodBody
         {
             Instructions = translatedInstructions,
             LocalVariables = localVariableList,
             ExceptionHandlers = exceptionHandlers,
-        };
+        });
         return true;
 
         static ILabel[] ResolveLabels(IReadOnlyList<ILabel> labels, Dictionary<Instruction, Instruction> instructionDictionary)
@@ -740,12 +725,6 @@ public class TranslatedMethodBody : MethodBodyBase
                 return label;
 
             return instructionDictionary[(Instruction)label];
-        }
-
-        static bool False([NotNullWhen(true)] out TranslatedMethodBody? translatedMethodBody)
-        {
-            translatedMethodBody = null;
-            return false;
         }
     }
 

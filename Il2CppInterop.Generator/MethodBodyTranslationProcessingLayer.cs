@@ -14,7 +14,7 @@ public class MethodBodyTranslationProcessingLayer : Cpp2IlProcessingLayer
         var totalCount = 0;
         foreach (var method in appContext.AllTypes.SelectMany(t => t.Methods))
         {
-            var successful = TranslatedMethodBody.MaybeStoreTranslatedMethodBody(method);
+            var successful = TranslatedMethodBody.TryTranslateOriginalMethodBody(method);
             if (successful)
             {
                 successfulCount++;
