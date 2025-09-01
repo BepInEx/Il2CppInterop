@@ -119,6 +119,11 @@ public static unsafe partial class ClassInjector
         return method.CreateDelegate<InjectedInitializationDelegate>();
     }
 
+    public static void ResurrectObject(Il2CppObjectBase obj)
+    {
+        Il2CppObjectBase.Upgrade(obj);
+    }
+
     public static bool IsTypeRegisteredInIl2Cpp<T>() where T : class
     {
         return IsTypeRegisteredInIl2Cpp(typeof(T));

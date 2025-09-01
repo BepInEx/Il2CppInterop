@@ -88,17 +88,19 @@ var someInstance = new MyClass(pointer);
   releasing the strong handle it holds and allowing the underlying unmanaged object to eventually be collected in turn.
   When this occurs, however, the finalizer for the managed instance will not be run,
   delaying execution until the unmanaged object is also ready to be garbage collected.
-* The unmanaged-to-managed mapping is a one-to-many relationship. While during typical execution there will be exactly zero,
-  or exactly one extant managed object, in certain situations, such as when the object pool is disabled, there may be any number.
-* Due to the implementation of finalizers, calling `System.GC.SuppressFinalize` or `System.GC.ReRegisterForFinalize` is invalid
-  for all injected types with finalizers, leading to `ObjectCollectedExeption`s at best, and memory safety issues at worst.
-  The methods on `Il2CppSystem.GC` will always work as intended, however.
-  As a corrolary, once an managed instance is finalized, it is no longer valid,
-  so the "resurrection pattern" is not functional for injected types.
+* The unmanaged-to-managed mapping is a one-to-many relationship.
+  While during typical execution there will be exactly zero, or exactly one extant managed object,
+  in certain situations, such as when the object pool is disabled, there may be any number.#
+* Finalizers are supported for injected classes, but note that the managed injector (`~MyClass`) is not invoked predictably.
+  If you want to implement a custom finalizer, define a `private void Il2CppFinalize()` method on your class (see below).
+* Due to the implementation of finalizers, the "resurrection pattern" does not translate directly to injected types.
+  If you do not call `ClassInjector.ResurrectObject` during an object's finalizer,
+  the unmanaged object will be garbage collected and future use will throw `ObjectCollectedException`s.
+  **NB:** You will still also need to call `Il2CppSystem.GC.ReRegisterForFinalize` if applicable.
 
 <details>
 <summary>A detailed example of finalizer behavior for injected classes</summary>
-<br>
+<br>The new managed instance has its `Il2CppFinalize` method called
 
 Consider the following example:
 
@@ -117,30 +119,38 @@ class Foo : Il2CppSystem.Object
     }
 }
 
+ClassInjector.RegisterTypeInIl2Cpp<Foo>();
+
 Foo foobar = new();
 // ... function ends ...
 ```
 
 In the above example, the events occur in this order:
 
-1. The parameterless `Foo` constructor is called:
+1. `Foo` is injected into the il2cpp domain:
+  * The class injector walks the superclasses of `Foo` and collects all the `Il2CppFinalize` methods.
+  * These finalizers are organised in a chain from subclass to superclass.
+  * The injected class is created with an unmanaged finalizer which we can hook into later.
+2. The parameterless `Foo` constructor is called:
   * An unmanaged instance of the injected class is created.
   * A strong handle to the unmanaged instance is put into the managed instance of `Foo`.
-  * The finalizer of the managed instance itself is suppressed,
-    but a hook is installed to watch for its collection.
-2. The managed instance of `Foo` goes out of scope,
-   allowing the managed instance to be garbage collected (without running its finalizer).
-3. Some time later, the managed instance is collected and the hook is triggered:
-  * The strong handle to the unmanaged instance is released
-  * Assuming no other managed or unmanaged references to the object exist,
+3. The managed instance of `Foo` goes out of scope, allowing this instance to be garbage collected.
+4. Some time later, the managed GC will run its finalizer:
+  * Eventually, the GC reaches the finalizer of `Il2CppObjectBase`
+    where the strong handle to the unmanaged instance is released.
+  * Assuming no other managed or unmanaged references to the unmanaged object exist,
     the unmanaged instance of `Foo` can now be garbage collected.
-4. Before this happens, the unmanaged object's finalizer is called:
-  * A fresh managed instance of `Foo` is created and _its_ finalizer is called directly.
-  * This new managed instance is immediately invalidated and forgotten.
-5. The unmanaged object, which has no extant references, is garbage collected with its managed finalizer having run exactly once.
+  * Here, the managed instance of `Foo` is destroyed by the garbage collector,
+    but the unmanaged instance still exists temporarily.
+5. When the unmanaged GC acknowleges this, the unmanaged object's finalizer is called, firing the hook we installed:
+  * A fresh managed instance of `Foo` is created.
+  * This fresh instance is "downgraded" and its strong handle becomes a weak handle,
+    preventing this instance from blocking the garbage collection of the unmanaged instance.
+  * We follow the links in the finalizer chain, running the user-specified finalization method (finally!).
+6. The unmanaged object, which has no extant references, is garbage collected with its managed finalizer having run exactly once.
 
 Note that this complexity is present only for injected classes with finalizers.
-Injected classes without finalizers are collected following a more standard procedure.
+Injected classes without an `Il2CppFinalize` method are collected without running any hooks.
 
 </details>
 

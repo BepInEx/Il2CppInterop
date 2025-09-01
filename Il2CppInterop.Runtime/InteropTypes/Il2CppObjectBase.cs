@@ -113,9 +113,4 @@ public class Il2CppObjectBase
 
         return Il2CppObjectInitializer.New<T>(Pointer);
     }
-
-    public static void Resurrect(Il2CppObjectBase obj)
-    {
-        Upgrade(obj);
-    }
 }
