@@ -14,8 +14,6 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
     public override string Id => "method_invoker_processor";
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
-        var voidPointerType = appContext.SystemTypes.SystemVoidType.MakePointerType();
-
         var byReference = appContext.ResolveTypeOrThrow(typeof(ByReference<>));
         var byReference_GetValue = byReference.GetMethodByName(nameof(ByReference<>.GetValue));
         var byReference_SetValue = byReference.GetMethodByName(nameof(ByReference<>.SetValue));
@@ -94,7 +92,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         {
                             var newParameter = new InjectedParameterAnalysisContext(
                                 null,
-                                voidPointerType,
+                                byReference.MakeGenericInstanceType([instantiatedType]),
                                 ParameterAttributes.None,
                                 0,
                                 invoker);
@@ -149,37 +147,30 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                         List<Instruction> instructions = new();
 
-                        LocalVariable local;
+                        LocalVariable local = new(byReference.MakeGenericInstanceType([instantiatedType]));
+
+                        instructions.Add(new Instruction(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(instantiatedType)));
+                        instructions.Add(new Instruction(OpCodes.Conv_U));
+                        instructions.Add(new Instruction(OpCodes.Localloc));
+                        instructions.Add(new Instruction(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [instantiatedType], [])));
+                        instructions.Add(new Instruction(OpCodes.Stloc, local));
+
                         if (type.IsValueType)
                         {
-                            local = new(byReference.MakeGenericInstanceType([instantiatedType]));
-
-                            instructions.Add(new Instruction(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(instantiatedType)));
-                            instructions.Add(new Instruction(OpCodes.Conv_U));
-                            instructions.Add(new Instruction(OpCodes.Localloc));
-                            instructions.Add(new Instruction(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [instantiatedType], [])));
-                            instructions.Add(new Instruction(OpCodes.Stloc, local));
-
                             instructions.Add(OpCodes.Ldloca, local);
                             instructions.Add(OpCodes.Call, byReference_Clear.MakeConcreteGeneric([instantiatedType], []));
-
-                            instructions.Add(OpCodes.Ldloca, local);
-                            instructions.Add(OpCodes.Call, byReference_ToPointer.MakeConcreteGeneric([instantiatedType], []));
                         }
                         else
                         {
-                            local = new(instantiatedType);
-
                             Debug.Assert(type.PointerConstructor is not null);
 
+                            instructions.Add(OpCodes.Ldloca, local);
                             instructions.Add(OpCodes.Call, newObjectPointer.MakeGenericInstanceMethod(instantiatedType));
                             instructions.Add(OpCodes.Newobj, type.PointerConstructor!.MaybeMakeConcreteGeneric(type.GenericParameters, []));
-                            instructions.Add(OpCodes.Stloc, local);
-
-                            instructions.Add(OpCodes.Ldloc, local);
-                            instructions.Add(OpCodes.Call, iil2CppObjectBase_get_Pointer);
-                            instructions.Add(OpCodes.Conv_U);
+                            instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([instantiatedType], []));
                         }
+
+                        instructions.Add(OpCodes.Ldloc, local);
 
                         foreach (var parameter in creator.Parameters)
                         {
@@ -188,15 +179,8 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                         instructions.Add(OpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
 
-                        if (type.IsValueType)
-                        {
-                            instructions.Add(OpCodes.Ldloca, local);
-                            instructions.Add(OpCodes.Call, byReference_GetValue.MakeConcreteGeneric([instantiatedType], []));
-                        }
-                        else
-                        {
-                            instructions.Add(OpCodes.Ldloc, local);
-                        }
+                        instructions.Add(OpCodes.Ldloca, local);
+                        instructions.Add(OpCodes.Call, byReference_GetValue.MakeConcreteGeneric([instantiatedType], []));
                         instructions.Add(OpCodes.Ret);
 
                         creator.PutExtraData(new NativeMethodBody()
@@ -219,35 +203,41 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(OpCodes.Call, type.PointerConstructor!.MaybeMakeConcreteGeneric(type.GenericParameters, []));
                         }
 
-                        LocalVariable? valueTypeLocal;
+                        LocalVariable? instanceLocal;
                         if (method.IsStatic)
                         {
-                            valueTypeLocal = null;
+                            instanceLocal = null;
                         }
-                        else if (type.IsValueType)
+                        else
                         {
-                            valueTypeLocal = new(byReference.MakeGenericInstanceType([instantiatedType]));
+                            instanceLocal = new(byReference.MakeGenericInstanceType([instantiatedType]));
 
                             instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(instantiatedType));
                             instructions.Add(OpCodes.Conv_U);
                             instructions.Add(OpCodes.Localloc);
                             instructions.Add(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [instantiatedType], []));
-                            instructions.Add(OpCodes.Stloc, valueTypeLocal);
+                            instructions.Add(OpCodes.Stloc, instanceLocal);
 
-                            instructions.Add(OpCodes.Ldloca, valueTypeLocal);
-                            instructions.Add(OpCodes.Call, byReference_Clear.MakeConcreteGeneric([instantiatedType], []));
-                        }
-                        else
-                        {
-                            valueTypeLocal = null;
+                            if (type.IsValueType)
+                            {
+                                instructions.Add(OpCodes.Ldloca, instanceLocal);
+                                instructions.Add(OpCodes.Ldarg, This.Instance);
+                                instructions.Add(OpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([instantiatedType], []));
+                            }
+                            else
+                            {
+                                instructions.Add(OpCodes.Ldloca, instanceLocal);
+                                instructions.Add(OpCodes.Ldarg, This.Instance);
+                                instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([instantiatedType], []));
+                            }
                         }
 
                         LocalVariable[] localVariables;
                         Span<LocalVariable> parameterLocals;
-                        if (valueTypeLocal is not null)
+                        if (instanceLocal is not null)
                         {
                             localVariables = new LocalVariable[method.Parameters.Count + 1];
-                            localVariables[0] = valueTypeLocal;
+                            localVariables[0] = instanceLocal;
                             parameterLocals = localVariables.AsSpan(1);
                         }
                         else
@@ -273,16 +263,9 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
                         }
 
-                        if (valueTypeLocal is not null)
+                        if (instanceLocal is not null)
                         {
-                            instructions.Add(OpCodes.Ldloca, valueTypeLocal);
-                            instructions.Add(OpCodes.Call, byReference_ToPointer.MakeConcreteGeneric([instantiatedType], []));
-                        }
-                        else if (!method.IsStatic)
-                        {
-                            instructions.Add(OpCodes.Ldarg, This.Instance);
-                            instructions.Add(OpCodes.Call, iil2CppObjectBase_get_Pointer);
-                            instructions.Add(OpCodes.Conv_U);
+                            instructions.Add(OpCodes.Ldloc, instanceLocal);
                         }
 
                         foreach (var parameterLocal in parameterLocals)
@@ -292,9 +275,9 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                         instructions.Add(OpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
 
-                        if (valueTypeLocal is not null)
+                        if (instanceLocal is not null && type.IsValueType)
                         {
-                            instructions.Add(OpCodes.Ldloca, valueTypeLocal);
+                            instructions.Add(OpCodes.Ldloca, instanceLocal);
                             instructions.Add(OpCodes.Ldarg, This.Instance);
                             instructions.Add(OpCodes.Call, byReference_CopyTo.MakeConcreteGeneric([instantiatedType], []));
                         }
