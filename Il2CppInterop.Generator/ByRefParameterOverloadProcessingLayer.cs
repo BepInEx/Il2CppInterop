@@ -14,7 +14,7 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
         var byReference = appContext.ResolveTypeOrThrow(typeof(ByReference<>));
-        var byReference_constructor = byReference.GetMethodByName(".ctor");
+        var byReference_Constructor = byReference.GetMethodByName(".ctor");
         var byReference_CopyFrom = byReference.GetMethodByName(nameof(ByReference<>.CopyFrom));
         var byReference_CopyTo = byReference.GetMethodByName(nameof(ByReference<>.CopyTo));
         var byReference_Clear = byReference.GetMethodByName(nameof(ByReference<>.Clear));
@@ -109,7 +109,7 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
                             instructions.Add(new Instruction(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(underlyingType)));
                             instructions.Add(new Instruction(OpCodes.Conv_U));
                             instructions.Add(new Instruction(OpCodes.Localloc));
-                            instructions.Add(new Instruction(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_constructor, [underlyingType], [])));
+                            instructions.Add(new Instruction(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [underlyingType], [])));
                             instructions.Add(new Instruction(OpCodes.Stloc, local));
 
                             if (parameter.Attributes.HasFlag(ParameterAttributes.Out))
