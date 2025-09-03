@@ -26,17 +26,10 @@ internal static class MonoIl2CppConversion
         }
         else if (il2CppType is GenericInstanceTypeAnalysisContext { GenericArguments.Count: 1, GenericType.DeclaringType: null } genericInstanceType)
         {
-            if (genericInstanceType.GenericType.Name == $"{nameof(Pointer<>)}`1" && genericInstanceType.GenericType.Namespace == typeof(Pointer<>).Namespace)
+            if (IsPointerOrByReference(genericInstanceType))
             {
                 var elementType = genericInstanceType.GenericArguments[0];
                 var conversionMethod = genericInstanceType.GenericType.Methods.First(m => m.Name == "op_Explicit" && m.ReturnType is PointerTypeAnalysisContext);
-                instructions.Add(new Instruction(OpCodes.Call, new ConcreteGenericMethodAnalysisContext(conversionMethod, [elementType], [])));
-                return true;
-            }
-            if (genericInstanceType.GenericType.Name == $"{nameof(ByReference<>)}`1" && genericInstanceType.GenericType.Namespace == typeof(ByReference<>).Namespace)
-            {
-                var elementType = genericInstanceType.GenericArguments[0];
-                var conversionMethod = genericInstanceType.GenericType.Methods.First(m => m.Name == nameof(ByReference<>.ToRef));
                 instructions.Add(new Instruction(OpCodes.Call, new ConcreteGenericMethodAnalysisContext(conversionMethod, [elementType], [])));
                 return true;
             }
@@ -64,17 +57,10 @@ internal static class MonoIl2CppConversion
         }
         else if (il2CppType is GenericInstanceTypeAnalysisContext { GenericArguments.Count: 1, GenericType.DeclaringType: null } genericInstanceType)
         {
-            if (genericInstanceType.GenericType.Name == $"{nameof(Pointer<>)}`1" && genericInstanceType.GenericType.Namespace == typeof(Pointer<>).Namespace)
+            if (IsPointerOrByReference(genericInstanceType))
             {
                 var elementType = genericInstanceType.GenericArguments[0];
                 var conversionMethod = genericInstanceType.GenericType.Methods.First(m => m.Name == "op_Explicit" && m.Parameters.Count == 1 && m.Parameters[0].ParameterType is PointerTypeAnalysisContext);
-                instructions.Add(new Instruction(OpCodes.Call, new ConcreteGenericMethodAnalysisContext(conversionMethod, [elementType], [])));
-                return true;
-            }
-            if (genericInstanceType.GenericType.Name == $"{nameof(ByReference<>)}`1" && genericInstanceType.GenericType.Namespace == typeof(ByReference<>).Namespace)
-            {
-                var elementType = genericInstanceType.GenericArguments[0];
-                var conversionMethod = genericInstanceType.GenericType.Methods.First(m => m.Name == nameof(ByReference<>.FromRef));
                 instructions.Add(new Instruction(OpCodes.Call, new ConcreteGenericMethodAnalysisContext(conversionMethod, [elementType], [])));
                 return true;
             }
@@ -86,6 +72,21 @@ internal static class MonoIl2CppConversion
             return true;
         }
         return false;
+    }
+
+    private static bool IsPointer(GenericInstanceTypeAnalysisContext genericInstanceType)
+    {
+        return genericInstanceType.GenericType.Name == $"{nameof(Pointer<>)}`1" && genericInstanceType.GenericType.Namespace == typeof(Pointer<>).Namespace;
+    }
+
+    private static bool IsByReference(GenericInstanceTypeAnalysisContext genericInstanceType)
+    {
+        return genericInstanceType.GenericType.Name == $"{nameof(ByReference<>)}`1" && genericInstanceType.GenericType.Namespace == typeof(ByReference<>).Namespace;
+    }
+
+    private static bool IsPointerOrByReference(GenericInstanceTypeAnalysisContext genericInstanceType)
+    {
+        return IsPointer(genericInstanceType) || IsByReference(genericInstanceType);
     }
 
     public static void AddIl2CppToMonoStringConversion(List<Instruction> instructions, ApplicationAnalysisContext appContext)

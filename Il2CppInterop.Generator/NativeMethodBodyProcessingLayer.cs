@@ -32,9 +32,6 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
         var intptrPointerType = appContext.SystemTypes.SystemIntPtrType.MakePointerType();
         var bytePointerType = appContext.SystemTypes.SystemByteType.MakePointerType();
 
-        var byRefType = appContext.ResolveTypeOrThrow(typeof(ByReference<>));
-        var fromRef = byRefType.GetMethodByName(nameof(ByReference<>.FromRef));
-
         var iil2CppObjectBase = appContext.ResolveTypeOrThrow(typeof(IIl2CppObjectBase));
         var get_Pointer = iil2CppObjectBase.GetMethodByName($"get_{nameof(IIl2CppObjectBase.Pointer)}");
 
@@ -286,15 +283,7 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
                             var parameterType = parameter.ParameterType;
 
                             instructions.Add(OpCodes.Ldarg, parameter);
-                            if (parameterType is ByRefTypeAnalysisContext byRefTypeAnalysisContext)
-                            {
-                                instructions.Add(OpCodes.Call, new ConcreteGenericMethodAnalysisContext(fromRef, [byRefTypeAnalysisContext.ElementType], []));
-                                genericArguments[i] = byRefType.MakeGenericInstanceType([byRefTypeAnalysisContext.ElementType]);
-                            }
-                            else
-                            {
-                                genericArguments[i] = parameterType;
-                            }
+                            genericArguments[i] = parameterType;
                         }
                         if (!method.IsVoid)
                         {

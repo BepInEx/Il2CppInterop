@@ -53,22 +53,15 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
     public static explicit operator ByReference<T>(void* value) => new(value);
     public static explicit operator void*(ByReference<T> pointer) => pointer._pointer;
 
+    public static explicit operator ByReference<T>(IntPtr value) => new(value.ToPointer());
+    public static explicit operator IntPtr(ByReference<T> pointer) => new(pointer._pointer);
+
     private readonly void ThrowIfNull()
     {
         if (_pointer is null)
         {
             throw new NullReferenceException($"Cannot access reference of type {typeof(T).Name} because it is null.");
         }
-    }
-
-    public static ByReference<T> FromRef(ref T value)
-    {
-        return new ByReference<T>(Unsafe.AsPointer(ref value));
-    }
-
-    public static ref T ToRef(ByReference<T> value)
-    {
-        return ref Unsafe.AsRef<T>(value._pointer);
     }
 
     readonly void IIl2CppByReference.WriteReferenceToSpan(Span<byte> span)
