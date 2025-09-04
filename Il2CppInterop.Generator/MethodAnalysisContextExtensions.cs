@@ -45,13 +45,13 @@ internal static class MethodAnalysisContextExtensions
         }
 
         /// <summary>
-        /// The unsafe create method for this constructor.
+        /// The unsafe implementation method for this method.
         /// </summary>
         [MaybeNull]
-        public MethodAnalysisContext UnsafeCreateMethod
+        public MethodAnalysisContext UnsafeImplementationMethod
         {
-            get => method.GetExtraData<MethodAnalysisContext>("UnsafeCreateMethod");
-            set => method.PutExtraData("UnsafeCreateMethod", value);
+            get => method.GetExtraData<MethodAnalysisContext>("UnsafeImplementationMethod");
+            set => method.PutExtraData("UnsafeImplementationMethod", value);
         }
 
         public bool IsInstanceConstructor => method.Name == ".ctor";

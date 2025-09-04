@@ -21,12 +21,13 @@ public string GetString<T>(int param1, T param2, IInterface param3);
 // Il2Cpp
 public String GetString<T>(Int32 param1, T param2, IInterface param3) where T : IIl2CppType<T>
 {
+    ByReference<Self> data_this = new ByReference<Self>(stackalloc byte[Il2CppTypeHelper.SizeOf<Self>()]);
+
     // Value type
-    void* obj = stackalloc byte[Il2CppTypeHelper.SizeOf<Self>()];
-    Il2CppTypeHelper.WriteToPointer<Self>(this, obj);
+    data_this.CopyFrom(this);
 
     // Reference type
-    void* obj = (void*)this.Pointer;
+    data_this.SetValue(this);
 
     // Param 1
     ByReference<Int32> data_param1 = new ByReference<Int32>(stackalloc byte[Il2CppTypeHelper.SizeOf<Int32>()]);
@@ -40,22 +41,28 @@ public String GetString<T>(Int32 param1, T param2, IInterface param3) where T : 
     ByReference<IInterface> data_param3 = new ByReference<IInterface>(stackalloc byte[Il2CppTypeHelper.SizeOf<IInterface>()]);
     data_param3.SetValue(param3);
 
-    String result = Unsafe_GetString<T>(obj, data_param1, data_param2, data_param3);
+    String result = Unsafe_GetString<T>(data_this, data_param1, data_param2, data_param3);
 
     // Value type
-    this = Il2CppTypeHelper.ReadFromPointer<Self>(obj);
+    data_this.CopyTo(this);
 
     return result;
 }
 
 // Invoker
-public static String Unsafe_GetString<T>(void* obj, ByReference<Int32> param1, ByReference<T> param2, ByReference<IInterface> param3) where T : IIl2CppType<T>
+public static String Unsafe_GetString<T>(ByReference<Self> @this, ByReference<Int32> param1, ByReference<T> param2, ByReference<IInterface> param3) where T : IIl2CppType<T>
 {
+    // Value type
+    IntPtr obj = new IntPtr(@this.ToPointer());
+
+    // Reference type
+    IntPtr obj = @this.GetValue().Pointer;
+
     void** arguments = (void**)(stackalloc IntPtr[3]);
     arguments[0] = RuntimeInvokeHelper.GetPointerForParameter(param1);
     arguments[1] = RuntimeInvokeHelper.GetPointerForParameter(param2);
     arguments[2] = RuntimeInvokeHelper.GetPointerForParameter(param3);
-    return RuntimeInvokeHelper.InvokeFunction<String>(/* method info */, (IntPtr)obj, arguments);
+    return RuntimeInvokeHelper.InvokeFunction<String>(/* method info */, obj, arguments);
 }
 
 // Unstripped Original
@@ -65,19 +72,20 @@ public string GetString()
 }
 
 // Unstripped Invoker
-public static String Unsafe_GetString(void* obj)
+public static String Unsafe_GetString(ByReference<Self> @this)
 {
     ByReference<Int32> data_call1_param1 = new ByReference<Int32>(stackalloc byte[Il2CppTypeHelper.SizeOf<Int32>()]);
     ByReference<Int64> data_call1_param2 = new ByReference<Int64>(stackalloc byte[Il2CppTypeHelper.SizeOf<Int64>()]);
     ByReference<IInterface> data_call1_param3 = new ByReference<IInterface>(stackalloc byte[Il2CppTypeHelper.SizeOf<IInterface>()]);
 
+    (void*)@this; // On stack
     // (ldarg or ldarga) param1 -> void* on stack
     // 0, 0L, and null also loaded onto the stack.
     // Arguments are converted from Mono to Il2Cpp and popped off 1 by 1 into the data.
-    ByReference.SetValue<IInterface>(obj, data_call1_param3);// Error: can't convert void* to IInterface
+    ByReference.SetValue<IInterface>(new ByReference<IInterface>((void*)@this).GetValue(), data_call1_param3);
     ByReference.SetValue<Int64>((Int64)0L, data_call1_param2);
     ByReference.SetValue<Int32>((Int32)0, data_call1_param1);
-    return Unsafe_GetString<Int64>(/* object pointer from stack */, data_call1_param1, data_call1_param2, data_call1_param3);
+    return Unsafe_GetString<Int64>(new ByReference<Self>(/* pointer from stack */), data_call1_param1, data_call1_param2, data_call1_param3);
 }
 
 // Unstripped Original

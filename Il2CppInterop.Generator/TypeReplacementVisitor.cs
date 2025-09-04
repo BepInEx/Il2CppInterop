@@ -30,6 +30,14 @@ internal class TypeReplacementVisitor(Dictionary<TypeAnalysisContext, TypeAnalys
         return type is null ? null : Visit(type);
     }
 
+    public IEnumerable<TypeAnalysisContext> Replace(IEnumerable<TypeAnalysisContext> types)
+    {
+        foreach (var type in types)
+        {
+            yield return Replace(type);
+        }
+    }
+
     public void Modify(List<TypeAnalysisContext> types)
     {
         for (var i = 0; i < types.Count; i++)

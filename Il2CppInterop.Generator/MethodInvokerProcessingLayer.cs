@@ -54,20 +54,20 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                     InjectedMethodAnalysisContext invoker;
                     {
-                        var name = GetNonConflictingName(method.IsInstanceConstructor ? "UnsafeConstruct" : $"UnsafeInvoke_{method.Name}", existingNames);
+                        var name = GetNonConflictingName(method.IsInstanceConstructor ? "UnsafeConstructor" : $"UnsafeImplementation_{method.Name}", existingNames);
 
                         invoker = new InjectedMethodAnalysisContext(
                             type,
                             name,
                             type, // Placeholder return type
-                            MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
+                            MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static,
                             [])
                         {
                             IsInjected = true,
                         };
                         type.Methods.Add(invoker);
 
-                        method.UnsafeInvokeMethod = invoker;
+                        method.UnsafeImplementationMethod = invoker;
 
                         foreach (var gp in method.GenericParameters)
                         {
@@ -113,84 +113,276 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         }
                     }
 
-                    if (method.IsInstanceConstructor)
+                    InjectedMethodAnalysisContext? valueTypeHelper = null;
+                    InjectedMethodAnalysisContext? constructorHelper = null;
+                    if (method.IsStatic)
                     {
-                        var name = GetNonConflictingName("UnsafeCreate", existingNames);
+                        // No helper needed
+                    }
+                    else if (!method.IsInstanceConstructor && type.IsValueType)
+                    {
+                        var name = GetNonConflictingName($"UnsafeInvoke_{method.Name}", existingNames);
 
-                        var creator = new InjectedMethodAnalysisContext(
+                        valueTypeHelper = new InjectedMethodAnalysisContext(
                             type,
                             name,
-                            instantiatedType,
+                            type, // Placeholder return type
                             MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
                             [])
                         {
                             IsInjected = true,
                         };
-                        type.Methods.Add(creator);
+                        type.Methods.Add(valueTypeHelper);
 
-                        method.UnsafeCreateMethod = creator;
+                        method.UnsafeInvokeMethod = valueTypeHelper;
 
-                        Debug.Assert(method.GenericParameters.Count == 0, "Constructors can't have generic parameters.");
+                        foreach (var gp in method.GenericParameters)
+                        {
+                            valueTypeHelper.GenericParameters.Add(new GenericParameterTypeAnalysisContext(gp.Name, gp.Index, gp.Type, gp.Attributes, valueTypeHelper));
+                        }
+
+                        var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, valueTypeHelper);
+
+                        for (var i = 0; i < method.GenericParameters.Count; i++)
+                        {
+                            var originalGp = method.GenericParameters[i];
+                            var newGp = valueTypeHelper.GenericParameters[i];
+                            foreach (var constraint in originalGp.ConstraintTypes)
+                            {
+                                newGp.ConstraintTypes.Add(visitor.Replace(constraint));
+                            }
+                        }
+
+                        valueTypeHelper.SetDefaultReturnType(visitor.Replace(method.ReturnType));
+
+                        // "this" parameter
+                        {
+                            var newParameter = new InjectedParameterAnalysisContext(
+                                null,
+                                byReference.MakeGenericInstanceType([instantiatedType]),
+                                ParameterAttributes.None,
+                                0,
+                                valueTypeHelper);
+                            valueTypeHelper.Parameters.Add(newParameter);
+                        }
 
                         foreach (var originalParameter in method.Parameters)
                         {
-                            var newParameterType = byReference.MakeGenericInstanceType([originalParameter.ParameterType]);
+                            var newParameterType = visitor.Replace(originalParameter.ParameterType);
 
                             var newParameter = new InjectedParameterAnalysisContext(
                                 originalParameter.Name,
                                 newParameterType,
                                 originalParameter.Attributes,
-                                creator.Parameters.Count,
-                                creator);
-                            creator.Parameters.Add(newParameter);
+                                valueTypeHelper.Parameters.Count,
+                                valueTypeHelper);
+                            valueTypeHelper.Parameters.Add(newParameter);
                         }
 
                         List<Instruction> instructions = new();
 
-                        LocalVariable local = new(byReference.MakeGenericInstanceType([instantiatedType]));
+                        LocalVariable[] localVariables = new LocalVariable[method.Parameters.Count];
 
-                        instructions.Add(new Instruction(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(instantiatedType)));
-                        instructions.Add(new Instruction(OpCodes.Conv_U));
-                        instructions.Add(new Instruction(OpCodes.Localloc));
-                        instructions.Add(new Instruction(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [instantiatedType], [])));
-                        instructions.Add(new Instruction(OpCodes.Stloc, local));
-
-                        if (type.IsValueType)
+                        for (var i = 1; i < valueTypeHelper.Parameters.Count; i++)
                         {
-                            instructions.Add(OpCodes.Ldloca, local);
-                            instructions.Add(OpCodes.Call, byReference_Clear.MakeConcreteGeneric([instantiatedType], []));
-                        }
-                        else
-                        {
-                            Debug.Assert(type.PointerConstructor is not null);
+                            var parameter = valueTypeHelper.Parameters[i];
+                            var parameterLocal = new LocalVariable(byReference.MakeGenericInstanceType([parameter.ParameterType]));
+                            localVariables[i - 1] = parameterLocal;
 
-                            instructions.Add(OpCodes.Ldloca, local);
-                            instructions.Add(OpCodes.Call, newObjectPointer.MakeGenericInstanceMethod(instantiatedType));
-                            instructions.Add(OpCodes.Newobj, type.PointerConstructor!.MaybeMakeConcreteGeneric(type.GenericParameters, []));
-                            instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([instantiatedType], []));
+                            instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
+                            instructions.Add(OpCodes.Conv_U);
+                            instructions.Add(OpCodes.Localloc);
+                            instructions.Add(OpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([parameter.ParameterType], []));
+                            instructions.Add(OpCodes.Stloc, parameterLocal);
+
+                            instructions.Add(OpCodes.Ldloca, parameterLocal);
+                            instructions.Add(OpCodes.Ldarg, parameter);
+                            instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
                         }
 
-                        instructions.Add(OpCodes.Ldloc, local);
+                        instructions.Add(OpCodes.Ldarg, valueTypeHelper.Parameters[0]);
 
-                        foreach (var parameter in creator.Parameters)
+                        foreach (var parameterLocal in localVariables)
                         {
-                            instructions.Add(new Instruction(OpCodes.Ldarg, parameter));
+                            instructions.Add(OpCodes.Ldloc, parameterLocal);
                         }
 
                         instructions.Add(OpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
 
-                        instructions.Add(OpCodes.Ldloca, local);
-                        instructions.Add(OpCodes.Call, byReference_GetValue.MakeConcreteGeneric([instantiatedType], []));
                         instructions.Add(OpCodes.Ret);
 
-                        creator.PutExtraData(new NativeMethodBody()
+                        valueTypeHelper.PutExtraData(new NativeMethodBody()
                         {
                             Instructions = instructions,
-                            LocalVariables = [local],
+                            LocalVariables = localVariables,
+                        });
+                    }
+                    else if (method.IsInstanceConstructor && !type.IsValueType)
+                    {
+                        var name = GetNonConflictingName("UnsafeConstruct", existingNames);
+
+                        constructorHelper = new InjectedMethodAnalysisContext(
+                            type,
+                            name,
+                            type, // Placeholder return type
+                            MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
+                            [])
+                        {
+                            IsInjected = true,
+                        };
+                        type.Methods.Add(constructorHelper);
+
+                        method.UnsafeInvokeMethod = constructorHelper;
+
+                        foreach (var gp in method.GenericParameters)
+                        {
+                            constructorHelper.GenericParameters.Add(new GenericParameterTypeAnalysisContext(gp.Name, gp.Index, gp.Type, gp.Attributes, constructorHelper));
+                        }
+
+                        var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, constructorHelper);
+
+                        for (var i = 0; i < method.GenericParameters.Count; i++)
+                        {
+                            var originalGp = method.GenericParameters[i];
+                            var newGp = constructorHelper.GenericParameters[i];
+                            foreach (var constraint in originalGp.ConstraintTypes)
+                            {
+                                newGp.ConstraintTypes.Add(visitor.Replace(constraint));
+                            }
+                        }
+
+                        constructorHelper.SetDefaultReturnType(visitor.Replace(method.ReturnType));
+
+                        // "this" parameter
+                        {
+                            var newParameter = new InjectedParameterAnalysisContext(
+                                null,
+                                instantiatedType,
+                                ParameterAttributes.None,
+                                0,
+                                constructorHelper);
+                            constructorHelper.Parameters.Add(newParameter);
+                        }
+
+                        foreach (var originalParameter in method.Parameters)
+                        {
+                            var newParameterType = visitor.Replace(originalParameter.ParameterType);
+
+                            var newParameter = new InjectedParameterAnalysisContext(
+                                originalParameter.Name,
+                                newParameterType,
+                                originalParameter.Attributes,
+                                constructorHelper.Parameters.Count,
+                                constructorHelper);
+                            constructorHelper.Parameters.Add(newParameter);
+                        }
+
+                        List<Instruction> instructions = new();
+
+                        LocalVariable[] localVariables = new LocalVariable[method.Parameters.Count + 1];
+
+                        for (var i = 0; i < constructorHelper.Parameters.Count; i++)
+                        {
+                            var parameter = constructorHelper.Parameters[i];
+                            var parameterLocal = new LocalVariable(byReference.MakeGenericInstanceType([parameter.ParameterType]));
+                            localVariables[i] = parameterLocal;
+
+                            instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
+                            instructions.Add(OpCodes.Conv_U);
+                            instructions.Add(OpCodes.Localloc);
+                            instructions.Add(OpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([parameter.ParameterType], []));
+                            instructions.Add(OpCodes.Stloc, parameterLocal);
+
+                            instructions.Add(OpCodes.Ldloca, parameterLocal);
+                            instructions.Add(OpCodes.Ldarg, parameter);
+                            instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
+                        }
+
+                        foreach (var parameterLocal in localVariables)
+                        {
+                            instructions.Add(OpCodes.Ldloc, parameterLocal);
+                        }
+
+                        instructions.Add(OpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+
+                        instructions.Add(OpCodes.Ret);
+
+                        constructorHelper.PutExtraData(new NativeMethodBody()
+                        {
+                            Instructions = instructions,
+                            LocalVariables = localVariables,
                         });
                     }
 
                     // Method body
+                    if (valueTypeHelper is not null)
+                    {
+                        Debug.Assert(!method.IsStatic);
+                        Debug.Assert(!method.IsInstanceConstructor);
+                        Debug.Assert(type.IsValueType);
+
+                        List<Instruction> instructions = new();
+
+                        LocalVariable instanceLocal = new(byReference.MakeGenericInstanceType([instantiatedType]));
+
+                        instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(instantiatedType));
+                        instructions.Add(OpCodes.Conv_U);
+                        instructions.Add(OpCodes.Localloc);
+                        instructions.Add(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [instantiatedType], []));
+                        instructions.Add(OpCodes.Stloc, instanceLocal);
+
+                        instructions.Add(OpCodes.Ldloca, instanceLocal);
+                        instructions.Add(OpCodes.Ldarg, This.Instance);
+                        instructions.Add(OpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([instantiatedType], []));
+
+                        instructions.Add(OpCodes.Ldloc, instanceLocal);
+
+                        foreach (var parameter in method.Parameters)
+                        {
+                            instructions.Add(OpCodes.Ldarg, parameter);
+                        }
+
+                        instructions.Add(OpCodes.Call, valueTypeHelper.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+
+                        instructions.Add(OpCodes.Ldloca, instanceLocal);
+                        instructions.Add(OpCodes.Ldarg, This.Instance);
+                        instructions.Add(OpCodes.Call, byReference_CopyTo.MakeConcreteGeneric([instantiatedType], []));
+
+                        instructions.Add(OpCodes.Ret);
+
+                        method.PutExtraData(new NativeMethodBody()
+                        {
+                            Instructions = instructions,
+                            LocalVariables = [instanceLocal],
+                        });
+                    }
+                    else if (constructorHelper is not null)
+                    {
+                        Debug.Assert(method.IsInstanceConstructor);
+                        Debug.Assert(!type.IsValueType);
+                        Debug.Assert(type.PointerConstructor is not null);
+
+                        List<Instruction> instructions = [];
+
+                        instructions.Add(OpCodes.Ldarg, This.Instance);
+                        instructions.Add(OpCodes.Call, newObjectPointer.MakeGenericInstanceMethod(instantiatedType));
+                        instructions.Add(OpCodes.Call, type.PointerConstructor!.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+
+                        instructions.Add(OpCodes.Ldarg, This.Instance);
+                        foreach (var parameter in method.Parameters)
+                        {
+                            instructions.Add(OpCodes.Ldarg, parameter);
+                        }
+                        instructions.Add(OpCodes.Call, constructorHelper.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(OpCodes.Ret);
+
+                        method.PutExtraData(new NativeMethodBody()
+                        {
+                            Instructions = instructions,
+                            LocalVariables = [],
+                        });
+                    }
+                    else
                     {
                         List<Instruction> instructions = new();
 

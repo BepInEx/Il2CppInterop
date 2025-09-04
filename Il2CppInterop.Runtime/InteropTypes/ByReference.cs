@@ -1,8 +1,15 @@
 using System;
-using System.Runtime.CompilerServices;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 
+public static class ByReference
+{
+    public static void SetValue<T>(T? value, ByReference<T> byReference)
+        where T : IIl2CppType<T>
+    {
+        byReference.SetValue(value);
+    }
+}
 public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>, IIl2CppByReference
     where T : IIl2CppType<T>
 {

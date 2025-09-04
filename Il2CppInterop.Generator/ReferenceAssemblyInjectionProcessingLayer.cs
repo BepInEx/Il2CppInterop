@@ -38,6 +38,7 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(DelegateSupport),
             typeof(Pointer<>),
             typeof(ByReference<>),
+            typeof(ByReference),
             typeof(Il2CppType),
             typeof(FieldAccessHelper),
             typeof(IIl2CppObjectBase),

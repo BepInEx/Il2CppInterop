@@ -4,6 +4,7 @@ using AsmResolver.PE.DotNet.Cil;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 
 namespace Il2CppInterop.Generator;
@@ -25,18 +26,45 @@ public class TranslatedMethodBody : MethodBodyBase
             return false;
         }
 
-        TypeConversionVisitor visitor = TypeConversionVisitor.Create(methodContext.AppContext);
+        var appContext = methodContext.AppContext;
 
+        var byReference = appContext.ResolveTypeOrThrow(typeof(ByReference<>));
+        var byReference_Constructor = byReference.GetMethodByName(".ctor");
+        var byReference_ToPointer = byReference.GetMethodByName(nameof(ByReference<>.ToPointer));
+        var byReference_GetValue = byReference.GetMethodByName(nameof(ByReference<>.GetValue));
+
+        var byReferenceStatic = appContext.ResolveTypeOrThrow(typeof(ByReference));
+        var byReferenceStatic_SetValue = byReferenceStatic.GetMethodByName(nameof(ByReference.SetValue));
+
+        var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeHelper));
+        var il2CppTypeHelper_SizeOf = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.SizeOf));
+
+        Debug.Assert(methodContext.UnsafeImplementationMethod is not null);
+        var implementationMethod = methodContext.UnsafeImplementationMethod!;
+
+        TypeConversionVisitor conversionVisitor = TypeConversionVisitor.Create(methodContext.AppContext);
+        TypeReplacementVisitor replacementVisitor = TypeReplacementVisitor.CreateForMethodCopying(methodContext, implementationMethod);
+
+        var initializeInstructions = new List<Instruction>();
         var localVariableList = new List<LocalVariable>(originalMethodBody.LocalVariables.Count);
         var localVariableDictionary = new Dictionary<LocalVariable, LocalVariable>(originalMethodBody.LocalVariables.Count);
         foreach (var originalLocalVariable in originalMethodBody.LocalVariables)
         {
+            var convertedType = conversionVisitor.Replace(originalLocalVariable.Type); // Conversion to Il2Cpp types
+            var transferredType = replacementVisitor.Replace(convertedType); // Swap out generic parameters for the correct ones
+            var localType = byReference.MakeGenericInstanceType([transferredType]); // All locals are byref
             var translatedLocalVariable = new LocalVariable
             {
-                Type = visitor.Replace(originalLocalVariable.Type),
+                Type = localType,
             };
             localVariableList.Add(translatedLocalVariable);
             localVariableDictionary.Add(originalLocalVariable, translatedLocalVariable);
+
+            initializeInstructions.Add(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(transferredType));
+            initializeInstructions.Add(CilOpCodes.Conv_U);
+            initializeInstructions.Add(CilOpCodes.Localloc);
+            initializeInstructions.Add(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([transferredType], []));
+            initializeInstructions.Add(CilOpCodes.Stloc, translatedLocalVariable);
         }
 
         var instructionDictionary = new Dictionary<Instruction, Instruction>(originalMethodBody.Instructions.Count);
@@ -344,35 +372,67 @@ public class TranslatedMethodBody : MethodBodyBase
             else if (originalOperand is This)
             {
                 Debug.Assert(originalCode == OpCodes.Ldarg);
-                translatedInstruction.Code = originalCode;
-                translatedInstruction.Operand = originalOperand;
+
+                var newParameter = implementationMethod.Parameters[0];
+
+                var parameterType = (GenericInstanceTypeAnalysisContext)newParameter.ParameterType;
+                var dataType = parameterType.GenericArguments[0];
+
+                if (dataType.IsValueType)
+                {
+                    translatedInstruction.Code = OpCodes.Ldarg;
+                    translatedInstruction.Operand = newParameter;
+
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, parameterType);
+                }
+                else
+                {
+                    translatedInstruction.Code = OpCodes.Ldarga;
+                    translatedInstruction.Operand = newParameter;
+
+                    translatedInstructions.Add(CilOpCodes.Call, byReference_GetValue.MakeConcreteGeneric(parameterType.GenericArguments, []));
+
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, dataType);
+                }
             }
             else if (originalOperand is ParameterAnalysisContext parameter)
             {
+                var parameterOffset = implementationMethod.Parameters.Count - methodContext.Parameters.Count;
+                var newParameter = implementationMethod.Parameters[parameterOffset + parameter.ParameterIndex];
+
+                var parameterType = (GenericInstanceTypeAnalysisContext)newParameter.ParameterType;
+                var dataType = parameterType.GenericArguments[0];
+
                 if (originalCode == OpCodes.Ldarg)
                 {
-                    translatedInstruction.Code = originalCode;
-                    translatedInstruction.Operand = originalOperand;
-                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, parameter.ParameterType);
+                    translatedInstruction.Code = OpCodes.Ldarga;
+                    translatedInstruction.Operand = newParameter;
+
+                    translatedInstructions.Add(CilOpCodes.Call, byReference_GetValue.MakeConcreteGeneric(parameterType.GenericArguments, []));
+
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, dataType);
                 }
                 else if (originalCode == OpCodes.Starg)
                 {
-                    if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, parameter.ParameterType))
+                    if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, dataType))
                     {
                         translatedInstruction.Code = OpCodes.Nop;
 
-                        translatedInstructions.Add(new Instruction(originalCode, originalOperand));
+                        translatedInstructions.Add(OpCodes.Ldarg, newParameter);
                     }
                     else
                     {
-                        translatedInstruction.Code = originalCode;
-                        translatedInstruction.Operand = originalOperand;
+                        translatedInstruction.Code = OpCodes.Ldarg;
+                        translatedInstruction.Operand = newParameter;
                     }
+                    translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_SetValue.MakeGenericInstanceMethod(parameterType.GenericArguments));
                 }
                 else if (originalCode == OpCodes.Ldarga)
                 {
-                    translatedInstruction.Code = originalCode;
-                    translatedInstruction.Operand = originalOperand;
+                    translatedInstruction.Code = OpCodes.Ldarg;
+                    translatedInstruction.Operand = newParameter;
+
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, parameterType);
                 }
                 else
                 {
@@ -384,31 +444,39 @@ public class TranslatedMethodBody : MethodBodyBase
             {
                 var translatedLocalVariable = localVariableDictionary[localVariable];
 
+                var localType = (GenericInstanceTypeAnalysisContext)translatedLocalVariable.Type;
+                var dataType = localType.GenericArguments[0];
+
                 if (originalCode == OpCodes.Ldloc)
                 {
-                    translatedInstruction.Code = originalCode;
+                    translatedInstruction.Code = OpCodes.Ldloca;
                     translatedInstruction.Operand = translatedLocalVariable;
-                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedLocalVariable.Type);
+
+                    translatedInstructions.Add(CilOpCodes.Call, byReference_GetValue.MakeConcreteGeneric(localType.GenericArguments, []));
+
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, dataType);
                 }
                 else if (originalCode == OpCodes.Stloc)
                 {
-                    if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, translatedLocalVariable.Type))
+                    if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, dataType))
                     {
                         translatedInstruction.Code = OpCodes.Nop;
 
-                        translatedInstructions.Add(new Instruction(originalCode, translatedLocalVariable));
+                        translatedInstructions.Add(OpCodes.Ldloc, translatedLocalVariable);
                     }
                     else
                     {
-                        translatedInstruction.Code = originalCode;
+                        translatedInstruction.Code = OpCodes.Ldloc;
                         translatedInstruction.Operand = translatedLocalVariable;
                     }
+                    translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_SetValue.MakeGenericInstanceMethod(localType.GenericArguments));
                 }
                 else if (originalCode == OpCodes.Ldloca)
                 {
-                    // Everything is fine. No conversion needed.
-                    translatedInstruction.Code = originalCode;
+                    translatedInstruction.Code = OpCodes.Ldloc;
                     translatedInstruction.Operand = translatedLocalVariable;
+
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, localType);
                 }
                 else
                 {
@@ -418,7 +486,8 @@ public class TranslatedMethodBody : MethodBodyBase
             }
             else if (originalOperand is TypeAnalysisContext type)
             {
-                var translatedType = visitor.Replace(type);
+                var convertedType = conversionVisitor.Replace(type);
+                var translatedType = replacementVisitor.Replace(convertedType);
 
                 if (originalCode.Code is CilCode.Castclass or CilCode.Constrained or CilCode.Cpobj or CilCode.Initobj or CilCode.Isinst or CilCode.Ldobj or CilCode.Stobj or CilCode.Unbox_Any)
                 {
@@ -514,20 +583,63 @@ public class TranslatedMethodBody : MethodBodyBase
             }
             else if (originalOperand is MethodAnalysisContext method)
             {
-                if (originalCode.Code is CilCode.Call or CilCode.Callvirt or CilCode.Newobj)
+                MethodAnalysisContext baseMethod;
+                TypeAnalysisContext[] typeGenericArguments;
+                TypeAnalysisContext[] methodGenericArguments;
+                if (method is ConcreteGenericMethodAnalysisContext concreteGeneric)
+                {
+                    baseMethod = concreteGeneric.BaseMethodContext;
+                    if (concreteGeneric.TypeGenericParameters.Count > 0)
+                    {
+                        typeGenericArguments = new TypeAnalysisContext[concreteGeneric.TypeGenericParameters.Count];
+                        for (var i = 0; i < concreteGeneric.TypeGenericParameters.Count; i++)
+                        {
+                            typeGenericArguments[i] = replacementVisitor.Replace(concreteGeneric.TypeGenericParameters[i]);
+                        }
+                    }
+                    else
+                    {
+                        typeGenericArguments = [];
+                    }
+                    if (concreteGeneric.MethodGenericParameters.Count > 0)
+                    {
+                        methodGenericArguments = new TypeAnalysisContext[concreteGeneric.MethodGenericParameters.Count];
+                        for (var i = 0; i < concreteGeneric.MethodGenericParameters.Count; i++)
+                        {
+                            methodGenericArguments[i] = replacementVisitor.Replace(concreteGeneric.MethodGenericParameters[i]);
+                        }
+                    }
+                    else
+                    {
+                        methodGenericArguments = [];
+                    }
+                }
+                else
+                {
+                    baseMethod = method;
+                    typeGenericArguments = [];
+                    methodGenericArguments = [];
+                }
+                if (originalCode.Code is CilCode.Call && baseMethod.UnsafeInvokeMethod is not null)
                 {
                     translatedInstruction.Code = OpCodes.Nop;
 
-                    var temporaryVariables = new LocalVariable[method.Parameters.Count];
-                    for (var i = method.Parameters.Count - 1; i >= 0; i--) // Order matters
+                    var targetMethod = baseMethod.UnsafeInvokeMethod?.MaybeMakeConcreteGeneric(typeGenericArguments, methodGenericArguments);
+
+                    Debug.Assert(targetMethod is not null);
+                    Debug.Assert(targetMethod.IsStatic);
+                    Debug.Assert(method.Parameters.Count == targetMethod.Parameters.Count - 1);
+
+                    var temporaryVariables = new LocalVariable[targetMethod.Parameters.Count];
+                    for (var i = targetMethod.Parameters.Count - 1; i >= 0; i--) // Order matters
                     {
-                        var methodParameter = method.Parameters[i];
+                        var methodParameter = targetMethod.Parameters[i];
                         MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, methodParameter.ParameterType);
                         var temporaryVariable = new LocalVariable
                         {
                             Type = methodParameter.ParameterType,
                         };
-                        translatedInstructions.Add(new Instruction(OpCodes.Stloc, temporaryVariable));
+                        translatedInstructions.Add(OpCodes.Stloc, temporaryVariable);
 
                         temporaryVariables[i] = temporaryVariable;
                         localVariableList.Add(temporaryVariable);
@@ -535,14 +647,44 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     foreach (var temporaryVariable in temporaryVariables)
                     {
-                        translatedInstructions.Add(new Instruction(OpCodes.Ldloc, temporaryVariable));
+                        translatedInstructions.Add(OpCodes.Ldloc, temporaryVariable);
                     }
 
                     // Todo: If this is an instance method on Il2CppSystem Object/ValueType/Enum,
                     // we need to redirect it to the corresponding IObject/IValueType/IEnum method.
-                    translatedInstructions.Add(new Instruction(originalCode, method));
-                    MonoIl2CppConversion.
-                                        AddIl2CppToMonoConversion(translatedInstructions, method.ReturnType);
+                    translatedInstructions.Add(originalCode, targetMethod);
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, targetMethod.ReturnType);
+                }
+                else if (originalCode.Code is CilCode.Call or CilCode.Callvirt or CilCode.Newobj)
+                {
+                    translatedInstruction.Code = OpCodes.Nop;
+
+                    var targetMethod = baseMethod.MaybeMakeConcreteGeneric(typeGenericArguments, methodGenericArguments);
+
+                    var temporaryVariables = new LocalVariable[targetMethod.Parameters.Count];
+                    for (var i = targetMethod.Parameters.Count - 1; i >= 0; i--) // Order matters
+                    {
+                        var methodParameter = targetMethod.Parameters[i];
+                        MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, methodParameter.ParameterType);
+                        var temporaryVariable = new LocalVariable
+                        {
+                            Type = methodParameter.ParameterType,
+                        };
+                        translatedInstructions.Add(OpCodes.Stloc, temporaryVariable);
+
+                        temporaryVariables[i] = temporaryVariable;
+                        localVariableList.Add(temporaryVariable);
+                    }
+
+                    foreach (var temporaryVariable in temporaryVariables)
+                    {
+                        translatedInstructions.Add(OpCodes.Ldloc, temporaryVariable);
+                    }
+
+                    // Todo: If this is an instance method on Il2CppSystem Object/ValueType/Enum,
+                    // we need to redirect it to the corresponding IObject/IValueType/IEnum method.
+                    translatedInstructions.Add(originalCode, targetMethod);
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, targetMethod.ReturnType);
                 }
                 else if (originalCode == OpCodes.Ldtoken)
                 {
@@ -566,23 +708,36 @@ public class TranslatedMethodBody : MethodBodyBase
             }
             else if (originalOperand is FieldAnalysisContext field)
             {
-                var baseField = (field as ConcreteGenericFieldAnalysisContext)?.BaseFieldContext ?? field;
+                FieldAnalysisContext baseField;
+                TypeAnalysisContext[] declaringTypeArguments;
+                if (field is ConcreteGenericFieldAnalysisContext concreteGenericField)
+                {
+                    baseField = concreteGenericField.BaseFieldContext;
+                    declaringTypeArguments = replacementVisitor.Replace(((GenericInstanceTypeAnalysisContext)field.DeclaringType).GenericArguments).ToArray();
+                }
+                else
+                {
+                    baseField = field;
+                    declaringTypeArguments = [];
+                }
 
                 if (originalCode == OpCodes.Ldfld || originalCode == OpCodes.Ldsfld)
                 {
                     // Load field value
                     if (baseField.PropertyAccessor is not null)
                     {
-                        var accessorMethod = field is ConcreteGenericFieldAnalysisContext
-                            ? new ConcreteGenericMethodAnalysisContext(baseField.PropertyAccessor!.Getter!, ((GenericInstanceTypeAnalysisContext)field.DeclaringType).GenericArguments, [])
-                            : baseField.PropertyAccessor!.Getter!;
+                        Debug.Assert(baseField.IsStatic || baseField is { DeclaringType.IsValueType: false }, "Value types should not have instance field accessors.");
+                        var accessorMethod = baseField.PropertyAccessor!.Getter!.MaybeMakeConcreteGeneric(declaringTypeArguments, []);
                         translatedInstruction.Code = originalCode == OpCodes.Ldfld ? OpCodes.Callvirt : OpCodes.Call;
                         translatedInstruction.Operand = accessorMethod;
                     }
                     else if (baseField.DeclaringType.Fields.Contains(baseField))
                     {
+                        // This is wrong! It should be getting the field offset, adding it to the object pointer, and then dereferencing it.
+                        Debug.Assert(!baseField.IsStatic, "There should be no static fields.");
+                        Debug.Assert(baseField is { DeclaringType.IsValueType: true }, "Only value types should have instance fields.");
                         translatedInstruction.Code = originalCode;
-                        translatedInstruction.Operand = originalOperand;
+                        translatedInstruction.Operand = baseField.MaybeMakeConcreteGeneric(declaringTypeArguments);
                     }
                     else
                     {
@@ -601,19 +756,20 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     if (baseField.PropertyAccessor is not null)
                     {
-                        var accessorMethod = field is ConcreteGenericFieldAnalysisContext
-                            ? new ConcreteGenericMethodAnalysisContext(baseField.PropertyAccessor!.Setter!, ((GenericInstanceTypeAnalysisContext)field.DeclaringType).GenericArguments, [])
-                            : baseField.PropertyAccessor!.Setter!;
-
+                        Debug.Assert(baseField.IsStatic || baseField is { DeclaringType.IsValueType: false }, "Value types should not have instance field accessors.");
+                        var accessorMethod = baseField.PropertyAccessor!.Setter!.MaybeMakeConcreteGeneric(declaringTypeArguments, []);
                         translatedInstructions.Add(new Instruction(originalCode == OpCodes.Stfld ? OpCodes.Callvirt : OpCodes.Call, accessorMethod));
                     }
                     else if (baseField.DeclaringType.Fields.Contains(baseField))
                     {
+                        // This is wrong! It should be getting the field offset, adding it to the object pointer, and then dereferencing it.
+                        Debug.Assert(!baseField.IsStatic, "There should be no static fields.");
+                        Debug.Assert(baseField is { DeclaringType.IsValueType: true }, "Only value types should have instance fields.");
                         translatedInstructions.Add(new Instruction(originalCode, originalOperand));
                     }
                     else
                     {
-                        // This should only occur for special cases like String::_firstChar.
+                        // This should not occur.
                         return false;
                     }
                 }
@@ -665,7 +821,7 @@ public class TranslatedMethodBody : MethodBodyBase
             {
                 if (originalExceptionHandler.ExceptionType is GenericInstanceTypeAnalysisContext genericInstance)
                 {
-                    exceptionType = genericInstance.GenericType.SystemExceptionType!.MakeGenericInstanceType(genericInstance.GenericArguments);
+                    exceptionType = genericInstance.GenericType.SystemExceptionType!.MakeGenericInstanceType(replacementVisitor.Replace(genericInstance.GenericArguments));
                 }
                 else
                 {
@@ -700,7 +856,9 @@ public class TranslatedMethodBody : MethodBodyBase
             exceptionHandlers[i] = translatedExceptionHandler;
         }
 
-        methodContext.PutExtraData(new TranslatedMethodBody
+        translatedInstructions.InsertRange(0, initializeInstructions);
+
+        implementationMethod.PutExtraData(new TranslatedMethodBody
         {
             Instructions = translatedInstructions,
             LocalVariables = localVariableList,
