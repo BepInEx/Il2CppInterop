@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using Il2CppInterop.Runtime.InteropTypes;
 
 namespace Il2CppInterop.Runtime.Runtime;
 
@@ -31,8 +32,8 @@ public static class ClassInjectorBase
         if (IL2CPP.il2cpp_class_is_assignable_from(Il2CppClassPointerStore<Il2CppSystem.MulticastDelegate>.NativeClassPtr, IL2CPP.il2cpp_object_get_class(pointer)))
         {
             var delegateObject = new Il2CppSystem.Delegate(pointer);
-            if (delegateObject.m_target != null && delegateObject.m_target.Pointer != IntPtr.Zero)
-                return GetGcHandlePtrFromIl2CppObject(delegateObject.m_target.Pointer);
+            if (delegateObject.m_target is IIl2CppObjectBase target && target.Pointer != IntPtr.Zero)
+                return GetGcHandlePtrFromIl2CppObject(target.Pointer);
         }
         return IntPtr.Zero;
     }
