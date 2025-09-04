@@ -34,7 +34,7 @@ Il2CppGame.Process(
         new ExceptionHierarchyProcessingLayer(),
         new MethodInvokerProcessingLayer(),
         new MethodBodyTranslationProcessingLayer(),
-        //new NativeMethodBodyProcessingLayer(),
+        new NativeMethodBodyProcessingLayer(),
         new DelegateConversionProcessingLayer(),
         new ByRefParameterOverloadProcessingLayer(),
         new UserFriendlyOverloadProcessingLayer(),
@@ -51,6 +51,6 @@ Todo:
 - Creation method registration
 - ICall runtime delegate creation
 - System interfaces
-- Improve ByReference<T> and Pointer<T> semantics in unstripped methods
+- Fix load/store field semantics in unstripped methods
 - overloads with arrays, delegates, primitives
 */

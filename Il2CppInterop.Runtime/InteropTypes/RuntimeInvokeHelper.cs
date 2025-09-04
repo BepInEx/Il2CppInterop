@@ -9,7 +9,7 @@ public static unsafe class RuntimeInvokeHelper
     private static IntPtr Il2CppRuntimeInvoke(IntPtr method, IntPtr obj, void** parameters)
     {
         IntPtr exception = default;
-        IntPtr result = IL2CPP.il2cpp_runtime_invoke(method, obj, parameters, ref exception);
+        var result = IL2CPP.il2cpp_runtime_invoke(method, obj, parameters, ref exception);
         Il2CppException.RaiseExceptionIfNecessary(exception);
         return result;
     }
@@ -22,7 +22,7 @@ public static unsafe class RuntimeInvokeHelper
     public static TResult? InvokeFunction<TResult>(IntPtr method, IntPtr obj, void** parameters)
         where TResult : IIl2CppType<TResult>
     {
-        IntPtr result = Il2CppRuntimeInvoke(method, obj, parameters);
+        var result = Il2CppRuntimeInvoke(method, obj, parameters);
         if (IsPointerOrByRef<TResult>())
         {
             // Pointers and by refs are returned directly.
@@ -31,12 +31,45 @@ public static unsafe class RuntimeInvokeHelper
         else if (IsValueType<TResult>())
         {
             // This is a performance optimization. The other code path would also return the correct result.
-            byte* data = (byte*)IL2CPP.il2cpp_object_unbox(result);
+            var data = (byte*)IL2CPP.il2cpp_object_unbox(result);
             return Il2CppTypeHelper.ReadFromPointer<TResult>(data);
         }
         else
         {
             return (TResult?)Il2CppObjectPool.Get(result);
+        }
+    }
+
+    public static IntPtr GetPointerForThis<T>(ByReference<T> @this)
+        where T : IIl2CppType<T>
+    {
+        if (typeof(T).IsValueType)
+        {
+            return new IntPtr(@this.ToPointer());
+        }
+        else
+        {
+            return ((IIl2CppObjectBase)@this.GetValue()!).Pointer;
+        }
+    }
+
+    public static IntPtr GetPointerForParameter<T>(ByReference<T> parameter)
+        where T : IIl2CppType<T>
+    {
+        if (IsPointerOrByRef<T>())
+        {
+            // Pointer to pointer, which is passed directly
+            return *(IntPtr*)parameter.ToPointer();
+        }
+        else if (IsValueType<T>())
+        {
+            // Pointer to value type data
+            return new IntPtr(parameter.ToPointer());
+        }
+        else
+        {
+            // Pointer to object pointer, which is passed directly
+            return *(IntPtr*)parameter.ToPointer();
         }
     }
 
@@ -58,59 +91,5 @@ public static unsafe class RuntimeInvokeHelper
     private static bool IsValueType<T>()
     {
         return typeof(T).IsValueType;
-    }
-
-    public static int RequiredStackAllocationSize<T>()
-        where T : IIl2CppType<T>
-    {
-        if (IsPointer<T>())
-        {
-            return default;
-        }
-        else if (IsByRef<T>())
-        {
-            return ((IIl2CppByReference)default(T)!).ReferenceSize;
-        }
-        else if (IsValueType<T>())
-        {
-            return T.Size;
-        }
-        else
-        {
-            return default;
-        }
-    }
-
-    public static IntPtr PrepareParameter<T>(T? parameter, byte* parameter_stackAllocData)
-         where T : IIl2CppType<T>
-    {
-        if (IsPointer<T>())
-        {
-            return Unsafe.As<T, IntPtr>(ref parameter!);
-        }
-        else if (IsByRef<T>())
-        {
-            var il2CppByRef = ((IIl2CppByReference)parameter!);
-            il2CppByRef.WriteReferenceToSpan(new Span<byte>(parameter_stackAllocData, il2CppByRef.ReferenceSize));
-            return (IntPtr)parameter_stackAllocData;
-        }
-        else if (IsValueType<T>())
-        {
-            parameter!.WriteToPointer(parameter_stackAllocData);
-            return (IntPtr)parameter_stackAllocData;
-        }
-        else
-        {
-            return parameter.Box();
-        }
-    }
-
-    public static void CleanupParameter<T>(T? parameter, byte* parameter_stackAllocData)
-    {
-        if (IsByRef<T>())
-        {
-            var il2CppByRef = (IIl2CppByReference)parameter!;
-            il2CppByRef.ReadReferenceFromSpan(new ReadOnlySpan<byte>(parameter_stackAllocData, il2CppByRef.ReferenceSize));
-        }
     }
 }
