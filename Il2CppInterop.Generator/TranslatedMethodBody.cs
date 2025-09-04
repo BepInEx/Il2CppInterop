@@ -684,7 +684,9 @@ public class TranslatedMethodBody : MethodBodyBase
                     // Todo: If this is an instance method on Il2CppSystem Object/ValueType/Enum,
                     // we need to redirect it to the corresponding IObject/IValueType/IEnum method.
                     translatedInstructions.Add(originalCode, targetMethod);
-                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, targetMethod.ReturnType);
+
+                    var returnType = originalCode == OpCodes.Newobj ? targetMethod.DeclaringType! : targetMethod.ReturnType;
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, returnType);
                 }
                 else if (originalCode == OpCodes.Ldtoken)
                 {
