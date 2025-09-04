@@ -57,10 +57,10 @@ public class ReferenceReplacementProcessingLayer : Cpp2IlProcessingLayer
                     type.OverrideBaseType = visitor.Replace(type.BaseType);
                 }
 
-                visitor.Replace(type.InterfaceContexts);
+                visitor.Modify(type.InterfaceContexts);
                 foreach (var genericParameter in type.GenericParameters)
                 {
-                    visitor.Replace(genericParameter.ConstraintTypes);
+                    visitor.Modify(genericParameter.ConstraintTypes);
                 }
 
                 foreach (var field in type.Fields)
@@ -85,7 +85,7 @@ public class ReferenceReplacementProcessingLayer : Cpp2IlProcessingLayer
                     }
                     foreach (var genericParameter in method.GenericParameters)
                     {
-                        visitor.Replace(genericParameter.ConstraintTypes);
+                        visitor.Modify(genericParameter.ConstraintTypes);
                     }
                 }
 

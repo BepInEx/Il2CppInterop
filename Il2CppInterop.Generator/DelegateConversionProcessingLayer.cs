@@ -142,7 +142,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                         var genericParameterDictionary = Enumerable.Range(0, type.GenericParameters.Count)
                             .ToDictionary<int, TypeAnalysisContext, TypeAnalysisContext>(i => type.GenericParameters[i], i => managedDelegateType.GenericParameters[i]);
                         var replacementVisitor = new TypeReplacementVisitor(genericParameterDictionary);
-                        replacementVisitor.Replace(parameterTypes);
+                        replacementVisitor.Modify(parameterTypes);
                         returnType = replacementVisitor.Replace(invokeMethod.ReturnType);
                     }
 

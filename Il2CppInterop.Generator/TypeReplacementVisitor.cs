@@ -30,7 +30,7 @@ internal class TypeReplacementVisitor(Dictionary<TypeAnalysisContext, TypeAnalys
         return type is null ? null : Visit(type);
     }
 
-    public void Replace(List<TypeAnalysisContext> types)
+    public void Modify(List<TypeAnalysisContext> types)
     {
         for (var i = 0; i < types.Count; i++)
         {
