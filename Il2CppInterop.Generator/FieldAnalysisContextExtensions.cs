@@ -29,6 +29,13 @@ internal static class FieldAnalysisContextExtensions
             set => @field.PutExtraData("OffsetStorage", value);
         }
 
+        [MaybeNull]
+        public MethodAnalysisContext FieldAddressAccessor
+        {
+            get => @field.GetExtraData<MethodAnalysisContext>("FieldAddressAccessor");
+            set => @field.PutExtraData("FieldAddressAccessor", value);
+        }
+
         /// <summary>
         /// Gets the field info address storage for this field, and instantiate for use in this field's declaring type.
         /// </summary>

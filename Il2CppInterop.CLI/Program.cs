@@ -51,6 +51,5 @@ Todo:
 - Creation method registration
 - ICall runtime delegate creation
 - System interfaces
-- Fix load/store field semantics in unstripped methods
 - overloads with arrays, delegates, primitives
 */

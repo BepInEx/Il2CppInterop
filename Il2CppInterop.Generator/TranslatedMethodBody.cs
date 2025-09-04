@@ -34,7 +34,9 @@ public class TranslatedMethodBody : MethodBodyBase
         var byReference_GetValue = byReference.GetMethodByName(nameof(ByReference<>.GetValue));
 
         var byReferenceStatic = appContext.ResolveTypeOrThrow(typeof(ByReference));
-        var byReferenceStatic_SetValue = byReferenceStatic.GetMethodByName(nameof(ByReference.SetValue));
+        var byReferenceStatic_GetValue = byReferenceStatic.GetMethodByName(nameof(ByReference.GetValue));
+        var byReferenceStatic_SetValue1 = byReferenceStatic.GetMethodByName(nameof(ByReference.SetValue1));
+        var byReferenceStatic_SetValue2 = byReferenceStatic.GetMethodByName(nameof(ByReference.SetValue2));
 
         var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeHelper));
         var il2CppTypeHelper_SizeOf = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.SizeOf));
@@ -425,7 +427,7 @@ public class TranslatedMethodBody : MethodBodyBase
                         translatedInstruction.Code = OpCodes.Ldarg;
                         translatedInstruction.Operand = newParameter;
                     }
-                    translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_SetValue.MakeGenericInstanceMethod(parameterType.GenericArguments));
+                    translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_SetValue2.MakeGenericInstanceMethod(parameterType.GenericArguments));
                 }
                 else if (originalCode == OpCodes.Ldarga)
                 {
@@ -469,7 +471,7 @@ public class TranslatedMethodBody : MethodBodyBase
                         translatedInstruction.Code = OpCodes.Ldloc;
                         translatedInstruction.Operand = translatedLocalVariable;
                     }
-                    translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_SetValue.MakeGenericInstanceMethod(localType.GenericArguments));
+                    translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_SetValue2.MakeGenericInstanceMethod(localType.GenericArguments));
                 }
                 else if (originalCode == OpCodes.Ldloca)
                 {
@@ -726,6 +728,10 @@ public class TranslatedMethodBody : MethodBodyBase
                 if (originalCode == OpCodes.Ldfld || originalCode == OpCodes.Ldsfld)
                 {
                     // Load field value
+
+                    var translatedField = baseField.MaybeMakeConcreteGeneric(declaringTypeArguments);
+                    var fieldType = translatedField.FieldType;
+
                     if (baseField.PropertyAccessor is not null)
                     {
                         Debug.Assert(baseField.IsStatic || baseField is { DeclaringType.IsValueType: false }, "Value types should not have instance field accessors.");
@@ -733,13 +739,24 @@ public class TranslatedMethodBody : MethodBodyBase
                         translatedInstruction.Code = originalCode == OpCodes.Ldfld ? OpCodes.Callvirt : OpCodes.Call;
                         translatedInstruction.Operand = accessorMethod;
                     }
+                    else if (baseField.DeclaringType.IsIl2CppPrimitive)
+                    {
+                        Debug.Assert(!baseField.IsStatic, "There should be no static fields.");
+                        Debug.Assert(fieldType.DeclaringAssembly == appContext.Mscorlib);
+
+                        translatedInstruction.Code = OpCodes.Ldobj;
+                        translatedInstruction.Operand = fieldType;
+                    }
                     else if (baseField.DeclaringType.Fields.Contains(baseField))
                     {
-                        // This is wrong! It should be getting the field offset, adding it to the object pointer, and then dereferencing it.
                         Debug.Assert(!baseField.IsStatic, "There should be no static fields.");
                         Debug.Assert(baseField is { DeclaringType.IsValueType: true }, "Only value types should have instance fields.");
-                        translatedInstruction.Code = originalCode;
-                        translatedInstruction.Operand = baseField.MaybeMakeConcreteGeneric(declaringTypeArguments);
+                        Debug.Assert(baseField.FieldAddressAccessor is not null);
+
+                        translatedInstruction.Code = OpCodes.Nop;
+                        MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, byReference.MakeGenericInstanceType([translatedField.DeclaringType]));
+                        translatedInstructions.Add(OpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
+                        translatedInstructions.Add(OpCodes.Call, byReferenceStatic_GetValue.MakeGenericInstanceMethod(fieldType));
                     }
                     else
                     {
@@ -747,14 +764,17 @@ public class TranslatedMethodBody : MethodBodyBase
                         return false;
                     }
 
-                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, field.FieldType);
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, fieldType);
                 }
                 else if (originalCode == OpCodes.Stfld || originalCode == OpCodes.Stsfld)
                 {
                     // Store field value
 
+                    var translatedField = baseField.MaybeMakeConcreteGeneric(declaringTypeArguments);
+                    var fieldType = translatedField.FieldType;
+
                     translatedInstruction.Code = OpCodes.Nop;
-                    MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, field.FieldType);
+                    MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, fieldType);
 
                     if (baseField.PropertyAccessor is not null)
                     {
@@ -762,12 +782,28 @@ public class TranslatedMethodBody : MethodBodyBase
                         var accessorMethod = baseField.PropertyAccessor!.Setter!.MaybeMakeConcreteGeneric(declaringTypeArguments, []);
                         translatedInstructions.Add(new Instruction(originalCode == OpCodes.Stfld ? OpCodes.Callvirt : OpCodes.Call, accessorMethod));
                     }
+                    else if (baseField.DeclaringType.IsIl2CppPrimitive)
+                    {
+                        Debug.Assert(!baseField.IsStatic, "There should be no static fields.");
+                        Debug.Assert(baseField.FieldType.DeclaringAssembly == appContext.Mscorlib);
+
+                        // This should not occur because the primitive fields are readonly.
+                        return false;
+                    }
                     else if (baseField.DeclaringType.Fields.Contains(baseField))
                     {
-                        // This is wrong! It should be getting the field offset, adding it to the object pointer, and then dereferencing it.
                         Debug.Assert(!baseField.IsStatic, "There should be no static fields.");
                         Debug.Assert(baseField is { DeclaringType.IsValueType: true }, "Only value types should have instance fields.");
-                        translatedInstructions.Add(new Instruction(originalCode, originalOperand));
+                        Debug.Assert(baseField.FieldAddressAccessor is not null);
+
+                        LocalVariable temporaryLocal = new(fieldType);
+                        localVariableList.Add(temporaryLocal);
+
+                        translatedInstructions.Add(OpCodes.Stloc, temporaryLocal);
+                        MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, byReference.MakeGenericInstanceType([translatedField.DeclaringType]));
+                        translatedInstructions.Add(OpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
+                        translatedInstructions.Add(OpCodes.Ldloc, temporaryLocal);
+                        translatedInstructions.Add(OpCodes.Call, byReferenceStatic_SetValue1.MakeGenericInstanceMethod(fieldType));
                     }
                     else
                     {
@@ -775,9 +811,23 @@ public class TranslatedMethodBody : MethodBodyBase
                         return false;
                     }
                 }
-                else if (originalCode == OpCodes.Ldflda || originalCode == OpCodes.Ldsflda)
+                else if (originalCode == OpCodes.Ldflda)
                 {
                     // Load field address
+                    Debug.Assert(!baseField.IsStatic);
+                    Debug.Assert(baseField.FieldAddressAccessor is not null);
+
+                    var translatedField = baseField.MaybeMakeConcreteGeneric(declaringTypeArguments);
+                    var fieldType = translatedField.FieldType;
+
+                    translatedInstruction.Code = OpCodes.Nop;
+                    MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, byReference.MakeGenericInstanceType([translatedField.DeclaringType]));
+                    translatedInstructions.Add(OpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, byReference.MakeGenericInstanceType([fieldType]));
+                }
+                else if (originalCode == OpCodes.Ldsflda)
+                {
+                    // Load static field address
                     // Not implemented yet
                     return false;
                 }

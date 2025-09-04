@@ -4,10 +4,30 @@ namespace Il2CppInterop.Runtime.InteropTypes;
 
 public static class ByReference
 {
-    public static void SetValue<T>(T? value, ByReference<T> byReference)
+    public static T? GetValue<T>(ByReference<T> byReference)
+        where T : IIl2CppType<T>
+    {
+        return byReference.GetValue();
+    }
+
+    public static void SetValue1<T>(ByReference<T> byReference, T? value)
         where T : IIl2CppType<T>
     {
         byReference.SetValue(value);
+    }
+
+    public static void SetValue2<T>(T? value, ByReference<T> byReference)
+        where T : IIl2CppType<T>
+    {
+        byReference.SetValue(value);
+    }
+
+    // ldflda
+    public static unsafe ByReference<U> GetReferenceAtOffset<T, U>(ByReference<T> byReference, int offset)
+        where T : IIl2CppType<T>
+        where U : IIl2CppType<U>
+    {
+        return new ByReference<U>((byte*)byReference.ToPointer() + offset);
     }
 }
 public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>, IIl2CppByReference

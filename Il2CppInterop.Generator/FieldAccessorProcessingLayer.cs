@@ -32,6 +32,14 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         var il2CppMemberAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppMemberAttribute));
         var il2CppMemberAttributeName = il2CppMemberAttribute.GetPropertyByName(nameof(Il2CppMemberAttribute.Name));
 
+        var byReference = appContext.ResolveTypeOrThrow(typeof(ByReference<>));
+        var byReference_Constructor = byReference.GetMethodByName(".ctor");
+        var byReferenceStatic = appContext.ResolveTypeOrThrow(typeof(ByReference));
+        var byReferenceStatic_GetReferenceAtOffset = byReferenceStatic.GetMethodByName(nameof(ByReference.GetReferenceAtOffset));
+
+        var iil2CppObjectBase = appContext.ResolveTypeOrThrow(typeof(IIl2CppObjectBase));
+        var iil2CppObjectBase_get_Pointer = iil2CppObjectBase.GetMethodByName($"get_{nameof(IIl2CppObjectBase.Pointer)}");
+
         foreach (var assembly in appContext.Assemblies)
         {
             if (assembly.IsReferenceAssembly || assembly.IsInjected)
@@ -42,7 +50,9 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                 if (type.IsInjected)
                     continue;
 
+                var instantiatedType = type.SelfInstantiateIfGeneric();
                 var isValueType = type.IsValueType;
+                HashSet<string> existingNames = [type.CSharpName, .. type.Members.Select(m => m.Name)];
 
                 for (var i = type.Fields.Count - 1; i >= 0; i--)
                 {
@@ -55,6 +65,52 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
 
                     if (field.IsInjected)
                         continue;
+
+                    if (!field.IsStatic && !type.IsIl2CppPrimitive)
+                    {
+                        var name = GetNonConflictingName($"GetFieldAddress_{field.Name}", existingNames);
+                        var parameterType = isValueType ? byReference.MakeGenericInstanceType([instantiatedType]) : instantiatedType;
+                        var getFieldAddress = new InjectedMethodAnalysisContext(
+                            type,
+                            name,
+                            byReference.MakeGenericInstanceType([field.FieldType]),
+                            MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
+                            [parameterType])
+                            {
+                                IsInjected = true,
+                            };
+                        type.Methods.Add(getFieldAddress);
+
+                        if (isValueType)
+                        {
+                            getFieldAddress.PutExtraData(new NativeMethodBody()
+                            {
+                                Instructions = [
+                                    new Instruction(OpCodes.Ldarg, getFieldAddress.Parameters[0]),
+                                    new Instruction(OpCodes.Ldsfld, field.GetInstantiatedOffsetStorage()),
+                                    new Instruction(OpCodes.Call, byReferenceStatic_GetReferenceAtOffset.MakeGenericInstanceMethod(instantiatedType, field.FieldType)),
+                                    new Instruction(OpCodes.Ret)
+                                ],
+                            });
+                        }
+                        else
+                        {
+                            getFieldAddress.PutExtraData(new NativeMethodBody()
+                            {
+                                Instructions = [
+                                    new Instruction(OpCodes.Ldarg, getFieldAddress.Parameters[0]),
+                                    new Instruction(OpCodes.Callvirt, iil2CppObjectBase_get_Pointer),
+                                    new Instruction(OpCodes.Ldsfld, field.GetInstantiatedOffsetStorage()),
+                                    new Instruction(OpCodes.Conv_I),
+                                    new Instruction(OpCodes.Add),
+                                    new Instruction(OpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([field.FieldType], [])),
+                                    new Instruction(OpCodes.Ret)
+                                ],
+                            });
+                        }
+
+                        field.FieldAddressAccessor = getFieldAddress;
+                    }
 
                     if (isValueType && !field.IsStatic)
                     {
@@ -175,5 +231,15 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                 }
             }
         }
+    }
+
+    private static string GetNonConflictingName(string baseName, HashSet<string> existingNames)
+    {
+        var name = baseName;
+        while (existingNames.Contains(name))
+        {
+            name = $"{baseName}_";
+        }
+        return name;
     }
 }
