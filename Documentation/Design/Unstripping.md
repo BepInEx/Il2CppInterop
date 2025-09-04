@@ -13,6 +13,25 @@ If the success rate for unstripping is high, and if a certain method can be unst
 * Transpilers (assuming that native is patched to use this implementation)
 * Generic instances not present in the game
 
+However, unstripping semantics would have to be perfect. Little flaws are unacceptable.
+
+```cs
+static IntPtr GeneratedDynamicMethod(IntPtr @this, FixedSizeStruct_8b param0)
+{
+    IntPtr result;
+    try
+    {
+        result = Il2CppTypeHelper.ReadFromPointer<Class>(&@this).ManagedMethod(Il2CppTypeHelper.ReadFromPointer<Struct>(&param0)).Box();
+    }
+    catch (Il2CppException e)
+    {
+        result = default;
+        il2cpp_raise_exception(e.Il2CppObject.Pointer)
+    }
+    return result;
+}
+```
+
 ## ICalls
 
 Unity internal calls can be recovered.
@@ -40,3 +59,34 @@ public static class SceneUtility
     }
 }
 ```
+
+## callvirt
+
+```cs
+public static T* ThrowIfNull<T>(this T* pointer) where T : struct
+{
+    if (pointer is null)
+    {
+        throw new Il2CppSystem.NullReferenceException();
+    }
+    return pointer;
+}
+public static T ThrowIfNull<T>(this T obj) where T : class
+{
+    if (obj is null)
+    {
+        throw new Il2CppSystem.NullReferenceException();
+    }
+    return obj;
+}
+```
+
+Inserting this before any `callvirt` instruction ensures that correct semantics are maintained.
+
+## ldelem/stelem/ldlen
+
+Null checking and bounds checking are handled in the array helper methods.
+
+## Numeric op codes
+
+These are untyped, so some rudimentary analysis is needed to determine the type.

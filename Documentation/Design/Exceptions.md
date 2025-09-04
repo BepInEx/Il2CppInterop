@@ -4,4 +4,4 @@ Il2Cpp exceptions each have a cooresponding system exception generated, making u
 
 ## Runtime exceptions
 
-Unstripped code currently allows exceptions (such as `NullReferenceException`) to be thrown by the .NET runtime. Ideally, all such exceptions be handled.
+Unstripped code currently allows exceptions (such as `NullReferenceException`) to be thrown by the .NET runtime. Ideally, all such exceptions would be handled.

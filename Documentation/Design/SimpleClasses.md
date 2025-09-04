@@ -57,22 +57,3 @@ public abstract class StaticClass
     }
 }
 ```
-
-### Alternative: Inject a nested class to use as a type parameter
-
-```cs
-public static class StaticClass
-{
-    static StaticClass()
-    {
-        Il2CppClassPointerStore<InjectedNestedClass>.NativeClassPtr = IL2CPP.GetIl2CppClass("Assembly-CSharp.dll", "", "StaticClass");
-        IL2CPP.il2cpp_runtime_class_init(Il2CppClassPointerStore<InjectedNestedClass>.NativeClassPtr);
-    }
-
-    private sealed class InjectedNestedClass()
-    {
-    }
-}
-```
-
-This is more representative of the actual situation and allows extension methods to function as intended, but the way we chose is more friendly to the rest of the generation process.

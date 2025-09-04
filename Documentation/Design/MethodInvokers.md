@@ -1,16 +1,20 @@
 # Method Invokers
 
-Every normal (user-facing) Il2Cpp method has an unsafe invoker.
+Every normal (user-facing) Il2Cpp method has an unsafe implementation.
+
+* Implementation methods are static.
+* Implementation methods are private, so they can only be called from within the type.
+* If the Il2Cpp method is instance, the first parameter is the object.
+* All other implementation parameter types are wrapped in `ByReference<>`, including parameters that are already `ByReference<>`.
+* Similarly, local variable types are also wrapped in `ByReference<>`.
+* The data for local variables is stack allocated at the beginning of the method.
+
+Some methods have an unsafe invoker.
 
 * Invoker methods are static.
-* Invoker methdos are public, so they can be called from other generated assemblies.
-* If the Il2Cpp method is instance, the first parameter is the object.
-* All other invoker parameter types are wrapped in `ByRef<>`, including parameters that are already `ByRef<>`.
-* Similarly, local variable types in unstripped invokers are also wrapped in `ByRef<>`.
-* The data for local variables is stack allocated at the beginning of the method.
-* Unstripped invokers call other invokers, not the user-facing methods.
+* Invoker methods are public, so they can be called from other generated assemblies where desirable.
 
-This is extremely verbose, but it preserves semantics exactly for indirect memory access of reference types.
+This can be verbose, but it preserves semantics exactly for indirect memory access of reference types.
 
 ## Example Output
 
@@ -29,6 +33,17 @@ public String GetString<T>(Int32 param1, T param2, IInterface param3) where T : 
     // Reference type
     data_this.SetValue(this);
 
+    String result = UnsafeInvoke_GetString<T>(data_this, param1, param2, param3);
+
+    // Value type
+    data_this.CopyTo(this);
+
+    return result;
+}
+
+// Invoker
+public static String UnsafeInvoke_GetString<T>(ByReference<Self> @this, Int32 param1, T param2, IInterface param3) where T : IIl2CppType<T>
+{
     // Param 1
     ByReference<Int32> data_param1 = new ByReference<Int32>(stackalloc byte[Il2CppTypeHelper.SizeOf<Int32>()]);
     data_param1.SetValue(param1);
@@ -41,51 +56,15 @@ public String GetString<T>(Int32 param1, T param2, IInterface param3) where T : 
     ByReference<IInterface> data_param3 = new ByReference<IInterface>(stackalloc byte[Il2CppTypeHelper.SizeOf<IInterface>()]);
     data_param3.SetValue(param3);
 
-    String result = Unsafe_GetString<T>(data_this, data_param1, data_param2, data_param3);
-
-    // Value type
-    data_this.CopyTo(this);
-
-    return result;
+    return UnsafeImplementation_GetString<T>(@this, data_param1, data_param2, data_param3);
 }
-
-// Invoker
-public static String Unsafe_GetString<T>(ByReference<Self> @this, ByReference<Int32> param1, ByReference<T> param2, ByReference<IInterface> param3) where T : IIl2CppType<T>
+private static String UnsafeImplementation_GetString<T>(ByReference<Self> @this, ByReference<Int32> param1, ByReference<T> param2, ByReference<IInterface> param3) where T : IIl2CppType<T>
 {
-    // Value type
-    IntPtr obj = new IntPtr(@this.ToPointer());
-
-    // Reference type
-    IntPtr obj = @this.GetValue().Pointer;
-
-    void** arguments = (void**)(stackalloc IntPtr[3]);
+    IntPtr* arguments = stackalloc IntPtr[3];
     arguments[0] = RuntimeInvokeHelper.GetPointerForParameter(param1);
     arguments[1] = RuntimeInvokeHelper.GetPointerForParameter(param2);
     arguments[2] = RuntimeInvokeHelper.GetPointerForParameter(param3);
-    return RuntimeInvokeHelper.InvokeFunction<String>(/* method info */, obj, arguments);
-}
-
-// Unstripped Original
-public string GetString()
-{
-    return GetString<long>(0, 0, this);
-}
-
-// Unstripped Invoker
-public static String Unsafe_GetString(ByReference<Self> @this)
-{
-    ByReference<Int32> data_call1_param1 = new ByReference<Int32>(stackalloc byte[Il2CppTypeHelper.SizeOf<Int32>()]);
-    ByReference<Int64> data_call1_param2 = new ByReference<Int64>(stackalloc byte[Il2CppTypeHelper.SizeOf<Int64>()]);
-    ByReference<IInterface> data_call1_param3 = new ByReference<IInterface>(stackalloc byte[Il2CppTypeHelper.SizeOf<IInterface>()]);
-
-    (void*)@this; // On stack
-    // (ldarg or ldarga) param1 -> void* on stack
-    // 0, 0L, and null also loaded onto the stack.
-    // Arguments are converted from Mono to Il2Cpp and popped off 1 by 1 into the data.
-    ByReference.SetValue<IInterface>(new ByReference<IInterface>((void*)@this).GetValue(), data_call1_param3);
-    ByReference.SetValue<Int64>((Int64)0L, data_call1_param2);
-    ByReference.SetValue<Int32>((Int32)0, data_call1_param1);
-    return Unsafe_GetString<Int64>(new ByReference<Self>(/* pointer from stack */), data_call1_param1, data_call1_param2, data_call1_param3);
+    return RuntimeInvokeHelper.InvokeFunction<String>(/* method info */, RuntimeInvokeHelper.GetPointerForThis<Self>(@this), (void**)arguments);
 }
 
 // Unstripped Original
@@ -97,93 +76,24 @@ public static bool Compare(Self param1, Self param2)
 }
 
 // Unstripped Invoker
-public static Boolean Unsafe_Compare(ByReference<Self> param1, ByReference<Self> param2)
+public static Boolean Compare(Self param1, Self param2)
+{
+    ByReference<Self> data_param1 = new ByReference<String>(stackalloc byte[Il2CppTypeHelper.SizeOf<Self>()]);
+    data_param1.SetValue(param1);
+    ByReference<Self> data_param2 = new ByReference<String>(stackalloc byte[Il2CppTypeHelper.SizeOf<Self>()]);
+    data_param1.SetValue(param2);
+
+    return UnsafeImplementation_Compare(data_param1, data_param2)
+}
+private static Boolean UnsafeImplementation_Compare(ByReference<Self> param1, ByReference<Self> param2)
 {
     ByReference<String> data_local1 = new ByReference<String>(stackalloc byte[Il2CppTypeHelper.SizeOf<String>()]);
     ByReference<String> data_local2 = new ByReference<String>(stackalloc byte[Il2CppTypeHelper.SizeOf<String>()]);
 
-    ByReference<Int32> data_call1_param1 = new ByReference<Int32>(stackalloc byte[Il2CppTypeHelper.SizeOf<Int32>()]);
-    ByReference<Int64> data_call1_param2 = new ByReference<Int64>(stackalloc byte[Il2CppTypeHelper.SizeOf<Int64>()]);
-    ByReference<IInterface> data_call1_param3 = new ByReference<IInterface>(stackalloc byte[Il2CppTypeHelper.SizeOf<IInterface>()]);
+    data_local1.SetValue(param1.GetValue().GetString<Int64>((Int32)0, (Int64)0, (IInterface?)null));
+    data_local2.SetValue(param2.GetValue().GetString<Int64>((Int32)0, (Int64)0, (IInterface?)null));
 
-    ByReference<Int32> data_call2_param1 = new ByReference<Int32>(stackalloc byte[Il2CppTypeHelper.SizeOf<Int32>()]);
-    ByReference<Int64> data_call2_param2 = new ByReference<Int64>(stackalloc byte[Il2CppTypeHelper.SizeOf<Int64>()]);
-    ByReference<IInterface> data_call2_param3 = new ByReference<IInterface>(stackalloc byte[Il2CppTypeHelper.SizeOf<IInterface>()]);
-
-    ByReference<String> data_call3_param1 = new ByReference<String>(stackalloc byte[Il2CppTypeHelper.SizeOf<String>()]);
-    ByReference<String> data_call3_param2 = new ByReference<String>(stackalloc byte[Il2CppTypeHelper.SizeOf<String>()]);
-
-    // (ldarg or ldarga) param1 -> void* on stack
-    // 0, 0L, and null also loaded onto the stack.
-    // Arguments are converted from Mono to Il2Cpp and popped off 1 by 1 into the data.
-    ByReference.SetValue<IInterface>((IInterface?)null, data_call1_param3);
-    ByReference.SetValue<Int64>((Int64)0L, data_call1_param2);
-    ByReference.SetValue<Int32>((Int32)0, data_call1_param1);
-    String result_call1 = Unsafe_GetString<Int64>(/* object pointer from stack */, data_call1_param1, data_call1_param2, data_call1_param3);
-    ByReference.SetValue<String>(result_call1, data_local1);
-
-    // (ldarg or ldarga) param1 -> void* on stack
-    // 0, 0L, and null also loaded onto the stack.
-    // Arguments are converted from Mono to Il2Cpp and popped off 1 by 1 into the data.
-    ByReference.SetValue<IInterface>((IInterface?)null, data_call2_param3);
-    ByReference.SetValue<Int64>((Int64)0L, data_call2_param2);
-    ByReference.SetValue<Int32>((Int32)0, data_call2_param1);
-    String result_call2 = Unsafe_GetString<Int64>(/* object pointer from stack */, data_call2_param1, data_call2_param2, data_call2_param3);
-    ByReference.SetValue<String>(result_call2, data_local2);
-
-    // Locals 1 and 2 loaded onto the stack
-    data_local1.GetValue();
-    data_local2.GetValue();
-
-    // Locals popped off the stack and stored in call data
-    ByReference.SetValue<String>(/* from stack */, data_call3_param2);
-    ByReference.SetValue<String>(/* from stack */, data_call3_param1);
-
-    return String.Unsafe_op_Equality(data_call3_param1, data_call3_param2);
-}
-```
-
-## Constructors
-
-> Note: for brevity, neither of these constructors has any parameters, but they obviously could just like a normal method.
-
-### Unstripped constructor calling native base constructor
-
-```cs
-// Pointer constructor
-public UnstrippedClass(ObjectPointer ptr) : base(ptr)
-{
-}
-
-public UnstrippedClass() : this(IL2CPP.NewObjectPointer<UnstrippedClass>())
-{
-    void* obj = this.Pointer;
-    Unsafe_Constructor(obj);
-}
-
-public static void Unsafe_Constructor(void* obj)
-{
-    // Since the Il2Cpp object has already been created and allocated, field accessors can be called.
-    this.Field = 42;
-
-    base.Unsafe_Constructor(obj);
-
-    // Other stuff
-}
-```
-
-### Unstripped method calling any constructor
-
-```cs
-// Before: newobj Class::.ctor
-// After: call Class:Unsafe_Create
-
-public static Class Unsafe_Create()
-{
-    Class c = new(IL2CPP.NewObjectPointer<Class>());
-    void* obj = c.Pointer;
-    Unsafe_Constructor(obj);
-    return c;
+    return data_local1.GetValue() == data_local2.GetValue();
 }
 ```
 
@@ -236,37 +146,6 @@ Since argument data is handled by the caller, additional locals need to be creat
 * Arguments are converted from Mono to Il2Cpp and popped off 1 by 1 into the data.
 * Data variables are loaded onto the stack.
 * Call the target's invoker method
-
-## Generated Helpers
-
-```cs
-public static unsafe TResult? InvokeInstanceFunction<TSelf, T0, T1, TResult>(ref TSelf obj, T0? arg0, T1? arg1, delegate* managed<void*, ByReference<T0>, ByReference<T1>, TResult> invoker)
-    where TSelf : IIl2CppType<TSelf>
-    where T0 : IIl2CppType<T0>
-    where T1 : IIl2CppType<T1>
-    where TResult : IIl2CppType<TResult>
-{
-    void* data_obj = stackalloc byte[Il2CppTypeHelper.SizeOf<TSelf>()];
-    Il2CppTypeHelper.WriteToPointer<TSelf>(obj, data_obj);
-
-    // Param 0
-    byte* data_param0 = stackalloc byte[Il2CppTypeHelper.SizeOf<T0>()];
-    Il2CppTypeHelper.WriteToPointer<T0>(arg0, data_param0);
-
-    // Param 1
-    byte* data_param1 = stackalloc byte[Il2CppTypeHelper.SizeOf<T1>()];
-    Il2CppTypeHelper.WriteToPointer<T1>(arg1, data_param1);
-
-    TResult? result = invoker(data_obj, new(data_param0), new(data_param1));
-
-    if (RuntimeInvokeHelper.IsValueType<TSelf>())
-    {
-        obj = Il2CppTypeHelper.ReadFromPointer<TSelf>(data_obj)!;
-    }
-
-    return result;
-}
-```
 
 ## `ref` parameters
 

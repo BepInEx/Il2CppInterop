@@ -1,7 +1,7 @@
 # Native Static Constructors
 
-It would be desirable to offer users a way to interact with static constructors.
+We give users a way to interact with static constructors.
 
-* They should be renamed from `.cctor` to `StaticConstructor`. If this is unavailable, additional underscores should be added to the beginning.
-* Like other methods, they should be publicized.
-* The `specialname` and `rtspecialname` attributes should be removed.
+* They are renamed from `.cctor` to `StaticConstructor`. If this is unavailable, additional underscores are added.
+* Like other methods, they are publicized.
+* The `specialname` and `rtspecialname` attributes are removed.
