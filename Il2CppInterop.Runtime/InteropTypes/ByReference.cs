@@ -83,6 +83,11 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
     public static explicit operator ByReference<T>(IntPtr value) => new(value.ToPointer());
     public static explicit operator IntPtr(ByReference<T> pointer) => new(pointer._pointer);
 
+    public Span<byte> AsSpan()
+    {
+        return new Span<byte>(_pointer, T.Size);
+    }
+
     private readonly void ThrowIfNull()
     {
         if (_pointer is null)

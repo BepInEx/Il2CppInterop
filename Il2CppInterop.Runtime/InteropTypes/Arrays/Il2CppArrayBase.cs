@@ -83,6 +83,10 @@ public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyLis
     {
     }
 
+    public Il2CppArrayBase(int size) : this(AllocateArray(size))
+    {
+    }
+
     public Il2CppArrayBase(long size) : base(AllocateArray(size))
     {
     }
@@ -169,15 +173,20 @@ public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyLis
         }
     }
 
+    public unsafe ByReference<T> GetElementAddress(int index)
+    {
+        ThrowIfIndexOutOfRange(index);
+        return new ByReference<T>((byte*)ArrayStartPointer.ToPointer() + index * T.Size);
+    }
+
     private unsafe Span<byte> AsSpan()
     {
         return new Span<byte>(ArrayStartPointer.ToPointer(), Length * T.Size);
     }
 
-    private protected override unsafe Span<byte> GetUnsafeSpanForElement(int index)
+    private protected override Span<byte> GetUnsafeSpanForElement(int index)
     {
-        ThrowIfIndexOutOfRange(index);
-        return new Span<byte>((byte*)ArrayStartPointer.ToPointer() + index * T.Size, T.Size);
+        return GetElementAddress(index).AsSpan();
     }
 
     [return: NotNullIfNotNull(nameof(il2CppArray))]

@@ -590,8 +590,14 @@ public class TranslatedMethodBody : MethodBodyBase
                         }
                         break;
                     case CilCode.Newarr:
-                        // Not implemented yet
-                        return false;
+                        {
+                            translatedInstruction.Code = OpCodes.Newobj;
+                            translatedInstruction.Operand = appContext.ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
+                                .Methods
+                                .Single(m => m.IsInstanceConstructor && m.Parameters.Count == 1 && m.Parameters[0].ParameterType == appContext.SystemTypes.SystemInt32Type)
+                                .MakeConcreteGeneric([translatedType], []);
+                        }
+                        break;
                     case CilCode.Ldelem:
                         {
                             var genericMethod = methodContext.AppContext
@@ -616,8 +622,16 @@ public class TranslatedMethodBody : MethodBodyBase
                         }
                         break;
                     case CilCode.Ldelema:
-                        // Not implemented yet
-                        return false;
+                        {
+                            var getElementAddress = appContext.ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
+                                .GetMethodByName(nameof(Il2CppArrayBase<>.GetElementAddress))
+                                .MakeConcreteGeneric([translatedType], []);
+                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Operand = getElementAddress;
+
+                            MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, getElementAddress.ReturnType);
+                        }
+                        break;
                     case CilCode.Mkrefany or CilCode.Refanyval:
                         // Not implemented yet
                         return false;
