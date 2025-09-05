@@ -491,96 +491,139 @@ public class TranslatedMethodBody : MethodBodyBase
                 var convertedType = conversionVisitor.Replace(type);
                 var translatedType = replacementVisitor.Replace(convertedType);
 
-                if (originalCode.Code is CilCode.Castclass or CilCode.Constrained or CilCode.Cpobj or CilCode.Initobj or CilCode.Isinst or CilCode.Ldobj or CilCode.Stobj or CilCode.Unbox_Any)
+                switch (originalCode.Code)
                 {
-                    translatedInstruction.Code = originalCode;
-                    translatedInstruction.Operand = translatedType;
-                }
-                else if (originalCode == OpCodes.Sizeof)
-                {
-                    // Not implemented yet
-                    // Probably need to use Il2CppTypeHelper.SizeOf to get the correct semantics.
-                    return false;
-                }
-                else if (originalCode == OpCodes.Box)
-                {
-                    if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, translatedType))
-                    {
-                        translatedInstruction.Code = OpCodes.Nop;
+                    case CilCode.Castclass or CilCode.Isinst:
+                        {
+                            translatedInstruction.Code = originalCode;
+                            translatedInstruction.Operand = translatedType;
+                        }
+                        break;
+                    case CilCode.Constrained:
+                        return false;
+                    case CilCode.Initobj:
+                        {
+                            // References on the stack are always void*.
+                            translatedInstruction.Code = OpCodes.Call;
+                            translatedInstruction.Operand = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.InitializeObject)).MakeGenericInstanceMethod(translatedType);
+                        }
+                        break;
+                    case CilCode.Cpobj:
+                        {
+                            // References on the stack are always void*.
+                            translatedInstruction.Code = OpCodes.Call;
+                            translatedInstruction.Operand = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.CopyObject)).MakeGenericInstanceMethod(translatedType);
+                        }
+                        break;
+                    case CilCode.Ldobj:
+                        {
+                            // References on the stack are always void*.
+                            translatedInstruction.Code = OpCodes.Call;
+                            translatedInstruction.Operand = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.ReadFromPointer)).MakeGenericInstanceMethod(translatedType);
+                            MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedType);
+                        }
+                        break;
+                    case CilCode.Stobj:
+                        {
+                            var storeMethod = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.StoreObject)).MakeGenericInstanceMethod(translatedType);
+                            if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, translatedType))
+                            {
+                                translatedInstruction.Code = OpCodes.Nop;
 
-                        translatedInstructions.Add(new Instruction(originalCode, translatedType));
-                    }
-                    else
-                    {
-                        translatedInstruction.Code = originalCode;
-                        translatedInstruction.Operand = translatedType;
-                    }
-                }
-                else if (originalCode == OpCodes.Unbox)
-                {
-                    translatedInstruction.Code = originalCode;
-                    translatedInstruction.Operand = translatedType;
-                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedType);
-                }
-                else if (originalCode == OpCodes.Ldtoken)
-                {
-                    translatedInstruction.Code = originalCode;
-                    translatedInstruction.Operand = translatedType;
+                                translatedInstructions.Add(OpCodes.Call, storeMethod);
+                            }
+                            else
+                            {
+                                translatedInstruction.Code = OpCodes.Call;
+                                translatedInstruction.Operand = storeMethod;
+                            }
+                        }
+                        break;
+                    case CilCode.Sizeof:
+                        {
+                            translatedInstruction.Code = OpCodes.Call;
+                            translatedInstruction.Operand = il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(translatedType);
+                        }
+                        break;
+                    case CilCode.Box:
+                        if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, translatedType))
+                        {
+                            translatedInstruction.Code = OpCodes.Nop;
 
-                    translatedInstructions.Add(new Instruction(OpCodes.Call, methodContext.AppContext.SystemTypes.SystemTypeType.GetMethodByName(nameof(Type.GetTypeFromHandle))));
+                            translatedInstructions.Add(new Instruction(originalCode, translatedType));
+                        }
+                        else
+                        {
+                            translatedInstruction.Code = originalCode;
+                            translatedInstruction.Operand = translatedType;
+                        }
+                        break;
+                    case CilCode.Unbox:
+                        {
+                            translatedInstruction.Code = originalCode;
+                            translatedInstruction.Operand = translatedType;
+                            MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedType);
+                        }
+                        break;
+                    case CilCode.Unbox_Any:
+                        {
+                            translatedInstruction.Code = originalCode;
+                            translatedInstruction.Operand = translatedType;
+                        }
+                        break;
+                    case CilCode.Ldtoken:
+                        {
+                            translatedInstruction.Code = originalCode;
+                            translatedInstruction.Operand = translatedType;
 
-                    var systemTypeToIl2CppTypeMethod = methodContext.AppContext
-                        .ResolveTypeOrThrow(typeof(Il2CppType))
-                        .Methods.First(m => m.Name == nameof(Il2CppType.From) && m.Parameters.Count == 1);
+                            translatedInstructions.Add(new Instruction(OpCodes.Call, methodContext.AppContext.SystemTypes.SystemTypeType.GetMethodByName(nameof(Type.GetTypeFromHandle))));
 
-                    translatedInstructions.Add(new Instruction(OpCodes.Call, systemTypeToIl2CppTypeMethod));
+                            var systemTypeToIl2CppTypeMethod = methodContext.AppContext
+                                .ResolveTypeOrThrow(typeof(Il2CppType))
+                                .Methods.First(m => m.Name == nameof(Il2CppType.From) && m.Parameters.Count == 1);
 
-                    var getTypeHandleMethod = methodContext.AppContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Type").GetMethodByName("get_TypeHandle");
+                            translatedInstructions.Add(new Instruction(OpCodes.Call, systemTypeToIl2CppTypeMethod));
 
-                    translatedInstructions.Add(new Instruction(OpCodes.Callvirt, getTypeHandleMethod));
-                }
-                else if (originalCode == OpCodes.Newarr)
-                {
-                    // Not implemented yet
-                    return false;
-                }
-                else if (originalCode == OpCodes.Ldelem)
-                {
-                    var genericMethod = methodContext.AppContext
-                        .ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
-                        .GetMethodByName("get_Item");
-                    translatedInstruction.Code = OpCodes.Callvirt;
-                    translatedInstruction.Operand = new ConcreteGenericMethodAnalysisContext(genericMethod, [translatedType], []);
-                    MonoIl2CppConversion.
-                                        AddIl2CppToMonoConversion(translatedInstructions, translatedType);
-                }
-                else if (originalCode == OpCodes.Stelem)
-                {
-                    translatedInstruction.Code = OpCodes.Nop;
+                            var getTypeHandleMethod = methodContext.AppContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Type").GetMethodByName("get_TypeHandle");
 
-                    var genericMethod = methodContext.AppContext
-                        .ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
-                        .GetMethodByName("set_Item");
-                    var concreteGenericMethod = new ConcreteGenericMethodAnalysisContext(genericMethod, [translatedType], []);
-                    MonoIl2CppConversion.
-                                        AddMonoToIl2CppConversion(translatedInstructions, translatedType);
+                            translatedInstructions.Add(new Instruction(OpCodes.Callvirt, getTypeHandleMethod));
+                        }
+                        break;
+                    case CilCode.Newarr:
+                        // Not implemented yet
+                        return false;
+                    case CilCode.Ldelem:
+                        {
+                            var genericMethod = methodContext.AppContext
+                                .ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
+                                .GetMethodByName("get_Item");
+                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Operand = new ConcreteGenericMethodAnalysisContext(genericMethod, [translatedType], []);
+                            MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedType);
+                        }
+                        break;
+                    case CilCode.Stelem:
+                        {
+                            translatedInstruction.Code = OpCodes.Nop;
 
-                    translatedInstructions.Add(new Instruction(OpCodes.Callvirt, concreteGenericMethod));
-                }
-                else if (originalCode == OpCodes.Ldelema)
-                {
-                    // Not implemented yet
-                    return false;
-                }
-                else if (originalCode.Code is CilCode.Mkrefany or CilCode.Refanyval)
-                {
-                    // Not implemented yet
-                    return false;
-                }
-                else
-                {
-                    Debug.Fail($"Unexpected CIL code: {originalCode}");
-                    return false;
+                            var genericMethod = methodContext.AppContext
+                                .ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
+                                .GetMethodByName("set_Item");
+                            var concreteGenericMethod = new ConcreteGenericMethodAnalysisContext(genericMethod, [translatedType], []);
+                            MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, translatedType);
+
+                            translatedInstructions.Add(new Instruction(OpCodes.Callvirt, concreteGenericMethod));
+                        }
+                        break;
+                    case CilCode.Ldelema:
+                        // Not implemented yet
+                        return false;
+                    case CilCode.Mkrefany or CilCode.Refanyval:
+                        // Not implemented yet
+                        return false;
+                    default:
+                        Debug.Fail($"Unexpected CIL code: {originalCode}");
+                        return false;
                 }
             }
             else if (originalOperand is MethodAnalysisContext method)

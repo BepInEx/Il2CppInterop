@@ -20,6 +20,21 @@ public static class Il2CppTypeHelper
         return T.Size;
     }
 
+    public static unsafe void InitializeObject<T>(void* ptr) where T : IIl2CppType<T>
+    {
+        default(T).WriteToPointer(ptr);
+    }
+
+    public static unsafe void CopyObject<T>(void* source, void* destination) where T : IIl2CppType<T>
+    {
+        Buffer.MemoryCopy(source, destination, T.Size, T.Size);
+    }
+
+    public static unsafe void StoreObject<T>(void* ptr, T? value) where T : IIl2CppType<T>
+    {
+        value.WriteToPointer(ptr);
+    }
+
     public static string GetAssemblyName<T>() where T : IIl2CppType<T>
     {
         return T.AssemblyName;
