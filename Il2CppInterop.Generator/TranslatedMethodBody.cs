@@ -786,6 +786,11 @@ public class TranslatedMethodBody : MethodBodyBase
                 {
                     // Load field value
 
+                    // Bug: ldfld can accept either a ref or a value, but we only handle ref.
+                    // The only way to fix this is with stack analysis, which is not implemented yet.
+                    // Example: Enum.TryParse<TEnum>(string, bool, out TEnum)
+                    // https://sharplab.io/#v2:C4LglgNgPgAgDAAhgRgHQDkCuBbApgJzAGMBnAbgFgAoGAZiWQDYkAmBAYQQG9qE+EA9AIQlgAMwgATBPlwBHTGFkkEAQwQAHAPZgAdsAIBaCGADWuBFo0FVu6cC2arlsWITAAFhdGqip3vx0DMwwACwIAMq4wAAUAGq4RA749ABuADQIElqqwAipqhCYuACU3AH8/KmoABoIALz5hcWUVJUAvhVI9Cgh4VGxsm4JSVop+ZnZuU1FpeVtlVW1DTMtXZ1UXUIIUhLSklq4KrpawF1BvVkQOXkA4tHxiclpZTwLi0gA7Pm1rR3nPSYVxuCHug1wwyeYxe8w+fBg32qNT+/A27SAA==
+
                     var translatedField = baseField.MaybeMakeConcreteGeneric(declaringTypeArguments);
                     var fieldType = translatedField.FieldType;
 
@@ -890,7 +895,7 @@ public class TranslatedMethodBody : MethodBodyBase
                 }
                 else if (originalCode == OpCodes.Ldtoken)
                 {
-                    // Not sure this can happen in normal CIL code, but we check for it just in case.
+                    // This can happen in array initializers that have constant data.
                     return false;
                 }
                 else
