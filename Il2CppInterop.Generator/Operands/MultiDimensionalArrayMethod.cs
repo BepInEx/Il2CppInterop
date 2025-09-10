@@ -7,6 +7,8 @@ namespace Il2CppInterop.Generator.Operands;
 
 public sealed record class MultiDimensionalArrayMethod(ArrayTypeAnalysisContext ArrayType, MultiDimensionalArrayMethodType MethodType)
 {
+    public int Rank => ArrayType.Rank;
+
     public IMethodDescriptor ToMethodDescriptor(ModuleDefinition module)
     {
         var arrayTypeSignature = ArrayType.ToTypeSignature(module);
