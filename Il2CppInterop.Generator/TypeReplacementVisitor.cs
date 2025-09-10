@@ -38,12 +38,55 @@ internal class TypeReplacementVisitor(Dictionary<TypeAnalysisContext, TypeAnalys
         }
     }
 
+    public IReadOnlyList<TypeAnalysisContext> Replace(IReadOnlyList<TypeAnalysisContext> types)
+    {
+        if (types.Count == 0)
+            return [];
+
+        var results = new TypeAnalysisContext[types.Count];
+        for (var i = types.Count - 1; i >= 0; i--)
+        {
+            results[i] = Replace(types[i]);
+        }
+
+        return results;
+    }
+
     public void Modify(List<TypeAnalysisContext> types)
     {
         for (var i = 0; i < types.Count; i++)
         {
             types[i] = Replace(types[i]);
         }
+    }
+
+    [return: NotNullIfNotNull(nameof(method))]
+    public MethodAnalysisContext? Replace(MethodAnalysisContext? method)
+    {
+        if (method is null)
+            return null;
+
+        if (method is not ConcreteGenericMethodAnalysisContext concreteGenericMethod)
+            return method;
+
+        var typeArguments = Replace(concreteGenericMethod.TypeGenericParameters);
+        var methodArguments = Replace(concreteGenericMethod.MethodGenericParameters);
+
+        return new ConcreteGenericMethodAnalysisContext(concreteGenericMethod.BaseMethodContext, typeArguments, methodArguments);
+    }
+
+    [return: NotNullIfNotNull(nameof(field))]
+    public FieldAnalysisContext? Replace(FieldAnalysisContext? field)
+    {
+        if (field is null)
+            return null;
+
+        if (field is not ConcreteGenericFieldAnalysisContext concreteGenericField)
+            return field;
+
+        var declaringType = (GenericInstanceTypeAnalysisContext)Replace(concreteGenericField.DeclaringType);
+
+        return declaringType == concreteGenericField.DeclaringType ? field : new ConcreteGenericFieldAnalysisContext(concreteGenericField.BaseFieldContext, declaringType);
     }
 
     protected override TypeAnalysisContext VisitSimpleType(TypeAnalysisContext type)
