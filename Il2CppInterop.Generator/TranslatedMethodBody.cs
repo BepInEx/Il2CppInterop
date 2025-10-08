@@ -44,16 +44,14 @@ public class TranslatedMethodBody : MethodBodyBase
         Debug.Assert(methodContext.UnsafeImplementationMethod is not null);
         var implementationMethod = methodContext.UnsafeImplementationMethod!;
 
-        TypeConversionVisitor conversionVisitor = TypeConversionVisitor.Create(methodContext.AppContext);
-        TypeReplacementVisitor replacementVisitor = TypeReplacementVisitor.CreateForMethodCopying(methodContext, implementationMethod);
+        TypeReplacementVisitor replacementVisitor = TypeReplacementVisitor.Combine(TypeConversionVisitor.Create(methodContext.AppContext), TypeReplacementVisitor.CreateForMethodCopying(methodContext, implementationMethod));
 
         var initializeInstructions = new List<Instruction>();
         var localVariableList = new List<LocalVariable>(originalMethodBody.LocalVariables.Count);
         var localVariableDictionary = new Dictionary<LocalVariable, LocalVariable>(originalMethodBody.LocalVariables.Count);
         foreach (var originalLocalVariable in originalMethodBody.LocalVariables)
         {
-            var convertedType = conversionVisitor.Replace(originalLocalVariable.Type); // Conversion to Il2Cpp types
-            var transferredType = replacementVisitor.Replace(convertedType); // Swap out generic parameters for the correct ones
+            var transferredType = replacementVisitor.Replace(originalLocalVariable.Type); // Convert to Il2Cpp types and swap out generic parameters for the correct ones
             var localType = byReference.MakeGenericInstanceType([transferredType]); // All locals are byref
             var translatedLocalVariable = new LocalVariable
             {
@@ -488,8 +486,7 @@ public class TranslatedMethodBody : MethodBodyBase
             }
             else if (originalOperand is TypeAnalysisContext type)
             {
-                var convertedType = conversionVisitor.Replace(type);
-                var translatedType = replacementVisitor.Replace(convertedType);
+                var translatedType = replacementVisitor.Replace(type);
 
                 switch (originalCode.Code)
                 {

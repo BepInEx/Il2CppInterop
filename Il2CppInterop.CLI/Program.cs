@@ -51,9 +51,4 @@ Todo:
 - ICall runtime delegate creation
 - System interfaces
 - overloads with arrays, delegates, primitives
-
-Problem:
-- UnstripProcessingLayer creates lots of concrete generics before ReferenceReplacementProcessingLayer runs.
-  This causes issues like generic instance methods returning Il2CppSystem.Void instead of System.Void.
-  Presumeably, it could also cause other issues like using sz arrays instead of the Il2Cpp array types.
 */

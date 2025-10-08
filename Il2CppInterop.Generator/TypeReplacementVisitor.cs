@@ -8,6 +8,8 @@ internal class TypeReplacementVisitor(Dictionary<TypeAnalysisContext, TypeAnalys
 {
     private readonly Dictionary<TypeAnalysisContext, TypeAnalysisContext> _replacements = replacements;
 
+    public static TypeReplacementVisitor Null { get; } = new NullTypeReplacementVisitor();
+
     public static TypeReplacementVisitor CreateForMethodCopying(MethodAnalysisContext source, MethodAnalysisContext destination)
     {
         Debug.Assert(source.GenericParameters.Count == destination.GenericParameters.Count);
@@ -22,6 +24,11 @@ internal class TypeReplacementVisitor(Dictionary<TypeAnalysisContext, TypeAnalys
         }
 
         return new TypeReplacementVisitor(replacements);
+    }
+
+    public static TypeReplacementVisitor Combine(TypeReplacementVisitor first, TypeReplacementVisitor second)
+    {
+        return new CombinedTypeReplacementVisitor(first, second);
     }
 
     [return: NotNullIfNotNull(nameof(type))]
@@ -146,5 +153,41 @@ internal class TypeReplacementVisitor(Dictionary<TypeAnalysisContext, TypeAnalys
     protected override TypeAnalysisContext CombineResults(SzArrayTypeAnalysisContext type, TypeAnalysisContext elementResult)
     {
         return type.ElementType == elementResult ? type : elementResult.MakeSzArrayType();
+    }
+
+    private sealed class CombinedTypeReplacementVisitor(TypeReplacementVisitor first, TypeReplacementVisitor second) : TypeReplacementVisitor([])
+    {
+        public override TypeAnalysisContext Visit(TypeAnalysisContext type) => second.Visit(first.Visit(type));
+        protected override TypeAnalysisContext Visit(ReferencedTypeAnalysisContext type) => second.Visit(first.Visit(type));
+        public override TypeAnalysisContext Visit(WrappedTypeAnalysisContext type) => second.Visit(first.Visit(type));
+        public override TypeAnalysisContext Visit(ArrayTypeAnalysisContext type) => second.Visit(first.Visit(type));
+        public override TypeAnalysisContext Visit(BoxedTypeAnalysisContext type) => second.Visit(first.Visit(type));
+        public override TypeAnalysisContext Visit(ByRefTypeAnalysisContext type) => second.Visit(first.Visit(type));
+        public override TypeAnalysisContext Visit(CustomModifierTypeAnalysisContext type) => second.Visit(first.Visit(type));
+        public override TypeAnalysisContext Visit(GenericInstanceTypeAnalysisContext type) => second.Visit(first.Visit(type));
+        public override TypeAnalysisContext Visit(GenericParameterTypeAnalysisContext type) => second.Visit(first.Visit(type));
+        public override TypeAnalysisContext Visit(PinnedTypeAnalysisContext type) => second.Visit(first.Visit(type));
+        public override TypeAnalysisContext Visit(PointerTypeAnalysisContext type) => second.Visit(first.Visit(type));
+        public override TypeAnalysisContext Visit(SentinelTypeAnalysisContext type) => second.Visit(first.Visit(type));
+        public override TypeAnalysisContext Visit(SzArrayTypeAnalysisContext type) => second.Visit(first.Visit(type));
+        protected override TypeAnalysisContext VisitSimpleType(TypeAnalysisContext type) => second.Visit(first.Visit(type));
+    }
+
+    private sealed class NullTypeReplacementVisitor() : TypeReplacementVisitor([])
+    {
+        public override TypeAnalysisContext Visit(TypeAnalysisContext type) => type;
+        protected override TypeAnalysisContext Visit(ReferencedTypeAnalysisContext type) => type;
+        public override TypeAnalysisContext Visit(WrappedTypeAnalysisContext type) => type;
+        public override TypeAnalysisContext Visit(ArrayTypeAnalysisContext type) => type;
+        public override TypeAnalysisContext Visit(BoxedTypeAnalysisContext type) => type;
+        public override TypeAnalysisContext Visit(ByRefTypeAnalysisContext type) => type;
+        public override TypeAnalysisContext Visit(CustomModifierTypeAnalysisContext type) => type;
+        public override TypeAnalysisContext Visit(GenericInstanceTypeAnalysisContext type) => type;
+        public override TypeAnalysisContext Visit(GenericParameterTypeAnalysisContext type) => type;
+        public override TypeAnalysisContext Visit(PinnedTypeAnalysisContext type) => type;
+        public override TypeAnalysisContext Visit(PointerTypeAnalysisContext type) => type;
+        public override TypeAnalysisContext Visit(SentinelTypeAnalysisContext type) => type;
+        public override TypeAnalysisContext Visit(SzArrayTypeAnalysisContext type) => type;
+        protected override TypeAnalysisContext VisitSimpleType(TypeAnalysisContext type) => type;
     }
 }
