@@ -23,6 +23,8 @@ public sealed class Instruction : ILabel
         Operand = operand;
     }
 
+    public override string ToString() => $"{Code} {Operand}";
+
     public int GetPopCount(MethodAnalysisContext owner)
     {
         return Code.StackBehaviourPop switch
