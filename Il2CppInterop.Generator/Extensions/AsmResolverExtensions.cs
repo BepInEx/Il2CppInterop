@@ -1,6 +1,7 @@
 ﻿using AsmResolver.DotNet;
 using AsmResolver.DotNet.Collections;
 using AsmResolver.DotNet.Signatures;
+using AsmResolver.PE.DotNet.Cil;
 using AsmResolver.PE.DotNet.Metadata.Tables;
 
 namespace Il2CppInterop.Generator.Extensions;
@@ -103,5 +104,13 @@ internal static class AsmResolverExtensions
     public static GenericParameterSignature ToTypeSignature(this GenericParameter genericParameter)
     {
         return new GenericParameterSignature(genericParameter.Owner is ITypeDescriptor ? GenericParameterType.Type : GenericParameterType.Method, genericParameter.Number);
+    }
+
+    extension(OpCode opCode)
+    {
+        public bool IsLoadConstantI4
+        {
+            get => opCode.Code is (>= CilCode.Ldc_I4_M1 and <= CilCode.Ldc_I4_8) or CilCode.Ldc_I4_S or CilCode.Ldc_I4;
+        }
     }
 }
