@@ -35,7 +35,7 @@ public sealed class Instruction : ILabel
             CilStackBehaviour.PopRef_PopI_Pop1 or CilStackBehaviour.PopI_PopI_PopI or CilStackBehaviour.PopRef_PopI_PopI or CilStackBehaviour.PopRef_PopI_PopI8 or CilStackBehaviour.PopRef_PopI_PopR4 or CilStackBehaviour.PopRef_PopI_PopR8 or CilStackBehaviour.PopRef_PopI_PopRef => 3,
             CilStackBehaviour.VarPop => Code.Code switch
             {
-                CilCode.Ret => owner.IsVoid ? 0 : 1,
+                CilCode.Ret => IsVoid(owner.ReturnType) ? 0 : 1,
                 CilCode.Call or CilCode.Callvirt => Operand switch
                 {
                     MethodAnalysisContext method => method.Parameters.Count + (method.IsStatic ? 0 : 1),
@@ -45,7 +45,7 @@ public sealed class Instruction : ILabel
                         MultiDimensionalArrayMethodType.Set => multiArrayMethod.Rank + 1,
                         MultiDimensionalArrayMethodType.Address => multiArrayMethod.Rank,
                         _ => throw new NotImplementedException($"Unhandled multidimensional array method type for {Code.Code}"),
-                    },
+                    } + 1,
                     _ => throw new NotImplementedException($"Unhandled operand type for {Code.Code}"),
                 },
                 CilCode.Newobj => Operand switch
@@ -76,7 +76,7 @@ public sealed class Instruction : ILabel
             {
                 CilCode.Call or CilCode.Callvirt => Operand switch
                 {
-                    MethodAnalysisContext method => method.ReturnType == owner.AppContext.SystemTypes.SystemVoidType ? 0 : 1,
+                    MethodAnalysisContext method => IsVoid(method.ReturnType) ? 0 : 1,
                     MultiDimensionalArrayMethod multiArrayMethod => multiArrayMethod.MethodType switch
                     {
                         MultiDimensionalArrayMethodType.Get or MultiDimensionalArrayMethodType.Address => 1,
@@ -89,5 +89,15 @@ public sealed class Instruction : ILabel
             },
             _ => throw new NotImplementedException($"Unhandled push count for {Code.StackBehaviourPush}"),
         };
+    }
+
+    private static bool IsVoid(TypeAnalysisContext type)
+    {
+        if (type.Name is not "Void")
+        {
+            return false;
+        }
+
+        return type == type.AppContext.SystemTypes.SystemVoidType || type == type.AppContext.Il2CppMscorlib.GetTypeByFullName("Il2CppSystem.Void");
     }
 }
