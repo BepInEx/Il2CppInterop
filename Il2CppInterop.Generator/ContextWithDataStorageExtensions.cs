@@ -66,5 +66,15 @@ internal static class ContextWithDataStorageExtensions
 
         public bool GetExtraBoolean(string key) => context.GetExtraData<object>(key) is true;
         public void PutExtraBoolean(string key, bool value) => context.PutExtraData(key, value ? True : False);
+
+        public T GetExtraStruct<T>(string key, T defaultValue = default) where T : struct
+        {
+            var data = context.GetExtraData<object>(key);
+            return data is T t ? t : defaultValue;
+        }
+        public void PutExtraStruct<T>(string key, T value) where T : struct
+        {
+            context.PutExtraData(key, (object)value);
+        }
     }
 }

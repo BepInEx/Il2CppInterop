@@ -122,6 +122,12 @@ internal static class TypeAnalysisContextExtensions
             set => type.PutExtraData("StaticConstructorInstructions", value);
         }
 
+        public KnownTypeCode KnownType
+        {
+            get => type.GetExtraStruct("KnownType", KnownTypeCode.None);
+            set => type.PutExtraStruct("KnownType", value);
+        }
+
         public List<Instruction> GetOrCreateStaticConstructorInstructions()
         {
             var instructions = type.StaticConstructorInstructions;

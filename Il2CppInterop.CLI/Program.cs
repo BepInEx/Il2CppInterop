@@ -18,6 +18,7 @@ Il2CppGame.Process(
         new AttributesOverrideProcessingLayer(),
         new PublicizerProcessingLayer(),
         new MscorlibAssemblyInjectionProcessingLayer(),
+        new KnownTypeAssignmentProcessingLayer(),
         new ReferenceAssemblyInjectionProcessingLayer(),
         new ObjectInterfaceProcessingLayer(),
         new ReferenceReplacementProcessingLayer(),
