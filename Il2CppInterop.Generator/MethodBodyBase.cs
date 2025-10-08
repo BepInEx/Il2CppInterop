@@ -21,9 +21,9 @@ public abstract class MethodBodyBase
             return;
         }
 
-        var body = new CilMethodBody(method);
+        var body = new CilMethodBody();
         method.CilMethodBody = body;
-        var module = method.Module!;
+        var module = method.DeclaringModule!;
         var instructions = body.Instructions;
 
         var labels = new Dictionary<ILabel, ICilLabel>(Instructions.Count + 1);

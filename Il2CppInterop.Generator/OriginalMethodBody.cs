@@ -4,6 +4,7 @@ using AsmResolver.DotNet.Code.Cil;
 using AsmResolver.DotNet.Collections;
 using AsmResolver.PE.DotNet.Cil;
 using Cpp2IL.Core.Model.Contexts;
+using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Operands;
 
 namespace Il2CppInterop.Generator;
@@ -35,7 +36,7 @@ public class OriginalMethodBody : MethodBodyBase
         var resolver = new ContextResolver(methodContext);
 
         var originalInstructions = body.Instructions;
-        originalInstructions.ExpandMacros();
+        originalInstructions.ExpandMacrosBackport();
 
         var newInstructions = new Instruction[originalInstructions.Count];
         for (var i = 0; i < newInstructions.Length; i++)
