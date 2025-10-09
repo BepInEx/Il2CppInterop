@@ -19,10 +19,12 @@ public class AsmResolverDllOutputFormatBinding : AsmResolverDllOutputFormatThrow
         else if (methodContext.TryGetExtraData(out TranslatedMethodBody? translatedBody))
         {
             translatedBody.FillMethodBody(methodDefinition);
+            methodContext.RemoveExtraData<TranslatedMethodBody>(); // Free up memory
         }
         else if (methodContext.TryGetExtraData(out NativeMethodBody? nativeBody))
         {
             nativeBody.FillMethodBody(methodDefinition);
+            methodContext.RemoveExtraData<NativeMethodBody>(); // Free up memory
         }
         else
         {

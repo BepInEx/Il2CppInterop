@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Cpp2IL.Core.Model.Contexts;
 
 namespace Il2CppInterop.Generator;
@@ -19,6 +20,16 @@ internal static class ContextWithDataStorageExtensions
         public T? GetExtraData<T>() where T : class
         {
             return context.GetExtraData<T>(typeof(T).Name);
+        }
+
+        public void RemoveExtraData<T>() where T : class
+        {
+            context.RemoveExtraData(typeof(T).Name);
+        }
+
+        public void RemoveExtraData(string key)
+        {
+            context.GetDataStorage().Remove(key);
         }
 
         public bool TryGetExtraData<T>([NotNullWhen(true)] out T? data) where T : class
@@ -77,4 +88,7 @@ internal static class ContextWithDataStorageExtensions
             context.PutExtraData(key, (object)value);
         }
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_dataStorage")]
+    private static extern ref Dictionary<string, object> GetDataStorage(this ContextWithDataStorage context);
 }
