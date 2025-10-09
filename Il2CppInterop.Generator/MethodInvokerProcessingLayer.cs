@@ -54,7 +54,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                     InjectedMethodAnalysisContext invoker;
                     {
-                        var name = GetNonConflictingName(method.IsInstanceConstructor ? "UnsafeConstructor" : $"UnsafeImplementation_{method.Name}", existingNames);
+                        var name = GetNonConflictingName(method.IsInstanceConstructor ? "UnsafeConstructor" : $"UnsafeImplementation_{method.Name.Replace('.', '_')}", existingNames);
 
                         invoker = new InjectedMethodAnalysisContext(
                             type,
@@ -121,7 +121,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                     }
                     else if (!method.IsInstanceConstructor && type.IsValueType)
                     {
-                        var name = GetNonConflictingName($"UnsafeInvoke_{method.Name}", existingNames);
+                        var name = GetNonConflictingName($"UnsafeInvoke_{method.Name.Replace('.', '_')}", existingNames);
 
                         valueTypeHelper = new InjectedMethodAnalysisContext(
                             type,
