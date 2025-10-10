@@ -1115,24 +1115,22 @@ public static unsafe partial class ClassInjector
     {
         var klass = UnityVersionHandler.Wrap((Il2CppClass*)IL2CPP.il2cpp_class_from_type((IntPtr)typePointer));
         var assembly = UnityVersionHandler.Wrap(UnityVersionHandler.Wrap(klass.Image).Assembly);
-
         var fullName = new StringBuilder();
-
-        var namespaceName = Marshal.PtrToStringUTF8(klass.Namespace);
-        if (!string.IsNullOrEmpty(namespaceName))
-        {
-            fullName.Append(namespaceName);
-            fullName.Append('.');
-        }
-
+        var names = new Stack<string>();
         var declaringType = klass;
-        while ((declaringType = UnityVersionHandler.Wrap(declaringType.DeclaringType)) != default)
+        var outerType = klass;
+        do
         {
-            fullName.Append(Marshal.PtrToStringUTF8(declaringType.Name));
-            fullName.Append('+');
+            names.Push(Marshal.PtrToStringUTF8(declaringType.Name) ?? "");
+            outerType = declaringType;
         }
+        while ((declaringType = UnityVersionHandler.Wrap(declaringType.DeclaringType)) != default);
+        var namespaceName = outerType.Namespace != IntPtr.Zero ? Marshal.PtrToStringUTF8(outerType.Namespace) ?? "" : "";
 
-        fullName.Append(Marshal.PtrToStringUTF8(klass.Name));
+        fullName.Append(namespaceName);
+        if (namespaceName.Length > 0)
+            fullName.Append('.');
+        fullName.Append(string.Join("+", names));
 
         var assemblyName = Marshal.PtrToStringUTF8(assembly.Name.Name);
         if (assemblyName != "mscorlib")
