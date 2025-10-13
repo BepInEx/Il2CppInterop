@@ -49,7 +49,7 @@ public static unsafe class RuntimeInvokeHelper
         }
         else
         {
-            return ((IIl2CppObjectBase)@this.GetValue()!).Pointer;
+            return @this.GetValue().Box();
         }
     }
 
