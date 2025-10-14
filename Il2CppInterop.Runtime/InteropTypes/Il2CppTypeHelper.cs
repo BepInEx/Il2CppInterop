@@ -100,7 +100,7 @@ public static class Il2CppTypeHelper
         WritePointer(value.Box(), span);
     }
 
-    public static void WriteClass(IIl2CppObjectBase? value, Span<byte> span)
+    public static void WriteClass(Object? value, Span<byte> span)
     {
         if (value == null)
         {
@@ -142,7 +142,7 @@ public static class Il2CppTypeHelper
         {
             return IntPtr.Zero;
         }
-        else if (value is IIl2CppObjectBase @object)
+        else if (value is Object @object)
         {
             return @object.Pointer;
         }

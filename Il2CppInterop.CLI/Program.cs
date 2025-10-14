@@ -29,6 +29,7 @@ Il2CppGame.Process(
         new PrimitiveImplicitConversionProcessingLayer(),
         new EnumProcessingLayer(),
         new ObjectOverridesProcessingLayer(),
+        new ObjectInternalsProcessingLayer(),
         new MemberAttributeProcessingLayer(),
         new FieldAccessorProcessingLayer(),
         new EventProcessingLayer(),
@@ -48,7 +49,6 @@ Console.WriteLine("Done!");
 
 /*
 Todo:
-- Implement Il2CppSystem.Object internals
 - Fix abstract methods having helper methods
 - Creation method registration
 - ICall runtime delegate creation

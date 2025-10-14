@@ -37,8 +37,8 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         var byReferenceStatic = appContext.ResolveTypeOrThrow(typeof(ByReference));
         var byReferenceStatic_GetReferenceAtOffset = byReferenceStatic.GetMethodByName(nameof(ByReference.GetReferenceAtOffset));
 
-        var iil2CppObjectBase = appContext.ResolveTypeOrThrow(typeof(IIl2CppObjectBase));
-        var iil2CppObjectBase_get_Pointer = iil2CppObjectBase.GetMethodByName($"get_{nameof(IIl2CppObjectBase.Pointer)}");
+        var il2CppSystemObject = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Object");
+        var il2CppSystemObject_get_Pointer = il2CppSystemObject.GetMethodByName($"get_{nameof(Object.Pointer)}");
 
         foreach (var assembly in appContext.Assemblies)
         {
@@ -99,7 +99,7 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                             {
                                 Instructions = [
                                     new Instruction(OpCodes.Ldarg, getFieldAddress.Parameters[0]),
-                                    new Instruction(OpCodes.Callvirt, iil2CppObjectBase_get_Pointer),
+                                    new Instruction(OpCodes.Callvirt, il2CppSystemObject_get_Pointer),
                                     new Instruction(OpCodes.Ldsfld, field.GetInstantiatedOffsetStorage()),
                                     new Instruction(OpCodes.Conv_I),
                                     new Instruction(OpCodes.Add),

@@ -6,9 +6,9 @@ public unsafe class Il2CppValueField<T> where T : unmanaged
 {
     private readonly IntPtr _fieldPtr;
 
-    private readonly Il2CppObjectBase _obj;
+    private readonly Object _obj;
 
-    internal Il2CppValueField(Il2CppObjectBase obj, string fieldName)
+    internal Il2CppValueField(Object obj, string fieldName)
     {
         _obj = obj;
         _fieldPtr = IL2CPP.GetIl2CppField(((IIl2CppType)obj).ObjectClass, fieldName);
@@ -42,6 +42,6 @@ public unsafe class Il2CppValueField<T> where T : unmanaged
 
     private T* GetPointerToData()
     {
-        return (T*)(IL2CPP.Il2CppObjectBaseToPtrNotNull(_obj) + (int)IL2CPP.il2cpp_field_get_offset(_fieldPtr));
+        return (T*)(IL2CPP.Il2CppObjectToPtrNotNull(_obj) + (int)IL2CPP.il2cpp_field_get_offset(_fieldPtr));
     }
 }

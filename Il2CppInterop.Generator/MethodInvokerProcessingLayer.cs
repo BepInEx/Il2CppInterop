@@ -30,9 +30,6 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
         var il2CppStaticClass = appContext.ResolveTypeOrThrow(typeof(IL2CPP));
         var newObjectPointer = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.NewObjectPointer));
 
-        var iil2CppObjectBase = appContext.ResolveTypeOrThrow(typeof(IIl2CppObjectBase));
-        var iil2CppObjectBase_get_Pointer = iil2CppObjectBase.GetMethodByName($"get_{nameof(IIl2CppObjectBase.Pointer)}");
-
         foreach (var assembly in appContext.Assemblies)
         {
             if (assembly.IsReferenceAssembly || assembly.IsInjected)

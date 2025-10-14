@@ -26,18 +26,18 @@ public static unsafe class FieldAccessHelper
         }
     }
 
-    public static T? GetInstanceFieldValue<T>(IIl2CppObjectBase instance, int fieldOffset) where T : IIl2CppType<T>
+    public static T? GetInstanceFieldValue<T>(Object instance, int fieldOffset) where T : IIl2CppType<T>
     {
         var data = (byte*)instance.Pointer + fieldOffset;
         return Il2CppTypeHelper.ReadFromPointer<T>(data);
     }
 
-    public static void SetInstanceFieldValue<T>(IIl2CppObjectBase instance, int fieldOffset, T? value) where T : IIl2CppType<T>
+    public static void SetInstanceFieldValue<T>(Object instance, int fieldOffset, T? value) where T : IIl2CppType<T>
     {
         FunctionPointerCache<T>.SetInstanceFieldValue(instance, fieldOffset, value);
     }
 
-    public static void SetInstanceFieldValue_Wbarrior<T>(IIl2CppObjectBase instance, int fieldOffset, T? value) where T : IIl2CppType<T>
+    public static void SetInstanceFieldValue_Wbarrior<T>(Object instance, int fieldOffset, T? value) where T : IIl2CppType<T>
     {
         var data = (byte*)instance.Pointer + fieldOffset;
         if (typeof(T).IsValueType)
@@ -50,7 +50,7 @@ public static unsafe class FieldAccessHelper
         }
     }
 
-    public static void SetInstanceFieldValue_Pointer<T>(IIl2CppObjectBase instance, int fieldOffset, T? value) where T : IIl2CppType<T>
+    public static void SetInstanceFieldValue_Pointer<T>(Object instance, int fieldOffset, T? value) where T : IIl2CppType<T>
     {
         var data = (byte*)instance.Pointer + fieldOffset;
         if (typeof(T).IsValueType)
@@ -78,7 +78,7 @@ public static unsafe class FieldAccessHelper
 
     private static class FunctionPointerCache<T> where T : IIl2CppType<T>
     {
-        public static readonly delegate*<IIl2CppObjectBase, int, T?, void> SetInstanceFieldValue = WbarriorSupport
+        public static readonly delegate*<Object, int, T?, void> SetInstanceFieldValue = WbarriorSupport
             ? &FieldAccessHelper.SetInstanceFieldValue_Wbarrior
             : &FieldAccessHelper.SetInstanceFieldValue_Pointer;
     }

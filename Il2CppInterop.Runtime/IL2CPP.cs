@@ -201,7 +201,7 @@ public static unsafe class IL2CPP
             types[i] = Il2CppSystem.Type.internal_from_handle(il2cpp_class_get_type(genericMethodArguments[i]));
         }
         var methodInfo = new Il2CppSystem.Reflection.MethodInfo((ObjectPointer)il2cpp_method_get_object(methodInfoPointer, declaringTypeClassPointer));
-        return il2cpp_method_get_from_reflection(Il2CppObjectBaseToPtrNotNull(methodInfo.MakeGenericMethod(types)));
+        return il2cpp_method_get_from_reflection(Il2CppObjectToPtrNotNull(methodInfo.MakeGenericMethod(types)));
     }
 
     public static IntPtr GetIl2CppGenericInstanceType(IntPtr typeClassPointer, params IntPtr[] genericTypeArguments)
@@ -217,6 +217,20 @@ public static unsafe class IL2CPP
     public static ObjectPointer NewObjectPointer<T>()
     {
         return (ObjectPointer)il2cpp_object_new(Il2CppClassPointerStore<T>.NativeClassPtr);
+    }
+
+    public static nint Il2CppGCHandleGetTargetOrThrow(nint gchandle)
+    {
+        var obj = il2cpp_gchandle_get_target(gchandle);
+        if (obj == IntPtr.Zero)
+            throw new ObjectCollectedException("Object was garbage collected in IL2CPP domain");
+        return obj;
+    }
+
+    public static bool Il2CppGCHandleGetTargetWasCollected(nint gchandle)
+    {
+        var obj = il2cpp_gchandle_get_target(gchandle);
+        return obj == IntPtr.Zero;
     }
 
     public static string? Il2CppStringToManaged(IntPtr il2CppString)
@@ -239,12 +253,12 @@ public static unsafe class IL2CPP
         }
     }
 
-    public static IntPtr Il2CppObjectBaseToPtr(Il2CppObjectBase obj)
+    public static IntPtr Il2CppObjectToPtr(Object obj)
     {
         return obj?.Pointer ?? IntPtr.Zero;
     }
 
-    public static IntPtr Il2CppObjectBaseToPtrNotNull(Il2CppObjectBase obj)
+    public static IntPtr Il2CppObjectToPtrNotNull(Object obj)
     {
         return obj?.Pointer ?? throw new NullReferenceException();
     }

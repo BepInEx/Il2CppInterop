@@ -4,8 +4,6 @@ namespace Il2CppSystem;
 
 public class Object : IObject
 {
-    public nint pooledPtr;
-
     public Object()
     {
     }
@@ -17,7 +15,4 @@ public class Object : IObject
     public nint Pointer => default;
 
     public bool WasCollected => default;
-    public void CreateGCHandle(nint objHdl)
-    {
-    }
 }

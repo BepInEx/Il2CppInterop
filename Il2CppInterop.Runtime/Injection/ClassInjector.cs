@@ -76,7 +76,7 @@ public static unsafe partial class ClassInjector
 
     private static readonly VoidCtorDelegate FinalizeDelegate = Finalize;
 
-    public static void ProcessNewObject(Il2CppObjectBase obj)
+    public static void ProcessNewObject(Object obj)
     {
         var pointer = obj.Pointer;
         var handle = GCHandle.Alloc(obj, GCHandleType.Normal);
@@ -89,7 +89,7 @@ public static unsafe partial class ClassInjector
             .NativeClassPtr); // todo: consider calling base constructor
     }
 
-    public static void DerivedConstructorBody(Il2CppObjectBase objectBase)
+    public static void DerivedConstructorBody(Object objectBase)
     {
         var fields = objectBase.GetType()
             .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
@@ -98,7 +98,7 @@ public static unsafe partial class ClassInjector
         foreach (var field in fields)
             field.SetValue(objectBase, field.FieldType.GetConstructor(
                     BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
-                    new[] { typeof(Il2CppObjectBase), typeof(string) }, Array.Empty<ParameterModifier>())
+                    new[] { typeof(Object), typeof(string) }, Array.Empty<ParameterModifier>())
                 .Invoke(new object[] { objectBase, field.Name })
             );
         var ownGcHandle = GCHandle.Alloc(objectBase, GCHandleType.Normal);
@@ -526,7 +526,7 @@ public static unsafe partial class ClassInjector
             type.IsGenericParameter) return true;
         if (type.IsByRef) return IsTypeSupported(type.GetElementType());
 
-        return typeof(Il2CppObjectBase).IsAssignableFrom(type);
+        return typeof(Object).IsAssignableFrom(type);
     }
 
     private static bool IsFieldEligible(FieldInfo field)
@@ -751,7 +751,7 @@ public static unsafe partial class ClassInjector
             body.Emit(OpCodes.Ldstr, field.Name);
             body.Emit(OpCodes.Newobj, field.FieldType.GetConstructor(
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
-                new[] { typeof(Il2CppObjectBase), typeof(string) }, Array.Empty<ParameterModifier>())
+                new[] { typeof(Object), typeof(string) }, Array.Empty<ParameterModifier>())
             );
             body.Emit(OpCodes.Stfld, field);
         }
@@ -935,7 +935,7 @@ public static unsafe partial class ClassInjector
                 {
                     body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppStringToManaged))!);
                 }
-                else if (type.IsSubclassOf(typeof(Il2CppObjectBase)))
+                else if (type.IsSubclassOf(typeof(Object)))
                 {
                     var labelNull = body.DefineLabel();
                     var labelNotNull = body.DefineLabel();
@@ -993,7 +993,7 @@ public static unsafe partial class ClassInjector
             if (directType == typeof(string))
                 body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!);
             else if (!directType.IsValueType)
-                body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectBaseToPtr))!);
+                body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectToPtr))!);
             body.Emit(InjectorHelpers.StIndOpcodes.TryGetValue(directType, out var stindOpCodde)
                 ? stindOpCodde
                 : OpCodes.Stind_I);
@@ -1018,7 +1018,7 @@ public static unsafe partial class ClassInjector
             if (monoMethod.ReturnType == typeof(string))
                 body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!);
             else if (!monoMethod.ReturnType.IsValueType)
-                body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectBaseToPtr))!);
+                body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectToPtr))!);
         }
 
         body.Emit(OpCodes.Ret);

@@ -32,11 +32,11 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
 
     private static readonly MethodInfo ObjectBaseToPtrMethodInfo
         = AccessTools.Method(typeof(IL2CPP),
-            nameof(IL2CPP.Il2CppObjectBaseToPtr));
+            nameof(IL2CPP.Il2CppObjectToPtr));
 
     private static readonly MethodInfo ObjectBaseToPtrNotNullMethodInfo
         = AccessTools.Method(typeof(IL2CPP),
-            nameof(IL2CPP.Il2CppObjectBaseToPtrNotNull));
+            nameof(IL2CPP.Il2CppObjectToPtrNotNull));
 
     private static readonly MethodInfo ReportExceptionMethodInfo
         = AccessTools.Method(typeof(Il2CppDetourMethodPatcher), nameof(ReportException));
@@ -169,7 +169,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         // Remove il2cpp_object_get_virtual_method
         if (cursor.TryGotoNext(x => x.MatchLdarg(0),
                 x => x.MatchCall(typeof(IL2CPP),
-                    nameof(IL2CPP.Il2CppObjectBaseToPtr)),
+                    nameof(IL2CPP.Il2CppObjectToPtr)),
                 x => x.MatchLdsfld(out _),
                 x => x.MatchCall(typeof(IL2CPP),
                     nameof(IL2CPP.il2cpp_object_get_virtual_method))))

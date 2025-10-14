@@ -11,7 +11,6 @@ using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.CoreLib;
 using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
-using Object = Il2CppSystem.Object;
 using ValueType = Il2CppSystem.ValueType;
 
 namespace Il2CppInterop.Runtime;
@@ -175,7 +174,7 @@ public static class DelegateSupport
             bodyBuilder.Emit(OpCodes.Dup);
             bodyBuilder.Emit(OpCodes.Brfalse, labelNull);
             bodyBuilder.Emit(OpCodes.Call,
-                typeof(Il2CppObjectBase).GetProperty(nameof(Il2CppObjectBase.Pointer))!.GetMethod);
+                typeof(Object).GetProperty(nameof(Object.Pointer))!.GetMethod);
             bodyBuilder.Emit(OpCodes.Br, labelDone);
             bodyBuilder.MarkLabel(labelNull);
             bodyBuilder.Emit(OpCodes.Pop);

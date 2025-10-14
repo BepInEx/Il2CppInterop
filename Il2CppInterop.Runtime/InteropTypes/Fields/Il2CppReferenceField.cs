@@ -3,12 +3,12 @@ using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Fields;
 
-public unsafe class Il2CppReferenceField<TRefObj> where TRefObj : Il2CppObjectBase
+public unsafe class Il2CppReferenceField<TRefObj> where TRefObj : Object
 {
     private readonly IntPtr _fieldPtr;
-    private readonly Il2CppObjectBase _obj;
+    private readonly Object _obj;
 
-    internal Il2CppReferenceField(Il2CppObjectBase obj, string fieldName)
+    internal Il2CppReferenceField(Object obj, string fieldName)
     {
         _obj = obj;
         _fieldPtr = IL2CPP.GetIl2CppField(((IIl2CppType)obj).ObjectClass, fieldName);
@@ -43,6 +43,6 @@ public unsafe class Il2CppReferenceField<TRefObj> where TRefObj : Il2CppObjectBa
 
     private IntPtr* GetPointerToData()
     {
-        return (IntPtr*)(IL2CPP.Il2CppObjectBaseToPtrNotNull(_obj) + (int)IL2CPP.il2cpp_field_get_offset(_fieldPtr));
+        return (IntPtr*)(IL2CPP.Il2CppObjectToPtrNotNull(_obj) + (int)IL2CPP.il2cpp_field_get_offset(_fieldPtr));
     }
 }

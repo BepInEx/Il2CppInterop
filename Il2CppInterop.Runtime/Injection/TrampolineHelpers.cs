@@ -40,7 +40,7 @@ internal static class TrampolineHelpers
                 return typeof(byte).MakeByRefType();
             }
 
-            if (directType == typeof(string) || directType.IsSubclassOf(typeof(Il2CppObjectBase)))
+            if (directType == typeof(string) || directType.IsSubclassOf(typeof(Object)))
             {
                 return typeof(IntPtr*);
             }
@@ -51,7 +51,7 @@ internal static class TrampolineHelpers
             var fixedSize = IL2CPP.GetIl2cppValueSize(Il2CppClassPointerStore.GetNativeClassPointer(managedType));
             return GetFixedSizeStructType(fixedSize);
         }
-        else if (managedType == typeof(string) || managedType.IsSubclassOf(typeof(Il2CppObjectBase))) // General reference type
+        else if (managedType == typeof(string) || managedType.IsSubclassOf(typeof(Object))) // General reference type
         {
             return typeof(IntPtr);
         }
