@@ -2,7 +2,7 @@
 
 namespace Il2CppSystem;
 
-public class Object
+public class Object : IObject
 {
     public bool isWrapped;
     public nint pooledPtr;

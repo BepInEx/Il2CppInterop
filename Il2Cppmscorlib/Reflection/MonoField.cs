@@ -2,5 +2,5 @@
 
 public abstract class MonoField : RtFieldInfo
 {
-    public object GetValueInternal(object obj) => null;
+    public IObject GetValueInternal(IObject obj) => null;
 }

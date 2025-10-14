@@ -13,7 +13,7 @@ public class Delegate : Object
 
     public IntPtr invoke_impl { get; set; }
 
-    public object m_target { get; set; }
+    public IObject m_target { get; set; }
 
     public IntPtr method { get; set; }
 

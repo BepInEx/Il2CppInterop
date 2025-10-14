@@ -4,5 +4,5 @@ namespace Il2CppSystem;
 
 public abstract class RuntimeType : TypeInfo
 {
-    public object GenericCache { get; set; }
+    public IObject GenericCache { get; set; }
 }

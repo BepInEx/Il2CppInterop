@@ -2,7 +2,7 @@
 
 public static class GC
 {
-    public static void ReRegisterForFinalize(object obj)
+    public static void ReRegisterForFinalize(IObject obj)
     {
         throw null;
     }
