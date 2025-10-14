@@ -1,4 +1,6 @@
-﻿namespace Il2CppSystem.Reflection;
+﻿using Il2CppInterop.Runtime.InteropTypes;
+
+namespace Il2CppSystem.Reflection;
 
 public class MethodInfo : MethodBase
 {
@@ -10,7 +12,7 @@ public class MethodInfo : MethodBase
         }
     }
 
-    public MethodInfo(nint pointer)
+    public MethodInfo(ObjectPointer pointer)
     {
     }
 

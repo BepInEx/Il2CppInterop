@@ -1,10 +1,11 @@
-﻿using Il2CppSystem.Reflection;
+﻿using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppSystem.Reflection;
 
 namespace Il2CppSystem;
 
 public class Delegate : Object
 {
-    public Delegate(nint ptr) : base(ptr)
+    public Delegate(ObjectPointer ptr) : base(ptr)
     {
     }
 

@@ -1,4 +1,6 @@
-﻿namespace Il2CppSystem;
+﻿using Il2CppInterop.Runtime.InteropTypes;
+
+namespace Il2CppSystem;
 
 public class Object
 {
@@ -9,7 +11,7 @@ public class Object
     {
     }
 
-    public Object(nint ptr)
+    public Object(ObjectPointer ptr)
     {
     }
 

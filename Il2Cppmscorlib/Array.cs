@@ -4,7 +4,7 @@ namespace Il2CppSystem;
 
 public class Array : Object
 {
-    public Array(ObjectPointer ptr) : base((nint)ptr)
+    public Array(ObjectPointer ptr) : base(ptr)
     {
     }
 

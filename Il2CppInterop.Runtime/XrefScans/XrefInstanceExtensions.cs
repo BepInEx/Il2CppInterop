@@ -17,7 +17,7 @@ public static class XrefInstanceExtensions
         if (valueAtPointer == IntPtr.Zero)
             return null;
 
-        return new Object(valueAtPointer);
+        return new Object((InteropTypes.ObjectPointer)valueAtPointer);
     }
 
     public static MethodBase TryResolve(this XrefInstance self)

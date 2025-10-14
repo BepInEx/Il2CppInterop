@@ -9,6 +9,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Attributes;
+using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppInterop.Runtime.InteropTypes.Fields;
 using Il2CppInterop.Runtime.Runtime;
@@ -84,9 +85,9 @@ public static unsafe partial class ClassInjector
         AssignGcHandle(pointer, handle);
     }
 
-    public static IntPtr DerivedConstructorPointer<T>()
+    public static ObjectPointer DerivedConstructorPointer<T>()
     {
-        return IL2CPP.il2cpp_object_new(Il2CppClassPointerStore<T>
+        return (ObjectPointer)IL2CPP.il2cpp_object_new(Il2CppClassPointerStore<T>
             .NativeClassPtr); // todo: consider calling base constructor
     }
 

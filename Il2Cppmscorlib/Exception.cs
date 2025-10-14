@@ -1,11 +1,13 @@
-﻿namespace Il2CppSystem;
+﻿using Il2CppInterop.Runtime.InteropTypes;
+
+namespace Il2CppSystem;
 
 public class Exception : Object
 {
     public Exception()
     {
     }
-    public Exception(nint ptr)
+    public Exception(ObjectPointer ptr)
     {
     }
     public Exception(String message) : base()

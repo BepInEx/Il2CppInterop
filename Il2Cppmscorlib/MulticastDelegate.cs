@@ -1,8 +1,10 @@
-﻿namespace Il2CppSystem;
+﻿using Il2CppInterop.Runtime.InteropTypes;
+
+namespace Il2CppSystem;
 
 public abstract class MulticastDelegate : Delegate
 {
-    public MulticastDelegate(nint ptr) : base(ptr)
+    public MulticastDelegate(ObjectPointer ptr) : base(ptr)
     {
     }
 }

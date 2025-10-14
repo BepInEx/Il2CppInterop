@@ -381,7 +381,7 @@ public static class DelegateSupport
         public IntPtr MethodInfo;
         public Delegate ReferencedDelegate;
 
-        public Il2CppToMonoDelegateReference(IntPtr obj0) : base(obj0)
+        public Il2CppToMonoDelegateReference(ObjectPointer obj0) : base(obj0)
         {
         }
 
