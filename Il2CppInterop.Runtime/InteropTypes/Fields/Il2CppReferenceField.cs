@@ -23,7 +23,7 @@ public unsafe class Il2CppReferenceField<TRefObj> where TRefObj : Il2CppObjectBa
     public TRefObj? Get()
     {
         var ptr = *GetPointerToData();
-        return ptr == IntPtr.Zero ? null : Il2CppObjectPool.Get<TRefObj>(ptr);
+        return ptr == IntPtr.Zero ? null : (TRefObj?)Il2CppObjectPool.Get(ptr);
     }
 
     public void Set(TRefObj value)

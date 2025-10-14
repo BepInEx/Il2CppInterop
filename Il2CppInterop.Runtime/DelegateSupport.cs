@@ -215,7 +215,7 @@ public static class DelegateSupport
         Logger.Instance.LogError("{Message}", message);
     }
 
-    public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppObjectBase
+    public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppSystem.Delegate
     {
         if (@delegate == null)
             return null;
@@ -267,7 +267,7 @@ public static class DelegateSupport
             }
 
             var classPointerFromManagedType = (IntPtr)typeof(Il2CppClassPointerStore<>).MakeGenericType(managedType)
-                .GetField(nameof(Il2CppClassPointerStore<int>.NativeClassPtr)).GetValue(null);
+                .GetField(nameof(Il2CppClassPointerStore<>.NativeClassPtr)).GetValue(null);
 
             var classPointerFromNativeType = IL2CPP.il2cpp_class_from_type(nativeType._impl.value);
 
@@ -291,17 +291,7 @@ public static class DelegateSupport
 
         var delegateReference = new Il2CppToMonoDelegateReference(@delegate, methodInfo.Pointer);
 
-        Il2CppSystem.Delegate converted;
-        if (UnityVersionHandler.MustUseDelegateConstructor)
-        {
-            converted = ((TIl2Cpp)Activator.CreateInstance(typeof(TIl2Cpp), delegateReference.Cast<Object>(),
-                methodInfo.Pointer)).Cast<Il2CppSystem.Delegate>();
-        }
-        else
-        {
-            var nativeDelegatePtr = IL2CPP.il2cpp_object_new(classTypePtr);
-            converted = new Il2CppSystem.Delegate(nativeDelegatePtr);
-        }
+        TIl2Cpp converted = (TIl2Cpp)Activator.CreateInstance(typeof(TIl2Cpp), delegateReference, methodInfo.Pointer)!;
 
         converted.method_ptr = methodInfo.MethodPointer;
         converted.method_info = nativeDelegateInvokeMethod; // todo: is this truly a good hack?
@@ -315,7 +305,7 @@ public static class DelegateSupport
             converted.method_code = delegateReference.Pointer;
         }
 
-        return converted.Cast<TIl2Cpp>();
+        return converted;
     }
 
     internal sealed class MethodSignature : IEquatable<MethodSignature>

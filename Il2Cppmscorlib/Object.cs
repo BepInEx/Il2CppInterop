@@ -18,28 +18,7 @@ public class Object
     public nint Pointer => default;
 
     public bool WasCollected => default;
-    public void CreateGCHandle(nint objHdl) { }
-    public T Cast<T>() where T : Object
+    public void CreateGCHandle(nint objHdl)
     {
-        return default;
-    }
-
-    public static unsafe T UnboxUnsafe<T>(nint pointer)
-    {
-        return default;
-    }
-
-    public T Unbox<T>() where T : unmanaged
-    {
-        return UnboxUnsafe<T>(Pointer);
-    }
-
-    public static class InitializerStore<T>
-    {
-        public static System.Func<nint, T> Initializer => null;
-    }
-    public T TryCast<T>() where T : Object
-    {
-        return null;
     }
 }

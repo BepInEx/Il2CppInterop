@@ -315,39 +315,6 @@ public static unsafe class IL2CPP
         return (T)trampoline.CreateDelegate(typeof(T));
     }
 
-    public static T? PointerToValueGeneric<T>(IntPtr objectPointer, bool isFieldPointer, bool valueTypeWouldBeBoxed)
-    {
-        if (isFieldPointer)
-        {
-            if (il2cpp_class_is_valuetype(Il2CppClassPointerStore<T>.NativeClassPtr))
-                objectPointer = il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, objectPointer);
-            else
-                objectPointer = *(IntPtr*)objectPointer;
-        }
-
-        if (!valueTypeWouldBeBoxed && il2cpp_class_is_valuetype(Il2CppClassPointerStore<T>.NativeClassPtr))
-            objectPointer = il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, objectPointer);
-
-        if (typeof(T) == typeof(string))
-            return (T?)(object?)Il2CppStringToManaged(objectPointer);
-
-        if (objectPointer == IntPtr.Zero)
-            return default;
-
-        if (typeof(T).IsValueType)
-            return Il2CppObjectBase.UnboxUnsafe<T>(objectPointer);
-
-        return Il2CppObjectPool.Get<T>(objectPointer);
-    }
-
-    // this is called if there's no actual il2cpp_gc_wbarrier_set_field()
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void FieldWriteWbarrierStub(IntPtr obj, IntPtr targetAddress, IntPtr value)
-    {
-        // ignore obj
-        *(IntPtr*)targetAddress = value;
-    }
-
     // IL2CPP Functions
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern void il2cpp_init(IntPtr domain_name);
