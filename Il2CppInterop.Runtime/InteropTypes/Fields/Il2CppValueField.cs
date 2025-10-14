@@ -11,7 +11,7 @@ public unsafe class Il2CppValueField<T> where T : unmanaged
     internal Il2CppValueField(Il2CppObjectBase obj, string fieldName)
     {
         _obj = obj;
-        _fieldPtr = IL2CPP.GetIl2CppField(obj.ObjectClass, fieldName);
+        _fieldPtr = IL2CPP.GetIl2CppField(((IIl2CppType)obj).ObjectClass, fieldName);
     }
 
     public T Value

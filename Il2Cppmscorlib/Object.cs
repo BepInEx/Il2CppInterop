@@ -13,8 +13,6 @@ public class Object
     {
     }
 
-    public nint ObjectClass => default;
-
     public nint Pointer => default;
 
     public bool WasCollected => default;

@@ -11,7 +11,7 @@ public unsafe class Il2CppReferenceField<TRefObj> where TRefObj : Il2CppObjectBa
     internal Il2CppReferenceField(Il2CppObjectBase obj, string fieldName)
     {
         _obj = obj;
-        _fieldPtr = IL2CPP.GetIl2CppField(obj.ObjectClass, fieldName);
+        _fieldPtr = IL2CPP.GetIl2CppField(((IIl2CppType)obj).ObjectClass, fieldName);
     }
 
     public TRefObj Value
