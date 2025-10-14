@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
 using System.Text;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Attributes;
@@ -92,8 +91,6 @@ public static unsafe partial class ClassInjector
 
     public static void DerivedConstructorBody(Il2CppObjectBase objectBase)
     {
-        if (objectBase.isWrapped)
-            return;
         var fields = objectBase.GetType()
             .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
             .Where(IsFieldEligible)
@@ -736,7 +733,7 @@ public static unsafe partial class ClassInjector
 
         var body = method.GetILGenerator();
 
-        var monoCtor = targetType.GetConstructor(new[] { typeof(IntPtr) });
+        var monoCtor = targetType.GetConstructor(new[] { typeof(ObjectPointer) });
         if (monoCtor != null)
         {
             body.Emit(OpCodes.Ldarg_0);
@@ -744,29 +741,7 @@ public static unsafe partial class ClassInjector
         }
         else
         {
-            var local = body.DeclareLocal(targetType);
-            body.Emit(OpCodes.Ldtoken, targetType);
-            body.Emit(OpCodes.Call,
-                typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle), BindingFlags.Public | BindingFlags.Static)!);
-            body.Emit(OpCodes.Call,
-                typeof(FormatterServices).GetMethod(nameof(FormatterServices.GetUninitializedObject),
-                    BindingFlags.Public | BindingFlags.Static)!);
-            body.Emit(OpCodes.Stloc, local);
-            body.Emit(OpCodes.Ldloc, local);
-            body.Emit(OpCodes.Ldarg_0);
-            body.Emit(OpCodes.Call,
-                typeof(Il2CppObjectBase).GetMethod(nameof(Il2CppObjectBase.CreateGCHandle),
-                    BindingFlags.NonPublic | BindingFlags.Instance)!);
-            body.Emit(OpCodes.Ldloc, local);
-            body.Emit(OpCodes.Ldc_I4_1);
-            body.Emit(OpCodes.Stfld,
-                typeof(Il2CppObjectBase).GetField(nameof(Il2CppObjectBase.isWrapped),
-                    BindingFlags.NonPublic | BindingFlags.Instance)!);
-            body.Emit(OpCodes.Ldloc, local);
-            body.Emit(OpCodes.Call,
-                targetType.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
-                    Type.EmptyTypes, Array.Empty<ParameterModifier>())!);
-            body.Emit(OpCodes.Ldloc, local);
+            throw new NotSupportedException($"Type {targetType} must have a constructor with a single ObjectPointer argument");
         }
 
         foreach (var field in fieldsToInitialize)
