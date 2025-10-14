@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
+using Il2CppInterop.Common;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppSystem;
 using IntPtr = System.IntPtr;
@@ -17,7 +18,7 @@ public static class XrefInstanceExtensions
         if (valueAtPointer == IntPtr.Zero)
             return null;
 
-        return new Object((InteropTypes.ObjectPointer)valueAtPointer);
+        return new Object((ObjectPointer)valueAtPointer);
     }
 
     public static MethodBase TryResolve(this XrefInstance self)

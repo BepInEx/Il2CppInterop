@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Il2CppInterop.Common;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 

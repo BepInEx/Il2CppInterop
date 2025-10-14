@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
+using Il2CppInterop.Common;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Attributes;
 using Il2CppInterop.Runtime.Injection;

@@ -1,4 +1,4 @@
-﻿using Il2CppInterop.Runtime.InteropTypes;
+﻿using Il2CppInterop.Common;
 
 namespace Il2CppSystem.Reflection;
 

@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppInterop.Common;
 
 namespace Il2CppInterop.Runtime.Runtime;
 

@@ -1,7 +1,9 @@
-namespace Il2CppInterop.Runtime.InteropTypes;
+namespace Il2CppInterop.Common;
 
 public readonly record struct ObjectPointer(IntPtr Value)
 {
     public static explicit operator ObjectPointer(IntPtr value) => new(value);
     public static explicit operator IntPtr(ObjectPointer value) => value.Value;
+
+    public static ObjectPointer Null => new(IntPtr.Zero);
 }
