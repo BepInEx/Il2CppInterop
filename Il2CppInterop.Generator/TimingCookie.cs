@@ -1,8 +1,9 @@
 using System.Diagnostics;
 using Il2CppInterop.Common;
+using Il2CppInterop.Generator;
 using Microsoft.Extensions.Logging;
 
-namespace Il2CppInterop.Generator.Utils;
+namespace Il2CppInterop.Generator;
 
 internal readonly struct TimingCookie : IDisposable
 {
