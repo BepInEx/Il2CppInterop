@@ -8,8 +8,8 @@ namespace Il2CppInterop.Generator;
 
 public class ObjectOverridesProcessingLayer : Cpp2IlProcessingLayer
 {
-    public override string Name => "Struct Processor";
-    public override string Id => "struct_processor";
+    public override string Name => "Object Overrides Processor";
+    public override string Id => "object_overrides_processor";
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
         var systemObject = appContext.SystemTypes.SystemObjectType;
