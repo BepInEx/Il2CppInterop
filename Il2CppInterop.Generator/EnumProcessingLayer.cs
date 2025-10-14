@@ -16,10 +16,6 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
         var il2CppSystemValueType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.ValueType");
         var il2CppSystemEnum = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Enum");
 
-        var icomparable = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IComparable");
-        var iformattable = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IFormattable");
-        var iconvertible = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IConvertible");
-
         foreach (var assembly in appContext.Assemblies)
         {
             if (assembly.IsReferenceAssembly || assembly.IsInjected)
@@ -283,47 +279,6 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
                             new Instruction(OpCodes.Ret)
                         ]
                     });
-                }
-                #endregion
-
-                #region Implicit Interfaces
-                foreach (var @interface in (ReadOnlySpan<TypeAnalysisContext>)[icomparable, iformattable, iconvertible])
-                {
-                    type.InterfaceContexts.Add(@interface);
-
-                    foreach (var interfaceMethod in @interface.Methods)
-                    {
-                        if (interfaceMethod.IsInjected || !interfaceMethod.IsVirtual || !interfaceMethod.Attributes.HasFlag(MethodAttributes.NewSlot))
-                            continue;
-
-                        var method = new InjectedMethodAnalysisContext(
-                            type,
-                            $"{@interface.FullName}.{interfaceMethod.Name}",
-                            interfaceMethod.ReturnType,
-                            interfaceMethod.Attributes & ~MethodAttributes.Abstract | MethodAttributes.Final,
-                            interfaceMethod.Parameters.Select(p => p.ParameterType).ToArray(),
-                            interfaceMethod.Parameters.Select(p => p.Name).ToArray(),
-                            interfaceMethod.Parameters.Select(p => p.Attributes).ToArray())
-                        {
-                            IsInjected = true,
-                            Visibility = MethodAttributes.Private,
-                        };
-                        method.OverridesList.Add(interfaceMethod);
-                        type.Methods.Add(method);
-
-                        var methodBody = new NativeMethodBody()
-                        {
-                            Instructions = [
-                                new Instruction(OpCodes.Ldarg, This.Instance),
-                                new Instruction(OpCodes.Ldfld, valueField),
-                                new Instruction(OpCodes.Box, valueField.FieldType),
-                                .. method.Parameters.Select(p => new Instruction(OpCodes.Ldarg, p)),
-                                new Instruction(OpCodes.Callvirt, interfaceMethod),
-                                new Instruction(OpCodes.Ret)
-                            ]
-                        };
-                        method.PutExtraData(methodBody);
-                    }
                 }
                 #endregion
             }

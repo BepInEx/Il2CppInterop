@@ -8,6 +8,7 @@ using Il2CppInterop.Runtime.InteropTypes;
 
 namespace Il2CppInterop.Generator;
 
+// Todo: add attributes making these not show up in IntelliSense
 public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 {
     public override string Name => "Method Invoker Processor";
@@ -60,7 +61,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             type,
                             name,
                             type, // Placeholder return type
-                            MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static,
+                            MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
                             [])
                         {
                             IsInjected = true,
@@ -90,9 +91,17 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                         if (!method.IsStatic)
                         {
+                            var redirectedType = instantiatedType.KnownType switch
+                            {
+                                _ when method.IsInstanceConstructor => instantiatedType,
+                                KnownTypeCode.Il2CppSystem_Object => appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IObject"),
+                                KnownTypeCode.Il2CppSystem_Enum => appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IEnum"),
+                                KnownTypeCode.Il2CppSystem_ValueType => appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IValueType"),
+                                _ => instantiatedType,
+                            };
                             var newParameter = new InjectedParameterAnalysisContext(
                                 null,
-                                byReference.MakeGenericInstanceType([instantiatedType]),
+                                byReference.MakeGenericInstanceType([redirectedType]),
                                 ParameterAttributes.None,
                                 0,
                                 invoker);
@@ -402,25 +411,28 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         }
                         else
                         {
-                            instanceLocal = new(byReference.MakeGenericInstanceType([instantiatedType]));
+                            var byRefType = invoker.Parameters[0].ParameterType;
+                            var byRefElementType = ((GenericInstanceTypeAnalysisContext)byRefType).GenericArguments[0];
 
-                            instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(instantiatedType));
+                            instanceLocal = new(byRefType);
+
+                            instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(byRefElementType));
                             instructions.Add(OpCodes.Conv_U);
                             instructions.Add(OpCodes.Localloc);
-                            instructions.Add(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [instantiatedType], []));
+                            instructions.Add(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [byRefElementType], []));
                             instructions.Add(OpCodes.Stloc, instanceLocal);
 
                             if (type.IsValueType)
                             {
                                 instructions.Add(OpCodes.Ldloca, instanceLocal);
                                 instructions.Add(OpCodes.Ldarg, This.Instance);
-                                instructions.Add(OpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([instantiatedType], []));
+                                instructions.Add(OpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([byRefElementType], []));
                             }
                             else
                             {
                                 instructions.Add(OpCodes.Ldloca, instanceLocal);
                                 instructions.Add(OpCodes.Ldarg, This.Instance);
-                                instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([instantiatedType], []));
+                                instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([byRefElementType], []));
                             }
                         }
 
@@ -481,6 +493,45 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             Instructions = instructions,
                             LocalVariables = localVariables,
                         });
+                    }
+
+                    // Interface redirect body
+                    if (method.InterfaceRedirectMethod is not null)
+                    {
+                        Debug.Assert(method.GenericParameters.Count == 0);
+                        Debug.Assert(method.DeclaringType is { GenericParameters.Count: 0 });
+
+                        var methodBody = method.GetExtraData<NativeMethodBody>();
+                        Debug.Assert(methodBody is { ExceptionHandlers.Count: 0 });
+
+                        var localVariables = new LocalVariable[methodBody.LocalVariables.Count];
+                        var operandRedirects = new Dictionary<object, object>(methodBody.LocalVariables.Count);
+                        for (var i = 0; i < localVariables.Length; i++)
+                        {
+                            var originalLocal = methodBody.LocalVariables[i];
+                            var newLocal = new LocalVariable(originalLocal.Type);
+                            localVariables[i] = newLocal;
+                            operandRedirects.Add(originalLocal, newLocal);
+                        }
+
+                        method.InterfaceRedirectMethod!.PutExtraData(new NativeMethodBody()
+                        {
+                            Instructions = methodBody.Instructions.Select(i =>
+                            {
+                                return new Instruction(i.Code, i.Operand is not null && operandRedirects.TryGetValue(i.Operand, out var redirectedOperand) ? redirectedOperand : i.Operand);
+                            }).ToArray(),
+                            LocalVariables = localVariables,
+                        });
+
+                        if (method.UnsafeInvokeMethod is not null)
+                        {
+                            method.InterfaceRedirectMethod!.UnsafeInvokeMethod = method.UnsafeInvokeMethod!;
+                        }
+
+                        if (method.UnsafeImplementationMethod is not null)
+                        {
+                            method.InterfaceRedirectMethod!.UnsafeImplementationMethod = method.UnsafeImplementationMethod!;
+                        }
                     }
                 }
             }

@@ -54,6 +54,16 @@ internal static class MethodAnalysisContextExtensions
             set => method.PutExtraData("UnsafeImplementationMethod", value);
         }
 
+        /// <summary>
+        /// The interface method that should be used instead when emitting calls to this method during unstripping.
+        /// </summary>
+        [MaybeNull]
+        public MethodAnalysisContext InterfaceRedirectMethod
+        {
+            get => method.GetExtraData<MethodAnalysisContext>("InterfaceRedirectMethod");
+            set => method.PutExtraData("InterfaceRedirectMethod", value);
+        }
+
         public bool IsInstanceConstructor => method.Name == ".ctor";
         public bool IsStaticConstructor => method.Name == ".cctor";
         public bool IsConstructor => method.IsInstanceConstructor || method.IsStaticConstructor;

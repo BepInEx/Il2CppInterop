@@ -28,6 +28,7 @@ Il2CppGame.Process(
         new MarshallingProcessingLayer(),
         new PrimitiveImplicitConversionProcessingLayer(),
         new EnumProcessingLayer(),
+        new ObjectOverridesProcessingLayer(),
         new MemberAttributeProcessingLayer(),
         new FieldAccessorProcessingLayer(),
         new EventProcessingLayer(),
@@ -47,7 +48,8 @@ Console.WriteLine("Done!");
 
 /*
 Todo:
-- Object/ValueType/Enum special handling
+- Implement Il2CppSystem.Object internals
+- Fix abstract methods having helper methods
 - Creation method registration
 - ICall runtime delegate creation
 - System interfaces

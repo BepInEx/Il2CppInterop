@@ -676,6 +676,18 @@ public class TranslatedMethodBody : MethodBodyBase
                     typeGenericArguments = [];
                     methodGenericArguments = [];
                 }
+                if (originalCode.Code is CilCode.Callvirt)
+                {
+                    while (baseMethod.InterfaceRedirectMethod is not null)
+                    {
+                        baseMethod = baseMethod.InterfaceRedirectMethod!;
+                    }
+                }
+                if (originalCode.Code is CilCode.Call && baseMethod.InterfaceRedirectMethod is not null)
+                {
+                    // This is unsupported
+                    return false;
+                }
                 if (originalCode.Code is CilCode.Call && baseMethod.UnsafeInvokeMethod is not null)
                 {
                     translatedInstruction.Code = OpCodes.Nop;
@@ -706,8 +718,6 @@ public class TranslatedMethodBody : MethodBodyBase
                         translatedInstructions.Add(OpCodes.Ldloc, temporaryVariable);
                     }
 
-                    // Todo: If this is an instance method on Il2CppSystem Object/ValueType/Enum,
-                    // we need to redirect it to the corresponding IObject/IValueType/IEnum method.
                     translatedInstructions.Add(originalCode, targetMethod);
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, targetMethod.ReturnType);
                 }
@@ -737,8 +747,6 @@ public class TranslatedMethodBody : MethodBodyBase
                         translatedInstructions.Add(OpCodes.Ldloc, temporaryVariable);
                     }
 
-                    // Todo: If this is an instance method on Il2CppSystem Object/ValueType/Enum,
-                    // we need to redirect it to the corresponding IObject/IValueType/IEnum method.
                     translatedInstructions.Add(originalCode, targetMethod);
 
                     var returnType = originalCode == OpCodes.Newobj ? targetMethod.DeclaringType! : targetMethod.ReturnType;
