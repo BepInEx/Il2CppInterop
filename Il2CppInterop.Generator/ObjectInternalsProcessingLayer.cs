@@ -50,22 +50,22 @@ public class ObjectInternalsProcessingLayer : Cpp2IlProcessingLayer
             constructor.PutExtraData(new NativeMethodBody()
             {
                 Instructions = [
-                    new Instruction(OpCodes.Ldarg_0),
-                    new Instruction(OpCodes.Call, baseConstructor),
+                    new Instruction(CilOpCodes.Ldarg_0),
+                    new Instruction(CilOpCodes.Call, baseConstructor),
 
-                    new Instruction(OpCodes.Ldarg_0),
-                    new Instruction(OpCodes.Ldarg_1),
-                    new Instruction(OpCodes.Call, objectPointerToSystemIntPtr),
-                    new Instruction(OpCodes.Stfld, pooledPointerField),
+                    new Instruction(CilOpCodes.Ldarg_0),
+                    new Instruction(CilOpCodes.Ldarg_1),
+                    new Instruction(CilOpCodes.Call, objectPointerToSystemIntPtr),
+                    new Instruction(CilOpCodes.Stfld, pooledPointerField),
 
-                    new Instruction(OpCodes.Ldarg_0),
-                    new Instruction(OpCodes.Ldarg_1),
-                    new Instruction(OpCodes.Call, objectPointerToSystemIntPtr),
-                    new Instruction(OpCodes.Ldc_I4_0), // false for "pinned"
-                    new Instruction(OpCodes.Call, il2CppStaticClass.GetMethodByName(nameof(IL2CPP.il2cpp_gchandle_new))),
-                    new Instruction(OpCodes.Stfld, gcHandleField),
+                    new Instruction(CilOpCodes.Ldarg_0),
+                    new Instruction(CilOpCodes.Ldarg_1),
+                    new Instruction(CilOpCodes.Call, objectPointerToSystemIntPtr),
+                    new Instruction(CilOpCodes.Ldc_I4_0), // false for "pinned"
+                    new Instruction(CilOpCodes.Call, il2CppStaticClass.GetMethodByName(nameof(IL2CPP.il2cpp_gchandle_new))),
+                    new Instruction(CilOpCodes.Stfld, gcHandleField),
 
-                    new Instruction(OpCodes.Ret),
+                    new Instruction(CilOpCodes.Ret),
                 ]
             });
         }
@@ -98,10 +98,10 @@ public class ObjectInternalsProcessingLayer : Cpp2IlProcessingLayer
             getMethod.PutExtraData(new NativeMethodBody()
             {
                 Instructions = [
-                    new Instruction(OpCodes.Ldarg_0),
-                    new Instruction(OpCodes.Ldfld, gcHandleField),
-                    new Instruction(OpCodes.Call, il2CppStaticClass.GetMethodByName(nameof(IL2CPP.Il2CppGCHandleGetTargetOrThrow))),
-                    new Instruction(OpCodes.Ret),
+                    new Instruction(CilOpCodes.Ldarg_0),
+                    new Instruction(CilOpCodes.Ldfld, gcHandleField),
+                    new Instruction(CilOpCodes.Call, il2CppStaticClass.GetMethodByName(nameof(IL2CPP.Il2CppGCHandleGetTargetOrThrow))),
+                    new Instruction(CilOpCodes.Ret),
                 ]
             });
         }
@@ -134,10 +134,10 @@ public class ObjectInternalsProcessingLayer : Cpp2IlProcessingLayer
             getMethod.PutExtraData(new NativeMethodBody()
             {
                 Instructions = [
-                    new Instruction(OpCodes.Ldarg_0),
-                    new Instruction(OpCodes.Ldfld, gcHandleField),
-                    new Instruction(OpCodes.Call, il2CppStaticClass.GetMethodByName(nameof(IL2CPP.Il2CppGCHandleGetTargetWasCollected))),
-                    new Instruction(OpCodes.Ret),
+                    new Instruction(CilOpCodes.Ldarg_0),
+                    new Instruction(CilOpCodes.Ldfld, gcHandleField),
+                    new Instruction(CilOpCodes.Call, il2CppStaticClass.GetMethodByName(nameof(IL2CPP.Il2CppGCHandleGetTargetWasCollected))),
+                    new Instruction(CilOpCodes.Ret),
                 ]
             });
         }
@@ -158,29 +158,29 @@ public class ObjectInternalsProcessingLayer : Cpp2IlProcessingLayer
 
             var instructions = new List<Instruction>();
 
-            var returnInstruction = new Instruction(OpCodes.Ret);
+            var returnInstruction = new Instruction(CilOpCodes.Ret);
 
-            var tryStart = new Instruction(OpCodes.Nop);
+            var tryStart = new Instruction(CilOpCodes.Nop);
             instructions.Add(tryStart);
 
-            instructions.Add(OpCodes.Ldarg_0);
-            instructions.Add(OpCodes.Ldfld, gcHandleField);
-            instructions.Add(OpCodes.Call, il2CppStaticClass.GetMethodByName(nameof(IL2CPP.il2cpp_gchandle_free)));
+            instructions.Add(CilOpCodes.Ldarg_0);
+            instructions.Add(CilOpCodes.Ldfld, gcHandleField);
+            instructions.Add(CilOpCodes.Call, il2CppStaticClass.GetMethodByName(nameof(IL2CPP.il2cpp_gchandle_free)));
 
-            instructions.Add(OpCodes.Ldarg_0);
-            instructions.Add(OpCodes.Ldfld, pooledPointerField);
-            instructions.Add(OpCodes.Call, il2CppObjectPool.GetMethodByName(nameof(Il2CppObjectPool.Remove)));
+            instructions.Add(CilOpCodes.Ldarg_0);
+            instructions.Add(CilOpCodes.Ldfld, pooledPointerField);
+            instructions.Add(CilOpCodes.Call, il2CppObjectPool.GetMethodByName(nameof(Il2CppObjectPool.Remove)));
 
-            var tryEnd = new Instruction(OpCodes.Leave, returnInstruction);
+            var tryEnd = new Instruction(CilOpCodes.Leave, returnInstruction);
             instructions.Add(tryEnd);
 
-            var handlerStart = new Instruction(OpCodes.Nop);
+            var handlerStart = new Instruction(CilOpCodes.Nop);
             instructions.Add(handlerStart);
 
-            instructions.Add(OpCodes.Ldarg_0);
-            instructions.Add(OpCodes.Call, baseMethod);
+            instructions.Add(CilOpCodes.Ldarg_0);
+            instructions.Add(CilOpCodes.Call, baseMethod);
 
-            var handlerEnd = new Instruction(OpCodes.Endfinally);
+            var handlerEnd = new Instruction(CilOpCodes.Endfinally);
             instructions.Add(handlerEnd);
 
             instructions.Add(returnInstruction);

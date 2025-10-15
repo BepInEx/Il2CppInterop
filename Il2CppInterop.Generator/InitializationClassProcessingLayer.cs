@@ -119,51 +119,51 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                     var concreteClassPointerField = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([typeToInitialize]));
                     if (type.IsUnstripped)
                     {
-                        instructions.Add(new Instruction(OpCodes.Call, registerTypeInIl2Cpp.MakeGenericInstanceMethod(typeToInitialize)));
+                        instructions.Add(new Instruction(CilOpCodes.Call, registerTypeInIl2Cpp.MakeGenericInstanceMethod(typeToInitialize)));
                     }
                     else
                     {
                         if (typeToInitialize.DeclaringType is not null)
                         {
                             // Ensure declaring type is initialized first
-                            instructions.Add(new Instruction(OpCodes.Ldtoken, typeToInitialize.DeclaringType));
-                            instructions.Add(new Instruction(OpCodes.Call, runClassConstructor));
+                            instructions.Add(new Instruction(CilOpCodes.Ldtoken, typeToInitialize.DeclaringType));
+                            instructions.Add(new Instruction(CilOpCodes.Call, runClassConstructor));
 
                             // Il2CppClassPointerStore<NestedClass>.NativeClassPtr = IL2CPP.GetIl2CppNestedType(Il2CppClassPointerStore<DeclaringType>.NativeClassPtr, "NestedClass");
                             var declaringTypeClassPointerField = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([typeToInitialize.DeclaringType]));
-                            instructions.Add(new Instruction(OpCodes.Ldsfld, declaringTypeClassPointerField));
-                            instructions.Add(new Instruction(OpCodes.Ldstr, type.DefaultName));// typeToInitialize can have the wrong DefaultName
-                            instructions.Add(new Instruction(OpCodes.Call, getIl2CppNestedType));
+                            instructions.Add(new Instruction(CilOpCodes.Ldsfld, declaringTypeClassPointerField));
+                            instructions.Add(new Instruction(CilOpCodes.Ldstr, type.DefaultName));// typeToInitialize can have the wrong DefaultName
+                            instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppNestedType));
                         }
                         else
                         {
                             // Il2CppClassPointerStore<Class>.NativeClassPtr = IL2CPP.GetIl2CppClass("Assembly-CSharp.dll", "", "Class");
-                            instructions.Add(new Instruction(OpCodes.Ldstr, $"{assembly.DefaultName}.dll"));
-                            instructions.Add(new Instruction(OpCodes.Ldstr, type.DefaultNamespace));
-                            instructions.Add(new Instruction(OpCodes.Ldstr, type.DefaultName));
-                            instructions.Add(new Instruction(OpCodes.Call, getIl2CppClass));
+                            instructions.Add(new Instruction(CilOpCodes.Ldstr, $"{assembly.DefaultName}.dll"));
+                            instructions.Add(new Instruction(CilOpCodes.Ldstr, type.DefaultNamespace));
+                            instructions.Add(new Instruction(CilOpCodes.Ldstr, type.DefaultName));
+                            instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppClass));
                         }
                         if (type.GenericParameters.Count > 0)
                         {
-                            instructions.Add(new Instruction(OpCodes.Ldc_I4, type.GenericParameters.Count));
-                            instructions.Add(new Instruction(OpCodes.Newarr, appContext.SystemTypes.SystemIntPtrType));
+                            instructions.Add(new Instruction(CilOpCodes.Ldc_I4, type.GenericParameters.Count));
+                            instructions.Add(new Instruction(CilOpCodes.Newarr, appContext.SystemTypes.SystemIntPtrType));
                             for (var j = 0; j < type.GenericParameters.Count; j++)
                             {
-                                instructions.Add(new Instruction(OpCodes.Dup));
-                                instructions.Add(new Instruction(OpCodes.Ldc_I4, j));
+                                instructions.Add(new Instruction(CilOpCodes.Dup));
+                                instructions.Add(new Instruction(CilOpCodes.Ldc_I4, j));
                                 var genericParameter = initializationType.GenericParameters[j];
                                 var classPointerForGenericParameter = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([genericParameter]));
-                                instructions.Add(new Instruction(OpCodes.Ldsfld, classPointerForGenericParameter));
-                                instructions.Add(new Instruction(OpCodes.Stelem_I));
+                                instructions.Add(new Instruction(CilOpCodes.Ldsfld, classPointerForGenericParameter));
+                                instructions.Add(new Instruction(CilOpCodes.Stelem_I));
                             }
-                            instructions.Add(new Instruction(OpCodes.Call, getIl2CppGenericInstanceType));
+                            instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppGenericInstanceType));
                         }
-                        instructions.Add(new Instruction(OpCodes.Stsfld, concreteClassPointerField));
+                        instructions.Add(new Instruction(CilOpCodes.Stsfld, concreteClassPointerField));
                     }
 
                     // IL2CPP.il2cpp_runtime_class_init(Il2CppClassPointerStore<Class>.NativeClassPtr);
-                    instructions.Add(new Instruction(OpCodes.Ldsfld, concreteClassPointerField));
-                    instructions.Add(new Instruction(OpCodes.Call, il2CppRuntimeClassInit));
+                    instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                    instructions.Add(new Instruction(CilOpCodes.Call, il2CppRuntimeClassInit));
 
                     // Size = IL2CPP.il2cpp_class_value_size(Il2CppClassPointerStore<Class>.NativeClassPtr, ref align);
                     if (type.IsValueType)
@@ -178,9 +178,9 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             ? new ConcreteGenericFieldAnalysisContext(sizeStore, initializationType.MakeGenericInstanceType(initializationType.GenericParameters))
                             : sizeStore;
 
-                        instructions.Add(new Instruction(OpCodes.Ldsfld, concreteClassPointerField));
-                        instructions.Add(new Instruction(OpCodes.Call, getIl2CppValueSize));
-                        instructions.Add(new Instruction(OpCodes.Stsfld, instantiatedSizeStore));
+                        instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                        instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppValueSize));
+                        instructions.Add(new Instruction(CilOpCodes.Stsfld, instantiatedSizeStore));
                     }
 
                     // FieldOffset_0 = (int)IL2CPP.il2cpp_field_get_offset(IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Class>.NativeClassPtr, "field_name"));
@@ -211,14 +211,14 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             ? new ConcreteGenericFieldAnalysisContext(offsetStore, initializationType.MakeGenericInstanceType(initializationType.GenericParameters))
                             : offsetStore;
 
-                        instructions.Add(new Instruction(OpCodes.Ldsfld, concreteClassPointerField));
-                        instructions.Add(new Instruction(OpCodes.Ldstr, field.DefaultName));
-                        instructions.Add(new Instruction(OpCodes.Call, getIl2CppField));
-                        instructions.Add(new Instruction(OpCodes.Dup));
-                        instructions.Add(new Instruction(OpCodes.Stsfld, instantiatedInfoStore));
-                        instructions.Add(new Instruction(OpCodes.Call, il2CppFieldGetOffset));
-                        instructions.Add(new Instruction(OpCodes.Conv_I4));
-                        instructions.Add(new Instruction(OpCodes.Stsfld, instantiatedOffsetStore));
+                        instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                        instructions.Add(new Instruction(CilOpCodes.Ldstr, field.DefaultName));
+                        instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppField));
+                        instructions.Add(new Instruction(CilOpCodes.Dup));
+                        instructions.Add(new Instruction(CilOpCodes.Stsfld, instantiatedInfoStore));
+                        instructions.Add(new Instruction(CilOpCodes.Call, il2CppFieldGetOffset));
+                        instructions.Add(new Instruction(CilOpCodes.Conv_I4));
+                        instructions.Add(new Instruction(CilOpCodes.Stsfld, instantiatedOffsetStore));
                     }
 
                     // MethodInfoPtr_0
@@ -243,30 +243,30 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         {
                             tokenLessMethodCount++;
 
-                            instructions.Add(new Instruction(OpCodes.Ldsfld, concreteClassPointerField));
-                            instructions.Add(new Instruction(method.GenericParameters.Count == 0 ? OpCodes.Ldc_I4_0 : OpCodes.Ldc_I4_1));
-                            instructions.Add(new Instruction(OpCodes.Ldstr, method.DefaultName));
-                            instructions.Add(new Instruction(OpCodes.Ldstr, method.DefaultReturnType.DefaultFullName));
-                            instructions.Add(new Instruction(OpCodes.Ldc_I4, method.Parameters.Count));
-                            instructions.Add(new Instruction(OpCodes.Newarr, method.AppContext.SystemTypes.SystemStringType));
+                            instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                            instructions.Add(new Instruction(method.GenericParameters.Count == 0 ? CilOpCodes.Ldc_I4_0 : CilOpCodes.Ldc_I4_1));
+                            instructions.Add(new Instruction(CilOpCodes.Ldstr, method.DefaultName));
+                            instructions.Add(new Instruction(CilOpCodes.Ldstr, method.DefaultReturnType.DefaultFullName));
+                            instructions.Add(new Instruction(CilOpCodes.Ldc_I4, method.Parameters.Count));
+                            instructions.Add(new Instruction(CilOpCodes.Newarr, method.AppContext.SystemTypes.SystemStringType));
 
                             for (var parameterIndex = 0; i < method.Parameters.Count; i++)
                             {
-                                instructions.Add(new Instruction(OpCodes.Dup));
-                                instructions.Add(new Instruction(OpCodes.Ldc_I4, parameterIndex));
-                                instructions.Add(new Instruction(OpCodes.Ldstr, method.Parameters[i].DefaultParameterType.DefaultFullName));
-                                instructions.Add(new Instruction(OpCodes.Stelem_Ref));
+                                instructions.Add(new Instruction(CilOpCodes.Dup));
+                                instructions.Add(new Instruction(CilOpCodes.Ldc_I4, parameterIndex));
+                                instructions.Add(new Instruction(CilOpCodes.Ldstr, method.Parameters[i].DefaultParameterType.DefaultFullName));
+                                instructions.Add(new Instruction(CilOpCodes.Stelem_Ref));
                             }
 
-                            instructions.Add(new Instruction(OpCodes.Call, getIl2CppMethod));
+                            instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppMethod));
                         }
                         else
                         {
-                            instructions.Add(new Instruction(OpCodes.Ldsfld, concreteClassPointerField));
-                            instructions.Add(new Instruction(OpCodes.Ldc_I4, unchecked((int)method.Token)));
-                            instructions.Add(new Instruction(OpCodes.Call, getIl2CppMethodByToken));
+                            instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                            instructions.Add(new Instruction(CilOpCodes.Ldc_I4, unchecked((int)method.Token)));
+                            instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppMethodByToken));
                         }
-                        instructions.Add(new Instruction(OpCodes.Stsfld, concreteMethodInfoStore));
+                        instructions.Add(new Instruction(CilOpCodes.Stsfld, concreteMethodInfoStore));
 
                         if (method.GenericParameters.Count > 0)
                         {
@@ -305,22 +305,22 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                 : methodInfoStore;
 
                             var instructions2 = new List<Instruction>();
-                            instructions2.Add(new Instruction(OpCodes.Ldsfld, concreteMethodInfoStore2));
-                            instructions2.Add(new Instruction(OpCodes.Ldsfld, concreteClassPointerField));
-                            instructions2.Add(new Instruction(OpCodes.Ldc_I4, method.GenericParameters.Count));
-                            instructions2.Add(new Instruction(OpCodes.Newarr, appContext.SystemTypes.SystemIntPtrType));
+                            instructions2.Add(new Instruction(CilOpCodes.Ldsfld, concreteMethodInfoStore2));
+                            instructions2.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                            instructions2.Add(new Instruction(CilOpCodes.Ldc_I4, method.GenericParameters.Count));
+                            instructions2.Add(new Instruction(CilOpCodes.Newarr, appContext.SystemTypes.SystemIntPtrType));
                             for (var j = 0; j < method.GenericParameters.Count; j++)
                             {
-                                instructions2.Add(new Instruction(OpCodes.Dup));
-                                instructions2.Add(new Instruction(OpCodes.Ldc_I4, j));
+                                instructions2.Add(new Instruction(CilOpCodes.Dup));
+                                instructions2.Add(new Instruction(CilOpCodes.Ldc_I4, j));
                                 var genericParameter = methodInfoPtrGenericClass.GenericParameters[j + initializationType.GenericParameters.Count];
                                 var classPointerForGenericParameter = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([genericParameter]));
-                                instructions2.Add(new Instruction(OpCodes.Ldsfld, classPointerForGenericParameter));
-                                instructions2.Add(new Instruction(OpCodes.Stelem_I));
+                                instructions2.Add(new Instruction(CilOpCodes.Ldsfld, classPointerForGenericParameter));
+                                instructions2.Add(new Instruction(CilOpCodes.Stelem_I));
                             }
-                            instructions2.Add(new Instruction(OpCodes.Call, getIl2CppGenericInstanceMethod));
-                            instructions2.Add(new Instruction(OpCodes.Stsfld, new ConcreteGenericFieldAnalysisContext(methodInfoPtrGenericField, methodInfoPtrGenericClass.MakeGenericInstanceType(methodInfoPtrGenericClass.GenericParameters))));
-                            instructions2.Add(new Instruction(OpCodes.Ret));
+                            instructions2.Add(new Instruction(CilOpCodes.Call, getIl2CppGenericInstanceMethod));
+                            instructions2.Add(new Instruction(CilOpCodes.Stsfld, new ConcreteGenericFieldAnalysisContext(methodInfoPtrGenericField, methodInfoPtrGenericClass.MakeGenericInstanceType(methodInfoPtrGenericClass.GenericParameters))));
+                            instructions2.Add(new Instruction(CilOpCodes.Ret));
 
                             methodInfoPtrGenericStaticConstructor.PutExtraData(new NativeMethodBody()
                             {
@@ -443,46 +443,46 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             if (method.IsStatic)
                             {
                                 thisLocal = null;
-                                methodInstructions.Add(new Instruction(OpCodes.Ldsfld, delegateField));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Ldsfld, delegateField));
                             }
                             else if (type.IsValueType)
                             {
                                 thisLocal = new LocalVariable(byReference.MakeGenericInstanceType([type]));
 
-                                methodInstructions.Add(new Instruction(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(type)));
-                                methodInstructions.Add(new Instruction(OpCodes.Conv_U));
-                                methodInstructions.Add(new Instruction(OpCodes.Localloc));
-                                methodInstructions.Add(new Instruction(OpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([type], [])));
-                                methodInstructions.Add(new Instruction(OpCodes.Stloc, thisLocal));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(type)));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Conv_U));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Localloc));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([type], [])));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Stloc, thisLocal));
 
-                                methodInstructions.Add(new Instruction(OpCodes.Ldloca, thisLocal));
-                                methodInstructions.Add(new Instruction(OpCodes.Ldarg, This.Instance));
-                                methodInstructions.Add(new Instruction(OpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([type], [])));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Ldloca, thisLocal));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Ldarg, This.Instance));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([type], [])));
 
-                                methodInstructions.Add(new Instruction(OpCodes.Ldsfld, delegateField));
-                                methodInstructions.Add(new Instruction(OpCodes.Ldloc, thisLocal));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Ldsfld, delegateField));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Ldloc, thisLocal));
                             }
                             else
                             {
                                 thisLocal = null; // Not needed for reference types
-                                methodInstructions.Add(new Instruction(OpCodes.Ldsfld, delegateField));
-                                methodInstructions.Add(new Instruction(OpCodes.Ldarg, This.Instance));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Ldsfld, delegateField));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Ldarg, This.Instance));
                             }
 
                             foreach (var parameter in method.Parameters)
                             {
-                                methodInstructions.Add(new Instruction(OpCodes.Ldarg, parameter));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Ldarg, parameter));
                             }
-                            methodInstructions.Add(new Instruction(OpCodes.Callvirt, invokeMethod));
+                            methodInstructions.Add(new Instruction(CilOpCodes.Callvirt, invokeMethod));
 
                             if (thisLocal is not null)
                             {
-                                methodInstructions.Add(new Instruction(OpCodes.Ldloca, thisLocal));
-                                methodInstructions.Add(new Instruction(OpCodes.Ldarg, This.Instance));
-                                methodInstructions.Add(new Instruction(OpCodes.Call, byReference_CopyTo.MakeConcreteGeneric([type], [])));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Ldloca, thisLocal));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Ldarg, This.Instance));
+                                methodInstructions.Add(new Instruction(CilOpCodes.Call, byReference_CopyTo.MakeConcreteGeneric([type], [])));
                             }
 
-                            methodInstructions.Add(new Instruction(OpCodes.Ret));
+                            methodInstructions.Add(new Instruction(CilOpCodes.Ret));
 
                             method.PutExtraData(new NativeMethodBody()
                             {
@@ -493,9 +493,9 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
 
                         // Static constructor instructions
                         {
-                            instructions.Add(new Instruction(OpCodes.Ldstr, $"{type.DefaultFullName}::{method.DefaultName}"));
-                            instructions.Add(new Instruction(OpCodes.Call, new ConcreteGenericMethodAnalysisContext(resolveICall, [], [delegateType])));
-                            instructions.Add(new Instruction(OpCodes.Stsfld, delegateField));
+                            instructions.Add(new Instruction(CilOpCodes.Ldstr, $"{type.DefaultFullName}::{method.DefaultName}"));
+                            instructions.Add(new Instruction(CilOpCodes.Call, new ConcreteGenericMethodAnalysisContext(resolveICall, [], [delegateType])));
+                            instructions.Add(new Instruction(CilOpCodes.Stsfld, delegateField));
                         }
                     }
 
@@ -507,11 +507,11 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         }
                         else if (type.IsValueType)
                         {
-                            instructions.Add(OpCodes.Ldsfld, concreteClassPointerField);
-                            instructions.Add(OpCodes.Ldnull);
-                            instructions.Add(OpCodes.Ldftn, il2CppObjectPool_ValueTypeInitializer.MakeGenericInstanceMethod(typeToInitialize));
-                            instructions.Add(OpCodes.Newobj, funcConstructorInstantiated);
-                            instructions.Add(OpCodes.Call, il2CppObjectPool_RegisterInitializer);
+                            instructions.Add(CilOpCodes.Ldsfld, concreteClassPointerField);
+                            instructions.Add(CilOpCodes.Ldnull);
+                            instructions.Add(CilOpCodes.Ldftn, il2CppObjectPool_ValueTypeInitializer.MakeGenericInstanceMethod(typeToInitialize));
+                            instructions.Add(CilOpCodes.Newobj, funcConstructorInstantiated);
+                            instructions.Add(CilOpCodes.Call, il2CppObjectPool_RegisterInitializer);
                         }
                         else
                         {
@@ -530,21 +530,21 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             {
                                 Instructions =
                                 [
-                                    new Instruction(OpCodes.Ldarg_0),
-                                    new Instruction(OpCodes.Newobj, pointerConstructor.MaybeMakeConcreteGeneric(initializationType.GenericParameters, [])),
-                                    new Instruction(OpCodes.Ret),
+                                    new Instruction(CilOpCodes.Ldarg_0),
+                                    new Instruction(CilOpCodes.Newobj, pointerConstructor.MaybeMakeConcreteGeneric(initializationType.GenericParameters, [])),
+                                    new Instruction(CilOpCodes.Ret),
                                 ]
                             });
 
-                            instructions.Add(OpCodes.Ldsfld, concreteClassPointerField);
-                            instructions.Add(OpCodes.Ldnull);
-                            instructions.Add(OpCodes.Ldftn, creationMethod.MaybeMakeConcreteGeneric(initializationType.GenericParameters, []));
-                            instructions.Add(OpCodes.Newobj, funcConstructorInstantiated);
-                            instructions.Add(OpCodes.Call, il2CppObjectPool_RegisterInitializer);
+                            instructions.Add(CilOpCodes.Ldsfld, concreteClassPointerField);
+                            instructions.Add(CilOpCodes.Ldnull);
+                            instructions.Add(CilOpCodes.Ldftn, creationMethod.MaybeMakeConcreteGeneric(initializationType.GenericParameters, []));
+                            instructions.Add(CilOpCodes.Newobj, funcConstructorInstantiated);
+                            instructions.Add(CilOpCodes.Call, il2CppObjectPool_RegisterInitializer);
                         }
                     }
 
-                    instructions.Add(new Instruction(OpCodes.Ret));
+                    instructions.Add(new Instruction(CilOpCodes.Ret));
 
                     staticConstructor.PutExtraData(new NativeMethodBody()
                     {
@@ -595,11 +595,11 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                     continue;
 
                 // Ensure the type is initialized
-                instructions.Add(new Instruction(OpCodes.Ldtoken, typeContext));
-                instructions.Add(new Instruction(OpCodes.Call, runClassConstructor));
+                instructions.Add(new Instruction(CilOpCodes.Ldtoken, typeContext));
+                instructions.Add(new Instruction(CilOpCodes.Call, runClassConstructor));
             }
 
-            instructions.Add(new Instruction(OpCodes.Ret));
+            instructions.Add(new Instruction(CilOpCodes.Ret));
 
             initializeMethod.PutExtraData(new NativeMethodBody()
             {
@@ -614,8 +614,8 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
 
         var typeToInitialize = type.GenericParameters.Count == 0 ? initializationType : (TypeAnalysisContext)initializationType.MakeGenericInstanceType(type.GenericParameters);
 
-        instructions.Add(new Instruction(OpCodes.Ldtoken, typeToInitialize));
-        instructions.Add(new Instruction(OpCodes.Call, runClassConstructor));
+        instructions.Add(new Instruction(CilOpCodes.Ldtoken, typeToInitialize));
+        instructions.Add(new Instruction(CilOpCodes.Call, runClassConstructor));
     }
 
     private static ulong HashString(ReadOnlySpan<char> chars)

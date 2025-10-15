@@ -42,21 +42,21 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
                 implicitConversion.IsInjected = true;
                 il2CppType.Methods.Add(implicitConversion);
 
-                var createStringNop = new Instruction(OpCodes.Nop);
+                var createStringNop = new Instruction(CilOpCodes.Nop);
 
                 implicitConversion.PutExtraData(new TranslatedMethodBody()
                 {
                     Instructions = [
-                        new Instruction(OpCodes.Ldarg_0),
-                        new Instruction(OpCodes.Call, il2CppObjectBaseToPointer),
-                        new Instruction(OpCodes.Dup),
-                        new Instruction(OpCodes.Brtrue, createStringNop),
-                        new Instruction(OpCodes.Pop),
-                        new Instruction(OpCodes.Ldnull),
-                        new Instruction(OpCodes.Ret),
+                        new Instruction(CilOpCodes.Ldarg_0),
+                        new Instruction(CilOpCodes.Call, il2CppObjectBaseToPointer),
+                        new Instruction(CilOpCodes.Dup),
+                        new Instruction(CilOpCodes.Brtrue, createStringNop),
+                        new Instruction(CilOpCodes.Pop),
+                        new Instruction(CilOpCodes.Ldnull),
+                        new Instruction(CilOpCodes.Ret),
                         createStringNop,
-                        new Instruction(OpCodes.Call, il2CppStringToManaged),
-                        new Instruction(OpCodes.Ret),
+                        new Instruction(CilOpCodes.Call, il2CppStringToManaged),
+                        new Instruction(CilOpCodes.Ret),
                     ]
                 });
             }
@@ -72,22 +72,22 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
                 implicitConversion.IsInjected = true;
                 il2CppType.Methods.Add(implicitConversion);
 
-                var createIl2CppStringNop = new Instruction(OpCodes.Nop);
+                var createIl2CppStringNop = new Instruction(CilOpCodes.Nop);
 
                 implicitConversion.PutExtraData(new TranslatedMethodBody()
                 {
                     Instructions = [
-                        new Instruction(OpCodes.Ldarg_0),
-                        new Instruction(OpCodes.Dup),
-                        new Instruction(OpCodes.Brtrue, createIl2CppStringNop),
-                        new Instruction(OpCodes.Pop),
-                        new Instruction(OpCodes.Ldnull),
-                        new Instruction(OpCodes.Ret),
+                        new Instruction(CilOpCodes.Ldarg_0),
+                        new Instruction(CilOpCodes.Dup),
+                        new Instruction(CilOpCodes.Brtrue, createIl2CppStringNop),
+                        new Instruction(CilOpCodes.Pop),
+                        new Instruction(CilOpCodes.Ldnull),
+                        new Instruction(CilOpCodes.Ret),
                         createIl2CppStringNop,
-                        new Instruction(OpCodes.Call, managedStringToIl2Cpp),
-                        new Instruction(OpCodes.Call, objectPointerConversionFromIntPtr),
-                        new Instruction(OpCodes.Newobj, il2CppType.PointerConstructor!),
-                        new Instruction(OpCodes.Ret),
+                        new Instruction(CilOpCodes.Call, managedStringToIl2Cpp),
+                        new Instruction(CilOpCodes.Call, objectPointerConversionFromIntPtr),
+                        new Instruction(CilOpCodes.Newobj, il2CppType.PointerConstructor!),
+                        new Instruction(CilOpCodes.Ret),
                     ]
                 });
             }
@@ -130,9 +130,9 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
                 implicitConversion.PutExtraData(new TranslatedMethodBody()
                 {
                     Instructions = [
-                        new Instruction(OpCodes.Ldarg, implicitConversion.Parameters[0]),
-                        new Instruction(OpCodes.Ldfld, field),
-                        new Instruction(OpCodes.Ret),
+                        new Instruction(CilOpCodes.Ldarg, implicitConversion.Parameters[0]),
+                        new Instruction(CilOpCodes.Ldfld, field),
+                        new Instruction(CilOpCodes.Ret),
                     ]
                 });
                 il2CppType.Methods.Add(implicitConversion);
@@ -150,10 +150,10 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
                 implicitConversion.PutExtraData(new TranslatedMethodBody()
                 {
                     Instructions = [
-                        new Instruction(OpCodes.Ldarga, implicitConversion.Parameters[0]),
-                        new Instruction(OpCodes.Conv_U),
-                        new Instruction(OpCodes.Ldobj, il2CppType),
-                        new Instruction(OpCodes.Ret),
+                        new Instruction(CilOpCodes.Ldarga, implicitConversion.Parameters[0]),
+                        new Instruction(CilOpCodes.Conv_U),
+                        new Instruction(CilOpCodes.Ldobj, il2CppType),
+                        new Instruction(CilOpCodes.Ret),
                     ]
                 });
                 il2CppType.Methods.Add(implicitConversion);

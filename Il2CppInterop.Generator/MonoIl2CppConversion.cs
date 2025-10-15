@@ -21,7 +21,7 @@ internal static class MonoIl2CppConversion
         {
             var monoType = il2CppType.AppContext.Mscorlib.GetTypeByFullNameOrThrow($"System.{il2CppType.Name}");
             var conversionMethod = il2CppType.GetImplicitConversionTo(monoType);
-            instructions.Add(new Instruction(OpCodes.Call, conversionMethod));
+            instructions.Add(new Instruction(CilOpCodes.Call, conversionMethod));
             return true;
         }
         else if (il2CppType is GenericInstanceTypeAnalysisContext { GenericArguments.Count: 1, GenericType.DeclaringType: null } genericInstanceType)
@@ -30,14 +30,14 @@ internal static class MonoIl2CppConversion
             {
                 var elementType = genericInstanceType.GenericArguments[0];
                 var conversionMethod = genericInstanceType.GenericType.Methods.First(m => m.Name == "op_Explicit" && m.ReturnType is PointerTypeAnalysisContext);
-                instructions.Add(new Instruction(OpCodes.Call, new ConcreteGenericMethodAnalysisContext(conversionMethod, [elementType], [])));
+                instructions.Add(new Instruction(CilOpCodes.Call, new ConcreteGenericMethodAnalysisContext(conversionMethod, [elementType], [])));
                 return true;
             }
         }
         else if (il2CppType.EnumMonoUnderlyingType is { } underlyingType)
         {
             var conversionMethod = il2CppType.GetExplicitConversionTo(underlyingType);
-            instructions.Add(new Instruction(OpCodes.Call, conversionMethod));
+            instructions.Add(new Instruction(CilOpCodes.Call, conversionMethod));
             return true;
         }
         return false;
@@ -52,7 +52,7 @@ internal static class MonoIl2CppConversion
         {
             var monoType = il2CppType.AppContext.Mscorlib.GetTypeByFullNameOrThrow($"System.{il2CppType.Name}");
             var conversionMethod = il2CppType.GetImplicitConversionFrom(monoType);
-            instructions.Add(new Instruction(OpCodes.Call, conversionMethod));
+            instructions.Add(new Instruction(CilOpCodes.Call, conversionMethod));
             return true;
         }
         else if (il2CppType is GenericInstanceTypeAnalysisContext { GenericArguments.Count: 1, GenericType.DeclaringType: null } genericInstanceType)
@@ -61,14 +61,14 @@ internal static class MonoIl2CppConversion
             {
                 var elementType = genericInstanceType.GenericArguments[0];
                 var conversionMethod = genericInstanceType.GenericType.Methods.First(m => m.Name == "op_Explicit" && m.Parameters.Count == 1 && m.Parameters[0].ParameterType is PointerTypeAnalysisContext);
-                instructions.Add(new Instruction(OpCodes.Call, new ConcreteGenericMethodAnalysisContext(conversionMethod, [elementType], [])));
+                instructions.Add(new Instruction(CilOpCodes.Call, new ConcreteGenericMethodAnalysisContext(conversionMethod, [elementType], [])));
                 return true;
             }
         }
         else if (il2CppType.EnumMonoUnderlyingType is { } underlyingType)
         {
             var conversionMethod = il2CppType.GetExplicitConversionFrom(underlyingType);
-            instructions.Add(new Instruction(OpCodes.Call, conversionMethod));
+            instructions.Add(new Instruction(CilOpCodes.Call, conversionMethod));
             return true;
         }
         return false;
@@ -94,7 +94,7 @@ internal static class MonoIl2CppConversion
         var il2CppSystemString = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.String");
         var monoSystemString = appContext.SystemTypes.SystemStringType;
         var conversionMethod = il2CppSystemString.GetImplicitConversionTo(monoSystemString);
-        instructions.Add(new Instruction(OpCodes.Call, conversionMethod));
+        instructions.Add(new Instruction(CilOpCodes.Call, conversionMethod));
     }
 
     public static void AddMonoToIl2CppStringConversion(List<Instruction> instructions, ApplicationAnalysisContext appContext)
@@ -102,7 +102,7 @@ internal static class MonoIl2CppConversion
         var il2CppSystemString = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.String");
         var monoSystemString = appContext.SystemTypes.SystemStringType;
         var conversionMethod = il2CppSystemString.GetImplicitConversionFrom(monoSystemString);
-        instructions.Add(new Instruction(OpCodes.Call, conversionMethod));
+        instructions.Add(new Instruction(CilOpCodes.Call, conversionMethod));
     }
 
     private static bool IsIl2CppPrimitiveValueType(TypeAnalysisContext type)

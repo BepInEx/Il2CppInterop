@@ -98,10 +98,10 @@ public class ExceptionHierarchyProcessingLayer : Cpp2IlProcessingLayer
             {
                 Instructions =
                 [
-                    new(OpCodes.Ldarg_0), // this
-                    new(OpCodes.Ldarg_1), // object
-                    new(OpCodes.Call, baseConstructor),
-                    new(OpCodes.Ret),
+                    new(CilOpCodes.Ldarg_0), // this
+                    new(CilOpCodes.Ldarg_1), // object
+                    new(CilOpCodes.Call, baseConstructor),
+                    new(CilOpCodes.Ret),
                 ],
             });
 
@@ -122,9 +122,9 @@ public class ExceptionHierarchyProcessingLayer : Cpp2IlProcessingLayer
                 {
                     Instructions =
                     [
-                        new(OpCodes.Ldarg_0), // this
-                        new(OpCodes.Newobj, exceptionType.HasGenericParameters ? new ConcreteGenericMethodAnalysisContext(constructor, exceptionType.GenericParameters, []) : constructor),
-                        new(OpCodes.Ret),
+                        new(CilOpCodes.Ldarg_0), // this
+                        new(CilOpCodes.Newobj, exceptionType.HasGenericParameters ? new ConcreteGenericMethodAnalysisContext(constructor, exceptionType.GenericParameters, []) : constructor),
+                        new(CilOpCodes.Ret),
                     ],
                 });
                 interfaceMethod.OverridesList.Add(il2CppExceptionInterfaceMethod);

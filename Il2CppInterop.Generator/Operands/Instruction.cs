@@ -1,23 +1,22 @@
-﻿using AsmResolver.PE.DotNet.Cil;
-using Cpp2IL.Core.Model.Contexts;
+﻿using Cpp2IL.Core.Model.Contexts;
 
 namespace Il2CppInterop.Generator.Operands;
 
 public sealed class Instruction : ILabel
 {
-    public OpCode Code { get; set; }
+    public CilOpCode Code { get; set; }
     public object? Operand { get; set; }
 
     public Instruction()
     {
     }
 
-    public Instruction(OpCode code)
+    public Instruction(CilOpCode code)
     {
         Code = code;
     }
 
-    public Instruction(OpCode code, object? operand)
+    public Instruction(CilOpCode code, object? operand)
     {
         Code = code;
         Operand = operand;

@@ -84,10 +84,10 @@ public class PointerConstructorProcessingLayer : Cpp2IlProcessingLayer
                 var methodBody = new NativeMethodBody()
                 {
                     Instructions = [
-                        new Instruction(OpCodes.Ldarg_0),
-                        new Instruction(OpCodes.Ldarg_1),
-                        new Instruction(OpCodes.Call, baseConstructor),
-                        new Instruction(OpCodes.Ret)
+                        new Instruction(CilOpCodes.Ldarg_0),
+                        new Instruction(CilOpCodes.Ldarg_1),
+                        new Instruction(CilOpCodes.Call, baseConstructor),
+                        new Instruction(CilOpCodes.Ret)
                     ]
                 };
                 constructor.PutExtraData(methodBody);

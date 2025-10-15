@@ -4,7 +4,7 @@ namespace Il2CppInterop.Generator.Extensions;
 
 internal static class AsmResolverExtensions
 {
-    extension(OpCode opCode)
+    extension(CilOpCode opCode)
     {
         public bool IsLoadConstantI4
         {

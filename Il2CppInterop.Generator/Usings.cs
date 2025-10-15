@@ -1,3 +1,2 @@
-﻿global using OpCode = AsmResolver.PE.DotNet.Cil.CilOpCode;
-global using OpCodes = AsmResolver.PE.DotNet.Cil.CilOpCodes;
+﻿global using AsmResolver.PE.DotNet.Cil;
 global using Object = Il2CppSystem.Object;

@@ -86,10 +86,10 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                             getFieldAddress.PutExtraData(new NativeMethodBody()
                             {
                                 Instructions = [
-                                    new Instruction(OpCodes.Ldarg, getFieldAddress.Parameters[0]),
-                                    new Instruction(OpCodes.Ldsfld, field.GetInstantiatedOffsetStorage()),
-                                    new Instruction(OpCodes.Call, byReferenceStatic_GetReferenceAtOffset.MakeGenericInstanceMethod(instantiatedType, field.FieldType)),
-                                    new Instruction(OpCodes.Ret)
+                                    new Instruction(CilOpCodes.Ldarg, getFieldAddress.Parameters[0]),
+                                    new Instruction(CilOpCodes.Ldsfld, field.GetInstantiatedOffsetStorage()),
+                                    new Instruction(CilOpCodes.Call, byReferenceStatic_GetReferenceAtOffset.MakeGenericInstanceMethod(instantiatedType, field.FieldType)),
+                                    new Instruction(CilOpCodes.Ret)
                                 ],
                             });
                         }
@@ -98,13 +98,13 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                             getFieldAddress.PutExtraData(new NativeMethodBody()
                             {
                                 Instructions = [
-                                    new Instruction(OpCodes.Ldarg, getFieldAddress.Parameters[0]),
-                                    new Instruction(OpCodes.Callvirt, il2CppSystemObject_get_Pointer),
-                                    new Instruction(OpCodes.Ldsfld, field.GetInstantiatedOffsetStorage()),
-                                    new Instruction(OpCodes.Conv_I),
-                                    new Instruction(OpCodes.Add),
-                                    new Instruction(OpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([field.FieldType], [])),
-                                    new Instruction(OpCodes.Ret)
+                                    new Instruction(CilOpCodes.Ldarg, getFieldAddress.Parameters[0]),
+                                    new Instruction(CilOpCodes.Callvirt, il2CppSystemObject_get_Pointer),
+                                    new Instruction(CilOpCodes.Ldsfld, field.GetInstantiatedOffsetStorage()),
+                                    new Instruction(CilOpCodes.Conv_I),
+                                    new Instruction(CilOpCodes.Add),
+                                    new Instruction(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([field.FieldType], [])),
+                                    new Instruction(CilOpCodes.Ret)
                                 ],
                             });
                         }
@@ -148,16 +148,16 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                         var instructions = new List<Instruction>();
                         if (field.IsStatic)
                         {
-                            instructions.Add(OpCodes.Ldsfld, field.GetInstantiatedFieldInfoAddressStorage());
-                            instructions.Add(OpCodes.Call, getStaticFieldValue.MakeGenericInstanceMethod([field.FieldType]));
-                            instructions.Add(OpCodes.Ret);
+                            instructions.Add(CilOpCodes.Ldsfld, field.GetInstantiatedFieldInfoAddressStorage());
+                            instructions.Add(CilOpCodes.Call, getStaticFieldValue.MakeGenericInstanceMethod([field.FieldType]));
+                            instructions.Add(CilOpCodes.Ret);
                         }
                         else
                         {
-                            instructions.Add(OpCodes.Ldarg, This.Instance);
-                            instructions.Add(OpCodes.Ldsfld, field.GetInstantiatedOffsetStorage());
-                            instructions.Add(OpCodes.Call, getInstanceFieldValue.MakeGenericInstanceMethod([field.FieldType]));
-                            instructions.Add(OpCodes.Ret);
+                            instructions.Add(CilOpCodes.Ldarg, This.Instance);
+                            instructions.Add(CilOpCodes.Ldsfld, field.GetInstantiatedOffsetStorage());
+                            instructions.Add(CilOpCodes.Call, getInstanceFieldValue.MakeGenericInstanceMethod([field.FieldType]));
+                            instructions.Add(CilOpCodes.Ret);
                         }
 
                         getMethod.PutExtraData(new NativeMethodBody()
@@ -182,18 +182,18 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                         var instructions = new List<Instruction>();
                         if (field.IsStatic)
                         {
-                            instructions.Add(OpCodes.Ldsfld, field.GetInstantiatedFieldInfoAddressStorage());
-                            instructions.Add(OpCodes.Ldarg, setMethod.Parameters[0]);
-                            instructions.Add(OpCodes.Call, setStaticFieldValue.MakeGenericInstanceMethod([field.FieldType]));
-                            instructions.Add(OpCodes.Ret);
+                            instructions.Add(CilOpCodes.Ldsfld, field.GetInstantiatedFieldInfoAddressStorage());
+                            instructions.Add(CilOpCodes.Ldarg, setMethod.Parameters[0]);
+                            instructions.Add(CilOpCodes.Call, setStaticFieldValue.MakeGenericInstanceMethod([field.FieldType]));
+                            instructions.Add(CilOpCodes.Ret);
                         }
                         else
                         {
-                            instructions.Add(OpCodes.Ldarg, This.Instance);
-                            instructions.Add(OpCodes.Ldsfld, field.GetInstantiatedOffsetStorage());
-                            instructions.Add(OpCodes.Ldarg, setMethod.Parameters[0]);
-                            instructions.Add(OpCodes.Call, setInstanceFieldValue.MakeGenericInstanceMethod([field.FieldType]));
-                            instructions.Add(OpCodes.Ret);
+                            instructions.Add(CilOpCodes.Ldarg, This.Instance);
+                            instructions.Add(CilOpCodes.Ldsfld, field.GetInstantiatedOffsetStorage());
+                            instructions.Add(CilOpCodes.Ldarg, setMethod.Parameters[0]);
+                            instructions.Add(CilOpCodes.Call, setInstanceFieldValue.MakeGenericInstanceMethod([field.FieldType]));
+                            instructions.Add(CilOpCodes.Ret);
                         }
 
                         setMethod.PutExtraData(new NativeMethodBody()

@@ -48,15 +48,15 @@ public class ConstantInitializationProcessingLayer : Cpp2IlProcessingLayer
 
                     var opCode = operandCast switch
                     {
-                        long => OpCodes.Ldc_I8,
-                        float => OpCodes.Ldc_R4,
-                        double => OpCodes.Ldc_R8,
-                        string => OpCodes.Ldstr,
-                        _ => OpCodes.Ldc_I4
+                        long => CilOpCodes.Ldc_I8,
+                        float => CilOpCodes.Ldc_R4,
+                        double => CilOpCodes.Ldc_R8,
+                        string => CilOpCodes.Ldstr,
+                        _ => CilOpCodes.Ldc_I4
                     };
 
                     instructions.Add(new Instruction(opCode, operandCast));
-                    if (opCode == OpCodes.Ldstr)
+                    if (opCode == CilOpCodes.Ldstr)
                     {
                         MonoIl2CppConversion.AddMonoToIl2CppStringConversion(instructions, appContext);
                     }
@@ -64,7 +64,7 @@ public class ConstantInitializationProcessingLayer : Cpp2IlProcessingLayer
                     {
                         MonoIl2CppConversion.AddMonoToIl2CppConversion(instructions, field.FieldType);
                     }
-                    instructions.Add(new Instruction(OpCodes.Stsfld, field));
+                    instructions.Add(new Instruction(CilOpCodes.Stsfld, field));
                 }
             }
         }

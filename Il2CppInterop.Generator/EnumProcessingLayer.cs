@@ -60,10 +60,10 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
                     var methodBody = new NativeMethodBody()
                     {
                         Instructions = [
-                            new Instruction(OpCodes.Ldarg_0),
-                            new Instruction(OpCodes.Ldarg_1),
-                            new Instruction(OpCodes.Stfld, valueField),
-                            new Instruction(OpCodes.Ret)
+                            new Instruction(CilOpCodes.Ldarg_0),
+                            new Instruction(CilOpCodes.Ldarg_1),
+                            new Instruction(CilOpCodes.Stfld, valueField),
+                            new Instruction(CilOpCodes.Ret)
                         ]
                     };
 
@@ -87,9 +87,9 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
                     var methodBody = new NativeMethodBody()
                     {
                         Instructions = [
-                            new Instruction(OpCodes.Ldarga, conversionEnumIl2Cpp.Parameters[0]),
-                            new Instruction(OpCodes.Ldfld, valueField),
-                            new Instruction(OpCodes.Ret)
+                            new Instruction(CilOpCodes.Ldarga, conversionEnumIl2Cpp.Parameters[0]),
+                            new Instruction(CilOpCodes.Ldfld, valueField),
+                            new Instruction(CilOpCodes.Ret)
                         ]
                     };
                     conversionEnumIl2Cpp.PutExtraData(methodBody);
@@ -111,9 +111,9 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
                     var methodBody = new NativeMethodBody()
                     {
                         Instructions = [
-                            new Instruction(OpCodes.Ldarg_0),
-                            new Instruction(OpCodes.Newobj, constructor),
-                            new Instruction(OpCodes.Ret)
+                            new Instruction(CilOpCodes.Ldarg_0),
+                            new Instruction(CilOpCodes.Newobj, constructor),
+                            new Instruction(CilOpCodes.Ret)
                         ]
                     };
                     conversionIl2CppEnum.PutExtraData(methodBody);
@@ -135,10 +135,10 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
                     var methodBody = new NativeMethodBody()
                     {
                         Instructions = [
-                            new Instruction(OpCodes.Ldarg_0),
-                            new Instruction(OpCodes.Call, conversionEnumIl2Cpp),
-                            new Instruction(OpCodes.Call, il2CppType.GetImplicitConversionTo(monoType)),
-                            new Instruction(OpCodes.Ret)
+                            new Instruction(CilOpCodes.Ldarg_0),
+                            new Instruction(CilOpCodes.Call, conversionEnumIl2Cpp),
+                            new Instruction(CilOpCodes.Call, il2CppType.GetImplicitConversionTo(monoType)),
+                            new Instruction(CilOpCodes.Ret)
                         ]
                     };
                     conversionEnumMono.PutExtraData(methodBody);
@@ -160,10 +160,10 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
                     var methodBody = new NativeMethodBody()
                     {
                         Instructions = [
-                            new Instruction(OpCodes.Ldarg_0),
-                            new Instruction(OpCodes.Call, il2CppType.GetImplicitConversionFrom(monoType)),
-                            new Instruction(OpCodes.Call, conversionIl2CppEnum),
-                            new Instruction(OpCodes.Ret)
+                            new Instruction(CilOpCodes.Ldarg_0),
+                            new Instruction(CilOpCodes.Call, il2CppType.GetImplicitConversionFrom(monoType)),
+                            new Instruction(CilOpCodes.Call, conversionIl2CppEnum),
+                            new Instruction(CilOpCodes.Ret)
                         ]
                     };
                     conversionMonoEnum.PutExtraData(methodBody);
@@ -188,13 +188,13 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
                     method.PutExtraData(new NativeMethodBody()
                     {
                         Instructions = [
-                            new Instruction(OpCodes.Ldarg_0),
-                            new Instruction(OpCodes.Call, conversionEnumMono),
-                            new Instruction(OpCodes.Ldarg_1),
-                            new Instruction(OpCodes.Call, conversionEnumMono),
-                            new Instruction(OpCodes.And),
-                            new Instruction(OpCodes.Call, conversionMonoEnum),
-                            new Instruction(OpCodes.Ret)
+                            new Instruction(CilOpCodes.Ldarg_0),
+                            new Instruction(CilOpCodes.Call, conversionEnumMono),
+                            new Instruction(CilOpCodes.Ldarg_1),
+                            new Instruction(CilOpCodes.Call, conversionEnumMono),
+                            new Instruction(CilOpCodes.And),
+                            new Instruction(CilOpCodes.Call, conversionMonoEnum),
+                            new Instruction(CilOpCodes.Ret)
                         ]
                     });
                 }
@@ -216,13 +216,13 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
                     method.PutExtraData(new NativeMethodBody()
                     {
                         Instructions = [
-                            new Instruction(OpCodes.Ldarg_0),
-                            new Instruction(OpCodes.Call, conversionEnumMono),
-                            new Instruction(OpCodes.Ldarg_1),
-                            new Instruction(OpCodes.Call, conversionEnumMono),
-                            new Instruction(OpCodes.Or),
-                            new Instruction(OpCodes.Call, conversionMonoEnum),
-                            new Instruction(OpCodes.Ret)
+                            new Instruction(CilOpCodes.Ldarg_0),
+                            new Instruction(CilOpCodes.Call, conversionEnumMono),
+                            new Instruction(CilOpCodes.Ldarg_1),
+                            new Instruction(CilOpCodes.Call, conversionEnumMono),
+                            new Instruction(CilOpCodes.Or),
+                            new Instruction(CilOpCodes.Call, conversionMonoEnum),
+                            new Instruction(CilOpCodes.Ret)
                         ]
                     });
                 }
@@ -244,13 +244,13 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
                     method.PutExtraData(new NativeMethodBody()
                     {
                         Instructions = [
-                            new Instruction(OpCodes.Ldarg_0),
-                            new Instruction(OpCodes.Call, conversionEnumMono),
-                            new Instruction(OpCodes.Ldarg_1),
-                            new Instruction(OpCodes.Call, conversionEnumMono),
-                            new Instruction(OpCodes.Xor),
-                            new Instruction(OpCodes.Call, conversionMonoEnum),
-                            new Instruction(OpCodes.Ret)
+                            new Instruction(CilOpCodes.Ldarg_0),
+                            new Instruction(CilOpCodes.Call, conversionEnumMono),
+                            new Instruction(CilOpCodes.Ldarg_1),
+                            new Instruction(CilOpCodes.Call, conversionEnumMono),
+                            new Instruction(CilOpCodes.Xor),
+                            new Instruction(CilOpCodes.Call, conversionMonoEnum),
+                            new Instruction(CilOpCodes.Ret)
                         ]
                     });
                 }
@@ -272,11 +272,11 @@ public class EnumProcessingLayer : Cpp2IlProcessingLayer
                     method.PutExtraData(new NativeMethodBody()
                     {
                         Instructions = [
-                            new Instruction(OpCodes.Ldarg_0),
-                            new Instruction(OpCodes.Call, conversionEnumMono),
-                            new Instruction(OpCodes.Not),
-                            new Instruction(OpCodes.Call, conversionMonoEnum),
-                            new Instruction(OpCodes.Ret)
+                            new Instruction(CilOpCodes.Ldarg_0),
+                            new Instruction(CilOpCodes.Call, conversionEnumMono),
+                            new Instruction(CilOpCodes.Not),
+                            new Instruction(CilOpCodes.Call, conversionMonoEnum),
+                            new Instruction(CilOpCodes.Ret)
                         ]
                     });
                 }

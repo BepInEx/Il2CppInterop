@@ -215,9 +215,9 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                 {
                     Instructions =
                     [
-                        new Instruction(OpCodes.Ldarg_0),
-                        new Instruction(OpCodes.Call, delegateSupportMethod.MakeGenericInstanceMethod(concreteType)),
-                        new Instruction(OpCodes.Ret),
+                        new Instruction(CilOpCodes.Ldarg_0),
+                        new Instruction(CilOpCodes.Call, delegateSupportMethod.MakeGenericInstanceMethod(concreteType)),
+                        new Instruction(CilOpCodes.Ret),
                     ]
                 });
 
@@ -232,11 +232,11 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                 {
                     Instructions =
                     [
-                        new Instruction(OpCodes.Ldarg_0),
-                        new Instruction(OpCodes.Ldarg_1),
-                        new Instruction(OpCodes.Call, il2CppSystemDelegateCombine),
-                        new Instruction(OpCodes.Castclass, concreteType),
-                        new Instruction(OpCodes.Ret),
+                        new Instruction(CilOpCodes.Ldarg_0),
+                        new Instruction(CilOpCodes.Ldarg_1),
+                        new Instruction(CilOpCodes.Call, il2CppSystemDelegateCombine),
+                        new Instruction(CilOpCodes.Castclass, concreteType),
+                        new Instruction(CilOpCodes.Ret),
                     ]
                 });
 
@@ -251,11 +251,11 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                 {
                     Instructions =
                     [
-                        new Instruction(OpCodes.Ldarg_0),
-                        new Instruction(OpCodes.Ldarg_1),
-                        new Instruction(OpCodes.Call, il2CppSystemDelegateRemove),
-                        new Instruction(OpCodes.Castclass, concreteType),
-                        new Instruction(OpCodes.Ret),
+                        new Instruction(CilOpCodes.Ldarg_0),
+                        new Instruction(CilOpCodes.Ldarg_1),
+                        new Instruction(CilOpCodes.Call, il2CppSystemDelegateRemove),
+                        new Instruction(CilOpCodes.Castclass, concreteType),
+                        new Instruction(CilOpCodes.Ret),
                     ]
                 });
             }

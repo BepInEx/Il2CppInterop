@@ -195,27 +195,27 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             var parameterLocal = new LocalVariable(byReference.MakeGenericInstanceType([parameter.ParameterType]));
                             localVariables[i - 1] = parameterLocal;
 
-                            instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
-                            instructions.Add(OpCodes.Conv_U);
-                            instructions.Add(OpCodes.Localloc);
-                            instructions.Add(OpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([parameter.ParameterType], []));
-                            instructions.Add(OpCodes.Stloc, parameterLocal);
+                            instructions.Add(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
+                            instructions.Add(CilOpCodes.Conv_U);
+                            instructions.Add(CilOpCodes.Localloc);
+                            instructions.Add(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([parameter.ParameterType], []));
+                            instructions.Add(CilOpCodes.Stloc, parameterLocal);
 
-                            instructions.Add(OpCodes.Ldloca, parameterLocal);
-                            instructions.Add(OpCodes.Ldarg, parameter);
-                            instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
+                            instructions.Add(CilOpCodes.Ldloca, parameterLocal);
+                            instructions.Add(CilOpCodes.Ldarg, parameter);
+                            instructions.Add(CilOpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
                         }
 
-                        instructions.Add(OpCodes.Ldarg, valueTypeHelper.Parameters[0]);
+                        instructions.Add(CilOpCodes.Ldarg, valueTypeHelper.Parameters[0]);
 
                         foreach (var parameterLocal in localVariables)
                         {
-                            instructions.Add(OpCodes.Ldloc, parameterLocal);
+                            instructions.Add(CilOpCodes.Ldloc, parameterLocal);
                         }
 
-                        instructions.Add(OpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(CilOpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
 
-                        instructions.Add(OpCodes.Ret);
+                        instructions.Add(CilOpCodes.Ret);
 
                         valueTypeHelper.PutExtraData(new NativeMethodBody()
                         {
@@ -293,25 +293,25 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             var parameterLocal = new LocalVariable(byReference.MakeGenericInstanceType([parameter.ParameterType]));
                             localVariables[i] = parameterLocal;
 
-                            instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
-                            instructions.Add(OpCodes.Conv_U);
-                            instructions.Add(OpCodes.Localloc);
-                            instructions.Add(OpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([parameter.ParameterType], []));
-                            instructions.Add(OpCodes.Stloc, parameterLocal);
+                            instructions.Add(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
+                            instructions.Add(CilOpCodes.Conv_U);
+                            instructions.Add(CilOpCodes.Localloc);
+                            instructions.Add(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([parameter.ParameterType], []));
+                            instructions.Add(CilOpCodes.Stloc, parameterLocal);
 
-                            instructions.Add(OpCodes.Ldloca, parameterLocal);
-                            instructions.Add(OpCodes.Ldarg, parameter);
-                            instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
+                            instructions.Add(CilOpCodes.Ldloca, parameterLocal);
+                            instructions.Add(CilOpCodes.Ldarg, parameter);
+                            instructions.Add(CilOpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
                         }
 
                         foreach (var parameterLocal in localVariables)
                         {
-                            instructions.Add(OpCodes.Ldloc, parameterLocal);
+                            instructions.Add(CilOpCodes.Ldloc, parameterLocal);
                         }
 
-                        instructions.Add(OpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(CilOpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
 
-                        instructions.Add(OpCodes.Ret);
+                        instructions.Add(CilOpCodes.Ret);
 
                         constructorHelper.PutExtraData(new NativeMethodBody()
                         {
@@ -331,30 +331,30 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                         LocalVariable instanceLocal = new(byReference.MakeGenericInstanceType([instantiatedType]));
 
-                        instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(instantiatedType));
-                        instructions.Add(OpCodes.Conv_U);
-                        instructions.Add(OpCodes.Localloc);
-                        instructions.Add(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [instantiatedType], []));
-                        instructions.Add(OpCodes.Stloc, instanceLocal);
+                        instructions.Add(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(instantiatedType));
+                        instructions.Add(CilOpCodes.Conv_U);
+                        instructions.Add(CilOpCodes.Localloc);
+                        instructions.Add(CilOpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [instantiatedType], []));
+                        instructions.Add(CilOpCodes.Stloc, instanceLocal);
 
-                        instructions.Add(OpCodes.Ldloca, instanceLocal);
-                        instructions.Add(OpCodes.Ldarg, This.Instance);
-                        instructions.Add(OpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([instantiatedType], []));
+                        instructions.Add(CilOpCodes.Ldloca, instanceLocal);
+                        instructions.Add(CilOpCodes.Ldarg, This.Instance);
+                        instructions.Add(CilOpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([instantiatedType], []));
 
-                        instructions.Add(OpCodes.Ldloc, instanceLocal);
+                        instructions.Add(CilOpCodes.Ldloc, instanceLocal);
 
                         foreach (var parameter in method.Parameters)
                         {
-                            instructions.Add(OpCodes.Ldarg, parameter);
+                            instructions.Add(CilOpCodes.Ldarg, parameter);
                         }
 
-                        instructions.Add(OpCodes.Call, valueTypeHelper.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(CilOpCodes.Call, valueTypeHelper.MaybeMakeConcreteGeneric(type.GenericParameters, []));
 
-                        instructions.Add(OpCodes.Ldloca, instanceLocal);
-                        instructions.Add(OpCodes.Ldarg, This.Instance);
-                        instructions.Add(OpCodes.Call, byReference_CopyTo.MakeConcreteGeneric([instantiatedType], []));
+                        instructions.Add(CilOpCodes.Ldloca, instanceLocal);
+                        instructions.Add(CilOpCodes.Ldarg, This.Instance);
+                        instructions.Add(CilOpCodes.Call, byReference_CopyTo.MakeConcreteGeneric([instantiatedType], []));
 
-                        instructions.Add(OpCodes.Ret);
+                        instructions.Add(CilOpCodes.Ret);
 
                         method.PutExtraData(new NativeMethodBody()
                         {
@@ -370,17 +370,17 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                         List<Instruction> instructions = [];
 
-                        instructions.Add(OpCodes.Ldarg, This.Instance);
-                        instructions.Add(OpCodes.Call, newObjectPointer.MakeGenericInstanceMethod(instantiatedType));
-                        instructions.Add(OpCodes.Call, type.PointerConstructor!.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(CilOpCodes.Ldarg, This.Instance);
+                        instructions.Add(CilOpCodes.Call, newObjectPointer.MakeGenericInstanceMethod(instantiatedType));
+                        instructions.Add(CilOpCodes.Call, type.PointerConstructor!.MaybeMakeConcreteGeneric(type.GenericParameters, []));
 
-                        instructions.Add(OpCodes.Ldarg, This.Instance);
+                        instructions.Add(CilOpCodes.Ldarg, This.Instance);
                         foreach (var parameter in method.Parameters)
                         {
-                            instructions.Add(OpCodes.Ldarg, parameter);
+                            instructions.Add(CilOpCodes.Ldarg, parameter);
                         }
-                        instructions.Add(OpCodes.Call, constructorHelper.MaybeMakeConcreteGeneric(type.GenericParameters, []));
-                        instructions.Add(OpCodes.Ret);
+                        instructions.Add(CilOpCodes.Call, constructorHelper.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(CilOpCodes.Ret);
 
                         method.PutExtraData(new NativeMethodBody()
                         {
@@ -396,9 +396,9 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         {
                             Debug.Assert(type.PointerConstructor is not null);
 
-                            instructions.Add(OpCodes.Ldarg, This.Instance);
-                            instructions.Add(OpCodes.Call, newObjectPointer.MakeGenericInstanceMethod(instantiatedType));
-                            instructions.Add(OpCodes.Call, type.PointerConstructor!.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                            instructions.Add(CilOpCodes.Ldarg, This.Instance);
+                            instructions.Add(CilOpCodes.Call, newObjectPointer.MakeGenericInstanceMethod(instantiatedType));
+                            instructions.Add(CilOpCodes.Call, type.PointerConstructor!.MaybeMakeConcreteGeneric(type.GenericParameters, []));
                         }
 
                         LocalVariable? instanceLocal;
@@ -413,23 +413,23 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                             instanceLocal = new(byRefType);
 
-                            instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(byRefElementType));
-                            instructions.Add(OpCodes.Conv_U);
-                            instructions.Add(OpCodes.Localloc);
-                            instructions.Add(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [byRefElementType], []));
-                            instructions.Add(OpCodes.Stloc, instanceLocal);
+                            instructions.Add(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(byRefElementType));
+                            instructions.Add(CilOpCodes.Conv_U);
+                            instructions.Add(CilOpCodes.Localloc);
+                            instructions.Add(CilOpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [byRefElementType], []));
+                            instructions.Add(CilOpCodes.Stloc, instanceLocal);
 
                             if (type.IsValueType)
                             {
-                                instructions.Add(OpCodes.Ldloca, instanceLocal);
-                                instructions.Add(OpCodes.Ldarg, This.Instance);
-                                instructions.Add(OpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([byRefElementType], []));
+                                instructions.Add(CilOpCodes.Ldloca, instanceLocal);
+                                instructions.Add(CilOpCodes.Ldarg, This.Instance);
+                                instructions.Add(CilOpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([byRefElementType], []));
                             }
                             else
                             {
-                                instructions.Add(OpCodes.Ldloca, instanceLocal);
-                                instructions.Add(OpCodes.Ldarg, This.Instance);
-                                instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([byRefElementType], []));
+                                instructions.Add(CilOpCodes.Ldloca, instanceLocal);
+                                instructions.Add(CilOpCodes.Ldarg, This.Instance);
+                                instructions.Add(CilOpCodes.Call, byReference_SetValue.MakeConcreteGeneric([byRefElementType], []));
                             }
                         }
 
@@ -453,37 +453,37 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             var parameterLocal = new LocalVariable(byReference.MakeGenericInstanceType([parameter.ParameterType]));
                             parameterLocals[i] = parameterLocal;
 
-                            instructions.Add(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
-                            instructions.Add(OpCodes.Conv_U);
-                            instructions.Add(OpCodes.Localloc);
-                            instructions.Add(OpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([parameter.ParameterType], []));
-                            instructions.Add(OpCodes.Stloc, parameterLocal);
+                            instructions.Add(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
+                            instructions.Add(CilOpCodes.Conv_U);
+                            instructions.Add(CilOpCodes.Localloc);
+                            instructions.Add(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([parameter.ParameterType], []));
+                            instructions.Add(CilOpCodes.Stloc, parameterLocal);
 
-                            instructions.Add(OpCodes.Ldloca, parameterLocal);
-                            instructions.Add(OpCodes.Ldarg, parameter);
-                            instructions.Add(OpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
+                            instructions.Add(CilOpCodes.Ldloca, parameterLocal);
+                            instructions.Add(CilOpCodes.Ldarg, parameter);
+                            instructions.Add(CilOpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
                         }
 
                         if (instanceLocal is not null)
                         {
-                            instructions.Add(OpCodes.Ldloc, instanceLocal);
+                            instructions.Add(CilOpCodes.Ldloc, instanceLocal);
                         }
 
                         foreach (var parameterLocal in parameterLocals)
                         {
-                            instructions.Add(OpCodes.Ldloc, parameterLocal);
+                            instructions.Add(CilOpCodes.Ldloc, parameterLocal);
                         }
 
-                        instructions.Add(OpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(CilOpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
 
                         if (instanceLocal is not null && type.IsValueType)
                         {
-                            instructions.Add(OpCodes.Ldloca, instanceLocal);
-                            instructions.Add(OpCodes.Ldarg, This.Instance);
-                            instructions.Add(OpCodes.Call, byReference_CopyTo.MakeConcreteGeneric([instantiatedType], []));
+                            instructions.Add(CilOpCodes.Ldloca, instanceLocal);
+                            instructions.Add(CilOpCodes.Ldarg, This.Instance);
+                            instructions.Add(CilOpCodes.Call, byReference_CopyTo.MakeConcreteGeneric([instantiatedType], []));
                         }
 
-                        instructions.Add(OpCodes.Ret);
+                        instructions.Add(CilOpCodes.Ret);
 
                         method.PutExtraData(new NativeMethodBody()
                         {

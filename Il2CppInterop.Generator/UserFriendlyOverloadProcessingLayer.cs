@@ -2,6 +2,7 @@
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using CilOpCodes = AsmResolver.PE.DotNet.Cil.CilOpCodes;
 
 namespace Il2CppInterop.Generator;
 
@@ -121,22 +122,22 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
 
                     if (!newMethod.IsStatic)
                     {
-                        instructions.Add(new Instruction(OpCodes.Ldarg, This.Instance));
+                        instructions.Add(new Instruction(CilOpCodes.Ldarg, This.Instance));
                     }
 
                     for (var i = 0; i < newMethod.Parameters.Count; i++)
                     {
-                        instructions.Add(new Instruction(OpCodes.Ldarg, newMethod.Parameters[i]));
+                        instructions.Add(new Instruction(CilOpCodes.Ldarg, newMethod.Parameters[i]));
                         var conversionMethod = conversionMethods[i];
                         if (conversionMethod is not null)
                         {
-                            instructions.Add(new Instruction(OpCodes.Call, conversionMethod));
+                            instructions.Add(new Instruction(CilOpCodes.Call, conversionMethod));
                         }
                     }
 
-                    instructions.Add(new Instruction(newMethod.IsStatic ? OpCodes.Call : OpCodes.Callvirt, method.MaybeMakeConcreteGeneric(type.GenericParameters, newMethod.GenericParameters)));
+                    instructions.Add(new Instruction(newMethod.IsStatic ? CilOpCodes.Call : CilOpCodes.Callvirt, method.MaybeMakeConcreteGeneric(type.GenericParameters, newMethod.GenericParameters)));
 
-                    instructions.Add(new Instruction(OpCodes.Ret));
+                    instructions.Add(new Instruction(CilOpCodes.Ret));
 
                     newMethod.PutExtraData(new NativeMethodBody()
                     {

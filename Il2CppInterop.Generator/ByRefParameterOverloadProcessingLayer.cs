@@ -106,22 +106,22 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
                             LocalVariable local = new(byReference.MakeGenericInstanceType([underlyingType]));
                             variables.Add(local);
 
-                            instructions.Add(new Instruction(OpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(underlyingType)));
-                            instructions.Add(new Instruction(OpCodes.Conv_U));
-                            instructions.Add(new Instruction(OpCodes.Localloc));
-                            instructions.Add(new Instruction(OpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [underlyingType], [])));
-                            instructions.Add(new Instruction(OpCodes.Stloc, local));
+                            instructions.Add(new Instruction(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(underlyingType)));
+                            instructions.Add(new Instruction(CilOpCodes.Conv_U));
+                            instructions.Add(new Instruction(CilOpCodes.Localloc));
+                            instructions.Add(new Instruction(CilOpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [underlyingType], [])));
+                            instructions.Add(new Instruction(CilOpCodes.Stloc, local));
 
                             if (parameter.Attributes.HasFlag(ParameterAttributes.Out))
                             {
-                                instructions.Add(new Instruction(OpCodes.Ldloca, local));
-                                instructions.Add(new Instruction(OpCodes.Call, new ConcreteGenericMethodAnalysisContext(byReference_Clear, [underlyingType], [])));
+                                instructions.Add(new Instruction(CilOpCodes.Ldloca, local));
+                                instructions.Add(new Instruction(CilOpCodes.Call, new ConcreteGenericMethodAnalysisContext(byReference_Clear, [underlyingType], [])));
                             }
                             else
                             {
-                                instructions.Add(new Instruction(OpCodes.Ldloca, local));
-                                instructions.Add(new Instruction(OpCodes.Ldarg, parameter));
-                                instructions.Add(new Instruction(OpCodes.Call, new ConcreteGenericMethodAnalysisContext(byReference_CopyFrom, [underlyingType], [])));
+                                instructions.Add(new Instruction(CilOpCodes.Ldloca, local));
+                                instructions.Add(new Instruction(CilOpCodes.Ldarg, parameter));
+                                instructions.Add(new Instruction(CilOpCodes.Call, new ConcreteGenericMethodAnalysisContext(byReference_CopyFrom, [underlyingType], [])));
                             }
 
                             variableMap[i] = local;
@@ -130,7 +130,7 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
 
                     if (!newMethod.IsStatic)
                     {
-                        instructions.Add(new Instruction(OpCodes.Ldarg, This.Instance));
+                        instructions.Add(new Instruction(CilOpCodes.Ldarg, This.Instance));
                     }
 
                     for (var i = 0; i < newMethod.Parameters.Count; i++)
@@ -138,15 +138,15 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
                         var local = variableMap[i];
                         if (local is not null)
                         {
-                            instructions.Add(new Instruction(OpCodes.Ldloc, local));
+                            instructions.Add(new Instruction(CilOpCodes.Ldloc, local));
                         }
                         else
                         {
-                            instructions.Add(new Instruction(OpCodes.Ldarg, newMethod.Parameters[i]));
+                            instructions.Add(new Instruction(CilOpCodes.Ldarg, newMethod.Parameters[i]));
                         }
                     }
 
-                    instructions.Add(new Instruction(newMethod.IsStatic ? OpCodes.Call : OpCodes.Callvirt, method.MaybeMakeConcreteGeneric(type.GenericParameters, newMethod.GenericParameters)));
+                    instructions.Add(new Instruction(newMethod.IsStatic ? CilOpCodes.Call : CilOpCodes.Callvirt, method.MaybeMakeConcreteGeneric(type.GenericParameters, newMethod.GenericParameters)));
 
                     LocalVariable? resultLocal;
                     if (newMethod.IsVoid)
@@ -157,7 +157,7 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
                     {
                         resultLocal = new(newMethod.ReturnType);
                         variables.Add(resultLocal);
-                        instructions.Add(new Instruction(OpCodes.Stloc, resultLocal));
+                        instructions.Add(new Instruction(CilOpCodes.Stloc, resultLocal));
                     }
 
                     for (var i = 0; i < newMethod.Parameters.Count; i++)
@@ -176,17 +176,17 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
 
                         var underlyingType = ((ByRefTypeAnalysisContext)parameter.ParameterType).ElementType;
 
-                        instructions.Add(new Instruction(OpCodes.Ldloca, local));
-                        instructions.Add(new Instruction(OpCodes.Ldarg, parameter));
-                        instructions.Add(new Instruction(OpCodes.Call, new ConcreteGenericMethodAnalysisContext(byReference_CopyTo, [underlyingType], [])));
+                        instructions.Add(new Instruction(CilOpCodes.Ldloca, local));
+                        instructions.Add(new Instruction(CilOpCodes.Ldarg, parameter));
+                        instructions.Add(new Instruction(CilOpCodes.Call, new ConcreteGenericMethodAnalysisContext(byReference_CopyTo, [underlyingType], [])));
                     }
 
                     if (resultLocal is not null)
                     {
-                        instructions.Add(new Instruction(OpCodes.Ldloc, resultLocal));
+                        instructions.Add(new Instruction(CilOpCodes.Ldloc, resultLocal));
                     }
 
-                    instructions.Add(new Instruction(OpCodes.Ret));
+                    instructions.Add(new Instruction(CilOpCodes.Ret));
 
                     newMethod.PutExtraData(new NativeMethodBody()
                     {

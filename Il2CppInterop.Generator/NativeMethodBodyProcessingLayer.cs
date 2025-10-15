@@ -60,7 +60,7 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
 
                         IReadOnlyList<TypeAnalysisContext> methodInfoGenericArguments = [.. implementation.DeclaringType.GenericParameters, .. implementation.GenericParameters];
 
-                        instructions.Add(OpCodes.Ldsfld, methodInfoField.MaybeMakeConcreteGeneric(methodInfoGenericArguments));
+                        instructions.Add(CilOpCodes.Ldsfld, methodInfoField.MaybeMakeConcreteGeneric(methodInfoGenericArguments));
                     }
 
                     // Object pointer
@@ -69,52 +69,52 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
                         var parameter = implementation.Parameters[0];
                         var dataType = ((GenericInstanceTypeAnalysisContext)parameter.ParameterType).GenericArguments[0];
 
-                        instructions.Add(OpCodes.Ldarg, parameter);
-                        instructions.Add(OpCodes.Call, getPointerForThis.MakeGenericInstanceMethod(dataType));
+                        instructions.Add(CilOpCodes.Ldarg, parameter);
+                        instructions.Add(CilOpCodes.Call, getPointerForThis.MakeGenericInstanceMethod(dataType));
                     }
                     else
                     {
-                        instructions.Add(OpCodes.Ldc_I4_0);
-                        instructions.Add(OpCodes.Conv_I);
+                        instructions.Add(CilOpCodes.Ldc_I4_0);
+                        instructions.Add(CilOpCodes.Conv_I);
                     }
 
                     // Arguments array
                     if (argumentCount > 0)
                     {
-                        instructions.Add(OpCodes.Ldc_I4, argumentCount);
-                        instructions.Add(OpCodes.Conv_U);
-                        instructions.Add(OpCodes.Sizeof, appContext.SystemTypes.SystemIntPtrType);
-                        instructions.Add(OpCodes.Mul_Ovf_Un);
-                        instructions.Add(OpCodes.Localloc);
+                        instructions.Add(CilOpCodes.Ldc_I4, argumentCount);
+                        instructions.Add(CilOpCodes.Conv_U);
+                        instructions.Add(CilOpCodes.Sizeof, appContext.SystemTypes.SystemIntPtrType);
+                        instructions.Add(CilOpCodes.Mul_Ovf_Un);
+                        instructions.Add(CilOpCodes.Localloc);
 
                         var startIndex = hasThis ? 1 : 0;
                         for (var i = 0; i < argumentCount; i++)
                         {
                             var parameter = implementation.Parameters[startIndex + i];
                             var dataType = ((GenericInstanceTypeAnalysisContext)parameter.ParameterType).GenericArguments[0];
-                            instructions.Add(OpCodes.Dup);
+                            instructions.Add(CilOpCodes.Dup);
                             AddOffsetForPointerIndex(instructions, i, appContext);
-                            instructions.Add(OpCodes.Ldarg, parameter);
-                            instructions.Add(OpCodes.Call, getPointerForParameter.MakeGenericInstanceMethod(dataType));
-                            instructions.Add(OpCodes.Stind_I);
+                            instructions.Add(CilOpCodes.Ldarg, parameter);
+                            instructions.Add(CilOpCodes.Call, getPointerForParameter.MakeGenericInstanceMethod(dataType));
+                            instructions.Add(CilOpCodes.Stind_I);
                         }
                     }
                     else
                     {
-                        instructions.Add(OpCodes.Ldc_I4_0);
-                        instructions.Add(OpCodes.Conv_U);
+                        instructions.Add(CilOpCodes.Ldc_I4_0);
+                        instructions.Add(CilOpCodes.Conv_U);
                     }
 
                     if (implementation.IsVoid)
                     {
-                        instructions.Add(OpCodes.Call, invokeAction);
+                        instructions.Add(CilOpCodes.Call, invokeAction);
                     }
                     else
                     {
-                        instructions.Add(OpCodes.Call, invokeFunction.MakeGenericInstanceMethod(implementation.ReturnType));
+                        instructions.Add(CilOpCodes.Call, invokeFunction.MakeGenericInstanceMethod(implementation.ReturnType));
                     }
 
-                    instructions.Add(OpCodes.Ret);
+                    instructions.Add(CilOpCodes.Ret);
 
                     implementation.PutExtraData(new NativeMethodBody()
                     {
@@ -131,18 +131,18 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
         {
             if (index > 1)
             {
-                instructions.Add(OpCodes.Ldc_I4, index);
-                instructions.Add(OpCodes.Conv_I);
+                instructions.Add(CilOpCodes.Ldc_I4, index);
+                instructions.Add(CilOpCodes.Conv_I);
             }
 
-            instructions.Add(OpCodes.Sizeof, appContext.SystemTypes.SystemIntPtrType);
+            instructions.Add(CilOpCodes.Sizeof, appContext.SystemTypes.SystemIntPtrType);
 
             if (index > 1)
             {
-                instructions.Add(OpCodes.Mul);
+                instructions.Add(CilOpCodes.Mul);
             }
 
-            instructions.Add(OpCodes.Add);
+            instructions.Add(CilOpCodes.Add);
         }
     }
 }

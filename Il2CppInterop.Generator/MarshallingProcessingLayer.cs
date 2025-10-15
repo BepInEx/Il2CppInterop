@@ -88,8 +88,8 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     {
                         Instructions =
                         [
-                            new Instruction(OpCodes.Ldsfld, new ConcreteGenericFieldAnalysisContext(il2CppClassPointerStore_NativeClassPtr, il2CppClassPointerStore.MakeGenericInstanceType([instantiatedType]))),
-                            new Instruction(OpCodes.Ret),
+                            new Instruction(CilOpCodes.Ldsfld, new ConcreteGenericFieldAnalysisContext(il2CppClassPointerStore_NativeClassPtr, il2CppClassPointerStore.MakeGenericInstanceType([instantiatedType]))),
+                            new Instruction(CilOpCodes.Ret),
                         ],
                     });
 
@@ -133,8 +133,8 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     {
                         Instructions =
                         [
-                            instantiatedSizeStorage is not null ? new Instruction(OpCodes.Ldsfld, instantiatedSizeStorage) : new Instruction(OpCodes.Call, intPtr_get_Size),
-                            new Instruction(OpCodes.Ret),
+                            instantiatedSizeStorage is not null ? new Instruction(CilOpCodes.Ldsfld, instantiatedSizeStorage) : new Instruction(CilOpCodes.Call, intPtr_get_Size),
+                            new Instruction(CilOpCodes.Ret),
                         ],
                     });
 
@@ -173,8 +173,8 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     {
                         Instructions =
                         [
-                            new Instruction(OpCodes.Ldstr, assembly.DefaultName),
-                            new Instruction(OpCodes.Ret),
+                            new Instruction(CilOpCodes.Ldstr, assembly.DefaultName),
+                            new Instruction(CilOpCodes.Ret),
                         ],
                     });
 
@@ -213,8 +213,8 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     {
                         Instructions =
                         [
-                            new Instruction(OpCodes.Ldstr, type.DefaultNamespace),
-                            new Instruction(OpCodes.Ret),
+                            new Instruction(CilOpCodes.Ldstr, type.DefaultNamespace),
+                            new Instruction(CilOpCodes.Ret),
                         ],
                     });
 
@@ -253,8 +253,8 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     {
                         Instructions =
                         [
-                            new Instruction(OpCodes.Ldstr, type.DefaultName),
-                            new Instruction(OpCodes.Ret),
+                            new Instruction(CilOpCodes.Ldstr, type.DefaultName),
+                            new Instruction(CilOpCodes.Ret),
                         ],
                     });
 
@@ -296,9 +296,9 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         {
                             Instructions =
                             [
-                                new Instruction(OpCodes.Ldarg_0),
-                                new Instruction(OpCodes.Call, il2CppTypeHelper_ReadReference.MakeGenericInstanceMethod(instantiatedType)),
-                                new Instruction(OpCodes.Ret),
+                                new Instruction(CilOpCodes.Ldarg_0),
+                                new Instruction(CilOpCodes.Call, il2CppTypeHelper_ReadReference.MakeGenericInstanceMethod(instantiatedType)),
+                                new Instruction(CilOpCodes.Ret),
                             ],
                         });
                     }
@@ -309,10 +309,10 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         {
                             Instructions =
                             [
-                                new Instruction(OpCodes.Ldloca, local),
-                                new Instruction(OpCodes.Initobj, instantiatedType),
-                                new Instruction(OpCodes.Ldloc, local),
-                                new Instruction(OpCodes.Ret),
+                                new Instruction(CilOpCodes.Ldloca, local),
+                                new Instruction(CilOpCodes.Initobj, instantiatedType),
+                                new Instruction(CilOpCodes.Ldloc, local),
+                                new Instruction(CilOpCodes.Ret),
                             ],
                             LocalVariables = [local],
                         });
@@ -323,9 +323,9 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         {
                             Instructions =
                             [
-                                new Instruction(OpCodes.Ldarg_0),
-                                new Instruction(OpCodes.Call, il2CppTypeHelper_ReadFromSpanBlittable.MakeGenericInstanceMethod(instantiatedType)),
-                                new Instruction(OpCodes.Ret),
+                                new Instruction(CilOpCodes.Ldarg_0),
+                                new Instruction(CilOpCodes.Call, il2CppTypeHelper_ReadFromSpanBlittable.MakeGenericInstanceMethod(instantiatedType)),
+                                new Instruction(CilOpCodes.Ret),
                             ],
                         });
                     }
@@ -334,8 +334,8 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         LocalVariable local = new(instantiatedType);
                         List<Instruction> instructions = new(2 + instanceFieldCount * 5 + 2)
                         {
-                            new Instruction(OpCodes.Ldloca, local),
-                            new Instruction(OpCodes.Initobj, instantiatedType)
+                            new Instruction(CilOpCodes.Ldloca, local),
+                            new Instruction(CilOpCodes.Initobj, instantiatedType)
                         };
 
                         foreach (var field in type.Fields)
@@ -348,15 +348,15 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
 
                             var instantiatedField = field.SelfInstantiateIfNecessary();
 
-                            instructions.Add(new Instruction(OpCodes.Ldloca, local));
-                            instructions.Add(new Instruction(OpCodes.Ldarg_0));
-                            instructions.Add(new Instruction(OpCodes.Ldsfld, field.OffsetStorage!.MaybeMakeConcreteGeneric(type.GenericParameters)));
-                            instructions.Add(new Instruction(OpCodes.Call, il2CppTypeHelper_ReadFromSpanAtOffset.MakeGenericInstanceMethod(instantiatedField.FieldType)));
-                            instructions.Add(new Instruction(OpCodes.Stfld, instantiatedField));
+                            instructions.Add(new Instruction(CilOpCodes.Ldloca, local));
+                            instructions.Add(new Instruction(CilOpCodes.Ldarg_0));
+                            instructions.Add(new Instruction(CilOpCodes.Ldsfld, field.OffsetStorage!.MaybeMakeConcreteGeneric(type.GenericParameters)));
+                            instructions.Add(new Instruction(CilOpCodes.Call, il2CppTypeHelper_ReadFromSpanAtOffset.MakeGenericInstanceMethod(instantiatedField.FieldType)));
+                            instructions.Add(new Instruction(CilOpCodes.Stfld, instantiatedField));
                         }
 
-                        instructions.Add(new Instruction(OpCodes.Ldloc, local));
-                        instructions.Add(new Instruction(OpCodes.Ret));
+                        instructions.Add(new Instruction(CilOpCodes.Ldloc, local));
+                        instructions.Add(new Instruction(CilOpCodes.Ret));
 
                         method.PutExtraData(new NativeMethodBody()
                         {
@@ -388,10 +388,10 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         {
                             Instructions =
                             [
-                                new Instruction(OpCodes.Ldarg_0),
-                                new Instruction(OpCodes.Ldarg_1),
-                                new Instruction(OpCodes.Call, il2CppTypeHelper_WriteReference.MakeGenericInstanceMethod(instantiatedType)),
-                                new Instruction(OpCodes.Ret),
+                                new Instruction(CilOpCodes.Ldarg_0),
+                                new Instruction(CilOpCodes.Ldarg_1),
+                                new Instruction(CilOpCodes.Call, il2CppTypeHelper_WriteReference.MakeGenericInstanceMethod(instantiatedType)),
+                                new Instruction(CilOpCodes.Ret),
                             ],
                         });
                     }
@@ -402,7 +402,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         {
                             Instructions =
                             [
-                                new Instruction(OpCodes.Ret),
+                                new Instruction(CilOpCodes.Ret),
                             ],
                         });
                     }
@@ -412,10 +412,10 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         {
                             Instructions =
                             [
-                                new Instruction(OpCodes.Ldarg_0),
-                                new Instruction(OpCodes.Ldarg_1),
-                                new Instruction(OpCodes.Call, il2CppTypeHelper_WriteToSpanBlittable.MakeGenericInstanceMethod(instantiatedType)),
-                                new Instruction(OpCodes.Ret),
+                                new Instruction(CilOpCodes.Ldarg_0),
+                                new Instruction(CilOpCodes.Ldarg_1),
+                                new Instruction(CilOpCodes.Call, il2CppTypeHelper_WriteToSpanBlittable.MakeGenericInstanceMethod(instantiatedType)),
+                                new Instruction(CilOpCodes.Ret),
                             ],
                         });
                     }
@@ -432,13 +432,13 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
 
                             var instantiatedField = field.SelfInstantiateIfNecessary();
 
-                            instructions.Add(new Instruction(OpCodes.Ldarga, method.Parameters[0]));
-                            instructions.Add(new Instruction(OpCodes.Ldfld, instantiatedField));
-                            instructions.Add(new Instruction(OpCodes.Ldarg_1));
-                            instructions.Add(new Instruction(OpCodes.Ldsfld, field.OffsetStorage!.MaybeMakeConcreteGeneric(type.GenericParameters)));
-                            instructions.Add(new Instruction(OpCodes.Call, il2CppTypeHelper_WriteToSpanAtOffset.MakeGenericInstanceMethod(instantiatedField.FieldType)));
+                            instructions.Add(new Instruction(CilOpCodes.Ldarga, method.Parameters[0]));
+                            instructions.Add(new Instruction(CilOpCodes.Ldfld, instantiatedField));
+                            instructions.Add(new Instruction(CilOpCodes.Ldarg_1));
+                            instructions.Add(new Instruction(CilOpCodes.Ldsfld, field.OffsetStorage!.MaybeMakeConcreteGeneric(type.GenericParameters)));
+                            instructions.Add(new Instruction(CilOpCodes.Call, il2CppTypeHelper_WriteToSpanAtOffset.MakeGenericInstanceMethod(instantiatedField.FieldType)));
                         }
-                        instructions.Add(new Instruction(OpCodes.Ret));
+                        instructions.Add(new Instruction(CilOpCodes.Ret));
 
                         method.PutExtraData(new NativeMethodBody()
                         {

@@ -88,26 +88,26 @@ public class ObjectOverridesProcessingLayer : Cpp2IlProcessingLayer
 
             List<Instruction> instructions =
             [
-                new Instruction(OpCodes.Ldarg_0),
+                new Instruction(CilOpCodes.Ldarg_0),
             ];
             if (box)
             {
-                instructions.Add(OpCodes.Ldobj, type);
-                instructions.Add(OpCodes.Box, type);
+                instructions.Add(CilOpCodes.Ldobj, type);
+                instructions.Add(CilOpCodes.Box, type);
             }
             for (var i = 0; i < newMethod.Parameters.Count; i++)
             {
                 var parameter = newMethod.Parameters[i];
-                instructions.Add(OpCodes.Ldarg, parameter);
+                instructions.Add(CilOpCodes.Ldarg, parameter);
                 if (parameter.ParameterType == systemObject)
                 {
                     Debug.Assert(il2CppMethod.Parameters[i].ParameterType == il2CppSystemIObject);
-                    instructions.Add(OpCodes.Isinst, il2CppSystemIObject);
+                    instructions.Add(CilOpCodes.Isinst, il2CppSystemIObject);
                 }
             }
-            instructions.Add(OpCodes.Callvirt, il2CppMethod);
-            instructions.Add(OpCodes.Call, il2CppMethod.ReturnType.GetImplicitConversionTo(newMethod.ReturnType));
-            instructions.Add(OpCodes.Ret);
+            instructions.Add(CilOpCodes.Callvirt, il2CppMethod);
+            instructions.Add(CilOpCodes.Call, il2CppMethod.ReturnType.GetImplicitConversionTo(newMethod.ReturnType));
+            instructions.Add(CilOpCodes.Ret);
 
             newMethod.PutExtraData(new NativeMethodBody()
             {

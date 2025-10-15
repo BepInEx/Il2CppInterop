@@ -27,7 +27,7 @@ public class StaticConstructorProcessingLayer : Cpp2IlProcessingLayer
             }
 
             // Add a final instruction to return from the static constructor.
-            instructions.Add(new Instruction(OpCodes.Ret));
+            instructions.Add(new Instruction(CilOpCodes.Ret));
 
             var staticConstructor = new InjectedMethodAnalysisContext(
                 type,

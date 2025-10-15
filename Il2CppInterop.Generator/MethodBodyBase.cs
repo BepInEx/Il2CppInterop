@@ -329,7 +329,7 @@ public abstract class MethodBodyBase
                 }
                 else if (pushCount is 2)
                 {
-                    Debug.Assert(instruction.Code == OpCodes.Dup);
+                    Debug.Assert(instruction.Code == CilOpCodes.Dup);
                     stackAfterPush[^2] = stackAfterPush[^1] = poppedTypes[0];
                 }
                 else

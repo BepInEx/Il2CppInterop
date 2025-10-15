@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using AsmResolver.PE.DotNet.Cil;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Runtime;
@@ -93,7 +92,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ldlen:
                         // This is Il2CppArrayBase.Length
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext.ResolveTypeOrThrow(typeof(Il2CppArrayBase)).GetMethodByName($"get_{nameof(Il2CppArrayBase.Length)}");
                         }
                         break;
@@ -101,7 +100,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ldelem_I1:
                         // This is Il2CppArrayBase.LoadElementUnsafe<sbyte>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.LoadElementUnsafe))
@@ -112,7 +111,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ldelem_I2:
                         // This is Il2CppArrayBase.LoadElementUnsafe<short>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.LoadElementUnsafe))
@@ -123,7 +122,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ldelem_I4:
                         // This is Il2CppArrayBase.LoadElementUnsafe<int>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.LoadElementUnsafe))
@@ -134,7 +133,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ldelem_I8:
                         // This is Il2CppArrayBase.LoadElementUnsafe<long>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.LoadElementUnsafe))
@@ -145,7 +144,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ldelem_U1:
                         // This is Il2CppArrayBase.LoadElementUnsafe<byte>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.LoadElementUnsafe))
@@ -156,7 +155,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ldelem_U2:
                         // This is Il2CppArrayBase.LoadElementUnsafe<ushort>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.LoadElementUnsafe))
@@ -167,7 +166,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ldelem_U4:
                         // This is Il2CppArrayBase.LoadElementUnsafe<uint>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.LoadElementUnsafe))
@@ -178,7 +177,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ldelem_I:
                         // This is Il2CppArrayBase.LoadElementUnsafe<nint>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.LoadElementUnsafe))
@@ -189,7 +188,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ldelem_R4:
                         // This is Il2CppArrayBase.LoadElementUnsafe<float>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.LoadElementUnsafe))
@@ -200,7 +199,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ldelem_R8:
                         // This is Il2CppArrayBase.LoadElementUnsafe<double>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.LoadElementUnsafe))
@@ -211,7 +210,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Stelem_I1:
                         // This is Il2CppArrayBase.StoreElementUnsafe<sbyte>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.StoreElementUnsafe))
@@ -222,7 +221,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Stelem_I2:
                         // This is Il2CppArrayBase.StoreElementUnsafe<short>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.StoreElementUnsafe))
@@ -233,7 +232,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Stelem_I4:
                         // This is Il2CppArrayBase.StoreElementUnsafe<int>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.StoreElementUnsafe))
@@ -244,7 +243,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Stelem_I8:
                         // This is Il2CppArrayBase.StoreElementUnsafe<long>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.StoreElementUnsafe))
@@ -255,7 +254,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Stelem_I:
                         // This is Il2CppArrayBase.StoreElementUnsafe<nint>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.StoreElementUnsafe))
@@ -266,7 +265,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Stelem_R4:
                         // This is Il2CppArrayBase.StoreElementUnsafe<float>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.StoreElementUnsafe))
@@ -277,7 +276,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Stelem_R8:
                         // This is Il2CppArrayBase.StoreElementUnsafe<double>
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
                                 .GetMethodByName(nameof(Il2CppArrayBase.StoreElementUnsafe))
@@ -315,7 +314,7 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     case CilCode.Throw:
                         {
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = methodContext.AppContext.ResolveTypeOrThrow(typeof(IIl2CppException)).GetMethodByName(nameof(IIl2CppException.CreateSystemException));
                             translatedInstructions.Add(new Instruction(originalCode));
                         }
@@ -324,7 +323,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ret:
                         if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, methodContext.ReturnType))
                         {
-                            translatedInstruction.Code = OpCodes.Nop;
+                            translatedInstruction.Code = CilOpCodes.Nop;
 
                             translatedInstructions.Add(new Instruction(originalCode));
                         }
@@ -336,7 +335,7 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     case CilCode.Volatile:
                         // This op code can be ignored.
-                        translatedInstruction.Code = OpCodes.Nop;
+                        translatedInstruction.Code = CilOpCodes.Nop;
                         break;
 
                     default:
@@ -352,7 +351,7 @@ public class TranslatedMethodBody : MethodBodyBase
             }
             else if (originalOperand is string)
             {
-                Debug.Assert(originalCode == OpCodes.Ldstr);
+                Debug.Assert(originalCode == CilOpCodes.Ldstr);
                 translatedInstruction.Code = originalCode;
                 translatedInstruction.Operand = originalOperand;
 
@@ -360,7 +359,7 @@ public class TranslatedMethodBody : MethodBodyBase
             }
             else if (originalOperand is IReadOnlyList<ILabel> labels)
             {
-                Debug.Assert(originalCode == OpCodes.Switch);
+                Debug.Assert(originalCode == CilOpCodes.Switch);
                 translatedInstruction.Code = originalCode;
                 translatedInstruction.Operand = ResolveLabels(labels, instructionDictionary);
             }
@@ -371,7 +370,7 @@ public class TranslatedMethodBody : MethodBodyBase
             }
             else if (originalOperand is This)
             {
-                Debug.Assert(originalCode == OpCodes.Ldarg);
+                Debug.Assert(originalCode == CilOpCodes.Ldarg);
 
                 var newParameter = implementationMethod.Parameters[0];
 
@@ -380,14 +379,14 @@ public class TranslatedMethodBody : MethodBodyBase
 
                 if (dataType.IsValueType)
                 {
-                    translatedInstruction.Code = OpCodes.Ldarg;
+                    translatedInstruction.Code = CilOpCodes.Ldarg;
                     translatedInstruction.Operand = newParameter;
 
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, parameterType);
                 }
                 else
                 {
-                    translatedInstruction.Code = OpCodes.Ldarga;
+                    translatedInstruction.Code = CilOpCodes.Ldarga;
                     translatedInstruction.Operand = newParameter;
 
                     translatedInstructions.Add(CilOpCodes.Call, byReference_GetValue.MakeConcreteGeneric(parameterType.GenericArguments, []));
@@ -403,33 +402,33 @@ public class TranslatedMethodBody : MethodBodyBase
                 var parameterType = (GenericInstanceTypeAnalysisContext)newParameter.ParameterType;
                 var dataType = parameterType.GenericArguments[0];
 
-                if (originalCode == OpCodes.Ldarg)
+                if (originalCode == CilOpCodes.Ldarg)
                 {
-                    translatedInstruction.Code = OpCodes.Ldarga;
+                    translatedInstruction.Code = CilOpCodes.Ldarga;
                     translatedInstruction.Operand = newParameter;
 
                     translatedInstructions.Add(CilOpCodes.Call, byReference_GetValue.MakeConcreteGeneric(parameterType.GenericArguments, []));
 
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, dataType);
                 }
-                else if (originalCode == OpCodes.Starg)
+                else if (originalCode == CilOpCodes.Starg)
                 {
                     if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, dataType))
                     {
-                        translatedInstruction.Code = OpCodes.Nop;
+                        translatedInstruction.Code = CilOpCodes.Nop;
 
-                        translatedInstructions.Add(OpCodes.Ldarg, newParameter);
+                        translatedInstructions.Add(CilOpCodes.Ldarg, newParameter);
                     }
                     else
                     {
-                        translatedInstruction.Code = OpCodes.Ldarg;
+                        translatedInstruction.Code = CilOpCodes.Ldarg;
                         translatedInstruction.Operand = newParameter;
                     }
                     translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_SetValue2.MakeGenericInstanceMethod(parameterType.GenericArguments));
                 }
-                else if (originalCode == OpCodes.Ldarga)
+                else if (originalCode == CilOpCodes.Ldarga)
                 {
-                    translatedInstruction.Code = OpCodes.Ldarg;
+                    translatedInstruction.Code = CilOpCodes.Ldarg;
                     translatedInstruction.Operand = newParameter;
 
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, parameterType);
@@ -447,33 +446,33 @@ public class TranslatedMethodBody : MethodBodyBase
                 var localType = (GenericInstanceTypeAnalysisContext)translatedLocalVariable.Type;
                 var dataType = localType.GenericArguments[0];
 
-                if (originalCode == OpCodes.Ldloc)
+                if (originalCode == CilOpCodes.Ldloc)
                 {
-                    translatedInstruction.Code = OpCodes.Ldloca;
+                    translatedInstruction.Code = CilOpCodes.Ldloca;
                     translatedInstruction.Operand = translatedLocalVariable;
 
                     translatedInstructions.Add(CilOpCodes.Call, byReference_GetValue.MakeConcreteGeneric(localType.GenericArguments, []));
 
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, dataType);
                 }
-                else if (originalCode == OpCodes.Stloc)
+                else if (originalCode == CilOpCodes.Stloc)
                 {
                     if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, dataType))
                     {
-                        translatedInstruction.Code = OpCodes.Nop;
+                        translatedInstruction.Code = CilOpCodes.Nop;
 
-                        translatedInstructions.Add(OpCodes.Ldloc, translatedLocalVariable);
+                        translatedInstructions.Add(CilOpCodes.Ldloc, translatedLocalVariable);
                     }
                     else
                     {
-                        translatedInstruction.Code = OpCodes.Ldloc;
+                        translatedInstruction.Code = CilOpCodes.Ldloc;
                         translatedInstruction.Operand = translatedLocalVariable;
                     }
                     translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_SetValue2.MakeGenericInstanceMethod(localType.GenericArguments));
                 }
-                else if (originalCode == OpCodes.Ldloca)
+                else if (originalCode == CilOpCodes.Ldloca)
                 {
-                    translatedInstruction.Code = OpCodes.Ldloc;
+                    translatedInstruction.Code = CilOpCodes.Ldloc;
                     translatedInstruction.Operand = translatedLocalVariable;
 
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, localType);
@@ -501,21 +500,21 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Initobj:
                         {
                             // References on the stack are always void*.
-                            translatedInstruction.Code = OpCodes.Call;
+                            translatedInstruction.Code = CilOpCodes.Call;
                             translatedInstruction.Operand = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.InitializeObject)).MakeGenericInstanceMethod(translatedType);
                         }
                         break;
                     case CilCode.Cpobj:
                         {
                             // References on the stack are always void*.
-                            translatedInstruction.Code = OpCodes.Call;
+                            translatedInstruction.Code = CilOpCodes.Call;
                             translatedInstruction.Operand = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.CopyObject)).MakeGenericInstanceMethod(translatedType);
                         }
                         break;
                     case CilCode.Ldobj:
                         {
                             // References on the stack are always void*.
-                            translatedInstruction.Code = OpCodes.Call;
+                            translatedInstruction.Code = CilOpCodes.Call;
                             translatedInstruction.Operand = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.ReadFromPointer)).MakeGenericInstanceMethod(translatedType);
                             MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedType);
                         }
@@ -525,27 +524,27 @@ public class TranslatedMethodBody : MethodBodyBase
                             var storeMethod = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.StoreObject)).MakeGenericInstanceMethod(translatedType);
                             if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, translatedType))
                             {
-                                translatedInstruction.Code = OpCodes.Nop;
+                                translatedInstruction.Code = CilOpCodes.Nop;
 
-                                translatedInstructions.Add(OpCodes.Call, storeMethod);
+                                translatedInstructions.Add(CilOpCodes.Call, storeMethod);
                             }
                             else
                             {
-                                translatedInstruction.Code = OpCodes.Call;
+                                translatedInstruction.Code = CilOpCodes.Call;
                                 translatedInstruction.Operand = storeMethod;
                             }
                         }
                         break;
                     case CilCode.Sizeof:
                         {
-                            translatedInstruction.Code = OpCodes.Call;
+                            translatedInstruction.Code = CilOpCodes.Call;
                             translatedInstruction.Operand = il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(translatedType);
                         }
                         break;
                     case CilCode.Box:
                         if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, translatedType))
                         {
-                            translatedInstruction.Code = OpCodes.Nop;
+                            translatedInstruction.Code = CilOpCodes.Nop;
 
                             translatedInstructions.Add(new Instruction(originalCode, translatedType));
                         }
@@ -573,22 +572,22 @@ public class TranslatedMethodBody : MethodBodyBase
                             translatedInstruction.Code = originalCode;
                             translatedInstruction.Operand = translatedType;
 
-                            translatedInstructions.Add(new Instruction(OpCodes.Call, methodContext.AppContext.SystemTypes.SystemTypeType.GetMethodByName(nameof(Type.GetTypeFromHandle))));
+                            translatedInstructions.Add(new Instruction(CilOpCodes.Call, methodContext.AppContext.SystemTypes.SystemTypeType.GetMethodByName(nameof(Type.GetTypeFromHandle))));
 
                             var systemTypeToIl2CppTypeMethod = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppType))
                                 .Methods.First(m => m.Name == nameof(Il2CppType.From) && m.Parameters.Count == 1);
 
-                            translatedInstructions.Add(new Instruction(OpCodes.Call, systemTypeToIl2CppTypeMethod));
+                            translatedInstructions.Add(new Instruction(CilOpCodes.Call, systemTypeToIl2CppTypeMethod));
 
                             var getTypeHandleMethod = methodContext.AppContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Type").GetMethodByName("get_TypeHandle");
 
-                            translatedInstructions.Add(new Instruction(OpCodes.Callvirt, getTypeHandleMethod));
+                            translatedInstructions.Add(new Instruction(CilOpCodes.Callvirt, getTypeHandleMethod));
                         }
                         break;
                     case CilCode.Newarr:
                         {
-                            translatedInstruction.Code = OpCodes.Newobj;
+                            translatedInstruction.Code = CilOpCodes.Newobj;
                             translatedInstruction.Operand = appContext.ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
                                 .Methods
                                 .Single(m => m.IsInstanceConstructor && m.Parameters.Count == 1 && m.Parameters[0].ParameterType == appContext.SystemTypes.SystemInt32Type)
@@ -600,14 +599,14 @@ public class TranslatedMethodBody : MethodBodyBase
                             var genericMethod = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
                                 .GetMethodByName("get_Item");
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = new ConcreteGenericMethodAnalysisContext(genericMethod, [translatedType], []);
                             MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedType);
                         }
                         break;
                     case CilCode.Stelem:
                         {
-                            translatedInstruction.Code = OpCodes.Nop;
+                            translatedInstruction.Code = CilOpCodes.Nop;
 
                             var genericMethod = methodContext.AppContext
                                 .ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
@@ -615,7 +614,7 @@ public class TranslatedMethodBody : MethodBodyBase
                             var concreteGenericMethod = new ConcreteGenericMethodAnalysisContext(genericMethod, [translatedType], []);
                             MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, translatedType);
 
-                            translatedInstructions.Add(new Instruction(OpCodes.Callvirt, concreteGenericMethod));
+                            translatedInstructions.Add(new Instruction(CilOpCodes.Callvirt, concreteGenericMethod));
                         }
                         break;
                     case CilCode.Ldelema:
@@ -623,7 +622,7 @@ public class TranslatedMethodBody : MethodBodyBase
                             var getElementAddress = appContext.ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
                                 .GetMethodByName(nameof(Il2CppArrayBase<>.GetElementAddress))
                                 .MakeConcreteGeneric([translatedType], []);
-                            translatedInstruction.Code = OpCodes.Callvirt;
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = getElementAddress;
 
                             MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, getElementAddress.ReturnType);
@@ -690,7 +689,7 @@ public class TranslatedMethodBody : MethodBodyBase
                 }
                 if (originalCode.Code is CilCode.Call && baseMethod.UnsafeInvokeMethod is not null)
                 {
-                    translatedInstruction.Code = OpCodes.Nop;
+                    translatedInstruction.Code = CilOpCodes.Nop;
 
                     var targetMethod = baseMethod.UnsafeInvokeMethod?.MaybeMakeConcreteGeneric(typeGenericArguments, methodGenericArguments);
 
@@ -707,7 +706,7 @@ public class TranslatedMethodBody : MethodBodyBase
                         {
                             Type = methodParameter.ParameterType,
                         };
-                        translatedInstructions.Add(OpCodes.Stloc, temporaryVariable);
+                        translatedInstructions.Add(CilOpCodes.Stloc, temporaryVariable);
 
                         temporaryVariables[i] = temporaryVariable;
                         localVariableList.Add(temporaryVariable);
@@ -715,7 +714,7 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     foreach (var temporaryVariable in temporaryVariables)
                     {
-                        translatedInstructions.Add(OpCodes.Ldloc, temporaryVariable);
+                        translatedInstructions.Add(CilOpCodes.Ldloc, temporaryVariable);
                     }
 
                     translatedInstructions.Add(originalCode, targetMethod);
@@ -723,7 +722,7 @@ public class TranslatedMethodBody : MethodBodyBase
                 }
                 else if (originalCode.Code is CilCode.Call or CilCode.Callvirt or CilCode.Newobj)
                 {
-                    translatedInstruction.Code = OpCodes.Nop;
+                    translatedInstruction.Code = CilOpCodes.Nop;
 
                     var targetMethod = baseMethod.MaybeMakeConcreteGeneric(typeGenericArguments, methodGenericArguments);
 
@@ -736,7 +735,7 @@ public class TranslatedMethodBody : MethodBodyBase
                         {
                             Type = methodParameter.ParameterType,
                         };
-                        translatedInstructions.Add(OpCodes.Stloc, temporaryVariable);
+                        translatedInstructions.Add(CilOpCodes.Stloc, temporaryVariable);
 
                         temporaryVariables[i] = temporaryVariable;
                         localVariableList.Add(temporaryVariable);
@@ -744,24 +743,24 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     foreach (var temporaryVariable in temporaryVariables)
                     {
-                        translatedInstructions.Add(OpCodes.Ldloc, temporaryVariable);
+                        translatedInstructions.Add(CilOpCodes.Ldloc, temporaryVariable);
                     }
 
                     translatedInstructions.Add(originalCode, targetMethod);
 
-                    var returnType = originalCode == OpCodes.Newobj ? targetMethod.DeclaringType! : targetMethod.ReturnType;
+                    var returnType = originalCode == CilOpCodes.Newobj ? targetMethod.DeclaringType! : targetMethod.ReturnType;
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, returnType);
                 }
-                else if (originalCode == OpCodes.Ldtoken)
+                else if (originalCode == CilOpCodes.Ldtoken)
                 {
                     // Not sure this can happen in normal CIL code, but we check for it just in case.
                     return false;
                 }
-                else if (originalCode == OpCodes.Ldftn || originalCode == OpCodes.Ldvirtftn)
+                else if (originalCode == CilOpCodes.Ldftn || originalCode == CilOpCodes.Ldvirtftn)
                 {
                     return false;
                 }
-                else if (originalCode == OpCodes.Jmp)
+                else if (originalCode == CilOpCodes.Jmp)
                 {
                     // This shouldn't happen in normal CIL code, but we check for it just in case.
                     return false;
@@ -787,7 +786,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     declaringTypeArguments = [];
                 }
 
-                if (originalCode == OpCodes.Ldfld || originalCode == OpCodes.Ldsfld)
+                if (originalCode == CilOpCodes.Ldfld || originalCode == CilOpCodes.Ldsfld)
                 {
                     // Load field value
 
@@ -803,7 +802,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     {
                         Debug.Assert(baseField.IsStatic || baseField is { DeclaringType.IsValueType: false }, "Value types should not have instance field accessors.");
                         var accessorMethod = baseField.PropertyAccessor!.Getter!.MaybeMakeConcreteGeneric(declaringTypeArguments, []);
-                        translatedInstruction.Code = originalCode == OpCodes.Ldfld ? OpCodes.Callvirt : OpCodes.Call;
+                        translatedInstruction.Code = originalCode == CilOpCodes.Ldfld ? CilOpCodes.Callvirt : CilOpCodes.Call;
                         translatedInstruction.Operand = accessorMethod;
                     }
                     else if (baseField.DeclaringType.IsIl2CppPrimitive)
@@ -811,7 +810,7 @@ public class TranslatedMethodBody : MethodBodyBase
                         Debug.Assert(!baseField.IsStatic, "There should be no static fields.");
                         Debug.Assert(fieldType.DeclaringAssembly == appContext.Mscorlib);
 
-                        translatedInstruction.Code = OpCodes.Ldobj;
+                        translatedInstruction.Code = CilOpCodes.Ldobj;
                         translatedInstruction.Operand = fieldType;
                     }
                     else if (baseField.DeclaringType.Fields.Contains(baseField))
@@ -820,10 +819,10 @@ public class TranslatedMethodBody : MethodBodyBase
                         Debug.Assert(baseField is { DeclaringType.IsValueType: true }, "Only value types should have instance fields.");
                         Debug.Assert(baseField.FieldAddressAccessor is not null);
 
-                        translatedInstruction.Code = OpCodes.Nop;
+                        translatedInstruction.Code = CilOpCodes.Nop;
                         MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, byReference.MakeGenericInstanceType([translatedField.DeclaringType]));
-                        translatedInstructions.Add(OpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
-                        translatedInstructions.Add(OpCodes.Call, byReferenceStatic_GetValue.MakeGenericInstanceMethod(fieldType));
+                        translatedInstructions.Add(CilOpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
+                        translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_GetValue.MakeGenericInstanceMethod(fieldType));
                     }
                     else
                     {
@@ -833,21 +832,21 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, fieldType);
                 }
-                else if (originalCode == OpCodes.Stfld || originalCode == OpCodes.Stsfld)
+                else if (originalCode == CilOpCodes.Stfld || originalCode == CilOpCodes.Stsfld)
                 {
                     // Store field value
 
                     var translatedField = baseField.MaybeMakeConcreteGeneric(declaringTypeArguments);
                     var fieldType = translatedField.FieldType;
 
-                    translatedInstruction.Code = OpCodes.Nop;
+                    translatedInstruction.Code = CilOpCodes.Nop;
                     MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, fieldType);
 
                     if (baseField.PropertyAccessor is not null)
                     {
                         Debug.Assert(baseField.IsStatic || baseField is { DeclaringType.IsValueType: false }, "Value types should not have instance field accessors.");
                         var accessorMethod = baseField.PropertyAccessor!.Setter!.MaybeMakeConcreteGeneric(declaringTypeArguments, []);
-                        translatedInstructions.Add(new Instruction(originalCode == OpCodes.Stfld ? OpCodes.Callvirt : OpCodes.Call, accessorMethod));
+                        translatedInstructions.Add(new Instruction(originalCode == CilOpCodes.Stfld ? CilOpCodes.Callvirt : CilOpCodes.Call, accessorMethod));
                     }
                     else if (baseField.DeclaringType.IsIl2CppPrimitive)
                     {
@@ -866,11 +865,11 @@ public class TranslatedMethodBody : MethodBodyBase
                         LocalVariable temporaryLocal = new(fieldType);
                         localVariableList.Add(temporaryLocal);
 
-                        translatedInstructions.Add(OpCodes.Stloc, temporaryLocal);
+                        translatedInstructions.Add(CilOpCodes.Stloc, temporaryLocal);
                         MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, byReference.MakeGenericInstanceType([translatedField.DeclaringType]));
-                        translatedInstructions.Add(OpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
-                        translatedInstructions.Add(OpCodes.Ldloc, temporaryLocal);
-                        translatedInstructions.Add(OpCodes.Call, byReferenceStatic_SetValue1.MakeGenericInstanceMethod(fieldType));
+                        translatedInstructions.Add(CilOpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
+                        translatedInstructions.Add(CilOpCodes.Ldloc, temporaryLocal);
+                        translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_SetValue1.MakeGenericInstanceMethod(fieldType));
                     }
                     else
                     {
@@ -878,7 +877,7 @@ public class TranslatedMethodBody : MethodBodyBase
                         return false;
                     }
                 }
-                else if (originalCode == OpCodes.Ldflda)
+                else if (originalCode == CilOpCodes.Ldflda)
                 {
                     // Load field address
                     Debug.Assert(!baseField.IsStatic);
@@ -887,18 +886,18 @@ public class TranslatedMethodBody : MethodBodyBase
                     var translatedField = baseField.MaybeMakeConcreteGeneric(declaringTypeArguments);
                     var fieldType = translatedField.FieldType;
 
-                    translatedInstruction.Code = OpCodes.Nop;
+                    translatedInstruction.Code = CilOpCodes.Nop;
                     MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, byReference.MakeGenericInstanceType([translatedField.DeclaringType]));
-                    translatedInstructions.Add(OpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
+                    translatedInstructions.Add(CilOpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, byReference.MakeGenericInstanceType([fieldType]));
                 }
-                else if (originalCode == OpCodes.Ldsflda)
+                else if (originalCode == CilOpCodes.Ldsflda)
                 {
                     // Load static field address
                     // Not implemented yet
                     return false;
                 }
-                else if (originalCode == OpCodes.Ldtoken)
+                else if (originalCode == CilOpCodes.Ldtoken)
                 {
                     // This can happen in array initializers that have constant data.
                     return false;
@@ -954,8 +953,8 @@ public class TranslatedMethodBody : MethodBodyBase
                 Debug.Assert(handlerStart is Instruction);
                 var handlerStartIndex = translatedInstructions.IndexOf((Instruction)handlerStart);
 
-                var loadObjectInstruction = new Instruction(OpCodes.Ldfld, methodContext.AppContext.ResolveTypeOrThrow(typeof(Il2CppException)).GetFieldByName(nameof(Il2CppException.Il2cppObject)));
-                var castInstruction = new Instruction(OpCodes.Castclass, originalExceptionHandler.ExceptionType);
+                var loadObjectInstruction = new Instruction(CilOpCodes.Ldfld, methodContext.AppContext.ResolveTypeOrThrow(typeof(Il2CppException)).GetFieldByName(nameof(Il2CppException.Il2cppObject)));
+                var castInstruction = new Instruction(CilOpCodes.Castclass, originalExceptionHandler.ExceptionType);
                 translatedInstructions.Insert(handlerStartIndex, loadObjectInstruction);
                 translatedInstructions.Insert(handlerStartIndex + 1, castInstruction);
 
