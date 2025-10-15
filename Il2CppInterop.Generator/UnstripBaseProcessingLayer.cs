@@ -4,6 +4,7 @@ using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Logging;
 using Cpp2IL.Core.Model.Contexts;
 using Cpp2IL.Core.Model.CustomAttributes;
+using Il2CppInterop.Generator.Extensions;
 using LibCpp2IL.BinaryStructures;
 
 namespace Il2CppInterop.Generator;

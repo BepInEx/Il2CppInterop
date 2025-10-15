@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Cpp2IL.Core.Model.Contexts;
+using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes;

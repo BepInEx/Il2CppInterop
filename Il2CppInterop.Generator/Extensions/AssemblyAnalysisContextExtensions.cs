@@ -1,7 +1,7 @@
 ﻿using Cpp2IL.Core.Model.Contexts;
 using LibCpp2IL.BinaryStructures;
 
-namespace Il2CppInterop.Generator;
+namespace Il2CppInterop.Generator.Extensions;
 
 internal static class AssemblyAnalysisContextExtensions
 {

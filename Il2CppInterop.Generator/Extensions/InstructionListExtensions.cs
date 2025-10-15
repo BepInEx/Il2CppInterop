@@ -1,6 +1,6 @@
 ﻿using Il2CppInterop.Generator.Operands;
 
-namespace Il2CppInterop.Generator;
+namespace Il2CppInterop.Generator.Extensions;
 
 internal static class InstructionListExtensions
 {
