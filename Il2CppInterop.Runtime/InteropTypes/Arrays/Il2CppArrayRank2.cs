@@ -1,11 +1,16 @@
 using System.Diagnostics.CodeAnalysis;
 using Il2CppInterop.Common;
+using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
 public sealed class Il2CppArrayRank2<T> : Il2CppMultiArrayBase<T> where T : IIl2CppType<T>
 {
-    static Il2CppArrayRank2() => SetClassPointer<Il2CppArrayRank2<T>, T>(2);
+    static Il2CppArrayRank2()
+    {
+        SetClassPointer<Il2CppArrayRank2<T>, T>(2);
+        Il2CppObjectPool.RegisterInitializer(Il2CppClassPointerStore<Il2CppArrayRank2<T>>.NativeClassPtr, static (ptr) => new Il2CppArrayRank2<T>(ptr));
+    }
 
     public Il2CppArrayRank2(ObjectPointer pointer) : base(pointer)
     {
