@@ -30,7 +30,7 @@ public static class ByReference
         return new ByReference<U>((byte*)byReference.ToPointer() + offset);
     }
 }
-public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>, IIl2CppByReference
+public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
     where T : IIl2CppType<T>
 {
     static ByReference()
@@ -69,10 +69,6 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
 
     private static int ReferenceSize => T.Size;
 
-    readonly int IIl2CppByReference.ReferenceSize => ReferenceSize;
-
-    readonly nint IIl2CppByReference.ReferenceObjectClass => Il2CppClassPointerStore<T>.NativeClassPtr;
-
     readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<ByReference<T>>.NativeClassPtr;
 
     static int IIl2CppType<ByReference<T>>.Size => IntPtr.Size;
@@ -94,18 +90,6 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
         {
             throw new NullReferenceException($"Cannot access reference of type {typeof(T).Name} because it is null.");
         }
-    }
-
-    readonly void IIl2CppByReference.WriteReferenceToSpan(Span<byte> span)
-    {
-        ThrowIfNull();
-        new ReadOnlySpan<byte>(_pointer, ReferenceSize).CopyTo(span);
-    }
-
-    readonly void IIl2CppByReference.ReadReferenceFromSpan(ReadOnlySpan<byte> span)
-    {
-        ThrowIfNull();
-        span.Slice(0, ReferenceSize).CopyTo(new Span<byte>(_pointer, ReferenceSize));
     }
 
     static void IIl2CppType<ByReference<T>>.WriteToSpan(ByReference<T> value, Span<byte> span) => Il2CppTypeHelper.WritePointer((IntPtr)value._pointer, span);
