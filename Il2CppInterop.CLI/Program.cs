@@ -48,10 +48,19 @@ Il2CppGame.Process(
 Console.WriteLine("Done!");
 
 /*
-Todo:
-- Fix abstract methods having helper methods
+Todo
+
+Required for runtime testing:
+- Class injection rewrite
+- HarmonySupport rewrite
 - ICall runtime delegate creation
+- Bump to .NET 10
+
+Ideal:
+- Fix abstract methods having helper methods
 - System interfaces
 - overloads with arrays, delegates, primitives
-- Bump to .NET 10
+- Source generation for user-injected types
+- Add attributes to "Unsafe" methods so that users cannot see them
+- Use stack analysis to improve unstripping
 */
