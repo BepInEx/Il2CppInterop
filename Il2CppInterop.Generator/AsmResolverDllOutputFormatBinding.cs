@@ -38,9 +38,35 @@ public class AsmResolverDllOutputFormatBinding : AsmResolverDllOutputFormatThrow
     {
         var list = base.BuildAssemblies(context);
 
-        // Todo: Remove injected reference assemblies from the output
+        var referenceAssemblies = context.Assemblies.Where(a => a.IsReferenceAssembly).Select(a => a.Name).ToHashSet();
 
-        // Todo: Replace mscorlib references with .NET Core references
+        // Remove injected reference assemblies from the output
+        for (var i = list.Count - 1; i >= 0; i--)
+        {
+            if (referenceAssemblies.Contains(list[i].Name ?? ""))
+                list.RemoveAt(i);
+        }
+
+        // Replace mscorlib references with .NET Core references
+        var dotNetCorLib = KnownCorLibs.SystemRuntime_v9_0_0_0;
+        foreach (var assembly in list)
+        {
+            foreach (var module in assembly.Modules)
+            {
+                foreach (var reference in module.AssemblyReferences)
+                {
+                    if (reference.Name == "mscorlib")
+                    {
+                        reference.Name = dotNetCorLib.Name;
+                        reference.Version = dotNetCorLib.Version;
+                        reference.Attributes = dotNetCorLib.Attributes;
+                        reference.PublicKeyOrToken = dotNetCorLib.PublicKeyOrToken;
+                        reference.HashValue = dotNetCorLib.HashValue;
+                        reference.Culture = dotNetCorLib.Culture;
+                    }
+                }
+            }
+        }
 
         return list;
     }

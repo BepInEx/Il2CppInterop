@@ -53,4 +53,5 @@ Todo:
 - ICall runtime delegate creation
 - System interfaces
 - overloads with arrays, delegates, primitives
+- Bump to .NET 10
 */
