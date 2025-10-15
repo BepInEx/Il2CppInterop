@@ -12,7 +12,7 @@ using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
-using LibCpp2IL.BinaryStructures;
+using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Generator;
 
@@ -57,6 +57,15 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var byReference_Constructor = byReference.GetMethodByName(".ctor");
 
         var il2CppTypeHelper_SizeOf = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeHelper)).GetMethodByName(nameof(Il2CppTypeHelper.SizeOf));
+
+        var il2CppObjectPool = appContext.ResolveTypeOrThrow(typeof(Il2CppObjectPool));
+        var il2CppObjectPool_RegisterInitializer = il2CppObjectPool.GetMethodByName(nameof(Il2CppObjectPool.RegisterInitializer));
+        var il2CppObjectPool_ValueTypeInitializer = il2CppObjectPool.GetMethodByName(nameof(Il2CppObjectPool.ValueTypeInitializer));
+
+        var funcTypeInstantiated = (GenericInstanceTypeAnalysisContext)il2CppObjectPool_RegisterInitializer.Parameters[1].ParameterType;
+        var funcType = funcTypeInstantiated.GenericType;
+        var funcConstructor = funcType.Methods.Single(m => m.IsInstanceConstructor && m.Parameters.Count == 2);
+        var funcConstructorInstantiated = funcConstructor.MakeConcreteGeneric(funcTypeInstantiated.GenericArguments, []);
 
         var tokenLessMethodCount = 0;
 
@@ -272,7 +281,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                 methodInfoPtrGenericClass.GenericParameters.Add(new GenericParameterTypeAnalysisContext(
                                     genericParameter.Name,
                                     methodInfoPtrGenericClass.GenericParameters.Count,
-                                    Il2CppTypeEnum.IL2CPP_TYPE_VAR,
+                                    LibCpp2IL.BinaryStructures.Il2CppTypeEnum.IL2CPP_TYPE_VAR,
                                     genericParameter.Attributes & GenericParameterAttributes.AllowByRefLike,
                                     methodInfoPtrGenericClass));
                             }
@@ -487,6 +496,51 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(new Instruction(OpCodes.Ldstr, $"{type.DefaultFullName}::{method.DefaultName}"));
                             instructions.Add(new Instruction(OpCodes.Call, new ConcreteGenericMethodAnalysisContext(resolveICall, [], [delegateType])));
                             instructions.Add(new Instruction(OpCodes.Stsfld, delegateField));
+                        }
+                    }
+
+                    // Il2CppObjectPool.RegisterInitialier
+                    {
+                        if (type.IsAbstract || type.IsInterface)
+                        {
+                            // Cannot register initializers for abstract types or interfaces
+                        }
+                        else if (type.IsValueType)
+                        {
+                            instructions.Add(OpCodes.Ldsfld, concreteClassPointerField);
+                            instructions.Add(OpCodes.Ldnull);
+                            instructions.Add(OpCodes.Ldftn, il2CppObjectPool_ValueTypeInitializer.MakeGenericInstanceMethod(typeToInitialize));
+                            instructions.Add(OpCodes.Newobj, funcConstructorInstantiated);
+                            instructions.Add(OpCodes.Call, il2CppObjectPool_RegisterInitializer);
+                        }
+                        else
+                        {
+                            var creationMethod = new InjectedMethodAnalysisContext(
+                                initializationType,
+                                "Create",
+                                funcTypeInstantiated.GenericArguments[1],
+                                MethodAttributes.Private | MethodAttributes.Static | MethodAttributes.HideBySig,
+                                [funcTypeInstantiated.GenericArguments[0]]);
+                            initializationType.Methods.Add(creationMethod);
+
+                            var pointerConstructor = type.PointerConstructor;
+                            Debug.Assert(pointerConstructor is not null);
+
+                            creationMethod.PutExtraData(new NativeMethodBody()
+                            {
+                                Instructions =
+                                [
+                                    new Instruction(OpCodes.Ldarg_0),
+                                    new Instruction(OpCodes.Newobj, pointerConstructor.MaybeMakeConcreteGeneric(initializationType.GenericParameters, [])),
+                                    new Instruction(OpCodes.Ret),
+                                ]
+                            });
+
+                            instructions.Add(OpCodes.Ldsfld, concreteClassPointerField);
+                            instructions.Add(OpCodes.Ldnull);
+                            instructions.Add(OpCodes.Ldftn, creationMethod.MaybeMakeConcreteGeneric(initializationType.GenericParameters, []));
+                            instructions.Add(OpCodes.Newobj, funcConstructorInstantiated);
+                            instructions.Add(OpCodes.Call, il2CppObjectPool_RegisterInitializer);
                         }
                     }
 

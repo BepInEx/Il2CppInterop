@@ -42,7 +42,7 @@ public class ObjectInternalsProcessingLayer : Cpp2IlProcessingLayer
 
         // Constructor
         {
-            var constructor = il2CppSystemObject.Methods.Single(m => m.IsConstructor && m.Parameters.Count == 1);
+            var constructor = il2CppSystemObject.PointerConstructor!;
             var baseConstructor = appContext.SystemTypes.SystemObjectType.Methods.Single(m => m.IsInstanceConstructor);
             var objectPointerType = constructor.Parameters[0].ParameterType;
             var objectPointerToSystemIntPtr = objectPointerType.GetExplicitConversionTo(appContext.SystemTypes.SystemIntPtrType);

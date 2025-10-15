@@ -23,8 +23,8 @@ Il2CppGame.Process(
         new ObjectInterfaceProcessingLayer(),
         new ReferenceReplacementProcessingLayer(),
         new AttributeRemovalProcessingLayer(),
-        new InitializationClassProcessingLayer(),
         new PointerConstructorProcessingLayer(),
+        new InitializationClassProcessingLayer(),
         new MarshallingProcessingLayer(),
         new PrimitiveImplicitConversionProcessingLayer(),
         new EnumProcessingLayer(),
@@ -50,7 +50,6 @@ Console.WriteLine("Done!");
 /*
 Todo:
 - Fix abstract methods having helper methods
-- Creation method registration
 - ICall runtime delegate creation
 - System interfaces
 - overloads with arrays, delegates, primitives
