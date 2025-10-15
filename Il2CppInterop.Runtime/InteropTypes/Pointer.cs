@@ -7,7 +7,12 @@ public unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>>
 {
     static Pointer()
     {
-        // Todo: set Il2CppClassPointerStore<Pointer<T>>.NativeClassPtr
+        var elementClassPtr = Il2CppClassPointerStore<T>.NativeClassPtr;
+        var elementTypePtr = IL2CPP.il2cpp_class_get_type(elementClassPtr);
+        var elementTypeObj = Il2CppSystem.Type.internal_from_handle(elementTypePtr);
+        var pointerTypeObj = elementTypeObj.MakePointerType();
+        var pointerClassPtr = IL2CPP.il2cpp_class_from_type(pointerTypeObj.TypeHandle.value);
+        Il2CppClassPointerStore<Pointer<T>>.NativeClassPtr = pointerClassPtr;
     }
 
     private readonly void* _pointer = pointer;

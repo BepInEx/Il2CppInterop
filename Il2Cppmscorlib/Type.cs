@@ -44,5 +44,9 @@ public abstract class Type : Object
 
     public abstract String FullName { get; }
 
+    public Type MakeByRefType() => throw null;
+
     public Type MakeGenericType(Type[] typeArguments) => throw null;
+
+    public Type MakePointerType() => throw null;
 }

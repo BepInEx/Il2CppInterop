@@ -35,7 +35,12 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
 {
     static ByReference()
     {
-        // Todo: set Il2CppClassPointerStore<ByReference<T>>.NativeClassPtr
+        var elementClassPtr = Il2CppClassPointerStore<T>.NativeClassPtr;
+        var elementTypePtr = IL2CPP.il2cpp_class_get_type(elementClassPtr);
+        var elementTypeObj = Il2CppSystem.Type.internal_from_handle(elementTypePtr);
+        var byRefTypeObj = elementTypeObj.MakeByRefType();
+        var byRefClassPtr = IL2CPP.il2cpp_class_from_type(byRefTypeObj.TypeHandle.value);
+        Il2CppClassPointerStore<ByReference<T>>.NativeClassPtr = byRefClassPtr;
     }
 
     private readonly void* _pointer = pointer;
