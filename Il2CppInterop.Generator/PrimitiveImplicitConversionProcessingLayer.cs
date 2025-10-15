@@ -160,5 +160,5 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
             }
         }
     }
-    
+
 }

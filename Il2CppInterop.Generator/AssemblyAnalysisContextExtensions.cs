@@ -5,7 +5,7 @@ namespace Il2CppInterop.Generator;
 
 internal static class AssemblyAnalysisContextExtensions
 {
-    extension (AssemblyAnalysisContext assembly)
+    extension(AssemblyAnalysisContext assembly)
     {
         public bool IsReferenceAssembly
         {

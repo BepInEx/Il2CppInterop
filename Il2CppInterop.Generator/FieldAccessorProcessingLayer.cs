@@ -76,9 +76,9 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                             byReference.MakeGenericInstanceType([field.FieldType]),
                             MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
                             [parameterType])
-                            {
-                                IsInjected = true,
-                            };
+                        {
+                            IsInjected = true,
+                        };
                         type.Methods.Add(getFieldAddress);
 
                         if (isValueType)

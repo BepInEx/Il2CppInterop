@@ -5,7 +5,7 @@ namespace Il2CppInterop.Generator;
 
 internal static class ApplicationAnalysisContextExtensions
 {
-    extension (ApplicationAnalysisContext appContext)
+    extension(ApplicationAnalysisContext appContext)
     {
         public InjectedAssemblyAnalysisContext InjectAssembly(Assembly assembly)
         {

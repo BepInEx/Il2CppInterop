@@ -7,7 +7,7 @@ namespace Il2CppInterop.Generator.Extensions;
 // https://github.com/Washi1337/AsmResolver/pull/679
 internal static class CilInstructionCollectionBackport
 {
-    extension (CilInstructionCollection instructions)
+    extension(CilInstructionCollection instructions)
     {
         public void ExpandMacrosBackport()
         {
