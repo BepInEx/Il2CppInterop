@@ -79,7 +79,10 @@ public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyLis
             return;
 
         Il2CppClassPointerStore<Il2CppArrayBase<T>>.NativeClassPtr = targetClassType;
+
+        Il2CppObjectPool.RegisterInitializer(Il2CppClassPointerStore<Il2CppArrayBase<T>>.NativeClassPtr, static (ptr) => new Il2CppArrayBase<T>(ptr));
     }
+
     public Il2CppArrayBase(ObjectPointer pointer) : base(pointer)
     {
     }
