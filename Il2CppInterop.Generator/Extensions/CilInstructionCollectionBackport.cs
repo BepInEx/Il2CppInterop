@@ -1,5 +1,4 @@
 ﻿using AsmResolver.DotNet.Code.Cil;
-using AsmResolver.PE.DotNet.Cil;
 
 namespace Il2CppInterop.Generator.Extensions;
 

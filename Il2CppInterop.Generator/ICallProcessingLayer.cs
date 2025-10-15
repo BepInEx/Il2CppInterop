@@ -1,7 +1,5 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Text;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 

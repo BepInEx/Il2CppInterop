@@ -2,7 +2,6 @@
 using System.Runtime.CompilerServices;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Generator;
-using Il2CppInterop.Generator.Extensions;
 using LibCpp2IL.BinaryStructures;
 
 namespace Il2CppInterop.Generator.Extensions;

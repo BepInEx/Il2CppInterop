@@ -1,6 +1,5 @@
 ﻿using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
-using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Generator.Visitors;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;

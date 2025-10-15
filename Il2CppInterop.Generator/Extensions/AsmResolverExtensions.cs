@@ -1,6 +1,4 @@
-﻿using AsmResolver.PE.DotNet.Cil;
-
-namespace Il2CppInterop.Generator.Extensions;
+﻿namespace Il2CppInterop.Generator.Extensions;
 
 internal static class AsmResolverExtensions
 {

@@ -1,11 +1,9 @@
 ﻿using System.Diagnostics;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Code.Cil;
-using AsmResolver.PE.DotNet.Cil;
 using AssetRipper.CIL;
 using Cpp2IL.Core.Model.Contexts;
 using Cpp2IL.Core.Utils.AsmResolver;
-using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Generator.StackTypes;
 using Il2CppInterop.Generator.Visitors;

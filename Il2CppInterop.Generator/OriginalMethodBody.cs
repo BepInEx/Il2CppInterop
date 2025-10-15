@@ -2,9 +2,7 @@
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Code.Cil;
 using AsmResolver.DotNet.Collections;
-using AsmResolver.PE.DotNet.Cil;
 using Cpp2IL.Core.Model.Contexts;
-using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Operands;
 
 namespace Il2CppInterop.Generator;

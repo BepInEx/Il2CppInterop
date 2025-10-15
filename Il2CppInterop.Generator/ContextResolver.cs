@@ -4,7 +4,6 @@ using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Generator.Operands;
-using LibCpp2IL.BinaryStructures;
 
 namespace Il2CppInterop.Generator;
 
