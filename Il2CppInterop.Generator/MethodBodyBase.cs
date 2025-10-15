@@ -8,6 +8,7 @@ using Cpp2IL.Core.Utils.AsmResolver;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Generator.StackTypes;
+using Il2CppInterop.Generator.Visitors;
 
 namespace Il2CppInterop.Generator;
 

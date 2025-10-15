@@ -1,6 +1,6 @@
 ﻿using Cpp2IL.Core.Model.Contexts;
 
-namespace Il2CppInterop.Generator;
+namespace Il2CppInterop.Generator.Visitors;
 
 public abstract class BooleanOrTypeVisitor : TypeVisitor<bool>
 {

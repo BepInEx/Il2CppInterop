@@ -1,5 +1,6 @@
 ﻿using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
+using Il2CppInterop.Generator.Visitors;
 
 namespace Il2CppInterop.Generator;
 

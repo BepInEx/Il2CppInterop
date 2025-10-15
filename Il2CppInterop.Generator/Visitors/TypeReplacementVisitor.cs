@@ -1,8 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Cpp2IL.Core.Model.Contexts;
+using Il2CppInterop.Generator;
 
-namespace Il2CppInterop.Generator;
+namespace Il2CppInterop.Generator.Visitors;
 
 internal class TypeReplacementVisitor(Dictionary<TypeAnalysisContext, TypeAnalysisContext> replacements) : DefaultTypeVisitor<TypeAnalysisContext>
 {

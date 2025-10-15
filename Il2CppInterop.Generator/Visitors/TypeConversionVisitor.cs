@@ -1,8 +1,9 @@
 ﻿using Cpp2IL.Core.Model.Contexts;
+using Il2CppInterop.Generator;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-namespace Il2CppInterop.Generator;
+namespace Il2CppInterop.Generator.Visitors;
 
 internal sealed class TypeConversionVisitor : TypeReplacementVisitor
 {
