@@ -4,7 +4,7 @@ using AsmResolver;
 
 namespace Il2CppInterop.Generator.Extensions;
 
-public static class StringEx
+public static class StringExtensions
 {
     public static string MakeValidInSource(this string str)
     {
