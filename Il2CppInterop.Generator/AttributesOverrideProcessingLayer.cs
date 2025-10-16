@@ -79,10 +79,15 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                         continue;
                     }
 
-                    // Change constant fields to static readonly
                     if (field.Attributes.HasFlag(FieldAttributes.Literal))
                     {
+                        // Change constant fields to static readonly
                         field.OverrideAttributes = (field.Attributes & ~FieldAttributes.Literal) | FieldAttributes.InitOnly;
+                    }
+                    else
+                    {
+                        // Remove readonly from non-constant fields
+                        field.OverrideAttributes = field.Attributes & ~FieldAttributes.InitOnly;
                     }
 
                     const FieldAttributes FlagsToRemove =
