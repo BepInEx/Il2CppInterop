@@ -1,11 +1,17 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-public sealed class Il2CppArrayRank2<T> : Il2CppMultiArrayBase<T> where T : IIl2CppType<T>
+public sealed class Il2CppArrayRank2<T> : Il2CppMultiArrayBase<T>, IIl2CppType<Il2CppArrayRank2<T>>
+    where T : IIl2CppType<T>
 {
+    static int IIl2CppType<Il2CppArrayRank2<T>>.Size => IntPtr.Size;
+
+    nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppArrayRank2<T>>.NativeClassPtr;
+
     static Il2CppArrayRank2()
     {
         SetClassPointer<Il2CppArrayRank2<T>, T>(2);
@@ -40,6 +46,9 @@ public sealed class Il2CppArrayRank2<T> : Il2CppMultiArrayBase<T> where T : IIl2
         set => this[[index0, index1]] = value;
     }
     public ByReference<T> GetElementAddress(int index0, int index1) => GetElementAddress([index0, index1]);
+
+    static void IIl2CppType<Il2CppArrayRank2<T>>.WriteToSpan(Il2CppArrayRank2<T>? value, Span<byte> span) => Il2CppTypeHelper.WriteReference(value, span);
+    static Il2CppArrayRank2<T>? IIl2CppType<Il2CppArrayRank2<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => Il2CppTypeHelper.ReadReference<Il2CppArrayRank2<T>>(span);
 
     [return: NotNullIfNotNull(nameof(array))]
     public static explicit operator Il2CppArrayRank2<T>?(T[,]? array) => array is null ? null : new(array);

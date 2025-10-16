@@ -66,7 +66,8 @@ public abstract class Il2CppArrayBase : Il2CppSystem.Array, IEnumerable, ICollec
     }
 }
 [CollectionBuilder(typeof(Il2CppArrayBase), nameof(Create))]
-public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyList<T> where T : IIl2CppType<T>
+public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyList<T>, IIl2CppType<Il2CppArrayBase<T>>
+    where T : IIl2CppType<T>
 {
     static Il2CppArrayBase()
     {
@@ -143,6 +144,9 @@ public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyLis
     int ICollection<T>.Count => Length;
     int IReadOnlyCollection<T>.Count => Length;
     bool ICollection<T>.IsReadOnly => false;
+
+    static int IIl2CppType<Il2CppArrayBase<T>>.Size => IntPtr.Size;
+    nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppArrayBase<T>>.NativeClassPtr;
 
     public int IndexOf(T item)
     {
@@ -242,6 +246,10 @@ public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyLis
                 $"{nameof(Il2CppArrayBase<>)} requires an Il2Cpp type, which {typeof(T)} isn't");
         return (ObjectPointer)IL2CPP.il2cpp_array_new(elementTypeClassPointer, (ulong)size);
     }
+
+    static void IIl2CppType<Il2CppArrayBase<T>>.WriteToSpan(Il2CppArrayBase<T>? value, Span<byte> span) => Il2CppTypeHelper.WriteReference(value, span);
+
+    static Il2CppArrayBase<T>? IIl2CppType<Il2CppArrayBase<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => Il2CppTypeHelper.ReadReference<Il2CppArrayBase<T>>(span);
 
     private sealed class IndexEnumerator : IEnumerator<T>
     {
