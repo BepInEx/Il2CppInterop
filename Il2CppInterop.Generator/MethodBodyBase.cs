@@ -23,7 +23,10 @@ public abstract class MethodBodyBase
             return;
         }
 
-        var body = new CilMethodBody();
+        var body = new CilMethodBody()
+        {
+            InitializeLocals = LocalVariables.Count > 0
+        };
         method.CilMethodBody = body;
         var module = method.DeclaringModule!;
         var instructions = body.Instructions;
