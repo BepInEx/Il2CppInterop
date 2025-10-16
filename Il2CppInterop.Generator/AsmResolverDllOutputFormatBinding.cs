@@ -16,6 +16,10 @@ public class AsmResolverDllOutputFormatBinding : AsmResolverDllOutputFormatThrow
         {
             // This is a runtime-implemented method, so we don't need to do anything.
         }
+        else if (methodContext.Attributes.HasFlag(System.Reflection.MethodAttributes.Abstract))
+        {
+            // Abstract method, no body needed.
+        }
         else if (methodContext.TryGetExtraData(out TranslatedMethodBody? translatedBody))
         {
             translatedBody.FillMethodBody(methodDefinition);
