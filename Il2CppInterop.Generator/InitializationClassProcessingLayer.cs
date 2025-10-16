@@ -88,15 +88,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                     appContext.SystemTypes.SystemObjectType,
                     TypeAttributes.NotPublic | TypeAttributes.Abstract | TypeAttributes.Sealed | TypeAttributes.Class);
                 initializationType.IsInjected = true;
-                foreach (var genericParameter in type.GenericParameters)
-                {
-                    initializationType.GenericParameters.Add(new GenericParameterTypeAnalysisContext(
-                        genericParameter.Name,
-                        genericParameter.Index,
-                        genericParameter.Type,
-                        genericParameter.Attributes & GenericParameterAttributes.AllowByRefLike,
-                        initializationType));
-                }
+                initializationType.CopyGenericParameters(type, true, true);
 
                 AddInstructionsToStaticConstructor(type, initializationType, runClassConstructor);
 
@@ -276,16 +268,9 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                 appContext.SystemTypes.SystemObjectType,
                                 TypeAttributes.NestedAssembly | TypeAttributes.Abstract | TypeAttributes.Sealed);
                             methodInfoPtrGenericClass.IsInjected = true;
-                            methodInfoPtrGenericClass.CopyGenericParameters(initializationType);
-                            foreach (var genericParameter in method.GenericParameters)
-                            {
-                                methodInfoPtrGenericClass.GenericParameters.Add(new GenericParameterTypeAnalysisContext(
-                                    genericParameter.Name,
-                                    methodInfoPtrGenericClass.GenericParameters.Count,
-                                    LibCpp2IL.BinaryStructures.Il2CppTypeEnum.IL2CPP_TYPE_VAR,
-                                    genericParameter.Attributes & GenericParameterAttributes.AllowByRefLike,
-                                    methodInfoPtrGenericClass));
-                            }
+                            methodInfoPtrGenericClass.CopyGenericParameters(initializationType, false, true);
+                            methodInfoPtrGenericClass.CopyGenericParameters(method, false, true);
+                            methodInfoPtrGenericClass.GenericParameters.CopyConstraintsFrom([..initializationType.GenericParameters, ..method.GenericParameters]);
 
                             var methodInfoPtrGenericField = methodInfoPtrGenericClass.InjectFieldContext(
                                 "Pointer",

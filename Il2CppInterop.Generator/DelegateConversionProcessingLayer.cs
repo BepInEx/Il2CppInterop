@@ -135,7 +135,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                         name,
                         multicastDelegateType);
 
-                    managedDelegateType.CopyGenericParameters(type);
+                    managedDelegateType.CopyGenericParameters(type, true);
 
                     TypeAnalysisContext returnType;
                     List<TypeAnalysisContext> parameterTypes = invokeMethod.Parameters.Select(p => p.ParameterType).ToList();

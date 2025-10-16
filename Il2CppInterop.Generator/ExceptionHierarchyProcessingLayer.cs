@@ -31,18 +31,7 @@ public class ExceptionHierarchyProcessingLayer : Cpp2IlProcessingLayer
             exceptionType.SystemExceptionType = nestedExceptionType;
 
             // Copy generic parameters
-            if (exceptionType.HasGenericParameters)
-            {
-                foreach (var genericParameter in exceptionType.GenericParameters)
-                {
-                    nestedExceptionType.GenericParameters.Add(new GenericParameterTypeAnalysisContext(
-                        genericParameter.Name,
-                        genericParameter.Index,
-                        genericParameter.Type,
-                        genericParameter.Attributes & GenericParameterAttributes.AllowByRefLike,
-                        nestedExceptionType));
-                }
-            }
+            nestedExceptionType.CopyGenericParameters(exceptionType, true);
 
             // Inject constructor
             nestedExceptionType.InjectMethodContext(

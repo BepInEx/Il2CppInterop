@@ -68,22 +68,9 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                         method.UnsafeImplementationMethod = invoker;
 
-                        foreach (var gp in method.GenericParameters)
-                        {
-                            invoker.GenericParameters.Add(new GenericParameterTypeAnalysisContext(gp.Name, gp.Index, gp.Type, gp.Attributes, invoker));
-                        }
+                        invoker.CopyGenericParameters(method, true, true);
 
                         var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, invoker);
-
-                        for (var i = 0; i < method.GenericParameters.Count; i++)
-                        {
-                            var originalGp = method.GenericParameters[i];
-                            var newGp = invoker.GenericParameters[i];
-                            foreach (var constraint in originalGp.ConstraintTypes)
-                            {
-                                newGp.ConstraintTypes.Add(visitor.Replace(constraint));
-                            }
-                        }
 
                         invoker.SetDefaultReturnType(visitor.Replace(method.ReturnType));
 
@@ -143,22 +130,9 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                         method.UnsafeInvokeMethod = valueTypeHelper;
 
-                        foreach (var gp in method.GenericParameters)
-                        {
-                            valueTypeHelper.GenericParameters.Add(new GenericParameterTypeAnalysisContext(gp.Name, gp.Index, gp.Type, gp.Attributes, valueTypeHelper));
-                        }
+                        valueTypeHelper.CopyGenericParameters(method, true, true);
 
                         var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, valueTypeHelper);
-
-                        for (var i = 0; i < method.GenericParameters.Count; i++)
-                        {
-                            var originalGp = method.GenericParameters[i];
-                            var newGp = valueTypeHelper.GenericParameters[i];
-                            foreach (var constraint in originalGp.ConstraintTypes)
-                            {
-                                newGp.ConstraintTypes.Add(visitor.Replace(constraint));
-                            }
-                        }
 
                         valueTypeHelper.SetDefaultReturnType(visitor.Replace(method.ReturnType));
 
@@ -241,22 +215,9 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                         method.UnsafeInvokeMethod = constructorHelper;
 
-                        foreach (var gp in method.GenericParameters)
-                        {
-                            constructorHelper.GenericParameters.Add(new GenericParameterTypeAnalysisContext(gp.Name, gp.Index, gp.Type, gp.Attributes, constructorHelper));
-                        }
+                        constructorHelper.CopyGenericParameters(method, true, true);
 
                         var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, constructorHelper);
-
-                        for (var i = 0; i < method.GenericParameters.Count; i++)
-                        {
-                            var originalGp = method.GenericParameters[i];
-                            var newGp = constructorHelper.GenericParameters[i];
-                            foreach (var constraint in originalGp.ConstraintTypes)
-                            {
-                                newGp.ConstraintTypes.Add(visitor.Replace(constraint));
-                            }
-                        }
 
                         constructorHelper.SetDefaultReturnType(visitor.Replace(method.ReturnType));
 

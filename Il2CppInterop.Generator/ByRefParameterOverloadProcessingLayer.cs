@@ -57,22 +57,9 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
                     Debug.Assert(method.MostUserFriendlyOverload == method);
                     method.MostUserFriendlyOverload = newMethod;
 
-                    foreach (var gp in method.GenericParameters)
-                    {
-                        newMethod.GenericParameters.Add(new GenericParameterTypeAnalysisContext(gp.Name, gp.Index, gp.Type, gp.Attributes, newMethod));
-                    }
+                    newMethod.CopyGenericParameters(method, true);
 
                     var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, newMethod);
-
-                    for (var i = 0; i < method.GenericParameters.Count; i++)
-                    {
-                        var originalGp = method.GenericParameters[i];
-                        var newGp = newMethod.GenericParameters[i];
-                        foreach (var constraint in originalGp.ConstraintTypes)
-                        {
-                            newGp.ConstraintTypes.Add(visitor.Replace(constraint));
-                        }
-                    }
 
                     newMethod.SetDefaultReturnType(visitor.Replace(method.ReturnType));
 
