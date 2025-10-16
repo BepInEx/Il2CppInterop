@@ -136,7 +136,7 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                         }
                     }
 
-                    instructions.Add(new Instruction(newMethod.IsStatic ? CilOpCodes.Call : CilOpCodes.Callvirt, method.MaybeMakeConcreteGeneric(type.GenericParameters, newMethod.GenericParameters)));
+                    instructions.Add(new Instruction(newMethod.IsStatic || type.IsValueType ? CilOpCodes.Call : CilOpCodes.Callvirt, method.MaybeMakeConcreteGeneric(type.GenericParameters, newMethod.GenericParameters)));
 
                     instructions.Add(new Instruction(CilOpCodes.Ret));
 
