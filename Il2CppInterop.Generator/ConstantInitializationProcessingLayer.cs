@@ -64,7 +64,7 @@ public class ConstantInitializationProcessingLayer : Cpp2IlProcessingLayer
                     {
                         MonoIl2CppConversion.AddMonoToIl2CppConversion(instructions, field.FieldType);
                     }
-                    instructions.Add(new Instruction(CilOpCodes.Stsfld, field));
+                    instructions.Add(new Instruction(CilOpCodes.Stsfld, field.MaybeMakeConcreteGeneric(type.GenericParameters)));
                 }
             }
         }
