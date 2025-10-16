@@ -155,10 +155,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                             appContext.SystemTypes.SystemVoidType,
                             MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
                             [appContext.SystemTypes.SystemObjectType, appContext.SystemTypes.SystemIntPtrType],
-                            defaultImplAttributes: MethodImplAttributes.Runtime)
-                        {
-                            RuntimeImplemented = true,
-                        });
+                            defaultImplAttributes: MethodImplAttributes.Runtime));
                     }
 
                     // Invoke
@@ -169,10 +166,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                             returnType,
                             MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
                             parameterTypes.ToArray(),
-                            defaultImplAttributes: MethodImplAttributes.Runtime)
-                        {
-                            RuntimeImplemented = true,
-                        });
+                            defaultImplAttributes: MethodImplAttributes.Runtime));
                     }
 
                     // BeginInvoke
@@ -183,10 +177,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                             iasyncResultType,
                             MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
                             parameterTypes.Append(asyncCallbackType).Append(appContext.SystemTypes.SystemObjectType).ToArray(),
-                            defaultImplAttributes: MethodImplAttributes.Runtime)
-                        {
-                            RuntimeImplemented = true,
-                        });
+                            defaultImplAttributes: MethodImplAttributes.Runtime));
                     }
 
                     // EndInvoke
@@ -197,10 +188,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                             returnType,
                             MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
                             [iasyncResultType],
-                            defaultImplAttributes: MethodImplAttributes.Runtime)
-                        {
-                            RuntimeImplemented = true,
-                        });
+                            defaultImplAttributes: MethodImplAttributes.Runtime));
                     }
                 }
 

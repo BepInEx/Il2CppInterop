@@ -9,18 +9,6 @@ internal static class MethodAnalysisContextExtensions
 {
     extension(MethodAnalysisContext method)
     {
-        /// <summary>
-        /// This is a runtime-implemented method. In other words, it should not have a method body because the runtime provides its own implementation.
-        /// </summary>
-        /// <remarks>
-        /// One example of this is in delegate invocation methods.
-        /// </remarks>
-        public bool RuntimeImplemented
-        {
-            get => method.GetExtraData<object>("RuntimeImplemented") is true;
-            set => method.PutExtraData<object>("RuntimeImplemented", value);
-        }
-
         [MaybeNull]
         public FieldAnalysisContext MethodInfoField
         {

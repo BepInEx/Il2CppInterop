@@ -12,15 +12,7 @@ public class AsmResolverDllOutputFormatBinding : AsmResolverDllOutputFormatThrow
 
     protected override void FillMethodBody(MethodDefinition methodDefinition, MethodAnalysisContext methodContext)
     {
-        if (methodContext.RuntimeImplemented)
-        {
-            // This is a runtime-implemented method, so we don't need to do anything.
-        }
-        else if (methodContext.Attributes.HasFlag(System.Reflection.MethodAttributes.Abstract))
-        {
-            // Abstract method, no body needed.
-        }
-        else if (methodContext.TryGetExtraData(out TranslatedMethodBody? translatedBody))
+        if (methodContext.TryGetExtraData(out TranslatedMethodBody? translatedBody))
         {
             translatedBody.FillMethodBody(methodDefinition);
             methodContext.RemoveExtraData<TranslatedMethodBody>(); // Free up memory

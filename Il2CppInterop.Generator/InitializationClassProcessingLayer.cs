@@ -374,10 +374,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                     appContext.SystemTypes.SystemVoidType,
                                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
                                     [appContext.SystemTypes.SystemObjectType, appContext.SystemTypes.SystemIntPtrType],
-                                    defaultImplAttributes: MethodImplAttributes.Runtime)
-                                {
-                                    RuntimeImplemented = true,
-                                });
+                                    defaultImplAttributes: MethodImplAttributes.Runtime));
                             }
 
                             // Invoke
@@ -389,10 +386,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
                                     parameterTypes.ToArray(),
                                     parameterNames.ToArray(),
-                                    defaultImplAttributes: MethodImplAttributes.Runtime)
-                                {
-                                    RuntimeImplemented = true,
-                                };
+                                    defaultImplAttributes: MethodImplAttributes.Runtime);
                                 delegateType.Methods.Add(invokeMethod);
                             }
 
@@ -405,10 +399,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
                                     parameterTypes.Append(asyncCallbackType).Append(appContext.SystemTypes.SystemObjectType).ToArray(),
                                     parameterNames.Append("callback").Append("object").ToArray(),
-                                    defaultImplAttributes: MethodImplAttributes.Runtime)
-                                {
-                                    RuntimeImplemented = true,
-                                });
+                                    defaultImplAttributes: MethodImplAttributes.Runtime));
                             }
 
                             // EndInvoke
@@ -420,10 +411,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
                                     [iasyncResultType],
                                     ["result"],
-                                    defaultImplAttributes: MethodImplAttributes.Runtime)
-                                {
-                                    RuntimeImplemented = true,
-                                });
+                                    defaultImplAttributes: MethodImplAttributes.Runtime));
                             }
                         }
 
