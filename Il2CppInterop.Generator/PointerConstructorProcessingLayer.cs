@@ -33,8 +33,8 @@ public class PointerConstructorProcessingLayer : Cpp2IlProcessingLayer
 
                 // Constructors for formerly static types should be private
                 var attributes = type.DefaultAttributes.HasFlag(TypeAttributes.Abstract) && type.DefaultAttributes.HasFlag(TypeAttributes.Sealed)
-                    ? MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.SpecialName
-                    : MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName;
+                    ? MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName
+                    : MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName;
 
                 var constructor = new InjectedMethodAnalysisContext(
                     type,
