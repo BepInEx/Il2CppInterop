@@ -38,6 +38,10 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
 
         var intPtr_get_Size = appContext.SystemTypes.SystemIntPtrType.GetMethodByName($"get_{nameof(IntPtr.Size)}");
 
+        var il2CppSystemIObject = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IObject");
+        var il2CppSystemIValueType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IValueType");
+        var il2CppSystemIEnum = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IEnum");
+
         foreach (var assembly in appContext.Assemblies)
         {
             if (assembly.IsReferenceAssembly || assembly.IsInjected)
@@ -45,7 +49,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
 
             foreach (var type in assembly.Types)
             {
-                if (type.IsInjected)
+                if (type.IsInjected && type != il2CppSystemIObject && type != il2CppSystemIValueType && type != il2CppSystemIEnum)
                     continue;
 
                 type.InterfaceContexts.Add(iil2CppType);
@@ -53,6 +57,29 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                 var instantiatedType = type.SelfInstantiateIfGeneric();
                 var instantiatedIl2CppTypeGeneric = iil2CppTypeGeneric.MakeGenericInstanceType([instantiatedType]);
                 type.InterfaceContexts.Add(instantiatedIl2CppTypeGeneric);
+
+                TypeAnalysisContext nameReferenceType;
+                TypeAnalysisContext classReferenceType;
+                if (type == il2CppSystemIObject)
+                {
+                    nameReferenceType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Object");
+                    classReferenceType = nameReferenceType;
+                }
+                else if (type == il2CppSystemIValueType)
+                {
+                    nameReferenceType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.ValueType");
+                    classReferenceType = nameReferenceType;
+                }
+                else if (type == il2CppSystemIEnum)
+                {
+                    nameReferenceType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Enum");
+                    classReferenceType = nameReferenceType;
+                }
+                else
+                {
+                    nameReferenceType = type;
+                    classReferenceType = instantiatedType;
+                }
 
                 // Generic constraints
                 foreach (var genericParameter in type.GenericParameters)
@@ -88,7 +115,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     {
                         Instructions =
                         [
-                            new Instruction(CilOpCodes.Ldsfld, new ConcreteGenericFieldAnalysisContext(il2CppClassPointerStore_NativeClassPtr, il2CppClassPointerStore.MakeGenericInstanceType([instantiatedType]))),
+                            new Instruction(CilOpCodes.Ldsfld, new ConcreteGenericFieldAnalysisContext(il2CppClassPointerStore_NativeClassPtr, il2CppClassPointerStore.MakeGenericInstanceType([classReferenceType]))),
                             new Instruction(CilOpCodes.Ret),
                         ],
                     });
@@ -193,7 +220,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                 }
 
                 // Namespace
-                if (type.Namespace != type.DefaultNamespace)
+                if (type.Namespace != nameReferenceType.DefaultNamespace)
                 {
                     var instantiated_iil2CppTypeGeneric_get_Namespace = new ConcreteGenericMethodAnalysisContext(iil2CppTypeGeneric_get_Namespace, [instantiatedType], []);
                     var methodName = $"{instantiatedIl2CppTypeGeneric.FullName}.get_{nameof(IIl2CppType<>.Namespace)}";
@@ -213,7 +240,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     {
                         Instructions =
                         [
-                            new Instruction(CilOpCodes.Ldstr, type.DefaultNamespace),
+                            new Instruction(CilOpCodes.Ldstr, nameReferenceType.DefaultNamespace),
                             new Instruction(CilOpCodes.Ret),
                         ],
                     });
@@ -233,7 +260,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                 }
 
                 // Name
-                if (type.Name != type.DefaultName)
+                if (type.Name != nameReferenceType.DefaultName)
                 {
                     var instantiated_iil2CppTypeGeneric_get_Name = new ConcreteGenericMethodAnalysisContext(iil2CppTypeGeneric_get_Name, [instantiatedType], []);
                     var methodName = $"{instantiatedIl2CppTypeGeneric.FullName}.get_{nameof(IIl2CppType<>.Name)}";
@@ -253,7 +280,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     {
                         Instructions =
                         [
-                            new Instruction(CilOpCodes.Ldstr, type.DefaultName),
+                            new Instruction(CilOpCodes.Ldstr, nameReferenceType.DefaultName),
                             new Instruction(CilOpCodes.Ret),
                         ],
                     });
