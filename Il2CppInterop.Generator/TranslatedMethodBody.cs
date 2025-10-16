@@ -347,8 +347,16 @@ public class TranslatedMethodBody : MethodBodyBase
             }
             else if (originalOperand is byte or sbyte or short or ushort or int or uint or long or ulong or float or double or bool or char)
             {
-                translatedInstruction.Code = originalCode;
-                translatedInstruction.Operand = originalOperand;
+                if (originalCode == CilOpCodes.Unaligned)
+                {
+                    // This op code can be ignored.
+                    translatedInstruction.Code = CilOpCodes.Nop;
+                }
+                else
+                {
+                    translatedInstruction.Code = originalCode;
+                    translatedInstruction.Operand = originalOperand;
+                }
             }
             else if (originalOperand is string)
             {
