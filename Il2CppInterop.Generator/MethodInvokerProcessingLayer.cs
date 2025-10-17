@@ -51,28 +51,28 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                     if (method.IsInjected)
                         continue;
 
-                    InjectedMethodAnalysisContext invoker;
+                    InjectedMethodAnalysisContext implementationMethod;
                     {
                         var name = GetNonConflictingName(method.IsInstanceConstructor ? "UnsafeConstructor" : $"UnsafeImplementation_{method.Name.Replace('.', '_')}", existingNames);
 
-                        invoker = new InjectedMethodAnalysisContext(
+                        implementationMethod = new InjectedMethodAnalysisContext(
                             type,
                             name,
                             type, // Placeholder return type
-                            MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
+                            MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static,
                             [])
                         {
                             IsInjected = true,
                         };
-                        type.Methods.Add(invoker);
+                        type.Methods.Add(implementationMethod);
 
-                        method.UnsafeImplementationMethod = invoker;
+                        method.UnsafeImplementationMethod = implementationMethod;
 
-                        invoker.CopyGenericParameters(method, true, true);
+                        implementationMethod.CopyGenericParameters(method, true, true);
 
-                        var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, invoker);
+                        var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, implementationMethod);
 
-                        invoker.SetDefaultReturnType(visitor.Replace(method.ReturnType));
+                        implementationMethod.SetDefaultReturnType(visitor.Replace(method.ReturnType));
 
                         if (!method.IsStatic)
                         {
@@ -89,8 +89,8 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                                 byReference.MakeGenericInstanceType([redirectedType]),
                                 ParameterAttributes.None,
                                 0,
-                                invoker);
-                            invoker.Parameters.Add(newParameter);
+                                implementationMethod);
+                            implementationMethod.Parameters.Add(newParameter);
                         }
 
                         foreach (var originalParameter in method.Parameters)
@@ -101,19 +101,19 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                                 originalParameter.Name,
                                 newParameterType,
                                 originalParameter.Attributes,
-                                invoker.Parameters.Count,
-                                invoker);
-                            invoker.Parameters.Add(newParameter);
+                                implementationMethod.Parameters.Count,
+                                implementationMethod);
+                            implementationMethod.Parameters.Add(newParameter);
                         }
                     }
 
                     InjectedMethodAnalysisContext? valueTypeHelper = null;
-                    InjectedMethodAnalysisContext? constructorHelper = null;
+                    InjectedMethodAnalysisContext? referenceTypeHelper = null;
                     if (method.IsStatic)
                     {
                         // No helper needed
                     }
-                    else if (method.IsInstanceConstructor || type.IsValueType)
+                    else
                     {
                         var name = method.IsInstanceConstructor
                             ? GetNonConflictingName("UnsafeConstruct", existingNames)
@@ -207,7 +207,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(CilOpCodes.Ldloc, parameterLocal);
                         }
 
-                        instructions.Add(CilOpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(CilOpCodes.Call, implementationMethod.MaybeMakeConcreteGeneric(type.GenericParameters, []));
 
                         instructions.Add(CilOpCodes.Ret);
 
@@ -223,8 +223,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         }
                         else
                         {
-                            Debug.Assert(method.IsInstanceConstructor);
-                            constructorHelper = helper;
+                            referenceTypeHelper = helper;
                         }
                     }
 
@@ -269,24 +268,27 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             LocalVariables = [instanceLocal],
                         });
                     }
-                    else if (constructorHelper is not null)
+                    else if (referenceTypeHelper is not null)
                     {
-                        Debug.Assert(method.IsInstanceConstructor);
+                        Debug.Assert(!method.IsStatic);
                         Debug.Assert(!type.IsValueType);
-                        Debug.Assert(type.PointerConstructor is not null);
 
                         List<Instruction> instructions = [];
 
-                        instructions.Add(CilOpCodes.Ldarg, This.Instance);
-                        instructions.Add(CilOpCodes.Call, newObjectPointer.MakeGenericInstanceMethod(instantiatedType));
-                        instructions.Add(CilOpCodes.Call, type.PointerConstructor!.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        if (method.IsInstanceConstructor)
+                        {
+                            Debug.Assert(type.PointerConstructor is not null);
+                            instructions.Add(CilOpCodes.Ldarg, This.Instance);
+                            instructions.Add(CilOpCodes.Call, newObjectPointer.MakeGenericInstanceMethod(instantiatedType));
+                            instructions.Add(CilOpCodes.Call, type.PointerConstructor!.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        }
 
                         instructions.Add(CilOpCodes.Ldarg, This.Instance);
                         foreach (var parameter in method.Parameters)
                         {
                             instructions.Add(CilOpCodes.Ldarg, parameter);
                         }
-                        instructions.Add(CilOpCodes.Call, constructorHelper.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(CilOpCodes.Call, referenceTypeHelper.MaybeMakeConcreteGeneric(type.GenericParameters, []));
                         instructions.Add(CilOpCodes.Ret);
 
                         method.PutExtraData(new NativeMethodBody()
@@ -297,55 +299,11 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                     }
                     else
                     {
-                        Debug.Assert(!method.IsInstanceConstructor);
+                        Debug.Assert(method.IsStatic);
 
                         List<Instruction> instructions = new();
 
-                        LocalVariable? instanceLocal;
-                        if (method.IsStatic)
-                        {
-                            instanceLocal = null;
-                        }
-                        else
-                        {
-                            var byRefType = invoker.Parameters[0].ParameterType;
-                            var byRefElementType = ((GenericInstanceTypeAnalysisContext)byRefType).GenericArguments[0];
-
-                            instanceLocal = new(byRefType);
-
-                            instructions.Add(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(byRefElementType));
-                            instructions.Add(CilOpCodes.Conv_U);
-                            instructions.Add(CilOpCodes.Localloc);
-                            instructions.Add(CilOpCodes.Newobj, new ConcreteGenericMethodAnalysisContext(byReference_Constructor, [byRefElementType], []));
-                            instructions.Add(CilOpCodes.Stloc, instanceLocal);
-
-                            if (type.IsValueType)
-                            {
-                                instructions.Add(CilOpCodes.Ldloca, instanceLocal);
-                                instructions.Add(CilOpCodes.Ldarg, This.Instance);
-                                instructions.Add(CilOpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([byRefElementType], []));
-                            }
-                            else
-                            {
-                                instructions.Add(CilOpCodes.Ldloca, instanceLocal);
-                                instructions.Add(CilOpCodes.Ldarg, This.Instance);
-                                instructions.Add(CilOpCodes.Call, byReference_SetValue.MakeConcreteGeneric([byRefElementType], []));
-                            }
-                        }
-
-                        LocalVariable[] localVariables;
-                        Span<LocalVariable> parameterLocals;
-                        if (instanceLocal is not null)
-                        {
-                            localVariables = new LocalVariable[method.Parameters.Count + 1];
-                            localVariables[0] = instanceLocal;
-                            parameterLocals = localVariables.AsSpan(1);
-                        }
-                        else
-                        {
-                            localVariables = new LocalVariable[method.Parameters.Count];
-                            parameterLocals = localVariables;
-                        }
+                        LocalVariable[] parameterLocals = new LocalVariable[method.Parameters.Count];
 
                         for (var i = 0; i < method.Parameters.Count; i++)
                         {
@@ -364,31 +322,19 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(CilOpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
                         }
 
-                        if (instanceLocal is not null)
-                        {
-                            instructions.Add(CilOpCodes.Ldloc, instanceLocal);
-                        }
-
                         foreach (var parameterLocal in parameterLocals)
                         {
                             instructions.Add(CilOpCodes.Ldloc, parameterLocal);
                         }
 
-                        instructions.Add(CilOpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
-
-                        if (instanceLocal is not null && type.IsValueType)
-                        {
-                            instructions.Add(CilOpCodes.Ldloca, instanceLocal);
-                            instructions.Add(CilOpCodes.Ldarg, This.Instance);
-                            instructions.Add(CilOpCodes.Call, byReference_CopyTo.MakeConcreteGeneric([instantiatedType], []));
-                        }
+                        instructions.Add(CilOpCodes.Call, implementationMethod.MaybeMakeConcreteGeneric(type.GenericParameters, []));
 
                         instructions.Add(CilOpCodes.Ret);
 
                         method.PutExtraData(new NativeMethodBody()
                         {
                             Instructions = instructions,
-                            LocalVariables = localVariables,
+                            LocalVariables = parameterLocals,
                         });
                     }
 
@@ -423,11 +369,6 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         if (method.UnsafeInvokeMethod is not null)
                         {
                             method.InterfaceRedirectMethod!.UnsafeInvokeMethod = method.UnsafeInvokeMethod!;
-                        }
-
-                        if (method.UnsafeImplementationMethod is not null)
-                        {
-                            method.InterfaceRedirectMethod!.UnsafeImplementationMethod = method.UnsafeImplementationMethod!;
                         }
                     }
                 }
