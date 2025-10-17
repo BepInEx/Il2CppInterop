@@ -113,11 +113,13 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                     {
                         // No helper needed
                     }
-                    else if (!method.IsInstanceConstructor && type.IsValueType)
+                    else if (method.IsInstanceConstructor || type.IsValueType)
                     {
-                        var name = GetNonConflictingName($"UnsafeInvoke_{method.Name.Replace('.', '_')}", existingNames);
+                        var name = method.IsInstanceConstructor
+                            ? GetNonConflictingName("UnsafeConstruct", existingNames)
+                            : GetNonConflictingName($"UnsafeInvoke_{method.Name.Replace('.', '_')}", existingNames);
 
-                        valueTypeHelper = new InjectedMethodAnalysisContext(
+                        var helper = new InjectedMethodAnalysisContext(
                             type,
                             name,
                             type, // Placeholder return type
@@ -126,110 +128,36 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         {
                             IsInjected = true,
                         };
-                        type.Methods.Add(valueTypeHelper);
+                        type.Methods.Add(helper);
 
-                        method.UnsafeInvokeMethod = valueTypeHelper;
+                        method.UnsafeInvokeMethod = helper;
 
-                        valueTypeHelper.CopyGenericParameters(method, true, true);
+                        helper.CopyGenericParameters(method, true, true);
 
-                        var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, valueTypeHelper);
+                        var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, helper);
 
-                        valueTypeHelper.SetDefaultReturnType(visitor.Replace(method.ReturnType));
+                        helper.SetDefaultReturnType(visitor.Replace(method.ReturnType));
 
                         // "this" parameter
+                        if (type.IsValueType)
                         {
                             var newParameter = new InjectedParameterAnalysisContext(
                                 null,
                                 byReference.MakeGenericInstanceType([instantiatedType]),
                                 ParameterAttributes.None,
                                 0,
-                                valueTypeHelper);
-                            valueTypeHelper.Parameters.Add(newParameter);
+                                helper);
+                            helper.Parameters.Add(newParameter);
                         }
-
-                        foreach (var originalParameter in method.Parameters)
-                        {
-                            var newParameterType = visitor.Replace(originalParameter.ParameterType);
-
-                            var newParameter = new InjectedParameterAnalysisContext(
-                                originalParameter.Name,
-                                newParameterType,
-                                originalParameter.Attributes,
-                                valueTypeHelper.Parameters.Count,
-                                valueTypeHelper);
-                            valueTypeHelper.Parameters.Add(newParameter);
-                        }
-
-                        List<Instruction> instructions = new();
-
-                        LocalVariable[] localVariables = new LocalVariable[method.Parameters.Count];
-
-                        for (var i = 1; i < valueTypeHelper.Parameters.Count; i++)
-                        {
-                            var parameter = valueTypeHelper.Parameters[i];
-                            var parameterLocal = new LocalVariable(byReference.MakeGenericInstanceType([parameter.ParameterType]));
-                            localVariables[i - 1] = parameterLocal;
-
-                            instructions.Add(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
-                            instructions.Add(CilOpCodes.Conv_U);
-                            instructions.Add(CilOpCodes.Localloc);
-                            instructions.Add(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([parameter.ParameterType], []));
-                            instructions.Add(CilOpCodes.Stloc, parameterLocal);
-
-                            instructions.Add(CilOpCodes.Ldloca, parameterLocal);
-                            instructions.Add(CilOpCodes.Ldarg, parameter);
-                            instructions.Add(CilOpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
-                        }
-
-                        instructions.Add(CilOpCodes.Ldarg, valueTypeHelper.Parameters[0]);
-
-                        foreach (var parameterLocal in localVariables)
-                        {
-                            instructions.Add(CilOpCodes.Ldloc, parameterLocal);
-                        }
-
-                        instructions.Add(CilOpCodes.Call, invoker.MaybeMakeConcreteGeneric(type.GenericParameters, []));
-
-                        instructions.Add(CilOpCodes.Ret);
-
-                        valueTypeHelper.PutExtraData(new NativeMethodBody()
-                        {
-                            Instructions = instructions,
-                            LocalVariables = localVariables,
-                        });
-                    }
-                    else if (method.IsInstanceConstructor && !type.IsValueType)
-                    {
-                        var name = GetNonConflictingName("UnsafeConstruct", existingNames);
-
-                        constructorHelper = new InjectedMethodAnalysisContext(
-                            type,
-                            name,
-                            type, // Placeholder return type
-                            MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
-                            [])
-                        {
-                            IsInjected = true,
-                        };
-                        type.Methods.Add(constructorHelper);
-
-                        method.UnsafeInvokeMethod = constructorHelper;
-
-                        constructorHelper.CopyGenericParameters(method, true, true);
-
-                        var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, constructorHelper);
-
-                        constructorHelper.SetDefaultReturnType(visitor.Replace(method.ReturnType));
-
-                        // "this" parameter
+                        else
                         {
                             var newParameter = new InjectedParameterAnalysisContext(
                                 null,
                                 instantiatedType,
                                 ParameterAttributes.None,
                                 0,
-                                constructorHelper);
-                            constructorHelper.Parameters.Add(newParameter);
+                                helper);
+                            helper.Parameters.Add(newParameter);
                         }
 
                         foreach (var originalParameter in method.Parameters)
@@ -240,20 +168,23 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                                 originalParameter.Name,
                                 newParameterType,
                                 originalParameter.Attributes,
-                                constructorHelper.Parameters.Count,
-                                constructorHelper);
-                            constructorHelper.Parameters.Add(newParameter);
+                                helper.Parameters.Count,
+                                helper);
+                            helper.Parameters.Add(newParameter);
                         }
 
                         List<Instruction> instructions = new();
 
-                        LocalVariable[] localVariables = new LocalVariable[method.Parameters.Count + 1];
+                        var thisIsLocal = !type.IsValueType;
+                        var localVariablesOffset = thisIsLocal ? 0 : 1;
+                        var localVariablesCount = thisIsLocal ? method.Parameters.Count + 1 : method.Parameters.Count;
+                        LocalVariable[] localVariables = new LocalVariable[localVariablesCount];
 
-                        for (var i = 0; i < constructorHelper.Parameters.Count; i++)
+                        for (var i = localVariablesOffset; i < helper.Parameters.Count; i++)
                         {
-                            var parameter = constructorHelper.Parameters[i];
+                            var parameter = helper.Parameters[i];
                             var parameterLocal = new LocalVariable(byReference.MakeGenericInstanceType([parameter.ParameterType]));
-                            localVariables[i] = parameterLocal;
+                            localVariables[i - localVariablesOffset] = parameterLocal;
 
                             instructions.Add(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
                             instructions.Add(CilOpCodes.Conv_U);
@@ -266,6 +197,11 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(CilOpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
                         }
 
+                        if (!thisIsLocal)
+                        {
+                            instructions.Add(CilOpCodes.Ldarg, helper.Parameters[0]);
+                        }
+
                         foreach (var parameterLocal in localVariables)
                         {
                             instructions.Add(CilOpCodes.Ldloc, parameterLocal);
@@ -275,18 +211,27 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                         instructions.Add(CilOpCodes.Ret);
 
-                        constructorHelper.PutExtraData(new NativeMethodBody()
+                        helper.PutExtraData(new NativeMethodBody()
                         {
                             Instructions = instructions,
                             LocalVariables = localVariables,
                         });
+
+                        if (type.IsValueType)
+                        {
+                            valueTypeHelper = helper;
+                        }
+                        else
+                        {
+                            Debug.Assert(method.IsInstanceConstructor);
+                            constructorHelper = helper;
+                        }
                     }
 
                     // Method body
                     if (valueTypeHelper is not null)
                     {
                         Debug.Assert(!method.IsStatic);
-                        Debug.Assert(!method.IsInstanceConstructor);
                         Debug.Assert(type.IsValueType);
 
                         List<Instruction> instructions = new();
@@ -352,16 +297,9 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                     }
                     else
                     {
+                        Debug.Assert(!method.IsInstanceConstructor);
+
                         List<Instruction> instructions = new();
-
-                        if (method.IsInstanceConstructor && !type.IsValueType)
-                        {
-                            Debug.Assert(type.PointerConstructor is not null);
-
-                            instructions.Add(CilOpCodes.Ldarg, This.Instance);
-                            instructions.Add(CilOpCodes.Call, newObjectPointer.MakeGenericInstanceMethod(instantiatedType));
-                            instructions.Add(CilOpCodes.Call, type.PointerConstructor!.MaybeMakeConcreteGeneric(type.GenericParameters, []));
-                        }
 
                         LocalVariable? instanceLocal;
                         if (method.IsStatic)
