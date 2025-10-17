@@ -52,6 +52,31 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
 
                     List<Instruction> instructions = new();
 
+                    LocalVariable? argumentsArrayLocal = null;
+                    if (argumentCount > 0)
+                    {
+                        argumentsArrayLocal = new LocalVariable(intptrPointerType);
+
+                        instructions.Add(CilOpCodes.Ldc_I4, argumentCount);
+                        instructions.Add(CilOpCodes.Conv_U);
+                        instructions.Add(CilOpCodes.Sizeof, appContext.SystemTypes.SystemIntPtrType);
+                        instructions.Add(CilOpCodes.Mul_Ovf_Un);
+                        instructions.Add(CilOpCodes.Localloc);
+
+                        var startIndex = hasThis ? 1 : 0;
+                        for (var i = 0; i < argumentCount; i++)
+                        {
+                            var parameter = implementation.Parameters[startIndex + i];
+                            var dataType = ((GenericInstanceTypeAnalysisContext)parameter.ParameterType).GenericArguments[0];
+                            instructions.Add(CilOpCodes.Dup);
+                            AddOffsetForPointerIndex(instructions, i, appContext);
+                            instructions.Add(CilOpCodes.Ldarg, parameter);
+                            instructions.Add(CilOpCodes.Call, getPointerForParameter.MakeGenericInstanceMethod(dataType));
+                            instructions.Add(CilOpCodes.Stind_I);
+                        }
+                        instructions.Add(CilOpCodes.Stloc, argumentsArrayLocal);
+                    }
+
                     // Method info
                     {
                         var methodInfoField = method.MethodInfoField;
@@ -79,25 +104,9 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
                     }
 
                     // Arguments array
-                    if (argumentCount > 0)
+                    if (argumentsArrayLocal is not null)
                     {
-                        instructions.Add(CilOpCodes.Ldc_I4, argumentCount);
-                        instructions.Add(CilOpCodes.Conv_U);
-                        instructions.Add(CilOpCodes.Sizeof, appContext.SystemTypes.SystemIntPtrType);
-                        instructions.Add(CilOpCodes.Mul_Ovf_Un);
-                        instructions.Add(CilOpCodes.Localloc);
-
-                        var startIndex = hasThis ? 1 : 0;
-                        for (var i = 0; i < argumentCount; i++)
-                        {
-                            var parameter = implementation.Parameters[startIndex + i];
-                            var dataType = ((GenericInstanceTypeAnalysisContext)parameter.ParameterType).GenericArguments[0];
-                            instructions.Add(CilOpCodes.Dup);
-                            AddOffsetForPointerIndex(instructions, i, appContext);
-                            instructions.Add(CilOpCodes.Ldarg, parameter);
-                            instructions.Add(CilOpCodes.Call, getPointerForParameter.MakeGenericInstanceMethod(dataType));
-                            instructions.Add(CilOpCodes.Stind_I);
-                        }
+                        instructions.Add(CilOpCodes.Ldloc, argumentsArrayLocal);
                     }
                     else
                     {
@@ -119,6 +128,7 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
                     implementation.PutExtraData(new NativeMethodBody()
                     {
                         Instructions = instructions,
+                        LocalVariables = argumentsArrayLocal is not null ? [argumentsArrayLocal] : [],
                     });
                 }
             }
