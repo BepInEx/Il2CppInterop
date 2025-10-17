@@ -270,7 +270,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             methodInfoPtrGenericClass.IsInjected = true;
                             methodInfoPtrGenericClass.CopyGenericParameters(initializationType, false, true);
                             methodInfoPtrGenericClass.CopyGenericParameters(method, false, true);
-                            methodInfoPtrGenericClass.GenericParameters.CopyConstraintsFrom([..initializationType.GenericParameters, ..method.GenericParameters]);
+                            methodInfoPtrGenericClass.GenericParameters.CopyConstraintsFrom([.. initializationType.GenericParameters, .. method.GenericParameters]);
 
                             var methodInfoPtrGenericField = methodInfoPtrGenericClass.InjectFieldContext(
                                 "Pointer",
