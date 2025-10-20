@@ -73,10 +73,21 @@ public class TranslatedMethodBody : MethodBodyBase
             instructionDictionary[originalInstruction] = new Instruction();
         }
 
+        var handlerStarts = originalMethodBody.ExceptionHandlers.Select(eh => eh.HandlerStart).OfType<Instruction>().ToHashSet();
+
         var translatedInstructions = new List<Instruction>(originalMethodBody.Instructions.Count);
         foreach (var originalInstruction in originalMethodBody.Instructions)
         {
             var translatedInstruction = instructionDictionary[originalInstruction];
+
+            if (handlerStarts.Contains(originalInstruction))
+            {
+                // Ensure that the start of the exception handler is a nop,
+                // so that we can insert any necessary instructions at the beginning of the handler.
+                translatedInstruction.Code = CilOpCodes.Nop;
+                translatedInstructions.Add(translatedInstruction);
+                translatedInstruction = new Instruction();
+            }
 
             translatedInstructions.Add(translatedInstruction);
 
@@ -959,13 +970,13 @@ public class TranslatedMethodBody : MethodBodyBase
                 // The system exception wrapper contains a reference to the underlying Il2Cpp object.
                 // We need to load the object reference after entering the exception handler.
 
-                Debug.Assert(handlerStart is Instruction);
+                Debug.Assert(handlerStart is Instruction { Code.Code: CilCode.Nop });
                 var handlerStartIndex = translatedInstructions.IndexOf((Instruction)handlerStart);
 
                 var loadObjectInstruction = new Instruction(CilOpCodes.Ldfld, methodContext.AppContext.ResolveTypeOrThrow(typeof(Il2CppException)).GetFieldByName(nameof(Il2CppException.Il2cppObject)));
                 var castInstruction = new Instruction(CilOpCodes.Castclass, originalExceptionHandler.ExceptionType);
-                translatedInstructions.Insert(handlerStartIndex, loadObjectInstruction);
-                translatedInstructions.Insert(handlerStartIndex + 1, castInstruction);
+                translatedInstructions.Insert(handlerStartIndex + 1, loadObjectInstruction);
+                translatedInstructions.Insert(handlerStartIndex + 2, castInstruction);
 
                 handlerStart = loadObjectInstruction;
             }
