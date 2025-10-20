@@ -977,8 +977,6 @@ public class TranslatedMethodBody : MethodBodyBase
                 var castInstruction = new Instruction(CilOpCodes.Castclass, originalExceptionHandler.ExceptionType);
                 translatedInstructions.Insert(handlerStartIndex + 1, loadObjectInstruction);
                 translatedInstructions.Insert(handlerStartIndex + 2, castInstruction);
-
-                handlerStart = loadObjectInstruction;
             }
 
             var translatedExceptionHandler = new ExceptionHandler
