@@ -109,6 +109,21 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
 
                     field.OverrideAttributes = field.Attributes & ~FlagsToRemove;
                 }
+
+                foreach (var property in type.Properties)
+                {
+                    if (property.IsInjected)
+                    {
+                        continue;
+                    }
+
+                    const PropertyAttributes FlagsToRemove =
+                        PropertyAttributes.HasDefault;
+
+                    property.OverrideAttributes = property.Attributes & ~FlagsToRemove;
+                }
+
+                // There are no event attributes that need to be modified.
             }
         }
     }
