@@ -41,6 +41,22 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                     type.Methods.Add(constructor);
                 }
 
+                // Remove 
+                {
+#pragma warning disable SYSLIB0050 // Type or member is obsolete
+                    const TypeAttributes TypeFlagsToRemove =
+                        TypeAttributes.AutoClass |
+                        TypeAttributes.HasSecurity |
+                        TypeAttributes.Import |
+                        TypeAttributes.RTSpecialName |
+                        TypeAttributes.Serializable |
+                        TypeAttributes.UnicodeClass |
+                        TypeAttributes.WindowsRuntime;
+#pragma warning restore SYSLIB0050 // Type or member is obsolete
+
+                    type.OverrideAttributes = type.Attributes & ~TypeFlagsToRemove;
+                }
+
                 foreach (var method in type.Methods)
                 {
                     if (method.IsInjected)
@@ -60,10 +76,6 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
 
                     foreach (var parameter in method.Parameters)
                     {
-                        // Todo: make a Cpp2IL pull request so that Cpp2IL respects HasDefault.
-                        // https://github.com/SamboyCoding/Cpp2IL/blob/d5260685fddb380f0ee884521d28c8309b2aff7e/Cpp2IL.Core/Model/Contexts/ParameterAnalysisContext.cs#L57
-                        // https://github.com/SamboyCoding/Cpp2IL/blob/d5260685fddb380f0ee884521d28c8309b2aff7e/Cpp2IL.Core/Model/Contexts/ParameterAnalysisContext.cs#L75-L78
-                        // https://github.com/SamboyCoding/Cpp2IL/blob/d5260685fddb380f0ee884521d28c8309b2aff7e/Cpp2IL.Core/Utils/AsmResolver/AsmResolverAssemblyPopulator.cs#L377-L386
                         const ParameterAttributes ParamFlagsToRemove =
                             ParameterAttributes.Optional |
                             ParameterAttributes.HasDefault |
