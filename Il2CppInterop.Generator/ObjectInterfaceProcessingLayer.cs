@@ -123,7 +123,7 @@ public class ObjectInterfaceProcessingLayer : Cpp2IlProcessingLayer
             classMethod.DefaultName,
             classMethod.ReturnType,
             explicitlyImplements
-                ? MethodAttributes.Private | MethodAttributes.Virtual | MethodAttributes.HideBySig
+                ? MethodAttributes.Private | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.Final
                 : MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.NewSlot,
             classMethod.Parameters.Select(p => p.ParameterType).ToArray(),
             classMethod.Parameters.Select(p => p.Name).ToArray(),
