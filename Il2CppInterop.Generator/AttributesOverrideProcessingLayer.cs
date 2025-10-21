@@ -41,7 +41,7 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                     type.Methods.Add(constructor);
                 }
 
-                // Remove 
+                // Remove bad flags from type
                 {
 #pragma warning disable SYSLIB0050 // Type or member is obsolete
                     const TypeAttributes TypeFlagsToRemove =

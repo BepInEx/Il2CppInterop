@@ -34,7 +34,11 @@ public class ReferenceReplacementProcessingLayer : Cpp2IlProcessingLayer
 
             foreach (var type in assembly.Types)
             {
-                if (type.IsStatic || type.IsInterface)
+                if (type.IsInterface)
+                {
+                    type.OverrideBaseType = null;
+                }
+                else if (type.IsStatic)
                 {
                     type.OverrideBaseType = monoSystemObject;
                 }

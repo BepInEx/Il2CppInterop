@@ -89,8 +89,7 @@ public class ObjectInterfaceProcessingLayer : Cpp2IlProcessingLayer
 
     private static InjectedTypeAnalysisContext InjectInterface(ApplicationAnalysisContext appContext, string name)
     {
-        var result = appContext.Il2CppMscorlib.InjectType("Il2CppSystem", name, appContext.SystemTypes.SystemObjectType,
-            TypeAttributes.Public | TypeAttributes.Interface | TypeAttributes.Abstract);
+        var result = appContext.Il2CppMscorlib.InjectType("Il2CppSystem", name, null, TypeAttributes.Public | TypeAttributes.Interface | TypeAttributes.Abstract);
         result.IsInjected = true;
         return result;
     }
