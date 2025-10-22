@@ -5,10 +5,10 @@ namespace Il2CppInterop.Common.XrefScans;
 
 internal static class XrefScanUtil
 {
-    private static InitMetadataForMethod ourMetadataInitForMethodDelegate;
+    private static InitMetadataForMethod? ourMetadataInitForMethodDelegate;
     private static IntPtr ourMetadataInitForMethodPointer;
 
-    internal static event Func<(InitMetadataForMethod, IntPtr)> InitRuntimeUtils;
+    internal static event Func<(InitMetadataForMethod, IntPtr)>? InitRuntimeUtils;
 
     internal static unsafe bool CallMetadataInitForMethod(MethodBase method)
     {
@@ -43,7 +43,7 @@ internal static class XrefScanUtil
 
         if (Marshal.ReadByte(initFlagPointer) == 0)
         {
-            ourMetadataInitForMethodDelegate(Marshal.ReadInt32(tokenPointer));
+            ourMetadataInitForMethodDelegate?.Invoke(Marshal.ReadInt32(tokenPointer));
             Marshal.WriteByte(initFlagPointer, 1);
         }
 

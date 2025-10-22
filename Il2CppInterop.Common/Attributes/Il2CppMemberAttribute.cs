@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Il2CppInterop.Common.Attributes;
+﻿namespace Il2CppInterop.Common.Attributes;
 
 public abstract class Il2CppMemberAttribute : Attribute
 {

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Il2CppInterop.Common.Attributes;
+﻿namespace Il2CppInterop.Common.Attributes;
 
 /// <summary>
 /// Indicates that the attributed property is associated with a property in the IL2CPP runtime.

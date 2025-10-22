@@ -1,4 +1,3 @@
-#nullable enable
 using System.Reflection;
 
 namespace Il2CppInterop.Common.XrefScans;

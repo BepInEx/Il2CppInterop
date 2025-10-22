@@ -12,7 +12,7 @@ public static class XrefScanMethodDb
     private static readonly MethodXrefScanCache XrefScanCache;
     private static readonly long GameAssemblyBase;
 
-    private static XrefScanUtil.InitMetadataForMethod ourMetadataInitForMethodDelegate;
+    private static XrefScanUtil.InitMetadataForMethod? ourMetadataInitForMethodDelegate;
 
     static XrefScanMethodDb()
     {
@@ -28,7 +28,7 @@ public static class XrefScanMethodDb
             }
     }
 
-    public static MethodBase TryResolvePointer(IntPtr methodStart)
+    public static MethodBase? TryResolvePointer(IntPtr methodStart)
     {
         return MethodMap.Lookup((long)methodStart - GameAssemblyBase);
     }

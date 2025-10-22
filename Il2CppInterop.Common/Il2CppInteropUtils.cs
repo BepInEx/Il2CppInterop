@@ -26,12 +26,12 @@ public static class Il2CppInteropUtils
         return null;
     }
 
-    public static FieldInfo GetIl2CppMethodInfoPointerFieldForGeneratedMethod(MethodBase method)
+    public static FieldInfo? GetIl2CppMethodInfoPointerFieldForGeneratedMethod(MethodBase method)
     {
         return GetFieldInfoFromMethod(method, "NativeMethodInfoPtr_");
     }
 
-    public static FieldInfo GetIl2CppFieldInfoPointerFieldForGeneratedFieldAccessor(MethodBase method)
+    public static FieldInfo? GetIl2CppFieldInfoPointerFieldForGeneratedFieldAccessor(MethodBase method)
     {
         return GetFieldInfoFromMethod(method, "NativeFieldInfoPtr_");
     }
