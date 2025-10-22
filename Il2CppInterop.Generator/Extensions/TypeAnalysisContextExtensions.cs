@@ -232,6 +232,18 @@ internal static class TypeAnalysisContextExtensions
                 return type.MakeGenericInstanceType(type.GenericParameters);
             }
         }
+
+        public bool ImplementsInterface(TypeAnalysisContext interfaceType)
+        {
+            foreach (var implementedInterface in type.InterfaceContexts)
+            {
+                if (TypeAnalysisContextEqualityComparer.Instance.Equals(implementedInterface, interfaceType))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private static MethodAnalysisContext GetConversion([ConstantExpected] string name, TypeAnalysisContext declaringType, TypeAnalysisContext sourceType, TypeAnalysisContext targetType)
