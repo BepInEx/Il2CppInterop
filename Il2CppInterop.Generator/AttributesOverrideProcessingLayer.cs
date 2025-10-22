@@ -57,6 +57,11 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                     type.OverrideAttributes = type.Attributes & ~TypeFlagsToRemove;
                 }
 
+                if (!type.IsValueType)
+                {
+                    type.OverrideAttributes = type.Attributes & ~TypeAttributes.LayoutMask;
+                }
+
                 foreach (var genericParameter in type.GenericParameters)
                 {
                     const GenericParameterAttributes GenericParamFlagsToRemove =
