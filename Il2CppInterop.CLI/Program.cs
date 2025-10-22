@@ -10,7 +10,7 @@ Il2CppGame.Process(
     new AsmResolverDllOutputFormatBinding(),
     [
         new AttributeAnalysisProcessingLayer(), // Needed for recovery of params and unmanaged constraints
-        new StableRenamingProcessingLayer(),
+        //new StableRenamingProcessingLayer(),
         new UnstripProcessingLayer(), // Can be disabled for performance during development
         new Il2CppRenamingProcessingLayer(),
         new CleanRenamingProcessingLayer(),
