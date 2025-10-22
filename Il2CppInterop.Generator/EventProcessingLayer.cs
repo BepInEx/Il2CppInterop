@@ -2,7 +2,7 @@
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Cpp2IL.Core.Model.CustomAttributes;
-using Il2CppInterop.Runtime.Attributes;
+using Il2CppInterop.Common.Attributes;
 
 namespace Il2CppInterop.Generator;
 

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Il2CppInterop.Runtime.Attributes;
+namespace Il2CppInterop.Common.Attributes;
 
 /// <summary>
 /// Indicates that the attributed field is associated with a field in the IL2CPP runtime.

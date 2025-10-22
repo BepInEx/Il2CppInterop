@@ -2,8 +2,8 @@
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Common;
+using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Runtime;
-using Il2CppInterop.Runtime.Attributes;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
