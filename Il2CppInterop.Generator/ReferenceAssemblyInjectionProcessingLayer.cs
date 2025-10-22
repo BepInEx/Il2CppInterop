@@ -20,6 +20,12 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
         Type[] il2CppInteropCommonTypes =
         [
             typeof(ObjectPointer),
+
+            typeof(Il2CppMemberAttribute),
+            typeof(Il2CppMethodAttribute),
+            typeof(Il2CppFieldAttribute),
+            typeof(Il2CppPropertyAttribute),
+            typeof(Il2CppEventAttribute),
         ];
         InjectTypes(appContext, typeof(ObjectPointer).Assembly, il2CppInteropCommonTypes);
 
@@ -48,12 +54,6 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(IIl2CppException),
             typeof(RuntimeInvokeHelper),
             typeof(Il2CppTypeHelper),
-
-            typeof(Il2CppMemberAttribute),
-            typeof(Il2CppMethodAttribute),
-            typeof(Il2CppFieldAttribute),
-            typeof(Il2CppPropertyAttribute),
-            typeof(Il2CppEventAttribute),
 
             // Because of ClassInjector
             typeof(RegisterTypeOptions),
