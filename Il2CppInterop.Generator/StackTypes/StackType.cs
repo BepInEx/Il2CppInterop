@@ -24,4 +24,25 @@ public abstract record class StackType
         // Could be improved, but good enough for now.
         return IncompatibleStackType.Instance;
     }
+
+    public static StackType MergeForMathOperation(StackType a, StackType b)
+    {
+        if (a is IntegerStackType64 && b is IntegerStackType)
+        {
+            return IntegerStackType64.Instance;
+        }
+        if (b is IntegerStackType64 && a is IntegerStackType)
+        {
+            return IntegerStackType64.Instance;
+        }
+        if (a is IntegerStackTypeNative && b is IntegerStackType32)
+        {
+            return IntegerStackTypeNative.Instance;
+        }
+        if (b is IntegerStackTypeNative && a is IntegerStackType32)
+        {
+            return IntegerStackTypeNative.Instance;
+        }
+        return Merge(a, b);
+    }
 }

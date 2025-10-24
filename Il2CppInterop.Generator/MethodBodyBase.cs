@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Code.Cil;
 using AssetRipper.CIL;
@@ -7,6 +8,8 @@ using Cpp2IL.Core.Utils.AsmResolver;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Generator.StackTypes;
 using Il2CppInterop.Generator.Visitors;
+using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 
 namespace Il2CppInterop.Generator;
 
@@ -194,7 +197,7 @@ public abstract class MethodBodyBase
             }
             else
             {
-                StackType exceptionType = exceptionHandler.ExceptionType is null ? UnknownStackType.Instance : new ExactStackType(visitor.Replace(exceptionHandler.ExceptionType));
+                StackType exceptionType = exceptionHandler.ExceptionType is null ? UnknownStackType.Instance : GetExactType(exceptionHandler.ExceptionType, visitor);
 
                 if (exceptionHandler.HandlerStart is Instruction handlerInstruction)
                 {
@@ -240,93 +243,102 @@ public abstract class MethodBodyBase
                 // Set pushed types
                 if (pushCount is 1)
                 {
-                    stackAfterPush[^1] = instruction switch
+                    stackAfterPush[^1] = instruction.Code.Code switch
                     {
-                        { Code.IsLoadConstantI4: true } => IntegerStackType32.Instance,
-                        _ => instruction.Code.Code switch
+                        CilCode.Add or CilCode.Sub or CilCode.Mul or CilCode.Div or CilCode.Rem
+                            or CilCode.Add_Ovf or CilCode.Add_Ovf_Un or CilCode.Sub_Ovf or CilCode.Sub_Ovf_Un
+                            or CilCode.Mul_Ovf or CilCode.Mul_Ovf_Un or CilCode.Div_Un or CilCode.Rem_Un
+                            or CilCode.And or CilCode.Or or CilCode.Xor => StackType.MergeForMathOperation(poppedTypes[0], poppedTypes[1]),
+                        CilCode.Neg or CilCode.Not => poppedTypes[0],
+                        CilCode.Shl or CilCode.Shr or CilCode.Shr_Un => poppedTypes[0],
+                        CilCode.Ldobj => GetExactType((TypeAnalysisContext)instruction.Operand!, visitor),
+                        CilCode.Castclass or CilCode.Isinst => GetExactType((TypeAnalysisContext)instruction.Operand!, visitor),
+                        CilCode.Ldstr => GetExactType(il2CppTypes ? owner.AppContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.String") : owner.AppContext.SystemTypes.SystemStringType, visitor),
+                        CilCode.Ldlen => IntegerStackType32.Instance,
+                        CilCode.Ceq or CilCode.Cgt or CilCode.Cgt_Un or CilCode.Clt or CilCode.Clt_Un => IntegerStackType32.Instance,
+                        CilCode.Sizeof => IntegerStackType32.Instance,
+                        CilCode.Ldind_I
+                            or CilCode.Ldelem_I
+                            or CilCode.Conv_I or CilCode.Conv_U
+                            or CilCode.Conv_Ovf_I or CilCode.Conv_Ovf_U
+                            or CilCode.Conv_Ovf_I_Un or CilCode.Conv_Ovf_U_Un => IntegerStackTypeNative.Instance,
+                        CilCode.Ldc_I4 or CilCode.Ldind_I1 or CilCode.Ldind_I2 or CilCode.Ldind_I4
+                            or CilCode.Ldind_U1 or CilCode.Ldind_U2 or CilCode.Ldind_U4
+                            or CilCode.Ldelem_I1 or CilCode.Ldelem_I2 or CilCode.Ldelem_I4
+                            or CilCode.Ldelem_U1 or CilCode.Ldelem_U2 or CilCode.Ldelem_U4
+                            or CilCode.Conv_I1 or CilCode.Conv_I2 or CilCode.Conv_I4
+                            or CilCode.Conv_U1 or CilCode.Conv_U2 or CilCode.Conv_U4
+                            or CilCode.Conv_Ovf_I1 or CilCode.Conv_Ovf_I2 or CilCode.Conv_Ovf_I4
+                            or CilCode.Conv_Ovf_I1_Un or CilCode.Conv_Ovf_I2_Un or CilCode.Conv_Ovf_I4_Un
+                            or CilCode.Conv_Ovf_U1 or CilCode.Conv_Ovf_U2 or CilCode.Conv_Ovf_U4
+                            or CilCode.Conv_Ovf_U1_Un or CilCode.Conv_Ovf_U2_Un or CilCode.Conv_Ovf_U4_Un => IntegerStackType32.Instance,
+                        CilCode.Ldc_I8 or CilCode.Ldind_I8 or CilCode.Ldelem_I8
+                            or CilCode.Conv_I8 or CilCode.Conv_U8
+                            or CilCode.Conv_Ovf_I8 or CilCode.Conv_Ovf_U8
+                            or CilCode.Conv_Ovf_I8_Un or CilCode.Conv_Ovf_U8_Un => IntegerStackType64.Instance,
+                        CilCode.Ldc_R4 or CilCode.Ldind_R4 or CilCode.Ldelem_R4 or CilCode.Conv_R4 => SingleStackType.Instance,
+                        CilCode.Ldc_R8 or CilCode.Ldind_R8 or CilCode.Ldelem_R8 or CilCode.Conv_R8 or CilCode.Conv_R_Un => DoubleStackType.Instance,
+                        CilCode.Ldarg_0 or CilCode.Ldarg_1 or CilCode.Ldarg_2 or CilCode.Ldarg_3 => throw new InvalidOperationException("Ldarg_* should have been replaced with Ldarg."),
+                        CilCode.Ldloc_0 or CilCode.Ldloc_1 or CilCode.Ldloc_2 or CilCode.Ldloc_3 => throw new InvalidOperationException("Ldloc_* should have been replaced with Ldloc."),
+                        CilCode.Ldarg or CilCode.Ldarg_S => instruction.Operand switch
                         {
-                            CilCode.Add or CilCode.Sub or CilCode.Mul or CilCode.Div or CilCode.Rem
-                                or CilCode.Add_Ovf or CilCode.Add_Ovf_Un or CilCode.Sub_Ovf or CilCode.Sub_Ovf_Un
-                                or CilCode.Mul_Ovf or CilCode.Mul_Ovf_Un or CilCode.Div_Un or CilCode.Rem_Un
-                                or CilCode.And or CilCode.Or or CilCode.Xor => StackType.Merge(poppedTypes[0], poppedTypes[1]),
-                            CilCode.Neg or CilCode.Not => poppedTypes[0],
-                            CilCode.Shl or CilCode.Shr or CilCode.Shr_Un => poppedTypes[0],
-                            CilCode.Ldobj => new ExactStackType(visitor.Replace((TypeAnalysisContext)instruction.Operand!)),
-                            CilCode.Castclass or CilCode.Isinst => new ExactStackType(visitor.Replace((TypeAnalysisContext)instruction.Operand!)),
-                            CilCode.Ldstr => new ExactStackType(il2CppTypes ? owner.AppContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.String") : owner.AppContext.SystemTypes.SystemStringType),
-                            CilCode.Ldlen => IntegerStackType32.Instance,
-                            CilCode.Ceq or CilCode.Cgt or CilCode.Cgt_Un or CilCode.Clt or CilCode.Clt_Un => IntegerStackType32.Instance,
-                            CilCode.Sizeof => IntegerStackType32.Instance,
-                            CilCode.Ldind_I
-                                or CilCode.Conv_I or CilCode.Conv_U
-                                or CilCode.Conv_Ovf_I or CilCode.Conv_Ovf_U
-                                or CilCode.Conv_Ovf_I_Un or CilCode.Conv_Ovf_U_Un => IntegerStackTypeNative.Instance,
-                            CilCode.Ldind_I1 or CilCode.Ldind_I2 or CilCode.Ldind_I4
-                                or CilCode.Ldind_U1 or CilCode.Ldind_U2 or CilCode.Ldind_U4
-                                or CilCode.Conv_I1 or CilCode.Conv_I2 or CilCode.Conv_I4
-                                or CilCode.Conv_U1 or CilCode.Conv_U2 or CilCode.Conv_U4
-                                or CilCode.Conv_Ovf_I1 or CilCode.Conv_Ovf_I2 or CilCode.Conv_Ovf_I4
-                                or CilCode.Conv_Ovf_I1_Un or CilCode.Conv_Ovf_I2_Un or CilCode.Conv_Ovf_I4_Un
-                                or CilCode.Conv_Ovf_U1 or CilCode.Conv_Ovf_U2 or CilCode.Conv_Ovf_U4
-                                or CilCode.Conv_Ovf_U1_Un or CilCode.Conv_Ovf_U2_Un or CilCode.Conv_Ovf_U4_Un => IntegerStackType32.Instance,
-                            CilCode.Ldc_I8 or CilCode.Ldind_I8
-                                or CilCode.Conv_I8 or CilCode.Conv_U8
-                                or CilCode.Conv_Ovf_I8 or CilCode.Conv_Ovf_U8
-                                or CilCode.Conv_Ovf_I8_Un or CilCode.Conv_Ovf_U8_Un => IntegerStackType64.Instance,
-                            CilCode.Ldc_R4 or CilCode.Ldind_R4 => new ExactStackType(owner.AppContext.SystemTypes.SystemSingleType),
-                            CilCode.Ldc_R8 or CilCode.Ldind_R8 => new ExactStackType(owner.AppContext.SystemTypes.SystemDoubleType),
-                            CilCode.Ldarg_0 or CilCode.Ldarg_1 or CilCode.Ldarg_2 or CilCode.Ldarg_3 => throw new InvalidOperationException("Ldarg_* should have been replaced with Ldarg."),
-                            CilCode.Ldloc_0 or CilCode.Ldloc_1 or CilCode.Ldloc_2 or CilCode.Ldloc_3 => throw new InvalidOperationException("Ldloc_* should have been replaced with Ldloc."),
-                            CilCode.Ldarg or CilCode.Ldarg_S => instruction.Operand switch
+                            ParameterAnalysisContext parameter => GetExactType(visitor.Replace(parameter.ParameterType), visitor),
+                            This => owner.DeclaringType!.IsValueType
+                                ? GetExactType(visitor.Replace(owner.DeclaringType).MakeByReferenceType(), visitor)
+                                : GetExactType(owner.DeclaringType, visitor),
+                            _ => throw new InvalidOperationException("Ldarg operand should be ParameterAnalysisContext or This"),
+                        },
+                        CilCode.Ldloc or CilCode.Ldloc_S => instruction.Operand switch
+                        {
+                            LocalVariable localVariable => GetExactType(localVariable.Type, visitor),
+                            _ => throw new InvalidOperationException("Ldloc operand should be LocalVariable"),
+                        },
+                        CilCode.Ldarga or CilCode.Ldarga_S => instruction.Operand switch
+                        {
+                            ParameterAnalysisContext parameter => GetExactType(parameter.ParameterType.MakeByReferenceType(), visitor),
+                            This => throw new NotSupportedException("Ldarga on 'this' is not supported."),
+                            _ => throw new InvalidOperationException("Ldarg operand should be ParameterAnalysisContext or This"),
+                        },
+                        CilCode.Ldloca or CilCode.Ldloca_S => instruction.Operand switch
+                        {
+                            LocalVariable localVariable => GetExactType(localVariable.Type.MakeByReferenceType(), visitor),
+                            _ => throw new InvalidOperationException("Ldloc operand should be LocalVariable"),
+                        },
+                        CilCode.Newobj => instruction.Operand switch
+                        {
+                            MethodAnalysisContext methodOperand => GetExactType(methodOperand.DeclaringType!, visitor),
+                            MultiDimensionalArrayMethod arrayMethod => GetExactType(arrayMethod.ArrayType, visitor),
+                            _ => throw new InvalidOperationException("Newobj operand should be MethodAnalysisContext or MultiDimensionalArrayMethod"),
+                        },
+                        CilCode.Call or CilCode.Callvirt => instruction.Operand switch
+                        {
+                            MethodAnalysisContext methodOperand => GetExactType(methodOperand.ReturnType, visitor),
+                            MultiDimensionalArrayMethod arrayMethod => arrayMethod.MethodType switch
                             {
-                                ParameterAnalysisContext parameter => new ExactStackType(visitor.Replace(parameter.ParameterType)),
-                                This => owner.DeclaringType!.IsValueType
-                                    ? new ExactStackType(visitor.Replace(owner.DeclaringType).MakeByReferenceType())
-                                    : new ExactStackType(visitor.Replace(owner.DeclaringType)),
-                                _ => throw new InvalidOperationException("Ldarg operand should be ParameterAnalysisContext or This"),
+                                MultiDimensionalArrayMethodType.Get => GetExactType(arrayMethod.ArrayType.ElementType, visitor),
+                                MultiDimensionalArrayMethodType.Address => GetExactType(arrayMethod.ArrayType.ElementType.MakeByReferenceType(), visitor),
+                                _ => throw new NotSupportedException($"Method type {arrayMethod.MethodType} does not return a value."),
                             },
-                            CilCode.Ldloc or CilCode.Ldloc_S => instruction.Operand switch
-                            {
-                                LocalVariable localVariable => new ExactStackType(visitor.Replace(localVariable.Type)),
-                                _ => throw new InvalidOperationException("Ldloc operand should be LocalVariable"),
-                            },
-                            CilCode.Ldarga or CilCode.Ldarga_S => instruction.Operand switch
-                            {
-                                ParameterAnalysisContext parameter => new ExactStackType(visitor.Replace(parameter.ParameterType).MakeByReferenceType()),
-                                This => throw new NotSupportedException("Ldarga on 'this' is not supported."),
-                                _ => throw new InvalidOperationException("Ldarg operand should be ParameterAnalysisContext or This"),
-                            },
-                            CilCode.Ldloca or CilCode.Ldloca_S => instruction.Operand switch
-                            {
-                                LocalVariable localVariable => new ExactStackType(visitor.Replace(localVariable.Type).MakeByReferenceType()),
-                                _ => throw new InvalidOperationException("Ldloc operand should be LocalVariable"),
-                            },
-                            CilCode.Newobj => instruction.Operand switch
-                            {
-                                MethodAnalysisContext methodOperand => new ExactStackType(visitor.Replace(methodOperand.DeclaringType!)),
-                                MultiDimensionalArrayMethod arrayMethod => new ExactStackType(visitor.Replace(arrayMethod.ArrayType)),
-                                _ => throw new InvalidOperationException("Newobj operand should be MethodAnalysisContext or MultiDimensionalArrayMethod"),
-                            },
-                            CilCode.Call or CilCode.Callvirt => instruction.Operand switch
-                            {
-                                MethodAnalysisContext methodOperand => new ExactStackType(visitor.Replace(methodOperand.ReturnType)),
-                                MultiDimensionalArrayMethod arrayMethod => arrayMethod.MethodType switch
-                                {
-                                    MultiDimensionalArrayMethodType.Get => new ExactStackType(visitor.Replace(arrayMethod.ArrayType.ElementType)),
-                                    MultiDimensionalArrayMethodType.Address => new ExactStackType(visitor.Replace(arrayMethod.ArrayType.ElementType).MakeByReferenceType()),
-                                    _ => throw new NotSupportedException($"Method type {arrayMethod.MethodType} does not return a value."),
-                                },
-                                _ => throw new InvalidOperationException("Call/Callvirt operand should be MethodAnalysisContext or MultiDimensionalArrayMethod"),
-                            },
-                            CilCode.Ldfld or CilCode.Ldsfld => new ExactStackType(visitor.Replace(((FieldAnalysisContext)instruction.Operand!).FieldType)),
-                            CilCode.Ldflda or CilCode.Ldsflda => new ExactStackType(visitor.Replace(((FieldAnalysisContext)instruction.Operand!).FieldType).MakeByReferenceType()),
-                            CilCode.Ldind_Ref => UnknownStackType.Instance,// Todo
-                            CilCode.Box => UnknownStackType.Instance,// Todo
-                            CilCode.Unbox => UnknownStackType.Instance,// Todo
-                            CilCode.Unbox_Any => UnknownStackType.Instance,// Todo
-                            CilCode.Newarr => new ExactStackType(((TypeAnalysisContext)instruction.Operand!).MakeSzArrayType()),
-                            _ => UnknownStackType.Instance,
-                        }
+                            _ => throw new InvalidOperationException("Call/Callvirt operand should be MethodAnalysisContext or MultiDimensionalArrayMethod"),
+                        },
+                        CilCode.Ldfld or CilCode.Ldsfld => GetExactType(((FieldAnalysisContext)instruction.Operand!).FieldType, visitor),
+                        CilCode.Ldflda or CilCode.Ldsflda => GetExactType(((FieldAnalysisContext)instruction.Operand!).FieldType.MakeByReferenceType(), visitor),
+                        CilCode.Ldind_Ref => GetStackType_Ldind_Ref(stackInitial, visitor),
+                        CilCode.Ldelem_Ref => GetStackType_Ldelem_Ref(stackInitial, visitor),
+                        CilCode.Ldelema => GetExactType(((TypeAnalysisContext)instruction.Operand!).MakeByReferenceType(), visitor),
+                        CilCode.Ldelem => GetExactType((TypeAnalysisContext)instruction.Operand!, visitor),
+                        CilCode.Box => GetExactType((TypeAnalysisContext)instruction.Operand!, visitor),
+                        CilCode.Unbox or CilCode.Unbox_Any => GetExactType((TypeAnalysisContext)instruction.Operand!, visitor),
+                        CilCode.Newarr => GetExactType(((TypeAnalysisContext)instruction.Operand!).MakeSzArrayType(), visitor),
+                        CilCode.Ldnull => UnknownStackType.Instance,
+                        CilCode.Ldftn or CilCode.Ldvirtftn => IntegerStackTypeNative.Instance,
+                        CilCode.Localloc => IntegerStackTypeNative.Instance,
+                        CilCode.Ldtoken => UnknownStackType.Instance,// Todo
+                        CilCode.Mkrefany => UnknownStackType.Instance,// Todo
+                        CilCode.Refanytype => UnknownStackType.Instance,// Todo
+                        CilCode.Refanyval => UnknownStackType.Instance,// Todo
+                        CilCode.Arglist => UnknownStackType.Instance,// Todo
+                        _ => UnknownStackType.Instance,
                     };
                 }
                 else if (pushCount is 2)
@@ -370,5 +382,111 @@ public abstract class MethodBodyBase
         Debug.Assert(result.Count == Instructions.Count);
 
         return result;
+    }
+
+    private static StackType GetStackType_Ldind_Ref(StackType[] stackInitial, TypeReplacementVisitor visitor)
+    {
+        return stackInitial[^1] is ExactStackType exactType && TryGetByReferenceElementType(exactType.Type, out var elementType)
+            ? GetExactType(elementType!, visitor)
+            : UnknownStackType.Instance;
+    }
+
+    private static StackType GetStackType_Ldelem_Ref(StackType[] stackInitial, TypeReplacementVisitor visitor)
+    {
+        return stackInitial[^2] is ExactStackType exactType && TryGetArrayElementType(exactType.Type, out var elementType)
+            ? GetExactType(elementType!, visitor)
+            : UnknownStackType.Instance;
+    }
+
+    private static StackType GetExactType(TypeAnalysisContext type, TypeReplacementVisitor visitor)
+    {
+        var replacedType = visitor.Replace(type);
+        if (IsPointerType(replacedType))
+        {
+            return IntegerStackTypeNative.Instance;
+        }
+        if (IsEnum(replacedType, out var enumElementType))
+        {
+            return GetExactType(enumElementType, visitor);
+        }
+        return replacedType.KnownType switch
+        {
+            KnownTypeCode.Il2CppSystem_Boolean => IntegerStackType32.Instance,
+            KnownTypeCode.Il2CppSystem_Char => IntegerStackType32.Instance,
+            KnownTypeCode.Il2CppSystem_Byte => IntegerStackType32.Instance,
+            KnownTypeCode.Il2CppSystem_SByte => IntegerStackType32.Instance,
+            KnownTypeCode.Il2CppSystem_Int16 => IntegerStackType32.Instance,
+            KnownTypeCode.Il2CppSystem_UInt16 => IntegerStackType32.Instance,
+            KnownTypeCode.Il2CppSystem_Int32 => IntegerStackType32.Instance,
+            KnownTypeCode.Il2CppSystem_UInt32 => IntegerStackType32.Instance,
+            KnownTypeCode.Il2CppSystem_Int64 => IntegerStackType64.Instance,
+            KnownTypeCode.Il2CppSystem_UInt64 => IntegerStackType64.Instance,
+            KnownTypeCode.Il2CppSystem_IntPtr => IntegerStackTypeNative.Instance,
+            KnownTypeCode.Il2CppSystem_UIntPtr => IntegerStackTypeNative.Instance,
+            KnownTypeCode.Il2CppSystem_Single => SingleStackType.Instance,
+            KnownTypeCode.Il2CppSystem_Double => DoubleStackType.Instance,
+            _ => new ExactStackType(replacedType),
+        };
+    }
+
+    private static bool IsPointerType(TypeAnalysisContext type)
+    {
+        if (type is PointerTypeAnalysisContext)
+            return true;
+
+        return type is GenericInstanceTypeAnalysisContext { GenericType: { Name: $"{nameof(Pointer<>)}`1" } genericType } && genericType.Namespace == typeof(Pointer<>).Namespace;
+    }
+
+    protected static bool IsByReferenceType(TypeAnalysisContext type)
+    {
+        return TryGetByReferenceElementType(type, out _);
+    }
+
+    protected static bool TryGetByReferenceElementType(TypeAnalysisContext type, [NotNullWhen(true)] out TypeAnalysisContext? elementType)
+    {
+        if (type is ByRefTypeAnalysisContext byRefType)
+        {
+            elementType = byRefType.ElementType;
+            return true;
+        }
+        if (type is GenericInstanceTypeAnalysisContext { GenericType: { Name: $"{nameof(ByReference<>)}`1" } genericType } && genericType.Namespace == typeof(ByReference<>).Namespace)
+        {
+            elementType = ((GenericInstanceTypeAnalysisContext)type).GenericArguments[0];
+            return true;
+        }
+        elementType = null;
+        return false;
+    }
+
+    private static bool TryGetArrayElementType(TypeAnalysisContext type, [NotNullWhen(true)] out TypeAnalysisContext? elementType)
+    {
+        if (type is ArrayTypeAnalysisContext arrayType)
+        {
+            elementType = arrayType.ElementType;
+            return true;
+        }
+        if (type is SzArrayTypeAnalysisContext szArrayType)
+        {
+            elementType = szArrayType.ElementType;
+            return true;
+        }
+        if (type is GenericInstanceTypeAnalysisContext { GenericType: { Name: $"{nameof(Il2CppArrayBase<>)}`1" } genericType } && genericType.Namespace == typeof(Il2CppArrayBase<>).Namespace)
+        {
+            elementType = ((GenericInstanceTypeAnalysisContext)type).GenericArguments[0];
+            return true;
+        }
+        elementType = null;
+        return false;
+    }
+
+    private static bool IsEnum(TypeAnalysisContext type, [NotNullWhen(true)] out TypeAnalysisContext? elementType)
+    {
+        if (type is { DefaultBaseType.KnownType: KnownTypeCode.Il2CppSystem_Enum or KnownTypeCode.System_Enum })
+        {
+            elementType = type.Fields.FirstOrDefault(f => f.Name == "value__")?.FieldType;
+            return elementType is not null;
+        }
+        elementType = null;
+        return false;
     }
 }

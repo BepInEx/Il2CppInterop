@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Generator.Operands;
+using Il2CppInterop.Generator.StackTypes;
 using Il2CppInterop.Generator.Visitors;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes;
@@ -45,6 +46,8 @@ public class TranslatedMethodBody : MethodBodyBase
         var implementationMethod = methodContext.UnsafeImplementationMethod!;
 
         TypeReplacementVisitor replacementVisitor = TypeReplacementVisitor.Combine(TypeConversionVisitor.Create(methodContext.AppContext), TypeReplacementVisitor.CreateForMethodCopying(methodContext, implementationMethod));
+
+        var dictionary = originalMethodBody.AnalyzeStackTypes(methodContext, replacementVisitor, true);
 
         var initializeInstructions = new List<Instruction>();
         var localVariableList = new List<LocalVariable>(originalMethodBody.LocalVariables.Count);
@@ -810,17 +813,36 @@ public class TranslatedMethodBody : MethodBodyBase
                 {
                     // Load field value
 
-                    // Bug: ldfld can accept either a ref or a value, but we only handle ref.
-                    // The only way to fix this is with stack analysis, which is not implemented yet.
-                    // Example: Enum.TryParse<TEnum>(string, bool, out TEnum)
-                    // https://sharplab.io/#v2:C4LglgNgPgAgDAAhgRgHQDkCuBbApgJzAGMBnAbgFgAoGAZiWQDYkAmBAYQQG9qE+EA9AIQlgAMwgATBPlwBHTGFkkEAQwQAHAPZgAdsAIBaCGADWuBFo0FVu6cC2arlsWITAAFhdGqip3vx0DMwwACwIAMq4wAAUAGq4RA749ABuADQIElqqwAipqhCYuACU3AH8/KmoABoIALz5hcWUVJUAvhVI9Cgh4VGxsm4JSVop+ZnZuU1FpeVtlVW1DTMtXZ1UXUIIUhLSklq4KrpawF1BvVkQOXkA4tHxiclpZTwLi0gA7Pm1rR3nPSYVxuCHug1wwyeYxe8w+fBg32qNT+/A27SAA==
+                    // ldfld can accept either a ref or a value, so we use stack analysis to determine.
+                    bool operandIsReferenceType;
+                    if (originalCode == CilOpCodes.Ldfld && baseField is { DeclaringType.IsValueType: true })
+                    {
+                        var stack = dictionary[originalInstruction];
+                        var operandStackType = stack[^1];
+                        if (operandStackType is ExactStackType { Type: { } objectType })
+                        {
+                            operandIsReferenceType = IsByReferenceType(objectType);
+                        }
+                        else if (operandStackType is IntegerStackTypeNative)
+                        {
+                            operandIsReferenceType = true;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        operandIsReferenceType = true;
+                    }
 
                     var translatedField = baseField.MaybeMakeConcreteGeneric(declaringTypeArguments);
                     var fieldType = translatedField.FieldType;
 
                     if (baseField.PropertyAccessor is not null)
                     {
-                        Debug.Assert(baseField.IsStatic || baseField is { DeclaringType.IsValueType: false }, "Value types should not have instance field accessors.");
+                        Debug.Assert(operandIsReferenceType, "Value types should not have instance field accessors.");
                         var accessorMethod = baseField.PropertyAccessor!.Getter!.MaybeMakeConcreteGeneric(declaringTypeArguments, []);
                         translatedInstruction.Code = originalCode == CilOpCodes.Ldfld ? CilOpCodes.Callvirt : CilOpCodes.Call;
                         translatedInstruction.Operand = accessorMethod;
@@ -829,6 +851,11 @@ public class TranslatedMethodBody : MethodBodyBase
                     {
                         Debug.Assert(!baseField.IsStatic, "There should be no static fields.");
                         Debug.Assert(fieldType.DeclaringAssembly == appContext.Mscorlib);
+
+                        if (!operandIsReferenceType)
+                        {
+                            return false;
+                        }
 
                         translatedInstruction.Code = CilOpCodes.Ldobj;
                         translatedInstruction.Operand = fieldType;
@@ -839,10 +866,18 @@ public class TranslatedMethodBody : MethodBodyBase
                         Debug.Assert(baseField is { DeclaringType.IsValueType: true }, "Only value types should have instance fields.");
                         Debug.Assert(baseField.FieldAddressAccessor is not null);
 
-                        translatedInstruction.Code = CilOpCodes.Nop;
-                        MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, byReference.MakeGenericInstanceType([translatedField.DeclaringType]));
-                        translatedInstructions.Add(CilOpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
-                        translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_GetValue.MakeGenericInstanceMethod(fieldType));
+                        if (operandIsReferenceType)
+                        {
+                            translatedInstruction.Code = CilOpCodes.Nop;
+                            MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, byReference.MakeGenericInstanceType([translatedField.DeclaringType]));
+                            translatedInstructions.Add(CilOpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
+                            translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_GetValue.MakeGenericInstanceMethod(fieldType));
+                        }
+                        else
+                        {
+                            translatedInstruction.Code = originalCode;
+                            translatedInstruction.Operand = translatedField;
+                        }
                     }
                     else
                     {

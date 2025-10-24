@@ -1,6 +1,6 @@
 ﻿namespace Il2CppInterop.Generator.StackTypes;
 
-public sealed record class IntegerStackType32 : StackType
+public sealed record class IntegerStackType32 : IntegerStackType
 {
     public static IntegerStackType32 Instance { get; } = new();
     private IntegerStackType32()

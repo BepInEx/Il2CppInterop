@@ -1,6 +1,6 @@
 ﻿namespace Il2CppInterop.Generator.StackTypes;
 
-public sealed record class IntegerStackTypeNative : StackType
+public sealed record class IntegerStackTypeNative : IntegerStackType
 {
     public static IntegerStackTypeNative Instance { get; } = new();
     private IntegerStackTypeNative()
