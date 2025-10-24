@@ -942,7 +942,10 @@ public class TranslatedMethodBody : MethodBodyBase
                     var fieldType = translatedField.FieldType;
 
                     translatedInstruction.Code = CilOpCodes.Nop;
-                    MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, byReference.MakeGenericInstanceType([translatedField.DeclaringType]));
+                    if (baseField.DeclaringType is { IsValueType: true })
+                    {
+                        MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, byReference.MakeGenericInstanceType([translatedField.DeclaringType]));
+                    }
                     translatedInstructions.Add(CilOpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, byReference.MakeGenericInstanceType([fieldType]));
                 }
