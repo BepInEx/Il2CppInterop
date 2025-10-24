@@ -24,6 +24,7 @@ Il2CppGame.Process(
         new ObjectInterfaceProcessingLayer(),
         new ReferenceReplacementProcessingLayer(),
         new AttributeRemovalProcessingLayer(),
+        new IndexerAttributeInjectionProcessingLayer(),
         new PointerConstructorProcessingLayer(),
         new Il2CppTypeConstraintProcessingLayer(),
         new InitializationClassProcessingLayer(),
