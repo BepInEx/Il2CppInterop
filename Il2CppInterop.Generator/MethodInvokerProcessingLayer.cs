@@ -51,6 +51,15 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                     if (method.IsInjected)
                         continue;
 
+                    var redirectedType = instantiatedType.KnownType switch
+                    {
+                        _ when method.IsInstanceConstructor => instantiatedType,
+                        KnownTypeCode.Il2CppSystem_Object => appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IObject"),
+                        KnownTypeCode.Il2CppSystem_Enum => appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IEnum"),
+                        KnownTypeCode.Il2CppSystem_ValueType => appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IValueType"),
+                        _ => instantiatedType,
+                    };
+
                     InjectedMethodAnalysisContext implementationMethod;
                     {
                         var name = GetNonConflictingName(method.IsInstanceConstructor ? "UnsafeConstructor" : $"UnsafeImplementation_{method.Name.Replace('.', '_')}", existingNames);
@@ -76,14 +85,6 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
                         if (!method.IsStatic)
                         {
-                            var redirectedType = instantiatedType.KnownType switch
-                            {
-                                _ when method.IsInstanceConstructor => instantiatedType,
-                                KnownTypeCode.Il2CppSystem_Object => appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IObject"),
-                                KnownTypeCode.Il2CppSystem_Enum => appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IEnum"),
-                                KnownTypeCode.Il2CppSystem_ValueType => appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IValueType"),
-                                _ => instantiatedType,
-                            };
                             var newParameter = new InjectedParameterAnalysisContext(
                                 null,
                                 byReference.MakeGenericInstanceType([redirectedType]),
@@ -143,7 +144,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         {
                             var newParameter = new InjectedParameterAnalysisContext(
                                 null,
-                                byReference.MakeGenericInstanceType([instantiatedType]),
+                                byReference.MakeGenericInstanceType([redirectedType]),
                                 ParameterAttributes.None,
                                 0,
                                 helper);
@@ -153,7 +154,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         {
                             var newParameter = new InjectedParameterAnalysisContext(
                                 null,
-                                instantiatedType,
+                                redirectedType,
                                 ParameterAttributes.None,
                                 0,
                                 helper);
