@@ -92,8 +92,9 @@ public class ObjectOverridesProcessingLayer : Cpp2IlProcessingLayer
             ];
             if (box)
             {
-                instructions.Add(CilOpCodes.Ldobj, type);
-                instructions.Add(CilOpCodes.Box, type);
+                var instantiatedType = type.SelfInstantiateIfGeneric();
+                instructions.Add(CilOpCodes.Ldobj, instantiatedType);
+                instructions.Add(CilOpCodes.Box, instantiatedType);
             }
             for (var i = 0; i < newMethod.Parameters.Count; i++)
             {
