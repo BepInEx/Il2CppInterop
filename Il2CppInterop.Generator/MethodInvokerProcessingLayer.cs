@@ -207,7 +207,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(CilOpCodes.Ldloc, parameterLocal);
                         }
 
-                        instructions.Add(CilOpCodes.Call, implementationMethod.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(CilOpCodes.Call, implementationMethod.MaybeMakeConcreteGeneric(type.GenericParameters, helper.GenericParameters));
 
                         instructions.Add(CilOpCodes.Ret);
 
@@ -254,7 +254,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(CilOpCodes.Ldarg, parameter);
                         }
 
-                        instructions.Add(CilOpCodes.Call, valueTypeHelper.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(CilOpCodes.Call, valueTypeHelper.MaybeMakeConcreteGeneric(type.GenericParameters, method.GenericParameters));
 
                         instructions.Add(CilOpCodes.Ldloca, instanceLocal);
                         instructions.Add(CilOpCodes.Ldarg, This.Instance);
@@ -288,7 +288,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         {
                             instructions.Add(CilOpCodes.Ldarg, parameter);
                         }
-                        instructions.Add(CilOpCodes.Call, referenceTypeHelper.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(CilOpCodes.Call, referenceTypeHelper.MaybeMakeConcreteGeneric(type.GenericParameters, method.GenericParameters));
                         instructions.Add(CilOpCodes.Ret);
 
                         method.PutExtraData(new NativeMethodBody()
@@ -327,7 +327,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(CilOpCodes.Ldloc, parameterLocal);
                         }
 
-                        instructions.Add(CilOpCodes.Call, implementationMethod.MaybeMakeConcreteGeneric(type.GenericParameters, []));
+                        instructions.Add(CilOpCodes.Call, implementationMethod.MaybeMakeConcreteGeneric(type.GenericParameters, method.GenericParameters));
 
                         instructions.Add(CilOpCodes.Ret);
 
