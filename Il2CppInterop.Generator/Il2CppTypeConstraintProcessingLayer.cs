@@ -10,8 +10,8 @@ public class Il2CppTypeConstraintProcessingLayer : Cpp2IlProcessingLayer
     public override string Id => "il2cpptype_constraint_processor";
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
-        var iil2CppType = appContext.ResolveTypeOrThrow(typeof(IIl2CppType));
         var iil2CppTypeGeneric = appContext.ResolveTypeOrThrow(typeof(IIl2CppType<>));
+        var iobject = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IObject");
 
         foreach (var assembly in appContext.Assemblies)
         {
@@ -26,6 +26,7 @@ public class Il2CppTypeConstraintProcessingLayer : Cpp2IlProcessingLayer
                 foreach (var genericParameter in type.GenericParameters)
                 {
                     genericParameter.ConstraintTypes.Add(iil2CppTypeGeneric.MakeGenericInstanceType([genericParameter]));
+                    genericParameter.ConstraintTypes.Add(iobject);
                 }
 
                 foreach (var method in type.Methods)
@@ -36,6 +37,7 @@ public class Il2CppTypeConstraintProcessingLayer : Cpp2IlProcessingLayer
                     foreach (var genericParameter in method.GenericParameters)
                     {
                         genericParameter.ConstraintTypes.Add(iil2CppTypeGeneric.MakeGenericInstanceType([genericParameter]));
+                        genericParameter.ConstraintTypes.Add(iobject);
                     }
                 }
             }
