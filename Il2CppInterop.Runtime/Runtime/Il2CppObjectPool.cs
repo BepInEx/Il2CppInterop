@@ -36,7 +36,7 @@ public static class Il2CppObjectPool
 
         if (!s_initializers.TryGetValue(ownClass, out var initializer))
         {
-            var className = IL2CPP.Il2CppStringToManaged(IL2CPP.il2cpp_class_get_name(ownClass));
+            var className = IL2CPP.il2cpp_class_get_name_(ownClass);
             throw new InvalidOperationException($"No initializer found for class {className}");
         }
 
