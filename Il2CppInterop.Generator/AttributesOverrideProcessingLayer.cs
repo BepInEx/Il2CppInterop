@@ -27,18 +27,6 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                 if (type.IsStatic)
                 {
                     type.OverrideAttributes = type.Attributes & ~TypeAttributes.Sealed;
-
-                    // We add a private constructor to prevent instantiation.
-                    var constructor = new InjectedMethodAnalysisContext(
-                        type,
-                        ".ctor",
-                        appContext.SystemTypes.SystemVoidType,
-                        MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
-                        [])
-                    {
-                        IsInjected = true
-                    };
-                    type.Methods.Add(constructor);
                 }
 
                 // Remove bad flags from type
