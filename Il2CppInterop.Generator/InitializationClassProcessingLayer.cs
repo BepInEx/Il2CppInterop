@@ -560,6 +560,9 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                 if (InvalidTypeChecker.ContainsInvalidType(typeContext))
                     continue;
 
+                if (InvalidConstraintChecker.ContainsInvalidConstraint(typeContext))
+                    continue;
+
                 if (typeContext is not ReferencedTypeAnalysisContext && typeContext.GenericParameters.Count > 0)
                     continue; // Skip open generics
 
@@ -614,5 +617,37 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         public override bool Visit(GenericParameterTypeAnalysisContext type) => true;
         public override bool Visit(PinnedTypeAnalysisContext type) => true;
         public override bool Visit(SentinelTypeAnalysisContext type) => true;
+    }
+
+    private sealed class InvalidConstraintChecker : BooleanOrTypeVisitor
+    {
+        public static InvalidConstraintChecker Instance { get; } = new InvalidConstraintChecker();
+        public static bool ContainsInvalidConstraint(TypeAnalysisContext type)
+        {
+            return Instance.Visit(type);
+        }
+
+        public override bool Visit(GenericInstanceTypeAnalysisContext type)
+        {
+            for (var i = 0; i < type.GenericArguments.Count; i++)
+            {
+                if (type.GenericArguments[i].KnownType is not KnownTypeCode.Il2CppSystem_Object and not KnownTypeCode.System_Object and not KnownTypeCode.Il2CppSystem_IObject)
+                    continue;
+
+                foreach (var constraint in type.GenericType.GenericParameters[i].ConstraintTypes)
+                {
+                    if (!IsInjectedOrReference(constraint))
+                        return true;
+                }
+            }
+            return base.Visit(type);
+        }
+
+        private static bool IsInjectedOrReference(TypeAnalysisContext type)
+        {
+            type = (type as GenericInstanceTypeAnalysisContext)?.GenericType ?? type;
+
+            return type.IsInjected || type.DeclaringAssembly.IsReferenceAssembly;
+        }
     }
 }
