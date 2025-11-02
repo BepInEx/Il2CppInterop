@@ -44,4 +44,7 @@ public enum KnownTypeCode
     Il2CppSystem_IntPtr,
     Il2CppSystem_UIntPtr,
     Il2CppSystem_Void,
+    Il2CppSystem_IObject,
+    Il2CppSystem_IValueType,
+    Il2CppSystem_IEnum,
 }

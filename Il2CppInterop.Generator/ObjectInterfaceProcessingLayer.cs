@@ -21,6 +21,11 @@ public class ObjectInterfaceProcessingLayer : Cpp2IlProcessingLayer
         var il2CppSystemIValueType = InjectInterface(appContext, "IValueType");
         var il2CppSystemIEnum = InjectInterface(appContext, "IEnum");
 
+        // Set KnownType
+        il2CppSystemIObject.KnownType = KnownTypeCode.Il2CppSystem_IObject;
+        il2CppSystemIValueType.KnownType = KnownTypeCode.Il2CppSystem_IValueType;
+        il2CppSystemIEnum.KnownType = KnownTypeCode.Il2CppSystem_IEnum;
+
         // Il2CppSystem.IValueType : Il2CppSystem.IObject
         il2CppSystemIValueType.InterfaceContexts.Add(il2CppSystemIObject);
 
