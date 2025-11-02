@@ -2,5 +2,5 @@
 
 public struct RuntimeTypeHandle
 {
-    public IntPtr value { get; set; }
+    public IntPtr value;
 }
