@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Cpp2IL.Core.Model.Contexts;
-using Il2CppInterop.Generator;
 using Il2CppInterop.Generator.Operands;
 
 namespace Il2CppInterop.Generator.Extensions;
@@ -203,25 +202,25 @@ internal static class TypeAnalysisContextExtensions
 
         public MethodAnalysisContext GetImplicitConversionFrom(TypeAnalysisContext sourceType)
         {
-            return GetConversion("op_Implicit", type, sourceType, type);
+            return GetConversion("op_Implicit", type, sourceType, type.SelfInstantiateIfGeneric());
         }
 
         public MethodAnalysisContext GetImplicitConversionTo(TypeAnalysisContext targetType)
         {
-            return GetConversion("op_Implicit", type, type, targetType);
+            return GetConversion("op_Implicit", type, type.SelfInstantiateIfGeneric(), targetType);
         }
 
         public MethodAnalysisContext GetExplicitConversionFrom(TypeAnalysisContext sourceType)
         {
-            return GetConversion("op_Explicit", type, sourceType, type);
+            return GetConversion("op_Explicit", type, sourceType, type.SelfInstantiateIfGeneric());
         }
 
         public MethodAnalysisContext GetExplicitConversionTo(TypeAnalysisContext targetType)
         {
-            return GetConversion("op_Explicit", type, type, targetType);
+            return GetConversion("op_Explicit", type, type.SelfInstantiateIfGeneric(), targetType);
         }
 
-        public TypeAnalysisContext SelfInstantiateIfGeneric()
+        public TypeAnalysisContext MaybeMakeGenericInstanceType(IReadOnlyCollection<TypeAnalysisContext> genericArguments)
         {
             if (type.GenericParameters.Count == 0)
             {
@@ -229,9 +228,11 @@ internal static class TypeAnalysisContextExtensions
             }
             else
             {
-                return type.MakeGenericInstanceType(type.GenericParameters);
+                return type.MakeGenericInstanceType(genericArguments);
             }
         }
+
+        public TypeAnalysisContext SelfInstantiateIfGeneric() => type.MaybeMakeGenericInstanceType(type.GenericParameters);
 
         public bool ImplementsInterface(TypeAnalysisContext interfaceType)
         {
@@ -250,7 +251,11 @@ internal static class TypeAnalysisContextExtensions
     {
         return declaringType.Methods.First(m =>
         {
-            return m.Name == name && m.IsStatic && m.ReturnType == targetType && m.Parameters.Count == 1 && m.Parameters[0].ParameterType == sourceType;
+            return m.Name == name
+                && m.IsStatic
+                && m.Parameters.Count == 1
+                && TypeAnalysisContextEqualityComparer.Instance.Equals(m.ReturnType, targetType)
+                && TypeAnalysisContextEqualityComparer.Instance.Equals(m.Parameters[0].ParameterType, sourceType);
         });
     }
 }

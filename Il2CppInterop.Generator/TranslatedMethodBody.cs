@@ -842,10 +842,25 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     if (baseField.PropertyAccessor is not null)
                     {
-                        Debug.Assert(operandIsReferenceType, "Value types should not have instance field accessors.");
                         var accessorMethod = baseField.PropertyAccessor!.Getter!.MaybeMakeConcreteGeneric(declaringTypeArguments, []);
-                        translatedInstruction.Code = originalCode == CilOpCodes.Ldfld ? CilOpCodes.Callvirt : CilOpCodes.Call;
-                        translatedInstruction.Operand = accessorMethod;
+                        fieldType = accessorMethod.ReturnType;
+                        if (operandIsReferenceType)
+                        {
+                            translatedInstruction.Code = originalCode == CilOpCodes.Ldfld && baseField is { DeclaringType.IsValueType: false } ? CilOpCodes.Callvirt : CilOpCodes.Call;
+                            translatedInstruction.Operand = accessorMethod;
+                        }
+                        else
+                        {
+                            Debug.Assert(accessorMethod.DeclaringType is not null);
+                            LocalVariable temporaryLocal = new(accessorMethod.DeclaringType);
+                            localVariableList.Add(temporaryLocal);
+
+                            translatedInstruction.Code = CilOpCodes.Stloc;
+                            translatedInstruction.Operand = temporaryLocal;
+
+                            translatedInstructions.Add(CilOpCodes.Ldloca, temporaryLocal);
+                            translatedInstructions.Add(CilOpCodes.Call, accessorMethod);
+                        }
                     }
                     else if (baseField.DeclaringType.IsIl2CppPrimitive)
                     {
@@ -891,17 +906,23 @@ public class TranslatedMethodBody : MethodBodyBase
                 {
                     // Store field value
 
+                    translatedInstruction.Code = CilOpCodes.Nop;
+
                     var translatedField = baseField.MaybeMakeConcreteGeneric(declaringTypeArguments);
                     var fieldType = translatedField.FieldType;
 
-                    translatedInstruction.Code = CilOpCodes.Nop;
+                    var accessorMethod = baseField.PropertyAccessor?.Setter!.MaybeMakeConcreteGeneric(declaringTypeArguments, []);
+
+                    if (accessorMethod is not null)
+                    {
+                        fieldType = accessorMethod.Parameters[^1].ParameterType;
+                    }
+
                     MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, fieldType);
 
-                    if (baseField.PropertyAccessor is not null)
+                    if (accessorMethod is not null)
                     {
-                        Debug.Assert(baseField.IsStatic || baseField is { DeclaringType.IsValueType: false }, "Value types should not have instance field accessors.");
-                        var accessorMethod = baseField.PropertyAccessor!.Setter!.MaybeMakeConcreteGeneric(declaringTypeArguments, []);
-                        translatedInstructions.Add(new Instruction(originalCode == CilOpCodes.Stfld ? CilOpCodes.Callvirt : CilOpCodes.Call, accessorMethod));
+                        translatedInstructions.Add(new Instruction(originalCode == CilOpCodes.Stfld && baseField is { DeclaringType.IsValueType: false } ? CilOpCodes.Callvirt : CilOpCodes.Call, accessorMethod));
                     }
                     else if (baseField.DeclaringType.IsIl2CppPrimitive)
                     {
@@ -917,12 +938,15 @@ public class TranslatedMethodBody : MethodBodyBase
                         Debug.Assert(baseField is { DeclaringType.IsValueType: true }, "Only value types should have instance fields.");
                         Debug.Assert(baseField.FieldAddressAccessor is not null);
 
+                        var fieldAddressAccessor = baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []);
+                        Debug.Assert(TypeAnalysisContextEqualityComparer.Instance.Equals(fieldType, ((GenericInstanceTypeAnalysisContext)fieldAddressAccessor.ReturnType).GenericArguments[0]));
+
                         LocalVariable temporaryLocal = new(fieldType);
                         localVariableList.Add(temporaryLocal);
 
                         translatedInstructions.Add(CilOpCodes.Stloc, temporaryLocal);
                         MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, byReference.MakeGenericInstanceType([translatedField.DeclaringType]));
-                        translatedInstructions.Add(CilOpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
+                        translatedInstructions.Add(CilOpCodes.Call, fieldAddressAccessor);
                         translatedInstructions.Add(CilOpCodes.Ldloc, temporaryLocal);
                         translatedInstructions.Add(CilOpCodes.Call, byReferenceStatic_SetValue1.MakeGenericInstanceMethod(fieldType));
                     }
@@ -939,15 +963,15 @@ public class TranslatedMethodBody : MethodBodyBase
                     Debug.Assert(baseField.FieldAddressAccessor is not null);
 
                     var translatedField = baseField.MaybeMakeConcreteGeneric(declaringTypeArguments);
-                    var fieldType = translatedField.FieldType;
+                    var fieldAddressAccessor = baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []);
 
                     translatedInstruction.Code = CilOpCodes.Nop;
                     if (baseField.DeclaringType is { IsValueType: true })
                     {
                         MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, byReference.MakeGenericInstanceType([translatedField.DeclaringType]));
                     }
-                    translatedInstructions.Add(CilOpCodes.Call, baseField.FieldAddressAccessor!.MaybeMakeConcreteGeneric(declaringTypeArguments, []));
-                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, byReference.MakeGenericInstanceType([fieldType]));
+                    translatedInstructions.Add(CilOpCodes.Call, fieldAddressAccessor);
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, fieldAddressAccessor.ReturnType);
                 }
                 else if (originalCode == CilOpCodes.Ldsflda)
                 {

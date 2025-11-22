@@ -40,6 +40,8 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         var il2CppSystemObject = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Object");
         var il2CppSystemObject_get_Pointer = il2CppSystemObject.GetMethodByName($"get_{nameof(Object.Pointer)}");
 
+        var voidPointer = appContext.SystemTypes.SystemVoidType.MakePointerType();
+
         foreach (var assembly in appContext.Assemblies)
         {
             if (assembly.IsReferenceAssembly || assembly.IsInjected)
@@ -112,7 +114,15 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                         field.FieldAddressAccessor = getFieldAddress;
                     }
 
-                    if (isValueType && !field.IsStatic)
+                    // Check for ByReference<> or Pointer<> in value types because they can break the runtime.
+                    // https://github.com/dotnet/runtime/issues/121556
+                    var isPointerOrByRefInValueType = isValueType && !field.IsStatic && field.FieldType is GenericInstanceTypeAnalysisContext
+                    {
+                        GenericType.Namespace: "Il2CppInterop.Runtime.InteropTypes",
+                        GenericType.Name: $"{nameof(ByReference<>)}`1" or $"{nameof(Pointer<>)}`1"
+                    };
+
+                    if (isValueType && !field.IsStatic && !isPointerOrByRefInValueType)
                     {
                         // Instance fields in value types do not get converted into properties.
 
@@ -152,6 +162,16 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(CilOpCodes.Call, getStaticFieldValue.MakeGenericInstanceMethod([field.FieldType]));
                             instructions.Add(CilOpCodes.Ret);
                         }
+                        else if (isPointerOrByRefInValueType)
+                        {
+                            var fieldType = (GenericInstanceTypeAnalysisContext)field.FieldType;
+                            var genericArgument = fieldType.GenericArguments[0];
+                            var uninstantiatedConversion = fieldType.GenericType.GetExplicitConversionFrom(voidPointer);
+                            instructions.Add(CilOpCodes.Ldarg, This.Instance);
+                            instructions.Add(CilOpCodes.Ldfld, field.SelfInstantiateIfNecessary());
+                            instructions.Add(CilOpCodes.Call, uninstantiatedConversion.MakeConcreteGenericMethod(fieldType.GenericArguments, []));
+                            instructions.Add(CilOpCodes.Ret);
+                        }
                         else
                         {
                             instructions.Add(CilOpCodes.Ldarg, This.Instance);
@@ -185,6 +205,17 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(CilOpCodes.Ldsfld, field.GetInstantiatedFieldInfoAddressStorage());
                             instructions.Add(CilOpCodes.Ldarg, setMethod.Parameters[0]);
                             instructions.Add(CilOpCodes.Call, setStaticFieldValue.MakeGenericInstanceMethod([field.FieldType]));
+                            instructions.Add(CilOpCodes.Ret);
+                        }
+                        else if (isPointerOrByRefInValueType)
+                        {
+                            var fieldType = (GenericInstanceTypeAnalysisContext)field.FieldType;
+                            var genericArgument = fieldType.GenericArguments[0];
+                            var uninstantiatedConversion = fieldType.GenericType.GetExplicitConversionTo(voidPointer);
+                            instructions.Add(CilOpCodes.Ldarg, This.Instance);
+                            instructions.Add(CilOpCodes.Ldarg, setMethod.Parameters[0]);
+                            instructions.Add(CilOpCodes.Call, uninstantiatedConversion.MakeConcreteGenericMethod(fieldType.GenericArguments, []));
+                            instructions.Add(CilOpCodes.Stfld, field.SelfInstantiateIfNecessary());
                             instructions.Add(CilOpCodes.Ret);
                         }
                         else
@@ -227,7 +258,16 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                         property.CustomAttributes = [attribute];
                     }
 
-                    field.DeclaringType.Fields.RemoveAt(i);
+                    if (isPointerOrByRefInValueType)
+                    {
+                        field.OverrideFieldType = voidPointer;
+                        field.OverrideName = GetNonConflictingName(field.Name + "_BackingField", existingNames);
+                        field.Visibility = FieldAttributes.Private;
+                    }
+                    else
+                    {
+                        field.DeclaringType.Fields.RemoveAt(i);
+                    }
                 }
             }
         }
