@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Cpp2IL.Core.Model.Contexts;
 
-namespace Il2CppInterop.Generator;
+namespace Il2CppInterop.Generator.Extensions;
 
 internal static class MethodAnalysisContextExtensions
 {
