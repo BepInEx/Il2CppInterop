@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Cpp2IL.Core.Api;
@@ -49,19 +48,19 @@ public partial class CleanRenamingProcessingLayer : Cpp2IlProcessingLayer
 
             if (GenericTypeName.TryMatch(type.Name, out var typeName, out var genericCount))
             {
-                type.OverrideName = $"{ReplaceInvalidWithUnderscore(typeName)}`{genericCount}";
+                type.OverrideName = $"{typeName.MakeValidCSharpName()}`{genericCount}";
             }
             else if (type.IsModuleType)
             {
-                type.OverrideName = $"Module_{ReplaceInvalidWithUnderscore(type.DeclaringAssembly.DefaultName)}";
+                type.OverrideName = $"Module_{type.DeclaringAssembly.DefaultName.MakeValidCSharpName()}";
             }
             else if (type.IsPrivateImplementationDetailsType)
             {
-                type.OverrideName = $"PrivateImplementationDetails_{ReplaceInvalidWithUnderscore(type.DeclaringAssembly.DefaultName)}";
+                type.OverrideName = $"PrivateImplementationDetails_{type.DeclaringAssembly.DefaultName.MakeValidCSharpName()}";
             }
             else
             {
-                type.OverrideName = ReplaceInvalidWithUnderscore(type.Name);
+                type.OverrideName = type.Name.MakeValidCSharpName();
             }
         }
 
@@ -89,33 +88,58 @@ public partial class CleanRenamingProcessingLayer : Cpp2IlProcessingLayer
 
     private static void RenameMembers(TypeAnalysisContext type)
     {
+        // Virtual method lookup depends on the name being consistent with the base type.
+        // Special names also have special meaning and should not be changed.
         const MethodAttributes FlagsWhichRequireNameConsistency =
             MethodAttributes.SpecialName |
             MethodAttributes.Abstract |
             MethodAttributes.Virtual |
             MethodAttributes.RTSpecialName;
 
-        // Fields
-        foreach (var field in type.Fields)
-        {
-            if (field.IsInjected)
-                continue;
+        var typeName = GetCSharpName(type);
 
-            if (TryMatchPropertyBackingField(field.Name, out var propertyName))
+        // Events and properties do not get renamed
+
+        // Collect all reserved names
+        HashSet<string> reservedNames =
+        [
+            "",
+            "_",
+            typeName,
+            .. GetConflictingNames(type.Properties),
+            .. GetConflictingNames(type.Events),
+        ];
+        if (StartsWithGetSet(typeName))
+        {
+            reservedNames.Add(typeName.Substring(4));
+        }
+
+        HashSet<(string Name, int SignatureHash)> existingMethods = [];
+
+        // Injected and special methods
+        foreach (var method in type.Methods)
+        {
+            if (method.IsInjected)
             {
-                field.OverrideName = $"{propertyName}_BackingField";
+                existingMethods.Add((method.Name, GetMethodSignatureHash(method)));
             }
-            else if (type.Events.Any(e => e.Name == field.Name))
+            else if ((method.Attributes & FlagsWhichRequireNameConsistency) != 0)
             {
-                field.OverrideName = $"{field.Name}_BackingField";
-            }
-            else
-            {
-                field.OverrideName = ReplaceInvalidWithUnderscore(field.Name);
+                if (method.IsStaticConstructor)
+                {
+                    // Rename static constructor, but allow it to be renamed again if needed.
+                    // Also remove special name flags, since it's no longer a special name.
+                    method.OverrideName = "StaticConstructor";
+                    method.OverrideAttributes = method.Attributes & ~(MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
+                }
+                else
+                {
+                    existingMethods.Add((method.Name, GetMethodSignatureHash(method)));
+                }
             }
         }
 
-        // Methods
+        // Normal methods
         foreach (var method in type.Methods)
         {
             if (method.IsInjected)
@@ -124,46 +148,71 @@ public partial class CleanRenamingProcessingLayer : Cpp2IlProcessingLayer
             if ((method.Attributes & FlagsWhichRequireNameConsistency) != 0)
                 continue;
 
-            method.OverrideName = ReplaceInvalidWithUnderscore(method.Name);
+            var methodName = method.Name.MakeValidCSharpName();
+            var signatureHash = GetMethodSignatureHash(method);
+
+            while (reservedNames.Contains(methodName) || !existingMethods.Add((methodName, signatureHash)))
+            {
+                methodName = $"_{methodName}";
+            }
+            method.OverrideName = methodName;
         }
 
-        // Collect all reserved names
-        HashSet<string> reservedNames =
-        [
-            "",
-            "_",
-            type.Name,
-            .. GetConflictingNames(type.Properties),
-            .. GetConflictingNames(type.Events),
-            .. GetConflictingNames(type.Methods),
-        ];
-        if (StartsWithGetSet(type.Name))
-        {
-            reservedNames.Add(type.Name.Substring(4));
-        }
+        reservedNames.AddRange(GetConflictingNames(type.Methods));
 
-        // Resolve any name conflicts for fields
+        // Fields
         foreach (var field in type.Fields)
         {
             if (field.IsInjected)
                 continue;
 
-            field.OverrideName = PrependUnderscoreIfConflicting(field.Name, reservedNames);
+            string fieldName;
+            if (TryMatchPropertyBackingField(field.Name, out var propertyName))
+            {
+                fieldName = $"{propertyName}_BackingField";
+            }
+            else if (type.Events.Any(e => e.Name == field.Name))
+            {
+                fieldName = $"{field.Name}_BackingField";
+            }
+            else
+            {
+                fieldName = field.Name.MakeValidCSharpName();
+            }
+
+            while (reservedNames.Contains(fieldName))
+            {
+                fieldName = $"_{fieldName}";
+            }
+            field.OverrideName = fieldName;
             reservedNames.Add(field.Name);
         }
 
-        // Rename static constructors
+        // Parameters
+        var parameterNames = new HashSet<string>();
         foreach (var method in type.Methods)
         {
             if (method.IsInjected)
                 continue;
 
-            if (!method.IsStaticConstructor)
+            if (method.Parameters.Count == 0)
                 continue;
 
-            method.OverrideName = PrependUnderscoreIfConflicting("StaticConstructor", reservedNames);
-            method.OverrideAttributes = method.Attributes & ~(MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
-            reservedNames.Add(method.Name);
+            parameterNames.Clear();
+
+            for (var i = 0; i < method.Parameters.Count; i++)
+            {
+                var parameter = method.Parameters[i];
+                var parameterName = string.IsNullOrEmpty(parameter.Name)
+                    ? $"parameter{i}"
+                    : parameter.Name.MakeValidCSharpName();
+
+                while (reservedNames.Contains(parameterName) || !parameterNames.Add(parameterName))
+                {
+                    parameterName = $"_{parameterName}";
+                }
+                parameter.OverrideName = parameterName;
+            }
         }
     }
 
@@ -179,37 +228,34 @@ public partial class CleanRenamingProcessingLayer : Cpp2IlProcessingLayer
         }
     }
 
-    private static string PrependUnderscoreIfConflicting(string name, HashSet<string> reservedNames)
-    {
-        while (reservedNames.Contains(name))
-        {
-            name = $"_{name}";
-        }
-        return name;
-    }
-
     private static bool StartsWithGetSet(string name)
     {
         return name.StartsWith("get_", StringComparison.Ordinal)
             || name.StartsWith("set_", StringComparison.Ordinal);
     }
 
-    private static string ReplaceInvalidWithUnderscore(string name)
+    private static string GetCSharpName(TypeAnalysisContext type)
     {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        var array = ArrayPool<char>.Shared.Rent(name.Length + 1);
-        array[0] = '_';
-        name.AsSpan().CopyTo(array.AsSpan(1));
-        for (var i = name.Length; i > 0; i--)
+        if (GenericTypeName.TryMatch(type.Name, out var typeName, out _))
         {
-            if (!char.IsLetterOrDigit(array[i]))
-            {
-                array[i] = '_';
-            }
+            return typeName;
         }
-        var result = char.IsDigit(array[1]) ? new string(array.AsSpan(0, name.Length + 1)) : new string(array.AsSpan(1, name.Length));
-        ArrayPool<char>.Shared.Return(array);
-        return result;
+        else
+        {
+            return type.Name;
+        }
+    }
+
+    private static int GetMethodSignatureHash(MethodAnalysisContext method)
+    {
+        HashCode hash = new();
+        hash.Add(method.GenericParameters.Count);
+        hash.Add(TypeAnalysisContextEqualityComparer.Instance.GetHashCode(method.ReturnType));
+        foreach (var param in method.Parameters)
+        {
+            hash.Add(TypeAnalysisContextEqualityComparer.Instance.GetHashCode(param.ParameterType));
+        }
+        return hash.ToHashCode();
     }
 
     private static bool TryMatchPropertyBackingField(string fieldName, [NotNullWhen(true)] out string? propertyName)
