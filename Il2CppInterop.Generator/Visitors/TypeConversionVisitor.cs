@@ -36,7 +36,7 @@ internal sealed class TypeConversionVisitor : TypeReplacementVisitor
             ("Il2CppSystem.ValueType", "Il2CppSystem.IValueType"),
         ];
 
-        var replacementDictionary = replacements.ToDictionary(pair => il2CppMscorlib.GetTypeByFullNameOrThrow(pair.Item1), pair => il2CppMscorlib.GetTypeByFullNameOrThrow(pair.Item2));
+        var replacementDictionary = replacements.ToDictionary(pair => il2CppMscorlib.GetTypeByFullNameOrThrow(pair.Item1), pair => il2CppMscorlib.GetTypeByFullNameOrThrow(pair.Item2), TypeAnalysisContextEqualityComparer.Instance);
 
         return new TypeConversionVisitor(replacementDictionary)
         {
