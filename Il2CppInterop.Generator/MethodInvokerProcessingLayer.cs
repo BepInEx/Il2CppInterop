@@ -118,7 +118,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                     {
                         var name = method.IsInstanceConstructor
                             ? GetNonConflictingName("UnsafeConstruct", existingNames)
-                            : GetNonConflictingName($"UnsafeInvoke_{method.Name.Replace('.', '_')}", existingNames);
+                            : GetNonConflictingName($"UnsafeInvoke_{method.Name.Replace('.', '_').Replace('<', '_').Replace('>', '_')}", existingNames);
 
                         var helper = new InjectedMethodAnalysisContext(
                             type,
