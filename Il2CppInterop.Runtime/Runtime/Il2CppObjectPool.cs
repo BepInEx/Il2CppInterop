@@ -57,6 +57,11 @@ public static class Il2CppObjectPool
         s_initializers[classPtr] = initializer;
     }
 
+    public static void RegisterValueTypeInitializer<T>() where T : struct, IIl2CppType<T>
+    {
+        RegisterInitializer(Il2CppClassPointerStore<T>.NativeClassPtr, ValueTypeInitializer<T>);
+    }
+
     public static unsafe object ValueTypeInitializer<T>(ObjectPointer obj) where T : struct, IIl2CppType<T>
     {
         var unboxed = IL2CPP.il2cpp_object_unbox((nint)obj);

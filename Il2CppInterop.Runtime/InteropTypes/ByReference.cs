@@ -1,4 +1,5 @@
 using System;
+using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 
@@ -41,6 +42,7 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
         var byRefTypeObj = elementTypeObj.MakeByRefType();
         var byRefClassPtr = IL2CPP.il2cpp_class_from_type(byRefTypeObj.TypeHandle.value);
         Il2CppClassPointerStore<ByReference<T>>.NativeClassPtr = byRefClassPtr;
+        Il2CppObjectPool.RegisterValueTypeInitializer<ByReference<T>>();
     }
 
     private readonly void* _pointer = pointer;

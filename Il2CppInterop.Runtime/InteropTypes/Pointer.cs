@@ -1,4 +1,5 @@
 using System;
+using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 
@@ -13,6 +14,7 @@ public unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>>
         var pointerTypeObj = elementTypeObj.MakePointerType();
         var pointerClassPtr = IL2CPP.il2cpp_class_from_type(pointerTypeObj.TypeHandle.value);
         Il2CppClassPointerStore<Pointer<T>>.NativeClassPtr = pointerClassPtr;
+        Il2CppObjectPool.RegisterValueTypeInitializer<Pointer<T>>();
     }
 
     private readonly void* _pointer = pointer;
