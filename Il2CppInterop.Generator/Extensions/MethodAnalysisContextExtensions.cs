@@ -75,6 +75,8 @@ internal static class MethodAnalysisContextExtensions
             }
         }
 
+        public ushort Slot => method.Definition?.slot ?? ushort.MaxValue;
+
         public FieldAnalysisContext GetInstantiatedMethodInfoField()
         {
             var methodInfoField = method.MethodInfoField;

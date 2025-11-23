@@ -200,6 +200,31 @@ internal static class TypeAnalysisContextExtensions
             return property is not null;
         }
 
+        public bool TryGetMethodInSlot(int slot, [NotNullWhen(true)] out MethodAnalysisContext? method)
+        {
+            if (type is GenericInstanceTypeAnalysisContext genericInstanceType)
+            {
+                var genericMethod = genericInstanceType.GenericType.Methods.FirstOrDefault(m => m.Slot == slot);
+                if (genericMethod is not null)
+                {
+                    method = new ConcreteGenericMethodAnalysisContext(genericMethod, genericInstanceType.GenericArguments, []);
+                    return true;
+                }
+            }
+            else
+            {
+                var baseMethod = type.Methods.FirstOrDefault(m => m.Slot == slot);
+                if (baseMethod is not null)
+                {
+                    method = baseMethod;
+                    return true;
+                }
+            }
+
+            method = null;
+            return false;
+        }
+
         public MethodAnalysisContext GetImplicitConversionFrom(TypeAnalysisContext sourceType)
         {
             return GetConversion("op_Implicit", type, sourceType, type.SelfInstantiateIfGeneric());

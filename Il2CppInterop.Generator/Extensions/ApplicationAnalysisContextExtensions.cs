@@ -1,5 +1,7 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Cpp2IL.Core.Model.Contexts;
+using LibCpp2IL;
 
 namespace Il2CppInterop.Generator.Extensions;
 
@@ -45,5 +47,13 @@ internal static class ApplicationAnalysisContextExtensions
 
         public AssemblyAnalysisContext Mscorlib => appContext.AssembliesByName["mscorlib"];
         public AssemblyAnalysisContext Il2CppMscorlib => appContext.AssembliesByName["Il2Cppmscorlib"];
+
+        [return: NotNullIfNotNull(nameof(methodReference))]
+        public ConcreteGenericMethodAnalysisContext? ResolveContextForMethod(Cpp2IlMethodRef? methodReference)
+        {
+            return methodReference is not null
+                ? appContext.ConcreteGenericMethodsByRef.TryGetValue(methodReference, out var context) ? context : new(methodReference, appContext)
+                : null;
+        }
     }
 }
