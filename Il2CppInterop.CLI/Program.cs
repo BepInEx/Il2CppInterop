@@ -13,6 +13,7 @@ Il2CppGame.Process(
         //new StableRenamingProcessingLayer(),
         new UnstripProcessingLayer(), // Can be disabled for performance during development
         new InterfaceOverrideProcessingLayer(),
+        new InvalidFieldRemovalProcessingLayer(),
         new Il2CppRenamingProcessingLayer(),
         new CleanRenamingProcessingLayer(),
         new ConflictRenamingProcessingLayer(),
