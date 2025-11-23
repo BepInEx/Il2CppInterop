@@ -83,7 +83,7 @@ public class InterfaceOverrideProcessingLayer : Cpp2IlProcessingLayer
                 type,
                 methodName,
                 implementingMethod.ReturnType,
-                implementingMethod.Attributes,
+                implementingMethod.Attributes | MethodAttributes.NewSlot,
                 implementingMethod.Parameters.Select(p => p.ParameterType).ToArray(),
                 implementingMethod.Parameters.Select(p => p.Name).ToArray(),
                 implementingMethod.Parameters.Select(p => p.Attributes).ToArray(),
