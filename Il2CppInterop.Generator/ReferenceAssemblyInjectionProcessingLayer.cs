@@ -33,8 +33,7 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
         [
             typeof(Il2CppArrayBase),
             typeof(Il2CppArrayBase<>),
-            typeof(Il2CppMultiArrayBase),
-            typeof(Il2CppMultiArrayBase<>),
+            typeof(Il2CppArrayRank1<>),
             typeof(Il2CppArrayRank2<>),
             typeof(Il2CppArrayRank3<>),
 

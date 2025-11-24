@@ -470,7 +470,7 @@ public abstract class MethodBodyBase
             elementType = szArrayType.ElementType;
             return true;
         }
-        if (type is GenericInstanceTypeAnalysisContext { GenericType: { Name: $"{nameof(Il2CppArrayBase<>)}`1" } genericType } && genericType.Namespace == typeof(Il2CppArrayBase<>).Namespace)
+        if (type is GenericInstanceTypeAnalysisContext { GenericType: { Name: $"{nameof(Il2CppArrayRank1<>)}`1" } genericType } && genericType.Namespace == typeof(Il2CppArrayRank1<>).Namespace)
         {
             elementType = ((GenericInstanceTypeAnalysisContext)type).GenericArguments[0];
             return true;

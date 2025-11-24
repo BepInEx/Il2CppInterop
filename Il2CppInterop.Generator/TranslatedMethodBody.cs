@@ -611,7 +611,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Newarr:
                         {
                             translatedInstruction.Code = CilOpCodes.Newobj;
-                            translatedInstruction.Operand = appContext.ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
+                            translatedInstruction.Operand = appContext.ResolveTypeOrThrow(typeof(Il2CppArrayRank1<>))
                                 .Methods
                                 .Single(m => m.IsInstanceConstructor && m.Parameters.Count == 1 && m.Parameters[0].ParameterType == appContext.SystemTypes.SystemInt32Type)
                                 .MakeConcreteGeneric([translatedType], []);
@@ -620,7 +620,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     case CilCode.Ldelem:
                         {
                             var genericMethod = methodContext.AppContext
-                                .ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
+                                .ResolveTypeOrThrow(typeof(Il2CppArrayRank1<>))
                                 .GetMethodByName("get_Item");
                             translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = new ConcreteGenericMethodAnalysisContext(genericMethod, [translatedType], []);
@@ -632,7 +632,7 @@ public class TranslatedMethodBody : MethodBodyBase
                             translatedInstruction.Code = CilOpCodes.Nop;
 
                             var genericMethod = methodContext.AppContext
-                                .ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
+                                .ResolveTypeOrThrow(typeof(Il2CppArrayRank1<>))
                                 .GetMethodByName("set_Item");
                             var concreteGenericMethod = new ConcreteGenericMethodAnalysisContext(genericMethod, [translatedType], []);
                             MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, translatedType);
@@ -642,8 +642,8 @@ public class TranslatedMethodBody : MethodBodyBase
                         break;
                     case CilCode.Ldelema:
                         {
-                            var getElementAddress = appContext.ResolveTypeOrThrow(typeof(Il2CppArrayBase<>))
-                                .GetMethodByName(nameof(Il2CppArrayBase<>.GetElementAddress))
+                            var getElementAddress = appContext.ResolveTypeOrThrow(typeof(Il2CppArrayRank1<>))
+                                .GetMethodByName(nameof(Il2CppArrayRank1<>.GetElementAddress))
                                 .MakeConcreteGeneric([translatedType], []);
                             translatedInstruction.Code = CilOpCodes.Callvirt;
                             translatedInstruction.Operand = getElementAddress;

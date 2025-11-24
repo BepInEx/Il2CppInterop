@@ -8,6 +8,8 @@ public class Array : Object
     {
     }
 
+    public Int32 Length => default;
+
     public Int32 GetLowerBound(Int32 dimension)
     {
         return default;

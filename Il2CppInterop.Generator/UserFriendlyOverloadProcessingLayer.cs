@@ -14,9 +14,9 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
         const string ArrayNamespace = "Il2CppInterop.Runtime.InteropTypes.Arrays";
-        const string ArrayClassName = nameof(Il2CppArrayBase<>) + "`1";
+        const string ArrayClassName = nameof(Il2CppArrayRank1<>) + "`1";
 
-        var il2CppArrayBase = appContext.ResolveTypeOrThrow(typeof(Il2CppArrayBase<>));
+        var il2CppArrayBase = appContext.ResolveTypeOrThrow(typeof(Il2CppArrayRank1<>));
         var il2CppArrayBase_ToManagedArray = il2CppArrayBase.Methods.Single(m => m.Name == "op_Explicit" && m.ReturnType is SzArrayTypeAnalysisContext);
         var il2CppArrayBase_FromManagedArray = il2CppArrayBase.Methods.Single(m => m.Name == "op_Explicit" && m.Parameters.Count == 1 && m.Parameters[0].ParameterType is SzArrayTypeAnalysisContext);
 

@@ -1059,9 +1059,9 @@ public static unsafe partial class ClassInjector
             var elementType = type.GetElementType()!;
 
             var convertedElementType = RewriteType(elementType);
-            if (elementType.IsGenericParameter) return typeof(Il2CppArrayBase<>).MakeGenericType(convertedElementType);
+            if (elementType.IsGenericParameter) return typeof(Il2CppArrayRank1<>).MakeGenericType(convertedElementType);
 
-            return typeof(Il2CppArrayBase<>).MakeGenericType(convertedElementType);
+            return typeof(Il2CppArrayRank1<>).MakeGenericType(convertedElementType);
         }
 
         if (type.FullName!.StartsWith("System"))

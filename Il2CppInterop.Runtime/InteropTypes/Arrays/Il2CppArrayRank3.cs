@@ -5,7 +5,7 @@ using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-public sealed class Il2CppArrayRank3<T> : Il2CppMultiArrayBase<T>, IIl2CppType<Il2CppArrayRank3<T>>
+public sealed class Il2CppArrayRank3<T> : Il2CppArrayBase<T>, IIl2CppType<Il2CppArrayRank3<T>>
     where T : IIl2CppType<T>
 {
     static int IIl2CppType<Il2CppArrayRank3<T>>.Size => IntPtr.Size;

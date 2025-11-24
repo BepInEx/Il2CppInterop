@@ -8,7 +8,7 @@ namespace Il2CppInterop.Runtime.InteropTypes.CoreLib;
 internal static class AppDomainAccessor
 {
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "GetAssemblies")]
-    [return: UnsafeAccessorType($"Il2CppInterop.Runtime.InteropTypes.Arrays.{nameof(Il2CppArrayBase<>)}`1[[Il2CppSystem.Reflection.Assembly, Il2Cppmscorlib]]")]
+    [return: UnsafeAccessorType($"Il2CppInterop.Runtime.InteropTypes.Arrays.{nameof(Il2CppArrayRank1<>)}`1[[Il2CppSystem.Reflection.Assembly, Il2Cppmscorlib]]")]
     public static extern object GetAssemblies([UnsafeAccessorType("Il2CppSystem.AppDomain, Il2Cppmscorlib")] object appDomain);
 
     [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "get_CurrentDomain")]

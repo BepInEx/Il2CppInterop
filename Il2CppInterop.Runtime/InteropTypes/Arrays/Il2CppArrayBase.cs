@@ -1,14 +1,12 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-public abstract class Il2CppArrayBase : Il2CppSystem.Array, IEnumerable, ICollection
+public abstract class Il2CppArrayBase : Il2CppSystem.Array
 {
     private protected Il2CppArrayBase(ObjectPointer pointer) : base(pointer)
     {
@@ -19,15 +17,7 @@ public abstract class Il2CppArrayBase : Il2CppSystem.Array, IEnumerable, ICollec
     /// </summary>
     private protected unsafe IntPtr ArrayStartPointer => IntPtr.Add(Pointer, sizeof(Il2CppObject) /* base */ + sizeof(void*) /* bounds */ + sizeof(nuint) /* max_length */);
 
-    public int Length => (int)IL2CPP.il2cpp_array_length(Pointer);
-
-    int ICollection.Count => Length;
-
-    bool ICollection.IsSynchronized => false;
-
-    object ICollection.SyncRoot => throw new NotSupportedException();
-
-    public abstract IEnumerator GetEnumerator();
+    public new int Length => base.Length;
 
     private protected static bool ThrowImmutableLength()
     {
@@ -54,229 +44,90 @@ public abstract class Il2CppArrayBase : Il2CppSystem.Array, IEnumerable, ICollec
         element = value;
     }
 
-    private protected abstract Span<byte> GetUnsafeSpanForElement(int index);
-
-    private protected abstract void CopyTo(Array array, int index);
-
-    void ICollection.CopyTo(Array array, int index) => CopyTo(array, index);
-
-    public static Il2CppArrayBase<T> Create<T>(ReadOnlySpan<T> span) where T : IIl2CppType<T>
+    private protected virtual Span<byte> GetUnsafeSpanForElement(int index)
     {
-        return new Il2CppArrayBase<T>(span);
+        throw new NotSupportedException("Only rank 1 arrays support unsafe element access");
+    }
+
+    public static Il2CppArrayRank1<T> Create<T>(ReadOnlySpan<T> span) where T : IIl2CppType<T>
+    {
+        return new Il2CppArrayRank1<T>(span);
+    }
+
+    private protected static unsafe ObjectPointer AllocateArray(ReadOnlySpan<int> lengths, IntPtr arrayClass)
+    {
+        if (lengths.Length <= 1)
+        {
+            throw new ArgumentException("Use single-dimensional array allocation for single-dimensional arrays.", nameof(lengths));
+        }
+
+        var sizes = ArrayPool<ulong>.Shared.Rent(lengths.Length);
+        for (var i = 0; i < lengths.Length; i++)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(lengths[i]);
+            sizes[i] = (ulong)lengths[i];
+        }
+
+        var lowerBounds = ArrayPool<ulong>.Shared.Rent(lengths.Length);
+        lowerBounds.AsSpan().Clear();
+
+        ObjectPointer result;
+        fixed (ulong* pSizes = sizes)
+        {
+            fixed (ulong* pLowerBounds = lowerBounds)
+            {
+                result = (ObjectPointer)IL2CPP.il2cpp_array_new_full(arrayClass, pSizes, pLowerBounds);
+            }
+        }
+
+        ArrayPool<ulong>.Shared.Return(sizes);
+        ArrayPool<ulong>.Shared.Return(lowerBounds);
+
+        return result;
+    }
+
+    // https://github.com/js6pak/libil2cpp-archive/blob/90c6b7ed1c291d54b257d751a4d743d07dea8d62/vm/Array.cpp#L273-L286
+    private protected long IndexFromIndices(ReadOnlySpan<int> indices)
+    {
+        int rank = GetRank();
+        long pos;
+
+        pos = indices[0] - GetLowerBound(0);
+
+        for (var i = 1; i < rank; i++)
+            pos = pos * GetLength(i) + indices[i] - GetLowerBound(i);
+
+        return pos;
+    }
+
+    private protected static void SetClassPointer<TArray, TElement>(uint rank)
+        where TArray : Il2CppArrayBase
+        where TElement : IIl2CppType<TElement>
+    {
+        Il2CppClassPointerStore<TArray>.NativeClassPtr = IL2CPP.il2cpp_array_class_get(Il2CppClassPointerStore<TElement>.NativeClassPtr, rank);
     }
 }
-[CollectionBuilder(typeof(Il2CppArrayBase), nameof(Create))]
-public sealed class Il2CppArrayBase<T> : Il2CppArrayBase, IList<T>, IReadOnlyList<T>, IIl2CppType<Il2CppArrayBase<T>>
+public abstract class Il2CppArrayBase<T> : Il2CppArrayBase
     where T : IIl2CppType<T>
 {
-    static Il2CppArrayBase()
-    {
-        var nativeClassPtr = Il2CppClassPointerStore<T>.NativeClassPtr;
-        if (nativeClassPtr == IntPtr.Zero)
-            return;
-
-        var targetClassType = IL2CPP.il2cpp_array_class_get(nativeClassPtr, 1);
-        if (targetClassType == IntPtr.Zero)
-            return;
-
-        Il2CppClassPointerStore<Il2CppArrayBase<T>>.NativeClassPtr = targetClassType;
-
-        Il2CppObjectPool.RegisterInitializer(Il2CppClassPointerStore<Il2CppArrayBase<T>>.NativeClassPtr, static (ptr) => new Il2CppArrayBase<T>(ptr));
-    }
-
-    public Il2CppArrayBase(ObjectPointer pointer) : base(pointer)
+    private protected Il2CppArrayBase(ObjectPointer pointer) : base(pointer)
     {
     }
 
-    public Il2CppArrayBase(int size) : this(AllocateArray(size))
+    private protected Il2CppArrayBase(ReadOnlySpan<int> lengths, IntPtr arrayClass) : this(AllocateArray(lengths, arrayClass))
     {
     }
 
-    public Il2CppArrayBase(long size) : base(AllocateArray(size))
+    public T this[params ReadOnlySpan<int> indices]
     {
+        get => GetElementAddress(indices).GetValue()!;
+        set => GetElementAddress(indices).SetValue(value);
     }
 
-    public Il2CppArrayBase(ReadOnlySpan<T> arr) : base(AllocateArray(arr.Length))
+    public unsafe ByReference<T> GetElementAddress(params ReadOnlySpan<int> indices)
     {
-        for (var i = 0; i < arr.Length; i++)
-            this[i] = arr[i];
-    }
-
-    public sealed override IEnumerator<T> GetEnumerator()
-    {
-        return new IndexEnumerator(this);
-    }
-
-    void ICollection<T>.Add(T item)
-    {
-        ThrowImmutableLength();
-    }
-
-    void ICollection<T>.Clear()
-    {
-        ThrowImmutableLength();
-    }
-
-    public bool Contains(T item)
-    {
-        return IndexOf(item) != -1;
-    }
-
-    public void CopyTo(T[] array, int arrayIndex)
-    {
-        ArgumentNullException.ThrowIfNull(array);
-        ArgumentOutOfRangeException.ThrowIfNegative(arrayIndex);
-        if (array.Length - arrayIndex < Length)
-            throw new ArgumentException(
-                $"Not enough space in target array: need {Length} slots, have {array.Length - arrayIndex}");
-
-        for (var i = 0; i < Length; i++)
-            array[i + arrayIndex] = this[i];
-    }
-
-    private protected sealed override void CopyTo(Array array, int index) => CopyTo((T[])array, index);
-
-    bool ICollection<T>.Remove(T item)
-    {
-        return ThrowImmutableLength();
-    }
-
-    int ICollection<T>.Count => Length;
-    int IReadOnlyCollection<T>.Count => Length;
-    bool ICollection<T>.IsReadOnly => false;
-
-    static int IIl2CppType<Il2CppArrayBase<T>>.Size => IntPtr.Size;
-    nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppArrayBase<T>>.NativeClassPtr;
-
-    public int IndexOf(T item)
-    {
-        for (var i = 0; i < Length; i++)
-            if (Equals(item, this[i]))
-                return i;
-
-        return -1;
-    }
-
-    void IList<T>.Insert(int index, T item)
-    {
-        ThrowImmutableLength();
-    }
-
-    void IList<T>.RemoveAt(int index)
-    {
-        ThrowImmutableLength();
-    }
-
-    public T this[int index]
-    {
-        get
-        {
-            ThrowIfIndexOutOfRange(index);
-            return T.ReadFromSpan(AsSpan().Slice(index * T.Size, T.Size))!;
-        }
-        set
-        {
-            ThrowIfIndexOutOfRange(index);
-            T.WriteToSpan(value, AsSpan().Slice(index * T.Size, T.Size));
-        }
-    }
-
-    public unsafe ByReference<T> GetElementAddress(int index)
-    {
-        ThrowIfIndexOutOfRange(index);
-        return new ByReference<T>((byte*)ArrayStartPointer.ToPointer() + index * T.Size);
-    }
-
-    private unsafe Span<byte> AsSpan()
-    {
-        return new Span<byte>(ArrayStartPointer.ToPointer(), Length * T.Size);
-    }
-
-    private protected override Span<byte> GetUnsafeSpanForElement(int index)
-    {
-        return GetElementAddress(index).AsSpan();
-    }
-
-    [return: NotNullIfNotNull(nameof(il2CppArray))]
-    public static explicit operator T[]?(Il2CppArrayBase<T>? il2CppArray)
-    {
-        if (il2CppArray == null)
-            return null;
-
-        var arr = new T[il2CppArray.Length];
-        for (var i = 0; i < arr.Length; i++)
-            arr[i] = il2CppArray[i];
-
-        return arr;
-    }
-
-    public static explicit operator ReadOnlySpan<T>(Il2CppArrayBase<T>? il2CppArray)
-    {
-        return (ReadOnlySpan<T>)(T[]?)il2CppArray;
-    }
-
-    public static explicit operator Span<T>(Il2CppArrayBase<T>? il2CppArray)
-    {
-        return (Span<T>)(T[]?)il2CppArray;
-    }
-
-    [return: NotNullIfNotNull(nameof(arr))]
-    public static explicit operator Il2CppArrayBase<T>?(T[]? arr)
-    {
-        return arr is null ? null : new Il2CppArrayBase<T>(arr);
-    }
-
-    public static explicit operator Il2CppArrayBase<T>?(ReadOnlySpan<T> arr)
-    {
-        return new Il2CppArrayBase<T>(arr);
-    }
-
-    public static explicit operator Il2CppArrayBase<T>?(Span<T> arr)
-    {
-        return new Il2CppArrayBase<T>(arr);
-    }
-
-    private static ObjectPointer AllocateArray(long size)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(size);
-
-        var elementTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
-        if (elementTypeClassPointer == IntPtr.Zero)
-            throw new ArgumentException(
-                $"{nameof(Il2CppArrayBase<>)} requires an Il2Cpp type, which {typeof(T)} isn't");
-        return (ObjectPointer)IL2CPP.il2cpp_array_new(elementTypeClassPointer, (ulong)size);
-    }
-
-    static void IIl2CppType<Il2CppArrayBase<T>>.WriteToSpan(Il2CppArrayBase<T>? value, Span<byte> span) => Il2CppTypeHelper.WriteReference(value, span);
-
-    static Il2CppArrayBase<T>? IIl2CppType<Il2CppArrayBase<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => Il2CppTypeHelper.ReadReference<Il2CppArrayBase<T>>(span);
-
-    private sealed class IndexEnumerator : IEnumerator<T>
-    {
-        private Il2CppArrayBase<T> myArray;
-        private int myIndex = -1;
-
-        public IndexEnumerator(Il2CppArrayBase<T> array)
-        {
-            myArray = array;
-        }
-
-        public void Dispose()
-        {
-            myArray = null!;
-        }
-
-        public bool MoveNext()
-        {
-            return ++myIndex < ((ICollection<T>)myArray).Count;
-        }
-
-        public void Reset()
-        {
-            myIndex = -1;
-        }
-
-        object? IEnumerator.Current => Current;
-        public T Current => myArray[myIndex];
+        var flatIndex = IndexFromIndices(indices);
+        void* elementPtr = (byte*)ArrayStartPointer + flatIndex * T.Size;
+        return new ByReference<T>(elementPtr);
     }
 }

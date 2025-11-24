@@ -11,9 +11,9 @@ internal sealed class TypeConversionVisitor : TypeReplacementVisitor
     {
     }
 
-    public required TypeAnalysisContext Il2CppArrayBase { get; init; }
     public required TypeAnalysisContext Pointer { get; init; }
     public required TypeAnalysisContext ByRef { get; init; }
+    public required TypeAnalysisContext ArrayRank1 { get; init; }
     public required TypeAnalysisContext ArrayRank2 { get; init; }
     public required TypeAnalysisContext ArrayRank3 { get; init; }
 
@@ -23,9 +23,9 @@ internal sealed class TypeConversionVisitor : TypeReplacementVisitor
         var mscorlib = appContext.AssembliesByName["mscorlib"];
         var il2CppInteropRuntime = appContext.AssembliesByName["Il2CppInterop.Runtime"];
 
-        var il2CppArrayBase = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Il2CppArrayBase<>));
         var pointer = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Pointer<>));
         var byRef = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(ByReference<>));
+        var arrayRank1 = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Il2CppArrayRank1<>));
         var arrayRank2 = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Il2CppArrayRank2<>));
         var arrayRank3 = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Il2CppArrayRank3<>));
 
@@ -40,9 +40,9 @@ internal sealed class TypeConversionVisitor : TypeReplacementVisitor
 
         return new TypeConversionVisitor(replacementDictionary)
         {
-            Il2CppArrayBase = il2CppArrayBase,
             Pointer = pointer,
             ByRef = byRef,
+            ArrayRank1 = arrayRank1,
             ArrayRank2 = arrayRank2,
             ArrayRank3 = arrayRank3,
         };
@@ -52,7 +52,7 @@ internal sealed class TypeConversionVisitor : TypeReplacementVisitor
     {
         return type.Rank switch
         {
-            1 => Il2CppArrayBase.MakeGenericInstanceType([elementResult]),
+            1 => ArrayRank1.MakeGenericInstanceType([elementResult]),
             2 => ArrayRank2.MakeGenericInstanceType([elementResult]),
             3 => ArrayRank3.MakeGenericInstanceType([elementResult]),
             _ => throw new NotImplementedException($"Support for arrays with rank {type.Rank} has not been implemented."),
@@ -61,7 +61,7 @@ internal sealed class TypeConversionVisitor : TypeReplacementVisitor
 
     protected override TypeAnalysisContext CombineResults(SzArrayTypeAnalysisContext type, TypeAnalysisContext elementResult)
     {
-        return Il2CppArrayBase.MakeGenericInstanceType([elementResult]);
+        return ArrayRank1.MakeGenericInstanceType([elementResult]);
     }
 
     protected override TypeAnalysisContext CombineResults(PointerTypeAnalysisContext type, TypeAnalysisContext elementResult)
