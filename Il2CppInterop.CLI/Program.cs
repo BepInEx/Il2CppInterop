@@ -59,7 +59,6 @@ Required for runtime testing:
 - Class injection rewrite
 - HarmonySupport rewrite
 - ICall runtime delegate creation
-- Bump to .NET 10
 
 Ideal:
 - Fix abstract methods having helper methods
