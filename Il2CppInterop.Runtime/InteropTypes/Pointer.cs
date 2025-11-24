@@ -13,12 +13,25 @@ public unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>>
         RuntimeHelpers.RunClassConstructor(typeof(Il2CppSystem.RuntimeType).TypeHandle);
 
         var elementClassPtr = Il2CppClassPointerStore<T>.NativeClassPtr;
+        ThrowIfNull(elementClassPtr);
         var elementTypePtr = IL2CPP.il2cpp_class_get_type(elementClassPtr);
+        ThrowIfNull(elementTypePtr);
         var elementTypeObj = Il2CppSystem.Type.internal_from_handle(elementTypePtr);
         var pointerTypeObj = elementTypeObj.MakePointerType();
-        var pointerClassPtr = IL2CPP.il2cpp_class_from_type(pointerTypeObj.TypeHandle.value);
+        var pointerTypePtr = pointerTypeObj.TypeHandle.value;
+        ThrowIfNull(pointerTypePtr);
+        var pointerClassPtr = IL2CPP.il2cpp_class_from_type(pointerTypePtr);
+        ThrowIfNull(pointerClassPtr);
         Il2CppClassPointerStore<Pointer<T>>.NativeClassPtr = pointerClassPtr;
         Il2CppObjectPool.RegisterValueTypeInitializer<Pointer<T>>();
+
+        static void ThrowIfNull(nint ptr, [CallerArgumentExpression(nameof(ptr))] string? paramName = null)
+        {
+            if (ptr == 0)
+            {
+                throw new InvalidOperationException($"{paramName} is null");
+            }
+        }
     }
 
     private readonly void* _pointer = pointer;

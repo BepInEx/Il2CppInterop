@@ -41,12 +41,25 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
         RuntimeHelpers.RunClassConstructor(typeof(Il2CppSystem.RuntimeType).TypeHandle);
 
         var elementClassPtr = Il2CppClassPointerStore<T>.NativeClassPtr;
+        ThrowIfNull(elementClassPtr);
         var elementTypePtr = IL2CPP.il2cpp_class_get_type(elementClassPtr);
+        ThrowIfNull(elementTypePtr);
         var elementTypeObj = Il2CppSystem.Type.internal_from_handle(elementTypePtr);
         var byRefTypeObj = elementTypeObj.MakeByRefType();
-        var byRefClassPtr = IL2CPP.il2cpp_class_from_type(byRefTypeObj.TypeHandle.value);
+        var byRefTypePtr = byRefTypeObj.TypeHandle.value;
+        ThrowIfNull(byRefTypePtr);
+        var byRefClassPtr = IL2CPP.il2cpp_class_from_type(byRefTypePtr);
+        ThrowIfNull(byRefClassPtr);
         Il2CppClassPointerStore<ByReference<T>>.NativeClassPtr = byRefClassPtr;
         Il2CppObjectPool.RegisterValueTypeInitializer<ByReference<T>>();
+
+        static void ThrowIfNull(nint ptr, [CallerArgumentExpression(nameof(ptr))] string? paramName = null)
+        {
+            if (ptr == 0)
+            {
+                throw new InvalidOperationException($"{paramName} is null");
+            }
+        }
     }
 
     private readonly void* _pointer = pointer;
