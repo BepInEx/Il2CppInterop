@@ -9,7 +9,7 @@ Il2CppGame.Process(
     outputFolder,
     new AsmResolverDllOutputFormatBinding(),
     [
-        new AttributeAnalysisProcessingLayer(), // Needed for recovery of params and unmanaged constraints
+        new AttributeAnalysisProcessingLayer(), // Needed for recovery of unmanaged constraints
         //new StableRenamingProcessingLayer(),
         new UnstripProcessingLayer(), // Can be disabled for performance during development
         new InterfaceOverrideProcessingLayer(),
@@ -66,5 +66,4 @@ Ideal:
 - overloads with arrays, delegates, primitives
 - Source generation for user-injected types
 - Add attributes to "Unsafe" methods so that users cannot see them
-- Use stack analysis to improve unstripping
 */

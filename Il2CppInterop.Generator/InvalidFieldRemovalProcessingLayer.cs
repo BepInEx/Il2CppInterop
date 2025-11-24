@@ -10,6 +10,9 @@ public class InvalidFieldRemovalProcessingLayer : Cpp2IlProcessingLayer
     public override string Id => "invalid_field_removal";
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
+        // C# allows developers to define explicit layout structs with reference type fields, but these are invalid in .NET when the field overlaps with another field.
+        // This processing layer handles the most common case of this - when there are multiple fields at the same offset, and at least one of them is a reference type.
+
         Dictionary<int, int> offsetsToFieldCount = new();
         foreach (var assembly in appContext.Assemblies)
         {
