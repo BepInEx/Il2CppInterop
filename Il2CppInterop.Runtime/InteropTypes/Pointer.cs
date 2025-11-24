@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
@@ -8,6 +9,9 @@ public unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>>
 {
     static Pointer()
     {
+        // Ensure Il2CppSystem.RuntimeType is initialized before we call Il2CppSystem.Type.internal_from_handle
+        RuntimeHelpers.RunClassConstructor(typeof(Il2CppSystem.RuntimeType).TypeHandle);
+
         var elementClassPtr = Il2CppClassPointerStore<T>.NativeClassPtr;
         var elementTypePtr = IL2CPP.il2cpp_class_get_type(elementClassPtr);
         var elementTypeObj = Il2CppSystem.Type.internal_from_handle(elementTypePtr);
