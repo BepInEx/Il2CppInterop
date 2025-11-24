@@ -44,7 +44,7 @@ public class AsmResolverDllOutputFormatBinding : AsmResolverDllOutputFormatThrow
         }
 
         // Replace mscorlib references with .NET Core references
-        var dotNetCorLib = KnownCorLibs.SystemRuntime_v9_0_0_0;
+        var dotNetCorLib = KnownCorLibs.SystemRuntime_v10_0_0_0;
         foreach (var assembly in list)
         {
             foreach (var module in assembly.Modules)
