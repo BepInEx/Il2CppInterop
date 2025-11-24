@@ -21,7 +21,7 @@ public static class XrefInstanceExtensions
         return new Object((ObjectPointer)valueAtPointer);
     }
 
-    public static MethodBase TryResolve(this XrefInstance self)
+    public static MethodBase? TryResolve(this XrefInstance self)
     {
         if (self.Type != XrefType.Method) throw new InvalidOperationException("Can't resolve non-method xrefs");
 

@@ -269,7 +269,7 @@ public static unsafe class EnumInjector
 
         for (var i = 1; i < il2cppEnum.FieldCount; i++)
         {
-            var fieldValue = enumValues.GetValue(i - 1);
+            var fieldValue = enumValues.GetValue(i - 1)!;
             var il2cppField = UnityVersionHandler.Wrap(il2cppFields + i * UnityVersionHandler.FieldInfoSize());
             il2cppField.Name = Marshal.StringToCoTaskMemUTF8(enumNames[i - 1]);
             il2cppField.Type = enumConstType.TypePointer;

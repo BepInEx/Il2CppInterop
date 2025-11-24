@@ -427,7 +427,7 @@ public static unsafe partial class ClassInjector
                 parameters[j] = parameterType;
             }
 
-            var monoMethodImplementation = type.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly, parameters);
+            var monoMethodImplementation = type.GetMethod(methodName!, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly, parameters);
 
             if (monoMethodImplementation != null && monoMethodImplementation.IsAbstract)
             {
@@ -1046,7 +1046,7 @@ public static unsafe partial class ClassInjector
     private static Type RewriteType(Type type)
     {
         if (type.IsByRef)
-            return RewriteType(type.GetElementType()).MakeByRefType();
+            return RewriteType(type.GetElementType()!).MakeByRefType();
 
         if (type.IsValueType && !type.IsEnum)
             return type;
@@ -1056,7 +1056,7 @@ public static unsafe partial class ClassInjector
 
         if (type.IsArray)
         {
-            var elementType = type.GetElementType();
+            var elementType = type.GetElementType()!;
 
             var convertedElementType = RewriteType(elementType);
             if (elementType.IsGenericParameter) return typeof(Il2CppArrayBase<>).MakeGenericType(convertedElementType);

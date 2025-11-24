@@ -266,7 +266,7 @@ public static class DelegateSupport
             }
 
             var classPointerFromManagedType = (IntPtr)typeof(Il2CppClassPointerStore<>).MakeGenericType(managedType)
-                .GetField(nameof(Il2CppClassPointerStore<>.NativeClassPtr)).GetValue(null);
+                .GetField(nameof(Il2CppClassPointerStore<>.NativeClassPtr))!.GetValue(null)!;
 
             var classPointerFromNativeType = IL2CPP.il2cpp_class_from_type(nativeType._impl.value);
 
