@@ -156,32 +156,24 @@ public class ObjectInternalsProcessingLayer : Cpp2IlProcessingLayer
             };
             il2CppSystemObject.Methods.Add(method);
 
+            method.OverridesList.Add(baseMethod); // Currently doesn't work because Cpp2IL excludes overrides from non-interface methods
+
             var instructions = new List<Instruction>();
 
             var returnInstruction = new Instruction(CilOpCodes.Ret);
 
-            var tryStart = new Instruction(CilOpCodes.Nop);
-            instructions.Add(tryStart);
-
-            instructions.Add(CilOpCodes.Ldarg_0);
+            var tryStart = instructions.Add(CilOpCodes.Ldarg_0);
             instructions.Add(CilOpCodes.Ldfld, gcHandleField);
             instructions.Add(CilOpCodes.Call, il2CppStaticClass.GetMethodByName(nameof(IL2CPP.il2cpp_gchandle_free)));
 
             instructions.Add(CilOpCodes.Ldarg_0);
             instructions.Add(CilOpCodes.Ldfld, pooledPointerField);
             instructions.Add(CilOpCodes.Call, il2CppObjectPool.GetMethodByName(nameof(Il2CppObjectPool.Remove)));
+            instructions.Add(CilOpCodes.Leave, returnInstruction);
 
-            var tryEnd = new Instruction(CilOpCodes.Leave, returnInstruction);
-            instructions.Add(tryEnd);
-
-            var handlerStart = new Instruction(CilOpCodes.Nop);
-            instructions.Add(handlerStart);
-
-            instructions.Add(CilOpCodes.Ldarg_0);
+            var handlerStart = instructions.Add(CilOpCodes.Ldarg_0);
             instructions.Add(CilOpCodes.Call, baseMethod);
-
-            var handlerEnd = new Instruction(CilOpCodes.Endfinally);
-            instructions.Add(handlerEnd);
+            instructions.Add(CilOpCodes.Endfinally);
 
             instructions.Add(returnInstruction);
 
@@ -189,9 +181,9 @@ public class ObjectInternalsProcessingLayer : Cpp2IlProcessingLayer
             {
                 HandlerType = CilExceptionHandlerType.Finally,
                 TryStart = tryStart,
-                TryEnd = tryEnd,
+                TryEnd = handlerStart,
                 HandlerStart = handlerStart,
-                HandlerEnd = handlerEnd,
+                HandlerEnd = returnInstruction,
             };
 
             method.PutExtraData(new NativeMethodBody()

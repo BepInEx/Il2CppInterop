@@ -4,13 +4,15 @@ namespace Il2CppInterop.Generator.Extensions;
 
 internal static class InstructionListExtensions
 {
-    public static void Add(this List<Instruction> instructions, CilOpCode opCode)
+    public static Instruction Add(this List<Instruction> instructions, CilOpCode opCode)
     {
-        instructions.Add(new Instruction(opCode));
+        return instructions.Add(opCode, null);
     }
 
-    public static void Add(this List<Instruction> instructions, CilOpCode opCode, object? operand)
+    public static Instruction Add(this List<Instruction> instructions, CilOpCode opCode, object? operand)
     {
-        instructions.Add(new Instruction(opCode, operand));
+        var instruction = new Instruction(opCode, operand);
+        instructions.Add(instruction);
+        return instruction;
     }
 }
