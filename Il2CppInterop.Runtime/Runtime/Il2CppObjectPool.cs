@@ -54,7 +54,12 @@ public static class Il2CppObjectPool
 
     public static void RegisterInitializer(nint classPtr, Func<ObjectPointer, object> initializer)
     {
-        s_initializers[classPtr] = initializer;
+        ArgumentOutOfRangeException.ThrowIfZero(classPtr);
+        if (!s_initializers.TryAdd(classPtr, initializer))
+        {
+            var className = IL2CPP.il2cpp_class_get_name(classPtr);
+            throw new InvalidOperationException($"Initializer for class {className} is already registered");
+        }
     }
 
     public static void RegisterValueTypeInitializer<T>() where T : struct, IIl2CppType<T>
