@@ -138,7 +138,7 @@ public class ObjectInterfaceProcessingLayer : Cpp2IlProcessingLayer
         };
         interfaceType.Methods.Add(interfaceMethod);
 
-        interfaceMethod.OverridesList.AddRange(overridesList);
+        interfaceMethod.Overrides.AddRange(overridesList);
 
         if (overridesList.Count == 1)
         {

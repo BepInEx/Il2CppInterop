@@ -94,7 +94,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         IsInjected = true,
                     };
                     type.Methods.Add(method);
-                    method.OverridesList.Add(iil2CppType_get_ObjectClass);
+                    method.Overrides.Add(iil2CppType_get_ObjectClass);
                     method.PutExtraData(new NativeMethodBody()
                     {
                         Instructions =
@@ -132,7 +132,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         IsInjected = true,
                     };
                     type.Methods.Add(method);
-                    method.OverridesList.Add(instantiated_iil2CppTypeGeneric_get_Size);
+                    method.Overrides.Add(instantiated_iil2CppTypeGeneric_get_Size);
 
                     var instantiatedSizeStorage = type.SizeStorage is null
                         ? null
@@ -178,7 +178,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         IsInjected = true,
                     };
                     type.Methods.Add(method);
-                    method.OverridesList.Add(instantiated_iil2CppTypeGeneric_get_AssemblyName);
+                    method.Overrides.Add(instantiated_iil2CppTypeGeneric_get_AssemblyName);
 
                     method.PutExtraData(new NativeMethodBody()
                     {
@@ -218,7 +218,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         IsInjected = true,
                     };
                     type.Methods.Add(method);
-                    method.OverridesList.Add(instantiated_iil2CppTypeGeneric_get_Namespace);
+                    method.Overrides.Add(instantiated_iil2CppTypeGeneric_get_Namespace);
 
                     method.PutExtraData(new NativeMethodBody()
                     {
@@ -258,7 +258,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         IsInjected = true,
                     };
                     type.Methods.Add(method);
-                    method.OverridesList.Add(instantiated_iil2CppTypeGeneric_get_Name);
+                    method.Overrides.Add(instantiated_iil2CppTypeGeneric_get_Name);
 
                     method.PutExtraData(new NativeMethodBody()
                     {
@@ -299,7 +299,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         IsInjected = true,
                     };
                     type.Methods.Add(method);
-                    method.OverridesList.Add(instantiated_iil2CppTypeGeneric_ReadFromSpan);
+                    method.Overrides.Add(instantiated_iil2CppTypeGeneric_ReadFromSpan);
 
                     if (!type.IsValueType)
                     {
@@ -391,7 +391,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         IsInjected = true,
                     };
                     type.Methods.Add(method);
-                    method.OverridesList.Add(instantiated_iil2CppTypeGeneric_WriteToSpan);
+                    method.Overrides.Add(instantiated_iil2CppTypeGeneric_WriteToSpan);
 
                     if (!type.IsValueType)
                     {

@@ -117,7 +117,7 @@ public class ExceptionHierarchyProcessingLayer : Cpp2IlProcessingLayer
                         new(CilOpCodes.Ret),
                     ],
                 });
-                interfaceMethod.OverridesList.Add(il2CppExceptionInterfaceMethod);
+                interfaceMethod.Overrides.Add(il2CppExceptionInterfaceMethod);
             }
         }
     }

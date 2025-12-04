@@ -93,7 +93,7 @@ public class InterfaceOverrideProcessingLayer : Cpp2IlProcessingLayer
             };
             type.Methods.Add(newMethod);
 
-            newMethod.OverridesList.Add(interfaceMethod);
+            newMethod.Overrides.Add(interfaceMethod);
 
             var instructions = new List<Instruction>
             {

@@ -156,7 +156,7 @@ public class ObjectInternalsProcessingLayer : Cpp2IlProcessingLayer
             };
             il2CppSystemObject.Methods.Add(method);
 
-            method.OverridesList.Add(baseMethod); // Currently doesn't work because Cpp2IL excludes overrides from non-interface methods
+            method.Overrides.Add(baseMethod); // Currently doesn't work because Cpp2IL excludes overrides from non-interface methods
 
             var instructions = new List<Instruction>();
 
