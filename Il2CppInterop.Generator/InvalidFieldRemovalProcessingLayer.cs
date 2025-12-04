@@ -12,6 +12,7 @@ public class InvalidFieldRemovalProcessingLayer : Cpp2IlProcessingLayer
     {
         // C# allows developers to define explicit layout structs with reference type fields, but these are invalid in .NET when the field overlaps with another field.
         // This processing layer handles the most common case of this - when there are multiple fields at the same offset, and at least one of them is a reference type.
+        // https://github.com/rlabrecque/Steamworks.NET/blob/55a9fc8eb4df4dd4cfc11b23003a5ea987317cae/CodeGen/templates/custom_types/SteamDatagramTickets/SteamDatagramRelayAuthTicket.cs#L98-L110
 
         Dictionary<int, int> offsetsToFieldCount = new();
         foreach (var assembly in appContext.Assemblies)
