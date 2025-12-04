@@ -5,7 +5,18 @@ using LibCpp2IL.BinaryStructures;
 
 namespace Il2CppInterop.Generator;
 
-public class TypeAnalysisContextEqualityComparer : IEqualityComparer<TypeAnalysisContext>, IEqualityComparer<GenericInstanceTypeAnalysisContext>, IEqualityComparer<GenericParameterTypeAnalysisContext>, IEqualityComparer<SentinelTypeAnalysisContext>, IEqualityComparer<CustomModifierTypeAnalysisContext>, IEqualityComparer<PinnedTypeAnalysisContext>, IEqualityComparer<PointerTypeAnalysisContext>, IEqualityComparer<ByRefTypeAnalysisContext>, IEqualityComparer<BoxedTypeAnalysisContext>, IEqualityComparer<SzArrayTypeAnalysisContext>, IEqualityComparer<ArrayTypeAnalysisContext>
+public class TypeAnalysisContextEqualityComparer :
+    IEqualityComparer<TypeAnalysisContext>,
+    IEqualityComparer<GenericInstanceTypeAnalysisContext>,
+    IEqualityComparer<GenericParameterTypeAnalysisContext>,
+    IEqualityComparer<SentinelTypeAnalysisContext>,
+    IEqualityComparer<CustomModifierTypeAnalysisContext>,
+    IEqualityComparer<PinnedTypeAnalysisContext>,
+    IEqualityComparer<PointerTypeAnalysisContext>,
+    IEqualityComparer<ByRefTypeAnalysisContext>,
+    IEqualityComparer<BoxedTypeAnalysisContext>,
+    IEqualityComparer<SzArrayTypeAnalysisContext>,
+    IEqualityComparer<ArrayTypeAnalysisContext>
 {
     public static TypeAnalysisContextEqualityComparer Instance { get; } = new();
 

@@ -13,8 +13,7 @@ public class InterfaceOverrideProcessingLayer : Cpp2IlProcessingLayer
     public override string Id => "interfaceoverrides";
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
-        // Note: set item equality is currently reference equality, which is not ideal here but works for now.
-        HashSet<(MethodAnalysisContext ImplementingMethod, MethodAnalysisContext InterfaceMethod)> set = new();
+        HashSet<(MethodAnalysisContext ImplementingMethod, MethodAnalysisContext InterfaceMethod)> set = new(MethodAnalysisContextEqualityComparer.Instance);
         List<(TypeAnalysisContext Type, MethodAnalysisContext ImplementingMethod, MethodAnalysisContext InterfaceMethod)> list = new();
         foreach (var type in appContext.AllTypes)
         {
@@ -50,7 +49,7 @@ public class InterfaceOverrideProcessingLayer : Cpp2IlProcessingLayer
                 if (implementingMethod.Name == interfaceMethod.Name)
                     continue;
 
-                /*if (interfaceMethod is not ConcreteGenericMethodAnalysisContext)
+                if (interfaceMethod is not ConcreteGenericMethodAnalysisContext)
                 {
                     var baseImplementingMethod = (implementingMethod as ConcreteGenericMethodAnalysisContext)?.BaseMethodContext ?? implementingMethod;
                     set.Add((baseImplementingMethod, interfaceMethod));
@@ -59,7 +58,7 @@ public class InterfaceOverrideProcessingLayer : Cpp2IlProcessingLayer
                 {
                     set.Add((implementingMethod, interfaceMethod));
                 }
-                else*/
+                else
                 {
                     // Complex case - both are concrete generic methods.
                     list.Add((type, implementingMethod, interfaceMethod));
@@ -69,10 +68,9 @@ public class InterfaceOverrideProcessingLayer : Cpp2IlProcessingLayer
 
         foreach ((var implementingMethod, var interfaceMethod) in set)
         {
-            // Again, this is reference equality, not something more robust.
-            //if (!implementingMethod.Overrides.Contains(interfaceMethod))
+            if (!implementingMethod.Overrides.Contains(interfaceMethod, MethodAnalysisContextEqualityComparer.Instance))
             {
-                //implementingMethod.Overrides.Add(interfaceMethod);
+                implementingMethod.Overrides.Add(interfaceMethod);
             }
         }
 
@@ -130,5 +128,41 @@ public class InterfaceOverrideProcessingLayer : Cpp2IlProcessingLayer
             }
         }
         return null;
+    }
+
+    private sealed class MethodAnalysisContextEqualityComparer : IEqualityComparer<MethodAnalysisContext>, IEqualityComparer<(MethodAnalysisContext, MethodAnalysisContext)>
+    {
+        public static MethodAnalysisContextEqualityComparer Instance { get; } = new();
+        public bool Equals(MethodAnalysisContext? x, MethodAnalysisContext? y)
+        {
+            if (ReferenceEquals(x, y))
+                return true;
+            if (x == null || y == null)
+                return false;
+
+            if (x is ConcreteGenericMethodAnalysisContext xConcrete && y is ConcreteGenericMethodAnalysisContext yConcrete)
+            {
+                return Equals(xConcrete.BaseMethodContext, yConcrete.BaseMethodContext)
+                    && xConcrete.TypeGenericParameters.SequenceEqual(yConcrete.TypeGenericParameters, TypeAnalysisContextEqualityComparer.Instance)
+                    && xConcrete.MethodGenericParameters.SequenceEqual(yConcrete.MethodGenericParameters, TypeAnalysisContextEqualityComparer.Instance);
+            }
+
+            return false; // Non-generic methods have unique instances.
+        }
+
+        public bool Equals((MethodAnalysisContext, MethodAnalysisContext) x, (MethodAnalysisContext, MethodAnalysisContext) y)
+        {
+            return Equals(x.Item1, y.Item1) && Equals(x.Item2, y.Item2);
+        }
+
+        public int GetHashCode(MethodAnalysisContext obj)
+        {
+            return (obj as ConcreteGenericMethodAnalysisContext)?.BaseMethodContext.GetHashCode() ?? obj.GetHashCode();
+        }
+
+        public int GetHashCode((MethodAnalysisContext, MethodAnalysisContext) obj)
+        {
+            return HashCode.Combine(GetHashCode(obj.Item1), GetHashCode(obj.Item2));
+        }
     }
 }
