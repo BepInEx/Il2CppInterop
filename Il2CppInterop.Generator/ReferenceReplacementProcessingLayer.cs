@@ -92,6 +92,10 @@ public class ReferenceReplacementProcessingLayer : Cpp2IlProcessingLayer
                     {
                         visitor.Modify(genericParameter.ConstraintTypes);
                     }
+                    for (var i = 0; i < method.Overrides.Count; i++)
+                    {
+                        method.Overrides[i] = visitor.Replace(method.Overrides[i]);
+                    }
                 }
 
                 foreach (var property in type.Properties)
