@@ -133,7 +133,12 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         else
                         {
                             // Il2CppClassPointerStore<Class>.NativeClassPtr = IL2CPP.GetIl2CppClass("Assembly-CSharp.dll", "", "Class");
-                            instructions.Add(new Instruction(CilOpCodes.Ldstr, $"{assembly.DefaultName}.dll"));
+                            var assemblyName = assembly.DefaultName;
+                            if (!assemblyName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) && assemblyName is not "__Generated")
+                            {
+                                assemblyName += ".dll";
+                            }
+                            instructions.Add(new Instruction(CilOpCodes.Ldstr, assemblyName));
                             instructions.Add(new Instruction(CilOpCodes.Ldstr, type.DefaultNamespace));
                             instructions.Add(new Instruction(CilOpCodes.Ldstr, type.DefaultName));
                             instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppClass));
