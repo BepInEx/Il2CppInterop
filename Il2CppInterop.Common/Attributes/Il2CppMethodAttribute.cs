@@ -6,4 +6,5 @@
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class Il2CppMethodAttribute : Il2CppMemberAttribute
 {
+    public int Index { get; set; } = -1;
 }

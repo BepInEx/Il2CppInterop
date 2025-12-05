@@ -19,6 +19,7 @@ public class MemberAttributeProcessingLayer : Cpp2IlProcessingLayer
 
         var il2CppMethodAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppMethodAttribute));
         var il2CppMethodAttributeConstructor = il2CppMethodAttribute.GetMethodByName(".ctor");
+        var il2CppMethodAttributeIndex = il2CppMethodAttribute.GetPropertyByName(nameof(Il2CppMethodAttribute.Index));
 
         var il2CppPropertyAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppPropertyAttribute));
         var il2CppPropertyAttributeConstructor = il2CppPropertyAttribute.GetMethodByName(".ctor");
@@ -44,8 +45,14 @@ public class MemberAttributeProcessingLayer : Cpp2IlProcessingLayer
                     var attribute = new AnalyzedCustomAttribute(il2CppMethodAttributeConstructor);
                     if (method.Name != method.DefaultName)
                     {
-                        var parameter = new CustomAttributePrimitiveParameter(method.DefaultName, attribute, CustomAttributeParameterKind.Property, 0);
+                        var parameter = new CustomAttributePrimitiveParameter(method.DefaultName, attribute, CustomAttributeParameterKind.Property, attribute.Properties.Count);
                         attribute.Properties.Add(new CustomAttributeProperty(il2CppMemberAttributeName, parameter));
+                    }
+                    var index = method.InitializationClassIndex;
+                    if (index >= 0)
+                    {
+                        var parameter = new CustomAttributePrimitiveParameter(index, attribute, CustomAttributeParameterKind.Property, attribute.Properties.Count);
+                        attribute.Properties.Add(new CustomAttributeProperty(il2CppMethodAttributeIndex, parameter));
                     }
                     method.CustomAttributes ??= new(1);
                     method.CustomAttributes.Add(attribute);

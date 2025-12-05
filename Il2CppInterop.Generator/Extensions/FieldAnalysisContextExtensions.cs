@@ -36,6 +36,13 @@ internal static class FieldAnalysisContextExtensions
             set => @field.PutExtraData("FieldAddressAccessor", value);
         }
 
+        [MaybeNull]
+        public int InitializationClassIndex
+        {
+            get => @field.GetExtraStruct("InitializationClassIndex", -1);
+            set => @field.PutExtraStruct("InitializationClassIndex", value);
+        }
+
         /// <summary>
         /// Gets the field info address storage for this field, and instantiate for use in this field's declaring type.
         /// </summary>

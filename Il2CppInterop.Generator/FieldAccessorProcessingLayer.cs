@@ -28,6 +28,7 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
 
         var il2CppFieldAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppFieldAttribute));
         var il2CppFieldAttributeConstructor = il2CppFieldAttribute.GetMethodByName(".ctor");
+        var il2CppFieldAttributeIndex = il2CppFieldAttribute.GetPropertyByName(nameof(Il2CppFieldAttribute.Index));
 
         var il2CppMemberAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppMemberAttribute));
         var il2CppMemberAttributeName = il2CppMemberAttribute.GetPropertyByName(nameof(Il2CppMemberAttribute.Name));
@@ -129,8 +130,14 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                         var attribute = new AnalyzedCustomAttribute(il2CppFieldAttributeConstructor);
                         if (field.Name != field.DefaultName)
                         {
-                            var parameter = new CustomAttributePrimitiveParameter(field.DefaultName, attribute, CustomAttributeParameterKind.Property, 0);
+                            var parameter = new CustomAttributePrimitiveParameter(field.DefaultName, attribute, CustomAttributeParameterKind.Property, attribute.Properties.Count);
                             attribute.Properties.Add(new CustomAttributeProperty(il2CppMemberAttributeName, parameter));
+                        }
+                        var index = field.InitializationClassIndex;
+                        if (index >= 0)
+                        {
+                            var parameter = new CustomAttributePrimitiveParameter(index, attribute, CustomAttributeParameterKind.Property, attribute.Properties.Count);
+                            attribute.Properties.Add(new CustomAttributeProperty(il2CppFieldAttributeIndex, parameter));
                         }
                         field.CustomAttributes ??= new(1);
                         field.CustomAttributes.Add(attribute);
@@ -252,8 +259,14 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                         var attribute = new AnalyzedCustomAttribute(il2CppFieldAttributeConstructor);
                         if (property.Name != field.DefaultName)
                         {
-                            var parameter = new CustomAttributePrimitiveParameter(field.DefaultName, attribute, CustomAttributeParameterKind.Property, 0);
+                            var parameter = new CustomAttributePrimitiveParameter(field.DefaultName, attribute, CustomAttributeParameterKind.Property, attribute.Properties.Count);
                             attribute.Properties.Add(new CustomAttributeProperty(il2CppMemberAttributeName, parameter));
+                        }
+                        var index = field.InitializationClassIndex;
+                        if (index >= 0)
+                        {
+                            var parameter = new CustomAttributePrimitiveParameter(index, attribute, CustomAttributeParameterKind.Property, attribute.Properties.Count);
+                            attribute.Properties.Add(new CustomAttributeProperty(il2CppFieldAttributeIndex, parameter));
                         }
                         property.CustomAttributes = [attribute];
                     }

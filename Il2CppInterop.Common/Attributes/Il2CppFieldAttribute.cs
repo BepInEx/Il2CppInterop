@@ -6,4 +6,5 @@
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 public sealed class Il2CppFieldAttribute : Il2CppMemberAttribute
 {
+    public int Index { get; set; } = -1;
 }

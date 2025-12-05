@@ -26,6 +26,7 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(Il2CppFieldAttribute),
             typeof(Il2CppPropertyAttribute),
             typeof(Il2CppEventAttribute),
+            typeof(Il2CppTypeAttribute),
         ];
         InjectTypes(appContext, typeof(ObjectPointer).Assembly, il2CppInteropCommonTypes);
 

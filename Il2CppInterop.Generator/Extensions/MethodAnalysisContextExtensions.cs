@@ -52,6 +52,13 @@ internal static class MethodAnalysisContextExtensions
             set => method.PutExtraData("InterfaceRedirectMethod", value);
         }
 
+        [MaybeNull]
+        public int InitializationClassIndex
+        {
+            get => method.GetExtraStruct("InitializationClassIndex", -1);
+            set => method.PutExtraStruct("InitializationClassIndex", value);
+        }
+
         public bool IsInstanceConstructor => method.Name == ".ctor";
         public bool IsStaticConstructor => method.Name == ".cctor";
         public bool IsConstructor => method.IsInstanceConstructor || method.IsStaticConstructor;

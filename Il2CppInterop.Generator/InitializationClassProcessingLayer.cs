@@ -7,7 +7,9 @@ using System.Security.Cryptography;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Logging;
 using Cpp2IL.Core.Model.Contexts;
+using Cpp2IL.Core.Model.CustomAttributes;
 using Cpp2IL.Core.Utils;
+using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Generator.Visitors;
 using Il2CppInterop.Runtime;
@@ -68,6 +70,9 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var funcConstructor = funcType.Methods.Single(m => m.IsInstanceConstructor && m.Parameters.Count == 2);
         var funcConstructorInstantiated = funcConstructor.MakeConcreteGeneric(funcTypeInstantiated.GenericArguments, []);
 
+        var il2CppTypeAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeAttribute));
+        var il2CppTypeAttributeConstructor = il2CppTypeAttribute.GetMethodByName(".ctor");
+
         var tokenLessMethodCount = 0;
 
         var sixteen = (object)16;
@@ -93,6 +98,15 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                 initializationType.CopyGenericParameters(type, true, true);
 
                 AddInstructionsToStaticConstructor(type, initializationType, runClassConstructor);
+
+                // Il2CppTypeAttribute
+                {
+                    var attribute = new AnalyzedCustomAttribute(il2CppTypeAttributeConstructor);
+                    attribute.ConstructorParameters.Add(new CustomAttributeTypeParameter(initializationType, attribute, CustomAttributeParameterKind.ConstructorParam, 0));
+
+                    type.CustomAttributes ??= new(1);
+                    type.CustomAttributes.Add(attribute);
+                }
 
                 // Initialization static constructor
                 {
@@ -191,6 +205,8 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         if (field.IsInjected)
                             continue;
 
+                        field.InitializationClassIndex = index;
+
                         var infoStore = initializationType.InjectFieldContext(
                             $"FieldInfoPtr_{index}",
                             appContext.SystemTypes.SystemIntPtrType,
@@ -230,6 +246,8 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
 
                         if (method.IsUnstripped || method.IsInjected)
                             continue;
+
+                        method.InitializationClassIndex = index;
 
                         var methodInfoStore = initializationType.InjectFieldContext(
                                                 $"MethodInfoPtr_{index}",
