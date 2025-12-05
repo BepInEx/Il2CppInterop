@@ -195,6 +195,9 @@ public static unsafe partial class IL2CPP
 
     public static nint GetIl2CppGenericInstanceMethod(nint methodInfoPointer, nint declaringTypeClassPointer, params nint[] genericMethodArguments)
     {
+        // Ensure Il2CppSystem.RuntimeType is initialized before we call Il2CppSystem.Type.internal_from_handle
+        RuntimeHelpers.RunClassConstructor(typeof(Il2CppSystem.RuntimeType).TypeHandle);
+
         var types = new Il2CppSystem.Type[genericMethodArguments.Length];
         for (var i = 0; i < genericMethodArguments.Length; i++)
         {
@@ -206,6 +209,9 @@ public static unsafe partial class IL2CPP
 
     public static nint GetIl2CppGenericInstanceType(nint typeClassPointer, params nint[] genericTypeArguments)
     {
+        // Ensure Il2CppSystem.RuntimeType is initialized before we call Il2CppSystem.Type.internal_from_handle
+        RuntimeHelpers.RunClassConstructor(typeof(Il2CppSystem.RuntimeType).TypeHandle);
+
         var types = new Il2CppSystem.Type[genericTypeArguments.Length];
         for (var i = 0; i < genericTypeArguments.Length; i++)
         {
