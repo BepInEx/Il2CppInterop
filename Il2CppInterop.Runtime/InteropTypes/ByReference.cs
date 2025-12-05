@@ -35,25 +35,6 @@ public static class ByReference
 public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
     where T : IIl2CppType<T>
 {
-    static ByReference()
-    {
-        // Ensure Il2CppSystem.RuntimeType is initialized before we call Il2CppSystem.Type.internal_from_handle
-        RuntimeHelpers.RunClassConstructor(typeof(Il2CppSystem.RuntimeType).TypeHandle);
-
-        var elementClassPtr = Il2CppClassPointerStore<T>.NativeClassPtr;
-        ThrowHelper.ThrowIfNull(elementClassPtr);
-        var elementTypePtr = IL2CPP.il2cpp_class_get_type(elementClassPtr);
-        ThrowHelper.ThrowIfNull(elementTypePtr);
-        var elementTypeObj = Il2CppSystem.Type.internal_from_handle(elementTypePtr);
-        var byRefTypeObj = elementTypeObj.MakeByRefType();
-        var byRefTypePtr = byRefTypeObj.TypeHandle.value;
-        ThrowHelper.ThrowIfNull(byRefTypePtr);
-        var byRefClassPtr = IL2CPP.il2cpp_class_from_type(byRefTypePtr);
-        ThrowHelper.ThrowIfNull(byRefClassPtr);
-        Il2CppClassPointerStore<ByReference<T>>.NativeClassPtr = byRefClassPtr;
-        Il2CppObjectPool.RegisterValueTypeInitializer<ByReference<T>>();
-    }
-
     private readonly void* _pointer = pointer;
 
     public readonly bool IsNull => _pointer is null;
