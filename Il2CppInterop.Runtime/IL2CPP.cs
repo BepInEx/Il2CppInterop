@@ -200,7 +200,7 @@ public static unsafe partial class IL2CPP
         {
             types[i] = Il2CppSystem.Type.internal_from_handle(il2cpp_class_get_type(genericMethodArguments[i]));
         }
-        var methodInfo = new Il2CppSystem.Reflection.MethodInfo((ObjectPointer)il2cpp_method_get_object(methodInfoPointer, declaringTypeClassPointer));
+        var methodInfo = (Il2CppSystem.Reflection.MethodInfo)Il2CppObjectPool.Get(il2cpp_method_get_object(methodInfoPointer, declaringTypeClassPointer))!;
         return il2cpp_method_get_from_reflection(Il2CppObjectToPtrNotNull(methodInfo.MakeGenericMethod(types)));
     }
 

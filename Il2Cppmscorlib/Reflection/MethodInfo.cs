@@ -1,6 +1,4 @@
-﻿using Il2CppInterop.Common;
-
-namespace Il2CppSystem.Reflection;
+﻿namespace Il2CppSystem.Reflection;
 
 public class MethodInfo : MethodBase
 {
@@ -10,10 +8,6 @@ public class MethodInfo : MethodBase
         {
             throw null;
         }
-    }
-
-    public MethodInfo(ObjectPointer pointer)
-    {
     }
 
     public MethodInfo MakeGenericMethod(Type[] typeArguments)
