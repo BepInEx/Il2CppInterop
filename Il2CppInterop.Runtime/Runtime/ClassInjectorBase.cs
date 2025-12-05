@@ -31,7 +31,7 @@ public static class ClassInjectorBase
     {
         if (IL2CPP.il2cpp_class_is_assignable_from(Il2CppClassPointerStore<Il2CppSystem.MulticastDelegate>.NativeClassPtr, IL2CPP.il2cpp_object_get_class(pointer)))
         {
-            var delegateObject = new Il2CppSystem.Delegate((ObjectPointer)pointer);
+            var delegateObject = (Il2CppSystem.Delegate)Il2CppObjectPool.Get(pointer)!;
             if (delegateObject.m_target is Il2CppSystem.Object target && target.Pointer != IntPtr.Zero)
                 return GetGcHandlePtrFromIl2CppObject(target.Pointer);
         }

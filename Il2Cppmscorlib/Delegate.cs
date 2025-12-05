@@ -1,14 +1,9 @@
-﻿using Il2CppInterop.Common;
-using Il2CppSystem.Reflection;
+﻿using Il2CppSystem.Reflection;
 
 namespace Il2CppSystem;
 
 public class Delegate : Object
 {
-    public Delegate(ObjectPointer ptr) : base(ptr)
-    {
-    }
-
     public IntPtr method_ptr { get; set; }
 
     public IntPtr invoke_impl { get; set; }
