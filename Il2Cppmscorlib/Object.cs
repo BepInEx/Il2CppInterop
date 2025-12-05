@@ -4,11 +4,11 @@ namespace Il2CppSystem;
 
 public class Object : IObject
 {
-    public Object()
+    protected Object()
     {
     }
 
-    public Object(ObjectPointer ptr)
+    protected Object(ObjectPointer ptr)
     {
     }
 

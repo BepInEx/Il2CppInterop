@@ -1,6 +1,6 @@
 ﻿namespace Il2CppSystem.Reflection;
 
-public class MethodInfo : MethodBase
+public abstract class MethodInfo : MethodBase
 {
     public virtual Type ReturnType
     {

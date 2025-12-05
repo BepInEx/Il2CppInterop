@@ -2,7 +2,7 @@
 
 namespace Il2CppSystem;
 
-public class Delegate : Object
+public abstract class Delegate : Object
 {
     public IntPtr method_ptr { get; set; }
 

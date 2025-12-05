@@ -1,5 +1,5 @@
 ﻿namespace Il2CppSystem;
 
-public class Enum : ValueType
+public abstract class Enum : ValueType
 {
 }

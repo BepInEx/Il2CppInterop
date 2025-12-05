@@ -1,6 +1,6 @@
 ﻿namespace Il2CppSystem;
 
-public class String : Object
+public abstract class String : Object
 {
     public static implicit operator String(string str)
     {

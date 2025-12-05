@@ -2,9 +2,9 @@
 
 namespace Il2CppSystem;
 
-public class Array : Object
+public abstract class Array : Object
 {
-    public Array(ObjectPointer ptr) : base(ptr)
+    protected Array(ObjectPointer ptr) : base(ptr)
     {
     }
 

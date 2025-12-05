@@ -1,6 +1,6 @@
 ﻿namespace Il2CppSystem.Reflection;
 
-public class Assembly : Object
+public abstract class Assembly : Object
 {
     public virtual AssemblyName GetName()
     {
