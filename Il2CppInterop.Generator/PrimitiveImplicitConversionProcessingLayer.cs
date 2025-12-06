@@ -117,6 +117,18 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
             var field = il2CppType.Fields.Single(f => !f.IsStatic);
             field.OverrideFieldType = monoType;
 
+            if (monoTypeName is "System.Boolean")
+            {
+                // Not sure this does anything meaningful
+
+                // Ensure boolean size is 1 byte
+                il2CppType.Definition!.RawSizes.native_size = 1;
+
+                // The fact that we have to change the layout here might indicate an issue in Cpp2IL.
+                // It only emits sizes for structs with explicit layout, but not for sequential layout.
+                il2CppType.Attributes = (il2CppType.Attributes & ~TypeAttributes.LayoutMask) | TypeAttributes.ExplicitLayout;
+            }
+
             // Il2Cpp -> Mono
             {
                 var implicitConversion = new InjectedMethodAnalysisContext(
