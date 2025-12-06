@@ -8,11 +8,11 @@ namespace Il2CppInterop.Runtime.Injection;
 
 internal static class TrampolineHelpers
 {
-    private static AssemblyBuilder _fixedStructAssembly;
-    private static ModuleBuilder _fixedStructModuleBuilder;
+    private static AssemblyBuilder? _fixedStructAssembly;
+    private static ModuleBuilder? _fixedStructModuleBuilder;
     private static readonly Dictionary<int, Type> _fixedStructCache = new();
 
-    private static Type GetFixedSizeStructType(int size)
+    internal static Type GetFixedSizeStructType(int size)
     {
         if (_fixedStructCache.TryGetValue(size, out var result))
         {
@@ -32,7 +32,7 @@ internal static class TrampolineHelpers
     {
         if (managedType.IsByRef)
         {
-            var directType = managedType.GetElementType();
+            var directType = managedType.GetElementType()!;
 
             // bool is byte in Il2Cpp, but int in CLR => force size to be correct
             if (directType == typeof(bool))

@@ -58,7 +58,6 @@ Todo
 Required for runtime testing:
 - Class injection rewrite
 - HarmonySupport rewrite
-- ICall runtime delegate creation
 
 Ideal:
 - Fix abstract methods having helper methods

@@ -16,6 +16,13 @@ internal static class MethodAnalysisContextExtensions
             set => method.PutExtraData("MethodInfoField", value);
         }
 
+        [MaybeNull]
+        public FieldAnalysisContext ICallDelegateField
+        {
+            get => method.GetExtraData<FieldAnalysisContext>("ICallDelegateField");
+            set => method.PutExtraData("ICallDelegateField", value);
+        }
+
         public MethodAnalysisContext MostUserFriendlyOverload
         {
             get => method.GetExtraData<MethodAnalysisContext>("MostUserFriendlyOverload") ?? method;

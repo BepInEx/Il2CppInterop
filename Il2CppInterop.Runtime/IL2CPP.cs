@@ -6,6 +6,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Il2CppInterop.Common;
+using Il2CppInterop.Runtime.Injection;
+using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
 
@@ -327,9 +329,58 @@ public static unsafe partial class IL2CPP
             invoke.ReturnType, invoke.GetParameters().Select(it => it.ParameterType).ToArray(), typeof(IL2CPP), true);
         var bodyBuilder = trampoline.GetILGenerator();
 
-        bodyBuilder.Emit(OpCodes.Ldstr, "ICall delegate generation has not been implemented");
-        bodyBuilder.Emit(OpCodes.Newobj, typeof(Exception).GetConstructor([typeof(string)])!);
-        bodyBuilder.Emit(OpCodes.Throw);
+        var sizeOfMethod = typeof(Il2CppTypeHelper).GetMethod(nameof(Il2CppTypeHelper.SizeOf))!;
+        var parameters = invoke.GetParameters();
+        var parameterTypes = new Type[parameters.Length];
+        var locals = new LocalBuilder[parameters.Length];
+        for (var i = 0; i < parameters.Length; i++)
+        {
+            var parameter = parameters[i];
+            var parameterType = parameter.ParameterType;
+
+            // Parameter is a ByReference<T>, and we need to get the underlying type T
+            var elementType = parameterType.GetElementType()!;
+
+            var elementSize = (int)sizeOfMethod.MakeGenericMethod(elementType).Invoke(null, null)!;
+
+            var nativeStruct = TrampolineHelpers.GetFixedSizeStructType(elementSize);
+            parameterTypes[i] = nativeStruct;
+
+            var nativeLocal = bodyBuilder.DeclareLocal(nativeStruct);
+            locals[i] = nativeLocal;
+
+            bodyBuilder.Emit(OpCodes.Ldarga, i);
+            bodyBuilder.Emit(OpCodes.Ldloca, nativeLocal);
+            bodyBuilder.Emit(OpCodes.Call, parameterType.GetMethod(nameof(ByReference<>.CopyToUnmanaged))!.MakeGenericMethod(nativeStruct));
+        }
+
+        bodyBuilder.Emit(OpCodes.Ldc_I8, icallPtr);
+        bodyBuilder.Emit(OpCodes.Conv_I);
+
+        foreach (var local in locals)
+        {
+            bodyBuilder.Emit(OpCodes.Ldloc, local);
+        }
+
+        if (invoke.ReturnType == typeof(void))
+        {
+            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, typeof(void), parameterTypes);
+        }
+        else
+        {
+            var returnType = invoke.ReturnType;
+            var elementSize = (int)sizeOfMethod.MakeGenericMethod(returnType).Invoke(null, null)!;
+            var nativeStruct = TrampolineHelpers.GetFixedSizeStructType(elementSize);
+
+            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, nativeStruct, parameterTypes);
+
+            var returnLocal = bodyBuilder.DeclareLocal(nativeStruct);
+            bodyBuilder.Emit(OpCodes.Stloc, returnLocal);
+
+            bodyBuilder.Emit(OpCodes.Ldloca, returnLocal);
+            bodyBuilder.Emit(OpCodes.Call, typeof(Il2CppTypeHelper).GetMethod(nameof(Il2CppTypeHelper.ReadFromPointer))!.MakeGenericMethod(returnType));
+        }
+        bodyBuilder.Emit(OpCodes.Ret);
 
         return (T)trampoline.CreateDelegate(typeof(T));
     }

@@ -28,11 +28,11 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
 
             foreach (var type in assembly.Types)
             {
-                if (type.IsInjected || type.IsUnstripped)
+                if (type.IsInjected)
                     continue;
                 foreach (var method in type.Methods)
                 {
-                    if (method.IsInjected || method.IsUnstripped)
+                    if (method.IsInjected)
                         continue;
 
                     var implementation = method.UnsafeImplementationMethod;
@@ -47,6 +47,29 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
                         continue; // Already has a translated body, skip.
 
                     Debug.Assert(!implementation.HasExtraData<NativeMethodBody>());
+
+                    if (method.IsUnstripped)
+                    {
+                        var icallDelegateField = method.ICallDelegateField;
+                        if (icallDelegateField != null)
+                        {
+                            Debug.Assert(method.DeclaringType?.GenericParameters.Count == 0 && method.GenericParameters.Count == 0);
+                            List<Instruction> instructions2 = new(1 + implementation.Parameters.Count + 2);
+                            instructions2.Add(CilOpCodes.Ldsfld, icallDelegateField);
+                            foreach (var parameter in implementation.Parameters)
+                            {
+                                instructions2.Add(CilOpCodes.Ldarg, parameter);
+                            }
+                            instructions2.Add(CilOpCodes.Callvirt, icallDelegateField.FieldType.GetMethodByName("Invoke"));
+                            instructions2.Add(CilOpCodes.Ret);
+                            implementation.PutExtraData(new NativeMethodBody()
+                            {
+                                Instructions = instructions2,
+                                LocalVariables = [],
+                            });
+                        }
+                        continue;
+                    }
 
                     var argumentCount = method.Parameters.Count;
 

@@ -357,24 +357,24 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
 
                         // ICall_Delegate_Type_0
                         TypeAnalysisContext delegateType;
-                        MethodAnalysisContext invokeMethod;
                         {
                             delegateType = initializationType.InjectNestedType(
                                 $"ICall_Delegate_Type_{index}",
                                 multicastDelegateType);
 
-                            TypeAnalysisContext returnType = method.ReturnType;
+                            var returnType = method.ReturnType;
                             IEnumerable<TypeAnalysisContext> parameterTypes;
                             IEnumerable<string> parameterNames;
+                            // Wrap parameters in ByReference<> to align with NativeMethodBodyProcessingLayer
                             if (method.IsStatic)
                             {
-                                parameterTypes = method.Parameters.Select(p => p.ParameterType);
+                                parameterTypes = method.Parameters.Select(p => byReference.MakeGenericInstanceType([p.ParameterType]));
                                 parameterNames = Enumerable.Range(0, method.Parameters.Count).Select(i => $"param_{i}");
                             }
                             else
                             {
                                 var thisParameterType = type.IsValueType ? byReference.MakeGenericInstanceType([type]) : type;
-                                parameterTypes = method.Parameters.Select(p => p.ParameterType).Prepend(thisParameterType);
+                                parameterTypes = method.Parameters.Select(p => byReference.MakeGenericInstanceType([p.ParameterType])).Prepend(thisParameterType);
                                 parameterNames = Enumerable.Range(0, method.Parameters.Count).Select(i => $"param_{i}").Prepend("this");
                             }
 
@@ -391,15 +391,14 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
 
                             // Invoke
                             {
-                                invokeMethod = new InjectedMethodAnalysisContext(
+                                delegateType.Methods.Add(new InjectedMethodAnalysisContext(
                                     delegateType,
                                     "Invoke",
                                     returnType,
                                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
                                     parameterTypes.ToArray(),
                                     parameterNames.ToArray(),
-                                    defaultImplAttributes: MethodImplAttributes.Runtime);
-                                delegateType.Methods.Add(invokeMethod);
+                                    defaultImplAttributes: MethodImplAttributes.Runtime));
                             }
 
                             // BeginInvoke
@@ -434,62 +433,8 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                 $"ICall_Delegate_Field_{index}",
                                 delegateType,
                                 FieldAttributes.Assembly | FieldAttributes.Static | FieldAttributes.InitOnly);
-                        }
 
-                        // Method body
-                        {
-                            List<Instruction> methodInstructions = [];
-
-                            LocalVariable? thisLocal;
-                            if (method.IsStatic)
-                            {
-                                thisLocal = null;
-                                methodInstructions.Add(new Instruction(CilOpCodes.Ldsfld, delegateField));
-                            }
-                            else if (type.IsValueType)
-                            {
-                                thisLocal = new LocalVariable(byReference.MakeGenericInstanceType([type]));
-
-                                methodInstructions.Add(new Instruction(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(type)));
-                                methodInstructions.Add(new Instruction(CilOpCodes.Conv_U));
-                                methodInstructions.Add(new Instruction(CilOpCodes.Localloc));
-                                methodInstructions.Add(new Instruction(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([type], [])));
-                                methodInstructions.Add(new Instruction(CilOpCodes.Stloc, thisLocal));
-
-                                methodInstructions.Add(new Instruction(CilOpCodes.Ldloca, thisLocal));
-                                methodInstructions.Add(new Instruction(CilOpCodes.Ldarg, This.Instance));
-                                methodInstructions.Add(new Instruction(CilOpCodes.Call, byReference_CopyFrom.MakeConcreteGeneric([type], [])));
-
-                                methodInstructions.Add(new Instruction(CilOpCodes.Ldsfld, delegateField));
-                                methodInstructions.Add(new Instruction(CilOpCodes.Ldloc, thisLocal));
-                            }
-                            else
-                            {
-                                thisLocal = null; // Not needed for reference types
-                                methodInstructions.Add(new Instruction(CilOpCodes.Ldsfld, delegateField));
-                                methodInstructions.Add(new Instruction(CilOpCodes.Ldarg, This.Instance));
-                            }
-
-                            foreach (var parameter in method.Parameters)
-                            {
-                                methodInstructions.Add(new Instruction(CilOpCodes.Ldarg, parameter));
-                            }
-                            methodInstructions.Add(new Instruction(CilOpCodes.Callvirt, invokeMethod));
-
-                            if (thisLocal is not null)
-                            {
-                                methodInstructions.Add(new Instruction(CilOpCodes.Ldloca, thisLocal));
-                                methodInstructions.Add(new Instruction(CilOpCodes.Ldarg, This.Instance));
-                                methodInstructions.Add(new Instruction(CilOpCodes.Call, byReference_CopyTo.MakeConcreteGeneric([type], [])));
-                            }
-
-                            methodInstructions.Add(new Instruction(CilOpCodes.Ret));
-
-                            method.PutExtraData(new NativeMethodBody()
-                            {
-                                Instructions = methodInstructions,
-                                LocalVariables = thisLocal is not null ? [thisLocal] : [],
-                            });
+                            method.ICallDelegateField = delegateField;
                         }
 
                         // Static constructor instructions
@@ -500,7 +445,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         }
                     }
 
-                    // Il2CppObjectPool.RegisterInitialier
+                    // Il2CppObjectPool.RegisterInitializer
                     {
                         if (type.IsAbstract || type.IsInterface)
                         {

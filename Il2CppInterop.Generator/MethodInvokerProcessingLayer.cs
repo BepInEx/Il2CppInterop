@@ -229,6 +229,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                     }
 
                     // Method body
+                    Debug.Assert(!method.HasExtraData<NativeMethodBody>());
                     if (valueTypeHelper is not null)
                     {
                         Debug.Assert(!method.IsStatic);

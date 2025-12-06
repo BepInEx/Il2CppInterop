@@ -62,6 +62,16 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
 
     public readonly void CopyTo(out T? value) => value = GetValue();
 
+    public readonly void CopyToUnmanaged<U>(out U value) where U : unmanaged
+    {
+        ThrowIfNull();
+        if (ReferenceSize != sizeof(U))
+        {
+            throw new InvalidOperationException($"Cannot copy ByReference<{typeof(T).Name}> to unmanaged type {typeof(U).Name} because their sizes do not match. Size of ByReference<{typeof(T).Name}> is {ReferenceSize} bytes, size of {typeof(U).Name} is {sizeof(U)} bytes.");
+        }
+        value = *(U*)_pointer;
+    }
+
     public readonly void* ToPointer() => _pointer;
 
     private static int ReferenceSize => T.Size;
