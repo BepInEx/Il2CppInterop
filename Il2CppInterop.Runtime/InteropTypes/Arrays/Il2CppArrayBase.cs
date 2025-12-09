@@ -49,11 +49,6 @@ public abstract class Il2CppArrayBase : Il2CppSystem.Array
         throw new NotSupportedException("Only rank 1 arrays support unsafe element access");
     }
 
-    public static Il2CppArrayRank1<T> Create<T>(ReadOnlySpan<T> span) where T : IIl2CppType<T>
-    {
-        return new Il2CppArrayRank1<T>(span);
-    }
-
     private protected static unsafe ObjectPointer AllocateArray(ReadOnlySpan<int> lengths, IntPtr arrayClass)
     {
         if (lengths.Length <= 1)

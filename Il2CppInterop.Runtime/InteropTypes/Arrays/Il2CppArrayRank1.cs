@@ -3,12 +3,30 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-[CollectionBuilder(typeof(Il2CppArrayBase), nameof(Create))]
+public static class Il2CppArrayRank1
+{
+    public static Il2CppArrayRank1<T> Create<T>(ReadOnlySpan<T> span) where T : IIl2CppType<T>
+    {
+        return new Il2CppArrayRank1<T>(span);
+    }
+
+    public static Il2CppArrayRank1<T> CreateUnmanaged<T, U>(ReadOnlySpan<U> span)
+        where T : unmanaged, IIl2CppType<T>
+        where U : unmanaged
+    {
+        if (Unsafe.SizeOf<T>() != Unsafe.SizeOf<U>())
+            throw new ArgumentException($"Cannot create an array of {typeof(T)} from a span of {typeof(U)}: sizes do not match");
+
+        return Create(MemoryMarshal.Cast<U, T>(span));
+    }
+}
+[CollectionBuilder(typeof(Il2CppArrayRank1), nameof(Il2CppArrayRank1.Create))]
 public sealed class Il2CppArrayRank1<T> : Il2CppArrayBase<T>, IIl2CppType<Il2CppArrayRank1<T>>, IList<T>, IReadOnlyList<T>, IEnumerable, ICollection
     where T : IIl2CppType<T>
 {
