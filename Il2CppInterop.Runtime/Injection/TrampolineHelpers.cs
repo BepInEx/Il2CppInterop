@@ -2,7 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.InteropServices;
+using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.InteropTypes;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection;
 
@@ -45,7 +48,7 @@ internal static class TrampolineHelpers
                 return typeof(IntPtr*);
             }
         }
-        else if (managedType.IsSubclassOf(typeof(Il2CppSystem.ValueType)) && !Environment.Is64BitProcess)
+        else if (managedType.IsValueType && managedType != typeof(void))
         {
             // Struct that's passed on the stack => handle as general struct
             var fixedSize = IL2CPP.GetIl2cppValueSize(Il2CppClassPointerStore.GetNativeClassPointer(managedType));

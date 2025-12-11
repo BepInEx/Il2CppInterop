@@ -3,28 +3,17 @@ using Il2CppInterop.Runtime.Startup;
 
 namespace Il2CppInterop.Runtime.Injection;
 
-public interface IDetour : IDisposable
-{
-    nint Target { get; }
-    nint Detour { get; }
-    nint OriginalTrampoline { get; }
-
-    void Apply();
-    T GenerateTrampoline<T>() where T : Delegate;
-}
 
 public interface IDetourProvider
 {
-    IDetour Create<TDelegate>(nint original, TDelegate target) where TDelegate : Delegate;
+    IDisposable Create<TDelegate>(nint original, TDelegate target, out TDelegate trampoline) where TDelegate : Delegate;
 }
 
 internal static class Detour
 {
-    public static IDetour Apply<T>(nint original, T target, out T trampoline) where T : Delegate
+    public static IDisposable Apply<T>(nint original, T target, out T trampoline) where T : Delegate
     {
-        var detour = Il2CppInteropRuntime.Instance.DetourProvider.Create(original, target);
-        trampoline = detour.GenerateTrampoline<T>();
-        detour.Apply();
-        return detour;
+        return Il2CppInteropRuntime.Instance.DetourProvider.Create(original, target, out trampoline);
+
     }
 }

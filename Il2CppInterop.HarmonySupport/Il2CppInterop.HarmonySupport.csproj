@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="HarmonyX" Version="2.10.0"/>
+    <PackageReference Include="MonoMod.RuntimeDetour" Version="25.3.3" />
   </ItemGroup>
 
   <ItemGroup>
