@@ -729,7 +729,7 @@ public static unsafe partial class ClassInjector
     private static VoidCtorDelegate CreateEmptyCtor(Type targetType, FieldInfo[] fieldsToInitialize)
     {
         var method = new DynamicMethod("FromIl2CppCtorDelegate", MethodAttributes.Public | MethodAttributes.Static,
-            CallingConventions.Standard, typeof(void), new[] { typeof(IntPtr) }, targetType, true);
+            CallingConventions.Standard, typeof(void), new[] { typeof(ObjectPointer) }, targetType, true);
 
         var body = method.GetILGenerator();
 
@@ -765,9 +765,9 @@ public static unsafe partial class ClassInjector
         return @delegate;
     }
 
-    public static void Finalize(IntPtr ptr)
+    public static void Finalize(ObjectPointer ptr)
     {
-        var gcHandle = ClassInjectorBase.GetGcHandlePtrFromIl2CppObject(ptr);
+        var gcHandle = ClassInjectorBase.GetGcHandlePtrFromIl2CppObject((IntPtr)ptr);
         GCHandle.FromIntPtr(gcHandle).Free();
     }
 
@@ -874,14 +874,14 @@ public static unsafe partial class ClassInjector
     private static IntPtr StaticVoidIntPtrInvoker(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj,
         IntPtr* args)
     {
-        Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)(obj);
+        Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)((ObjectPointer)obj);
         return IntPtr.Zero;
     }
 
     private static void StaticVoidIntPtrInvoker_MetadataV29(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj,
         IntPtr* args, IntPtr* returnValue)
     {
-        Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)(obj);
+        Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)((ObjectPointer)obj);
     }
 
     private static Delegate CreateTrampoline(MethodInfo monoMethod)
@@ -1143,5 +1143,5 @@ public static unsafe partial class ClassInjector
     private delegate IntPtr InvokerDelegate(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj, IntPtr* args);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate void VoidCtorDelegate(IntPtr objectPointer);
+    private delegate void VoidCtorDelegate(ObjectPointer objectPointer);
 }
