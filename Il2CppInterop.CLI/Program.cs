@@ -57,10 +57,9 @@ Todo
 
 Required for runtime testing:
 - Class injection rewrite
-- HarmonySupport rewrite
+- HarmonySupport non-blittable structs
 
 Ideal:
-- Fix abstract methods having helper methods
 - System interfaces
 - overloads with arrays, delegates, primitives
 - Source generation for user-injected types
