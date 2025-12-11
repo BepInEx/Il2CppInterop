@@ -341,9 +341,7 @@ public static unsafe partial class IL2CPP
             // Parameter is a ByReference<T>, and we need to get the underlying type T
             var elementType = parameterType.GenericTypeArguments[0];
 
-            var elementSize = (int)sizeOfMethod.MakeGenericMethod(elementType).Invoke(null, null)!;
-
-            var nativeStruct = TrampolineHelpers.GetFixedSizeStructType(elementSize);
+            var nativeStruct = TrampolineHelpers.NativeType(elementType);
             parameterTypes[i] = nativeStruct;
 
             var nativeLocal = bodyBuilder.DeclareLocal(nativeStruct);
@@ -369,8 +367,7 @@ public static unsafe partial class IL2CPP
         else
         {
             var returnType = invoke.ReturnType;
-            var elementSize = (int)sizeOfMethod.MakeGenericMethod(returnType).Invoke(null, null)!;
-            var nativeStruct = TrampolineHelpers.GetFixedSizeStructType(elementSize);
+            var nativeStruct = TrampolineHelpers.NativeType(returnType);
 
             bodyBuilder.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, nativeStruct, parameterTypes);
 

@@ -2,10 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.InteropServices;
-using Il2CppInterop.Common;
-using Il2CppInterop.Runtime.InteropTypes;
-using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection;
 
@@ -33,37 +29,33 @@ internal static class TrampolineHelpers
 
     internal static Type NativeType(this Type managedType)
     {
-        if (managedType.IsByRef)
+        if (managedType == typeof(void))
         {
-            var directType = managedType.GetElementType()!;
-
-            // bool is byte in Il2Cpp, but int in CLR => force size to be correct
-            if (directType == typeof(bool))
-            {
-                return typeof(byte).MakeByRefType();
-            }
-
-            if (directType == typeof(string) || directType.IsSubclassOf(typeof(Object)))
-            {
-                return typeof(IntPtr*);
-            }
+            return managedType;
         }
-        else if (managedType.IsValueType && managedType != typeof(void))
+        else if (managedType.IsByRef)
+        {
+            throw new NotSupportedException("ByRef types are not supported in NativeType conversion.");
+        }
+        else if (managedType.IsArray || managedType.IsSZArray)
+        {
+            throw new NotSupportedException("Array types are not supported in NativeType conversion.");
+        }
+        else if (managedType == typeof(Il2CppSystem.Boolean))
+        {
+            // bool is byte in Il2Cpp, but int in CLR => force size to be correct
+            return typeof(byte);
+        }
+        else if (managedType.IsValueType)
         {
             // Struct that's passed on the stack => handle as general struct
             var fixedSize = IL2CPP.GetIl2cppValueSize(Il2CppClassPointerStore.GetNativeClassPointer(managedType));
             return GetFixedSizeStructType(fixedSize);
         }
-        else if (managedType == typeof(string) || managedType.IsSubclassOf(typeof(Object))) // General reference type
+        else
         {
+            // General reference type
             return typeof(IntPtr);
         }
-        else if (managedType == typeof(bool))
-        {
-            // bool is byte in Il2Cpp, but int in CLR => force size to be correct
-            return typeof(byte);
-        }
-
-        return managedType;
     }
 }
