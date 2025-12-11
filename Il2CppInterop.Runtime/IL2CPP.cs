@@ -339,7 +339,7 @@ public static unsafe partial class IL2CPP
             var parameterType = parameter.ParameterType;
 
             // Parameter is a ByReference<T>, and we need to get the underlying type T
-            var elementType = parameterType.GetElementType() ?? throw new InvalidOperationException("ICall parameters must be ByReference<T> types");
+            var elementType = parameterType.GenericTypeArguments[0];
 
             var elementSize = (int)sizeOfMethod.MakeGenericMethod(elementType).Invoke(null, null)!;
 
