@@ -1,7 +1,9 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 
 namespace Il2CppInterop.Runtime.Injection;
 
@@ -21,7 +23,14 @@ internal static class TrampolineHelpers
         _fixedStructAssembly ??= AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("FixedSizeStructAssembly"), AssemblyBuilderAccess.Run);
         _fixedStructModuleBuilder ??= _fixedStructAssembly.DefineDynamicModule("FixedSizeStructAssembly");
 
-        var tb = _fixedStructModuleBuilder.DefineType($"IL2CPPDetour_FixedSizeStruct_{size}b", TypeAttributes.ExplicitLayout, typeof(ValueType), size);
+        var tb = _fixedStructModuleBuilder.DefineType($"IL2CPPDetour_FixedSizeStruct_{size}b", TypeAttributes.SequentialLayout | TypeAttributes.BeforeFieldInit | TypeAttributes.Sealed, typeof(ValueType));
+        tb.DefineField("_element0", typeof(byte), FieldAttributes.Private);
+
+        // Apply InlineArray attribute
+        var data = new byte[8];
+        data[0] = 1;
+        BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(2), size);
+        tb.SetCustomAttribute(typeof(InlineArrayAttribute).GetConstructors()[0], data);
 
         var type = tb.CreateType();
         return _fixedStructCache[size] = type;
