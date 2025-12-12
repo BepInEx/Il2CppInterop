@@ -352,13 +352,13 @@ public static unsafe partial class IL2CPP
             bodyBuilder.Emit(OpCodes.Call, parameterType.GetMethod(nameof(ByReference<>.CopyToUnmanaged))!.MakeGenericMethod(nativeStruct));
         }
 
-        bodyBuilder.Emit(OpCodes.Ldc_I8, icallPtr);
-        bodyBuilder.Emit(OpCodes.Conv_I);
-
         foreach (var local in locals)
         {
             bodyBuilder.Emit(OpCodes.Ldloc, local);
         }
+
+        bodyBuilder.Emit(OpCodes.Ldc_I8, icallPtr);
+        bodyBuilder.Emit(OpCodes.Conv_I);
 
         if (invoke.ReturnType == typeof(void))
         {
