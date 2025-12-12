@@ -17,6 +17,11 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                 continue;
             }
 
+            assembly.Culture = null;
+            assembly.Version = new();
+            assembly.PublicKey = null;
+            assembly.PublicKeyToken = null;
+
             foreach (var type in assembly.Types)
             {
                 if (type.IsInjected)
