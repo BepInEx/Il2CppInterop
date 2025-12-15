@@ -330,33 +330,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         int argIndex,
         Type managedParamType)
     {
-        if (managedParamType.IsValueType)
-        {
-            // On x64, struct is always a pointer but it is a non-pointer on x86
-            // We don't handle byref structs on x86 yet but we're yet to encounter those
-            il.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga, argIndex);
-
-            il.Emit(OpCodes.Call, typeof(Il2CppTypeHelper).GetMethod(nameof(Il2CppTypeHelper.ReadFromPointer))!.MakeGenericMethod(managedParamType));
-        }
-        else
-        {
-            il.EmitLdarg(argIndex);
-
-            var endLabel = il.DefineLabel();
-            var notNullLabel = il.DefineLabel();
-
-            il.Emit(OpCodes.Dup);
-            il.Emit(OpCodes.Brtrue_S, notNullLabel);
-
-            il.Emit(OpCodes.Pop);
-            il.Emit(OpCodes.Ldnull);
-            il.Emit(OpCodes.Br_S, endLabel);
-
-            il.MarkLabel(notNullLabel);
-            il.Emit(OpCodes.Call, typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!);
-
-            il.Emit(OpCodes.Castclass, managedParamType);
-            il.MarkLabel(endLabel);
-        }
+        il.Emit(OpCodes.Ldarga, argIndex);
+        il.Emit(OpCodes.Call, typeof(Il2CppTypeHelper).GetMethod(nameof(Il2CppTypeHelper.ReadFromPointer))!.MakeGenericMethod(managedParamType));
     }
 }
