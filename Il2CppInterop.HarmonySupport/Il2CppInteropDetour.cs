@@ -52,7 +52,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
 
         try
         {
-            var thunk = GenerateNativeToManagedThunk(Target).Generate();
+            var thunk = GenerateNativeToManagedThunk().Generate();
             var thunkDelegateType = DelegateSupport.GetOrCreateDelegateType(new DelegateSupport.MethodSignature((MethodInfo)source, !source.IsStatic), (MethodInfo)source);
             _thunkDelegate = thunk.CreateDelegate(thunkDelegateType);
         }
@@ -131,7 +131,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
                     .GetIl2CppMethodInfoPointerFieldForGeneratedMethod(Source)!))
             .Remove();
 
-        long ptr = _nativeSourceClone.Pointer.ToInt64();
+        var ptr = _nativeSourceClone.Pointer.ToInt64();
 
         cursor.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I8, ptr)
             .Emit(Mono.Cecil.Cil.OpCodes.Conv_I);
@@ -210,7 +210,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         return methodOrConstructor is ConstructorInfo ? typeof(void) : ((MethodInfo)methodOrConstructor).ReturnType;
     }
 
-    private DynamicMethodDefinition GenerateNativeToManagedThunk(MethodBase targetManagedMethodInfo)
+    private DynamicMethodDefinition GenerateNativeToManagedThunk()
     {
         // managedParams are the interop types used on the managed side
         // unmanagedParams are IntPtr references that are used by IL2CPP compiled assembly
@@ -282,7 +282,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         }
 
         // Run the managed method
-        il.Emit(OpCodes.Call, targetManagedMethodInfo);
+        il.Emit(OpCodes.Call, Target);
 
         // Store the managed return type temporarily (if there was one)
         LocalBuilder? managedReturnVariable = null;
