@@ -6,7 +6,7 @@
 /// <remarks>
 /// Marking the accessor methods with <see cref="Il2CppMethodAttribute"/> is optional.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Property)]
+[AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
 public sealed class Il2CppPropertyAttribute : Il2CppMemberAttribute
 {
 }

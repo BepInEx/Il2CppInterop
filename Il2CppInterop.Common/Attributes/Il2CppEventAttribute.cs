@@ -3,7 +3,7 @@
 /// <summary>
 /// Indicates that the attributed method is associated with an event in the IL2CPP runtime.
 /// </summary>
-[AttributeUsage(AttributeTargets.Method)]
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 public sealed class Il2CppEventAttribute : Il2CppMemberAttribute
 {
 }

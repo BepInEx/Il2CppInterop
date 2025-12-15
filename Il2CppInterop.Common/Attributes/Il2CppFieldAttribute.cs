@@ -3,7 +3,7 @@
 /// <summary>
 /// Indicates that the attributed field is associated with a field in the IL2CPP runtime.
 /// </summary>
-[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
 public sealed class Il2CppFieldAttribute : Il2CppMemberAttribute
 {
     public int Index { get; set; } = -1;
