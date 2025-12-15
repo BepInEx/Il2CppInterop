@@ -75,7 +75,8 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
 
         var tokenLessMethodCount = 0;
 
-        var sixteen = (object)16;
+        // 2 pointers
+        var headerSize = (object)(appContext.Binary.is32Bit ? 8 : 16);
 
         foreach (var assembly in appContext.Assemblies)
         {
@@ -234,7 +235,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         instructions.Add(new Instruction(CilOpCodes.Stsfld, instantiatedInfoStore));
                         instructions.Add(new Instruction(CilOpCodes.Call, il2CppFieldGetOffset));
                         instructions.Add(new Instruction(CilOpCodes.Conv_I4));
-                        instructions.Add(new Instruction(CilOpCodes.Ldc_I4, sixteen)); // il2cpp_field_get_offset returns offset including the object header
+                        instructions.Add(new Instruction(CilOpCodes.Ldc_I4, headerSize)); // il2cpp_field_get_offset returns offset including the object header
                         instructions.Add(new Instruction(CilOpCodes.Sub));
                         instructions.Add(new Instruction(CilOpCodes.Stsfld, instantiatedOffsetStore));
                     }
