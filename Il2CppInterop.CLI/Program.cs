@@ -57,7 +57,6 @@ Todo
 
 Required for runtime testing:
 - Class injection rewrite
-- HarmonySupport non-blittable structs
 
 Ideal:
 - System interfaces

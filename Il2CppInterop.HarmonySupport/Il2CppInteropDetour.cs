@@ -4,51 +4,21 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
+using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
-using Il2CppSystem;
 using Microsoft.Extensions.Logging;
 using Mono.Cecil;
 using MonoMod.Cil;
 using MonoMod.Core;
 using MonoMod.Utils;
-using Array = System.Array;
-using Delegate = System.Delegate;
-using Exception = System.Exception;
-using IntPtr = System.IntPtr;
-using Type = System.Type;
-using ValueType = Il2CppSystem.ValueType;
 
 namespace Il2CppInterop.HarmonySupport;
 
 internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
 {
-
-    private static readonly MethodInfo ObjectBaseToPtrMethodInfo
-        = typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectToPtr))!;
-
-    private static readonly MethodInfo ObjectBaseToPtrNotNullMethodInfo
-        = typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectToPtrNotNull))!;
-
     private static readonly MethodInfo ReportExceptionMethodInfo
         = typeof(Il2CppInteropDetour).GetMethod(nameof(ReportException), BindingFlags.NonPublic | BindingFlags.Static)!;
-
-    // Map each value type to correctly sized store opcode to prevent memory overwrite
-    // Special case: bool is byte in Il2Cpp
-    private static readonly Dictionary<Type, OpCode> StIndOpcodes = new()
-    {
-        [typeof(byte)] = OpCodes.Stind_I1,
-        [typeof(sbyte)] = OpCodes.Stind_I1,
-        [typeof(bool)] = OpCodes.Stind_I1,
-        [typeof(short)] = OpCodes.Stind_I2,
-        [typeof(ushort)] = OpCodes.Stind_I2,
-        [typeof(int)] = OpCodes.Stind_I4,
-        [typeof(uint)] = OpCodes.Stind_I4,
-        [typeof(long)] = OpCodes.Stind_I8,
-        [typeof(ulong)] = OpCodes.Stind_I8,
-        [typeof(float)] = OpCodes.Stind_R4,
-        [typeof(double)] = OpCodes.Stind_R8
-    };
 
     internal readonly INativeMethodInfoStruct _nativeSourceClone;
     private readonly Delegate _thunkDelegate;
@@ -186,7 +156,8 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
 
         // Unpatch an existing detour if it exists
         if (_nativeDetour != null)
-        { // Point back to the original method before we unpatch
+        {
+            // Point back to the original method before we unpatch
             _nativeSourceClone.MethodPointer = NativeSource.MethodPointer;
             _nativeDetour.Dispose();
         }
@@ -218,10 +189,10 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
     // Tries to guess whether a function needs a return buffer for the return struct, in all cases except win64 it's undefined behaviour
     private static bool IsReturnBufferNeeded(int size)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (OperatingSystem.IsWindows())
         {
             // https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170#return-values
-            return size != 1 && size != 4 && size != 8;
+            return size is not 1 and not 4 and not 8;
         }
 
         if (Environment.Is64BitProcess)
@@ -250,7 +221,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
 
         var returnSize = IntPtr.Size;
 
-        var isReturnValueType = managedReturnType.IsSubclassOf(typeof(ValueType));
+        var isReturnValueType = managedReturnType.IsValueType;
         if (isReturnValueType)
         {
             uint align = 0;
@@ -299,44 +270,26 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
 
         var il = dmd.GetILGenerator();
         il.BeginExceptionBlock();
-        // Declare a list of variables to dereference back to the original pointers.
-        // This is required due to the needed interop type conversions, so we can't directly pass some addresses as byref types
-        var indirectVariables = new LocalBuilder[managedParams.Length];
 
         if (!Source.IsStatic)
         {
-            EmitConvertArgumentToManaged(il, paramStartIndex - 1, Source.DeclaringType, out _);
+            EmitConvertArgumentToManaged(il, paramStartIndex - 1, Source.DeclaringType!);
         }
 
         for (var i = 0; i < managedParams.Length; ++i)
         {
-            EmitConvertArgumentToManaged(il, i + paramStartIndex, managedParams[i], out indirectVariables[i]);
+            EmitConvertArgumentToManaged(il, i + paramStartIndex, managedParams[i]);
         }
 
         // Run the managed method
         il.Emit(OpCodes.Call, targetManagedMethodInfo);
 
         // Store the managed return type temporarily (if there was one)
-        LocalBuilder managedReturnVariable = null;
+        LocalBuilder? managedReturnVariable = null;
         if (managedReturnType != typeof(void))
         {
             managedReturnVariable = il.DeclareLocal(managedReturnType);
             il.Emit(OpCodes.Stloc, managedReturnVariable);
-        }
-
-        // Convert any managed byref values into their relevant IL2CPP types, and then store the values into their relevant dereferenced pointers
-        for (var i = 0; i < managedParams.Length; ++i)
-        {
-            if (indirectVariables[i] == null)
-            {
-                continue;
-            }
-
-            il.Emit(OpCodes.Ldarg_S, i + paramStartIndex);
-            il.Emit(OpCodes.Ldloc, indirectVariables[i]);
-            var directType = managedParams[i].GetElementType();
-            EmitConvertManagedTypeToIL2CPP(il, directType);
-            il.Emit(StIndOpcodes.TryGetValue(directType, out var stindOpCodde) ? stindOpCodde : OpCodes.Stind_I);
         }
 
         // Handle any lingering exceptions
@@ -349,20 +302,20 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         {
             if (hasReturnBuffer)
             {
-                il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldloc, managedReturnVariable);
-                il.Emit(OpCodes.Call, ObjectBaseToPtrNotNullMethodInfo);
-                EmitUnbox(il);
-                il.Emit(OpCodes.Ldc_I4, returnSize);
-                il.Emit(OpCodes.Cpblk);
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Call, typeof(Il2CppTypeHelper).GetMethod(nameof(Il2CppTypeHelper.WriteToPointer))!.MakeGenericMethod(managedReturnType));
 
                 // Return the same pointer to the return buffer
                 il.Emit(OpCodes.Ldarg_0);
             }
             else
             {
+                var unmanagedReturnVariable = il.DeclareLocal(unmanagedReturnType);
                 il.Emit(OpCodes.Ldloc, managedReturnVariable);
-                EmitConvertManagedTypeToIL2CPP(il, managedReturnType);
+                il.Emit(OpCodes.Ldloca, unmanagedReturnVariable);
+                il.Emit(OpCodes.Call, typeof(Il2CppTypeHelper).GetMethod(nameof(Il2CppTypeHelper.WriteToPointer))!.MakeGenericMethod(managedReturnType));
+                il.Emit(OpCodes.Ldloc, unmanagedReturnVariable);
             }
         }
         il.Emit(OpCodes.Ret);
@@ -370,79 +323,25 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         return dmd;
     }
 
-    private static void EmitUnbox(ILGenerator il)
-    {
-        il.Emit(OpCodes.Ldc_I4_2);
-        il.Emit(OpCodes.Conv_I);
-        il.Emit(OpCodes.Sizeof, typeof(void*));
-        il.Emit(OpCodes.Mul);
-        il.Emit(OpCodes.Add);
-    }
-
     private static void ReportException(Exception ex) =>
         Logger.Instance.LogError(ex, "During invoking native->managed trampoline");
 
-    private static void EmitConvertManagedTypeToIL2CPP(ILGenerator il, Type returnType)
-    {
-        if (!returnType.IsValueType && typeof(IObject).IsAssignableFrom(returnType))
-        {
-            il.Emit(OpCodes.Call, ObjectBaseToPtrMethodInfo);
-        }
-    }
-
     private static void EmitConvertArgumentToManaged(ILGenerator il,
         int argIndex,
-        Type managedParamType,
-        out LocalBuilder variable)
+        Type managedParamType)
     {
-        variable = null;
-
-        bool needsBoxing = managedParamType.IsSubclassOf(typeof(ValueType));
-
-        if (needsBoxing)
+        if (managedParamType.IsValueType)
         {
-            var classPtr = Il2CppClassPointerStore.GetNativeClassPointer(managedParamType);
+            // On x64, struct is always a pointer but it is a non-pointer on x86
+            // We don't handle byref structs on x86 yet but we're yet to encounter those
+            il.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga, argIndex);
 
-            // il2cpp_value_box uses .NET boxing semantics which boxes Nullable<T> as just T,
-            // losing the HasValue field. Manually box Nullable<T> to preserve full data.
-            bool isNullable = managedParamType.IsGenericType &&
-                managedParamType.GetGenericTypeDefinition().FullName == "Il2CppSystem.Nullable`1";
-
-            if (isNullable)
-            {
-                uint align = 0;
-                var valueSize = IL2CPP.il2cpp_class_value_size(classPtr, ref align);
-
-                il.Emit(OpCodes.Ldc_I8, classPtr.ToInt64());
-                il.Emit(OpCodes.Conv_I);
-                il.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_object_new)));
-                var objLocal = il.DeclareLocal(typeof(IntPtr));
-                il.Emit(OpCodes.Stloc, objLocal);
-                il.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga_S, argIndex);
-                il.Emit(OpCodes.Ldloc, objLocal);
-                il.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_object_unbox)));
-                il.Emit(OpCodes.Ldc_I4, (int)valueSize);
-                il.Emit(OpCodes.Call, typeof(Il2CppDetourMethodPatcher).GetMethod(nameof(CopyMemory)));
-                il.Emit(OpCodes.Ldloc, objLocal);
-            }
-            else
-            {
-                // Box struct into object first before conversion
-                il.Emit(OpCodes.Ldc_I8, classPtr.ToInt64());
-                il.Emit(OpCodes.Conv_I);
-                // On x64, struct is always a pointer but it is a non-pointer on x86
-                // We don't handle byref structs on x86 yet but we're yet to encounter those
-                il.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga_S, argIndex);
-                il.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_value_box)));
-            }
+            il.Emit(OpCodes.Call, typeof(Il2CppTypeHelper).GetMethod(nameof(Il2CppTypeHelper.ReadFromPointer))!.MakeGenericMethod(managedParamType));
         }
         else
         {
-            il.Emit(OpCodes.Ldarg_S, argIndex);
-        }
+            il.EmitLdarg(argIndex);
 
-        void EmitCreateIl2CppObject(Type originalType)
-        {
             var endLabel = il.DefineLabel();
             var notNullLabel = il.DefineLabel();
 
@@ -454,38 +353,10 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
             il.Emit(OpCodes.Br_S, endLabel);
 
             il.MarkLabel(notNullLabel);
-            il.Emit(OpCodes.Call,
-                typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!);
+            il.Emit(OpCodes.Call, typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!);
 
-            il.Emit(OpCodes.Castclass, originalType);
+            il.Emit(OpCodes.Castclass, managedParamType);
             il.MarkLabel(endLabel);
-        }
-
-        void HandleTypeConversion(Type originalType)
-        {
-            if (typeof(IObject).IsAssignableFrom(originalType) && !originalType.IsValueType)
-            {
-                EmitCreateIl2CppObject(originalType);
-            }
-        }
-
-        if (managedParamType.IsByRef)
-        {
-            // TODO: directType being ValueType is not handled yet (but it's not that common in games). Implement when needed.
-            var directType = managedParamType.GetElementType();
-
-            variable = il.DeclareLocal(directType);
-
-            il.Emit(OpCodes.Ldind_I);
-
-            HandleTypeConversion(directType);
-
-            il.Emit(OpCodes.Stloc, variable);
-            il.Emit(OpCodes.Ldloca, variable);
-        }
-        else
-        {
-            HandleTypeConversion(managedParamType);
         }
     }
 }

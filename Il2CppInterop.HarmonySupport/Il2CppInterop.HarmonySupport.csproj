@@ -3,6 +3,7 @@
   <PropertyGroup>
     <Description>Module to allow using Harmony with Il2CppInterop assemblies</Description>
     <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
     <RootNamespace>Il2CppInterop.HarmonySupport</RootNamespace>
   </PropertyGroup>
 
