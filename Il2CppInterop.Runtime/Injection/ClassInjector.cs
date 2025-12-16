@@ -76,12 +76,6 @@ public static unsafe partial class ClassInjector
         AssignGcHandle(pointer, handle);
     }
 
-    public static ObjectPointer DerivedConstructorPointer<T>()
-    {
-        return (ObjectPointer)IL2CPP.il2cpp_object_new(Il2CppClassPointerStore<T>
-            .NativeClassPtr); // todo: consider calling base constructor
-    }
-
     public static void DerivedConstructorBody(Object objectBase)
     {
         var fields = objectBase.GetType()

@@ -384,8 +384,7 @@ public static class DelegateSupport
         {
         }
 
-        public Il2CppToMonoDelegateReference(Delegate referencedDelegate, IntPtr methodInfo) : base(
-            ClassInjector.DerivedConstructorPointer<Il2CppToMonoDelegateReference>())
+        public Il2CppToMonoDelegateReference(Delegate referencedDelegate, IntPtr methodInfo) : base(IL2CPP.NewObjectPointer<Il2CppToMonoDelegateReference>())
         {
             ClassInjector.DerivedConstructorBody(this);
 
