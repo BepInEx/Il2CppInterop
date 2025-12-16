@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using Il2CppInterop.Runtime.Attributes;
 using Il2CppSystem;
 
 namespace Il2CppInterop.Runtime;
@@ -47,14 +46,6 @@ public static class Il2CppClassPointerStore<T>
         else
         {
             RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
-            foreach (var customAttribute in typeof(T).CustomAttributes)
-            {
-                if (customAttribute.AttributeType != typeof(AlsoInitializeAttribute)) continue;
-
-                var linkedType = (System.Type?)customAttribute.ConstructorArguments[0].Value;
-                if (linkedType is not null)
-                    RuntimeHelpers.RunClassConstructor(linkedType.TypeHandle);
-            }
         }
     }
 }
