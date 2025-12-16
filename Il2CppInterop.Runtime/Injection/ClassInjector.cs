@@ -467,27 +467,6 @@ public static unsafe partial class ClassInjector
     {
         if (method.Name == "Finalize") return false;
         if (method.IsStatic) return false;
-        if (method.CustomAttributes.Any(it => typeof(HideFromIl2CppAttribute).IsAssignableFrom(it.AttributeType)))
-            return false;
-
-        if (method.DeclaringType != null)
-        {
-            if (method.DeclaringType.GetProperties(BindingFlags.Instance | BindingFlags.Public |
-                                                   BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
-                .Where(property => property.GetAccessors(true).Contains(method))
-                .Any(property =>
-                    property.CustomAttributes.Any(it =>
-                        typeof(HideFromIl2CppAttribute).IsAssignableFrom(it.AttributeType)))
-               )
-                return false;
-
-            foreach (var eventInfo in method.DeclaringType.GetEvents(BindingFlags.Instance | BindingFlags.Public |
-                                                                     BindingFlags.NonPublic |
-                                                                     BindingFlags.DeclaredOnly))
-                if ((eventInfo.GetAddMethod(true) == method || eventInfo.GetRemoveMethod(true) == method) &&
-                    eventInfo.GetCustomAttribute<HideFromIl2CppAttribute>() != null)
-                    return false;
-        }
 
         if (!IsTypeSupported(method.ReturnType))
         {
