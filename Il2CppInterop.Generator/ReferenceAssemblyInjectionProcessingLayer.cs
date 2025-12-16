@@ -56,7 +56,6 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(Il2CppTypeHelper),
 
             // Because of ClassInjector
-            typeof(RegisterTypeOptions),
             typeof(Il2CppClass),
             typeof(Il2CppTypeStruct),
         ];

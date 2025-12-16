@@ -53,13 +53,6 @@ public unsafe class Il2CppInterfaceCollection : List<INativeClassStruct>
     }
 }
 
-public class RegisterTypeOptions
-{
-    public static readonly RegisterTypeOptions Default = new();
-
-    public bool LogSuccess { get; init; } = true;
-}
-
 public static unsafe partial class ClassInjector
 {
     /// <summary> type.FullName </summary>
@@ -146,16 +139,6 @@ public static unsafe partial class ClassInjector
 
     public static void RegisterTypeInIl2Cpp(Type type)
     {
-        RegisterTypeInIl2Cpp(type, RegisterTypeOptions.Default);
-    }
-
-    public static void RegisterTypeInIl2Cpp<T>(RegisterTypeOptions options)
-    {
-        RegisterTypeInIl2Cpp(typeof(T), options);
-    }
-
-    public static void RegisterTypeInIl2Cpp(Type type, RegisterTypeOptions options)
-    {
         Il2CppInterfaceCollection interfaces;
         {
             var interfacesAttribute = type.GetCustomAttribute<Il2CppImplementsAttribute>();
@@ -180,7 +163,7 @@ public static unsafe partial class ClassInjector
             UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore.GetNativeClassPointer(baseType));
         if (baseClassPointer == null)
         {
-            RegisterTypeInIl2Cpp(baseType, new RegisterTypeOptions { LogSuccess = options.LogSuccess });
+            RegisterTypeInIl2Cpp(baseType);
             baseClassPointer =
                 UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore.GetNativeClassPointer(baseType));
         }
@@ -514,9 +497,6 @@ public static unsafe partial class ClassInjector
         Il2CppClassPointerStore.SetNativeClassPointer(type, classPointer.Pointer);
 
         InjectorHelpers.AddTypeToLookup(type, classPointer.Pointer);
-
-        if (options.LogSuccess)
-            Logger.Instance.LogInformation("Registered mono type {Type} in il2cpp domain", type);
     }
 
     private static bool IsTypeSupported(Type type)
