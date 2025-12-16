@@ -10,7 +10,6 @@ using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Attributes;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
-using Il2CppInterop.Runtime.InteropTypes.Fields;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
@@ -46,16 +45,6 @@ public static unsafe partial class ClassInjector
 
     public static void DerivedConstructorBody(Object objectBase)
     {
-        var fields = objectBase.GetType()
-            .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
-            .Where(IsFieldEligible)
-            .ToArray();
-        foreach (var field in fields)
-            field.SetValue(objectBase, field.FieldType.GetConstructor(
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
-                    new[] { typeof(Object), typeof(string) }, Array.Empty<ParameterModifier>())
-                .Invoke(new object[] { objectBase, field.Name })
-            );
         var ownGcHandle = GCHandle.Alloc(objectBase, GCHandleType.Normal);
         AssignGcHandle(objectBase.Pointer, ownGcHandle);
     }
@@ -198,9 +187,7 @@ public static unsafe partial class ClassInjector
             fieldInfo.Parent = classPointer.ClassPointer;
             fieldInfo.Offset = fieldOffset;
 
-            var fieldType = fieldsToInject[i].FieldType == typeof(Il2CppStringField)
-                ? typeof(string)
-                : fieldsToInject[i].FieldType.GenericTypeArguments[0];
+            var fieldType = fieldsToInject[i].FieldType;
             var fieldAttributes = fieldsToInject[i].Attributes;
             var fieldInfoClass = Il2CppClassPointerStore.GetNativeClassPointer(fieldType);
             if (!_injectedFieldTypes.TryGetValue((fieldType, fieldAttributes), out var fieldTypePtr))
@@ -473,12 +460,7 @@ public static unsafe partial class ClassInjector
 
     private static bool IsFieldEligible(FieldInfo field)
     {
-        if (!field.FieldType.IsGenericType) return field.FieldType == typeof(Il2CppStringField);
-        var genericTypeDef = field.FieldType.GetGenericTypeDefinition();
-        if (genericTypeDef != typeof(Il2CppReferenceField<>) && genericTypeDef != typeof(Il2CppValueField<>))
-            return false;
-
-        return IsTypeSupported(field.FieldType.GenericTypeArguments[0]);
+        return IsTypeSupported(field.FieldType);
     }
 
     private static bool IsMethodEligible(MethodInfo method)
