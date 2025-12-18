@@ -96,19 +96,13 @@ public static unsafe partial class ClassInjector
             interfaces = interfacesAttribute?.Interfaces ?? [];
         }
 
-        if (type == null)
-            throw new ArgumentException("Type argument cannot be null");
-
-        if (type.IsGenericType || type.IsGenericTypeDefinition)
-            throw new ArgumentException($"Type {type} is generic and can't be used in il2cpp");
+        ArgumentNullException.ThrowIfNull(type);
 
         var currentPointer = Il2CppClassPointerStore.GetNativeClassPointer(type);
         if (currentPointer != IntPtr.Zero)
             return; //already registered in il2cpp
 
         var baseType = type.BaseType;
-        if (baseType == null)
-            throw new ArgumentException($"Class {type} does not inherit from a class registered in il2cpp");
 
         var baseClassPointer =
             UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore.GetNativeClassPointer(baseType));
