@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
+using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
 
@@ -60,11 +61,76 @@ internal class GarbageCollector_RunFinalizer_Patch : Hook<GarbageCollector_RunFi
         }
     };
 
+    private static nint FindWithXrefScan()
+    {
+        nint gcReRegisterForFinalize = InjectorHelpers.GetIl2CppMethodPointer(
+            typeof(Il2CppSystem.GC).GetMethod(
+                nameof(Il2CppSystem.GC._ReRegisterForFinalize),
+                [typeof(Il2CppSystem.Object)]
+            ) ?? throw new Exception("GC._ReRegisterForFinalize not found")
+        );
+        Logger.Instance.LogTrace(
+            "Il2CppSystem.GC::_ReRegisterForFinalize: 0x{GcReRegisterForFinalizeAddress}",
+            gcReRegisterForFinalize.ToString("X2")
+        );
+
+        // follow unconditional JMP if any
+        var jumpTargets = XrefScannerLowLevel.JumpTargets(gcReRegisterForFinalize).ToArray();
+        if (jumpTargets.Length == 1)
+        {
+            gcReRegisterForFinalize = jumpTargets[0];
+        }
+
+        var indirectTargets = XrefScannerLowLevel
+            .IndirectTargets(gcReRegisterForFinalize)
+            .ToArray();
+
+        // GarbageCollector::RegisterFinalizer is not inlined so traversal into it
+        if (indirectTargets.Length < 2)
+        {
+            nint registerFinalizer = XrefScannerLowLevel
+                .JumpTargets(gcReRegisterForFinalize)
+                .FirstOrDefault();
+            if (registerFinalizer == 0)
+            {
+                Logger.Instance.LogTrace("GarbageCollector::RegisterFinalizer not found");
+                return 0;
+            }
+
+            Logger.Instance.LogTrace(
+                "GarbageCollector::RegisterFinalizer: 0x{RegisterFinalizerAddress}",
+                registerFinalizer.ToString("X2")
+            );
+
+            indirectTargets = [.. XrefScannerLowLevel.IndirectTargets(registerFinalizer)];
+        }
+
+        if (indirectTargets.Length != 2)
+        {
+            Logger.Instance.LogTrace(
+                "Expect 2 indirect targets in GarbageCollector::RegisterFinalizer body but {} exists",
+                indirectTargets.Length
+            );
+            return 0;
+        }
+
+        // the second LEA target is RunFinalizer
+        return indirectTargets[1];
+    }
+
     public override IntPtr FindTargetMethod()
     {
-        return s_signatures
+        var res = s_signatures
             .Select(s => MemoryUtils.FindSignatureInModule(InjectorHelpers.Il2CppModule, s))
             .FirstOrDefault(p => p != 0);
+        if (res == 0)
+        {
+            Logger.Instance.LogTrace(
+                "Couldn't fetch GarbageCollector::RunFinalizer with signatures, using method traversal"
+            );
+            res = FindWithXrefScan();
+        }
+        return res;
     }
 
     public override void TargetMethodNotFound()

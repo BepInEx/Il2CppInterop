@@ -79,6 +79,39 @@ public static class XrefScannerLowLevel
         }
     }
 
+    public static IEnumerable<IntPtr> IndirectTargets(IntPtr pointer)
+    {
+        return IndirectTargetsImpl(XrefScanner.DecoderForAddress(pointer, 1024 * 1024));
+    }
+
+    private static IEnumerable<IntPtr> IndirectTargetsImpl(Decoder decoder)
+    {
+        while (true)
+        {
+            decoder.Decode(out var instruction);
+            if (decoder.LastError == DecoderError.NoMoreBytes)
+                yield break;
+
+            if (instruction.FlowControl == FlowControl.Return)
+                yield break;
+
+            if (
+                instruction.Mnemonic == Mnemonic.Int
+                || instruction.Mnemonic == Mnemonic.Int1
+                || instruction.Mnemonic == Mnemonic.Int3
+            )
+                yield break;
+
+            if (instruction.Mnemonic == Mnemonic.Lea)
+                if (instruction.MemoryBase == Register.RIP)
+                {
+                    var targetAddress = instruction.IPRelativeMemoryAddress;
+                    if (targetAddress != 0)
+                        yield return (IntPtr)targetAddress;
+                }
+        }
+    }
+
     private static ulong ExtractTargetAddress(in Instruction instruction)
     {
         switch (instruction.Op0Kind)
