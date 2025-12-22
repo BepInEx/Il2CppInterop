@@ -169,7 +169,7 @@ public static class Pass50GenerateMethods
                         else
                         {
                             bodyBuilder.EmitObjectToPointer(originalMethod.Parameters[i].ParameterType, newParam.ParameterType,
-                                methodRewriteContext.DeclaringType, argOffset + i, false, true, true, false, out var refVar);
+                                methodRewriteContext.DeclaringType, argOffset + i, false, true, true, true, out var refVar);
                             if (refVar != null)
                                 byRefParams.Add((i, refVar));
                         }
