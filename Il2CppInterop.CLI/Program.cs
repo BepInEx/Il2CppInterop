@@ -4,6 +4,11 @@ using Il2CppInterop.Generator;
 string gameExePath = args[0];
 string outputFolder = args[1];
 string unstripDirectory = args[2];
+
+// Unstrip directory needs to contain all files recursively contained in these directories:
+// \Editor\Data\MonoBleedingEdge\lib\mono\unityaot-win32
+// \Editor\Data\PlaybackEngines\windowsstandalonesupport\Variations\win64_player_development_il2cpp\Data\Managed
+
 Il2CppGame.Process(
     gameExePath,
     outputFolder,
