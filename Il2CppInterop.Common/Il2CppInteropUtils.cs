@@ -58,6 +58,6 @@ public static class Il2CppInteropUtils
 
     public static FieldInfo? GetIl2CppFieldInfoPointerFieldForGeneratedFieldAccessor(MethodBase method)
     {
-        return GetFieldInfoFromMethod(method,"FieldInfoPtr_");
+        return GetFieldInfoFromMethod(method, "FieldInfoPtr_");
     }
 }
