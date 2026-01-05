@@ -38,14 +38,6 @@ public static class Il2CppObjectPool
         }
 
         var newObj = Il2CppObjectBase.InitializerStore<T>.Initializer(ptr);
-        unsafe
-        {
-            var nativeClassStruct = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<T>.NativeClassPtr);
-            if (!nativeClassStruct.HasFinalize)
-            {
-                Il2CppSystem.GC.ReRegisterForFinalize(newObj as Object ?? new Object(ptr));
-            }
-        }
 
         var il2CppObjectBase = Unsafe.As<T, Il2CppObjectBase>(ref newObj);
         s_cache[ptr] = new WeakReference<Il2CppObjectBase>(il2CppObjectBase);
