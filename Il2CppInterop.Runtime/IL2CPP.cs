@@ -22,6 +22,15 @@ public static unsafe class IL2CPP
 
     static IL2CPP()
     {
+        RefreshImageCache();
+    }
+
+    /// <summary>
+    /// Refreshes the IL2CPP image cache to detect newly loaded assemblies (e.g., HybridCLR hotfix assemblies).
+    /// Call this after HybridCLR loads hotfix assemblies.
+    /// </summary>
+    public static void RefreshImageCache()
+    {
         var domain = il2cpp_domain_get();
         if (domain == IntPtr.Zero)
         {
@@ -31,13 +40,29 @@ public static unsafe class IL2CPP
 
         uint assembliesCount = 0;
         var assemblies = il2cpp_domain_get_assemblies(domain, ref assembliesCount);
+        var newCount = 0;
         for (var i = 0; i < assembliesCount; i++)
         {
             var image = il2cpp_assembly_get_image(assemblies[i]);
             var name = il2cpp_image_get_name_(image)!;
-            ourImagesMap[name] = image;
+            if (!ourImagesMap.ContainsKey(name))
+            {
+                ourImagesMap[name] = image;
+                newCount++;
+                Logger.Instance.LogInformation("Registered IL2CPP image: {ImageName}", name);
+            }
+        }
+
+        if (newCount > 0)
+        {
+            Logger.Instance.LogInformation("Refreshed IL2CPP image cache: {NewCount} new assemblies, {TotalCount} total", newCount, ourImagesMap.Count);
         }
     }
+
+    /// <summary>
+    /// Alias for RefreshImageCache - updates the image map with newly loaded HybridCLR hotfix assemblies.
+    /// </summary>
+    public static void UpdateHotfixIl2CppImage() => RefreshImageCache();
 
     internal static IntPtr GetIl2CppImage(string name)
     {

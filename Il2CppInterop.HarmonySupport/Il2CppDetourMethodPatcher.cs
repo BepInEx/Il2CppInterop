@@ -67,6 +67,10 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
 
     private INativeMethodInfoStruct originalNativeMethodInfo;
 
+    // HybridCLR hotfix method support
+    private bool _isHotfixMethod;
+    private IntPtr _invokerMethod;
+
     /// <summary>
     ///     Constructs a new instance of <see cref="MonoMod.RuntimeDetour.NativeDetour" /> method patcher.
     /// </summary>
@@ -99,6 +103,29 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
             // Get the native MethodInfo struct for the target method
             originalNativeMethodInfo =
                 UnityVersionHandler.Wrap((Il2CppMethodInfo*)(IntPtr)methodField.GetValue(null));
+
+            // HybridCLR hotfix method handling
+            if (HybridCLRCompat.IsHybridCLRRuntime())
+            {
+                var pMethodInfo = (HybridCLRMethodInfo*)originalNativeMethodInfo.Pointer;
+                _isHotfixMethod = pMethodInfo->IsInterpterImpl;
+
+                if (_isHotfixMethod)
+                {
+                    if (pMethodInfo->interpData == IntPtr.Zero)
+                    {
+                        Logger.Instance.LogError(
+                            "HybridCLR method {Method} has no interpData - it may have been transformed to native code",
+                            Original.FullDescription());
+                    }
+
+                    // Save original invoker_method for later restoration
+                    _invokerMethod = pMethodInfo->invoker_method;
+
+                    // Prepare the method for detouring (copy bridge function, clear isInterpterImpl)
+                    HybridCLRCompat.PrepareMethodForDetour(originalNativeMethodInfo.Pointer);
+                }
+            }
 
             // Create a modified native MethodInfo struct, that will point towards the trampoline
             modifiedNativeMethodInfo = UnityVersionHandler.NewMethod();
@@ -150,6 +177,21 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
             Il2CppInteropRuntime.Instance.DetourProvider.Create(originalNativeMethodInfo.MethodPointer, unmanagedDelegate);
         nativeDetour.Apply();
         modifiedNativeMethodInfo.MethodPointer = nativeDetour.OriginalTrampoline;
+
+        // HybridCLR: After detour is applied, fix all method pointers and restore invoker_method
+        if (_isHotfixMethod)
+        {
+            var pMethodInfo = (HybridCLRMethodInfo*)originalNativeMethodInfo.Pointer;
+
+            // Fix all MethodPointer fields to point to the trampoline (which calls our patched code)
+            pMethodInfo->virtualMethodPointer = pMethodInfo->methodPointer;
+            pMethodInfo->methodPointerCallByInterp = pMethodInfo->methodPointer;
+            pMethodInfo->virtualMethodPointerCallByInterp = pMethodInfo->methodPointer;
+
+            // Restore invoker_method to original IL interpreter invoker
+            // This is CRITICAL - without this, calling the original method will fail
+            pMethodInfo->invoker_method = _invokerMethod;
+        }
 
         var detour = new Detour(Original, managedHookedMethod);
         detour.Apply();
@@ -446,5 +488,53 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         {
             HandleTypeConversion(managedParamType);
         }
+    }
+
+    /// <summary>
+    /// HybridCLR extended MethodInfo structure.
+    /// This structure includes additional fields added by HybridCLR for interpreter support.
+    ///
+    /// IMPORTANT: The HybridCLR fields (initInterpCallMethodPointer, isInterpterImpl) are bit fields
+    /// within _bitfield0, NOT separate bool fields at the end of the struct!
+    ///
+    /// Bit layout of _bitfield0:
+    ///   bit 0: is_generic
+    ///   bit 1: is_inflated
+    ///   bit 2: wrapper_type
+    ///   bit 3: has_full_generic_sharing_signature
+    ///   bit 4: indirect_call_via_invokers
+    ///   bit 5: initInterpCallMethodPointer (HybridCLR)
+    ///   bit 6: isInterpterImpl (HybridCLR)
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct HybridCLRMethodInfo
+    {
+        // Standard Il2Cpp MethodInfo fields (Unity 2021.2.0+)
+        public IntPtr methodPointer;
+        public IntPtr virtualMethodPointer;
+        public IntPtr invoker_method;
+        public IntPtr name;
+        public IntPtr klass;
+        public IntPtr return_type;
+        public IntPtr parameters;
+        public IntPtr rgctx_data;    // union: rgctx_data or methodMetadataHandle
+        public IntPtr genericMethod; // union: genericMethod or genericContainerHandle
+        public uint token;
+        public ushort flags;
+        public ushort iflags;
+        public ushort slot;
+        public byte parameters_count;
+        public byte _bitfield0; // includes HybridCLR bits: initInterpCallMethodPointer (bit 5), isInterpterImpl (bit 6)
+
+        // HybridCLR extension fields (after the standard struct)
+        public IntPtr interpData;
+        public IntPtr methodPointerCallByInterp;
+        public IntPtr virtualMethodPointerCallByInterp;
+
+        // Bit field accessors
+        public bool IsInterpterImpl => (_bitfield0 & 0x40) != 0; // bit 6
+        public bool InitInterpCallMethodPointer => (_bitfield0 & 0x20) != 0; // bit 5
+
+        public void ClearIsInterpterImpl() => _bitfield0 = (byte)(_bitfield0 & ~0x40);
     }
 }
