@@ -32,6 +32,12 @@ public class GeneratorOptions
     public string? DeobfuscationNewAssembliesPath { get; set; }
 
     /// <summary>
+    /// Indicates whether the target environment uses HybridCLR for hot-update support.
+    /// When true, the generator may apply additional compatibility handling.
+    /// </summary>
+    public bool IsHybridCLREnvironment { get; set; }
+
+    /// <summary>
     ///     Reads a rename map from the specified name into the specified instance of options
     /// </summary>
     public void ReadRenameMap(string fileName)

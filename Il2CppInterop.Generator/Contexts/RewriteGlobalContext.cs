@@ -42,7 +42,8 @@ public class RewriteGlobalContext : IDisposable
             var newModule = new ModuleDefinition(sourceAssembly.ManifestModule?.Name.UnSystemify(options), CorlibReferences.TargetCorlib);
             newAssembly.Modules.Add(newModule);
 
-            newModule.MetadataResolver = new DefaultMetadataResolver(assemblyResolver);
+            // Use HybridCLR-aware metadata resolver that handles type relocation
+            newModule.MetadataResolver = new HybridCLRMetadataResolver(assemblyResolver);
             assemblyResolver.AddToCache(newAssembly);
 
             var assemblyRewriteContext = new AssemblyRewriteContext(this, sourceAssembly, newAssembly);
@@ -55,7 +56,11 @@ public class RewriteGlobalContext : IDisposable
     public IMetadataAccess UnityAssemblies { get; }
 
     public IEnumerable<AssemblyRewriteContext> Assemblies => myAssemblies.Values;
-    public AssemblyRewriteContext CorLib => myAssemblies["mscorlib"];
+
+    /// <summary>
+    /// Gets the mscorlib assembly context. Returns null if mscorlib is not loaded.
+    /// </summary>
+    public AssemblyRewriteContext? CorLib => myAssemblies.TryGetValue("mscorlib", out var corlib) ? corlib : null;
 
     internal bool HasGcWbarrierFieldWrite { get; set; }
 
@@ -72,20 +77,23 @@ public class RewriteGlobalContext : IDisposable
         myAssembliesByNew[context.NewAssembly] = context;
     }
 
-    public AssemblyRewriteContext GetNewAssemblyForOriginal(AssemblyDefinition oldAssembly)
+    public AssemblyRewriteContext? GetNewAssemblyForOriginal(AssemblyDefinition? oldAssembly)
     {
-        return myAssembliesByOld[oldAssembly];
+        if (oldAssembly == null) return null;
+        return myAssembliesByOld.TryGetValue(oldAssembly, out var result) ? result : null;
     }
 
-    public TypeRewriteContext GetNewTypeForOriginal(TypeDefinition originalType)
+    public TypeRewriteContext? GetNewTypeForOriginal(TypeDefinition? originalType)
     {
-        return GetNewAssemblyForOriginal(originalType.Module!.Assembly!)
-            .GetContextForOriginalType(originalType);
+        if (originalType?.Module?.Assembly == null) return null;
+        var assembly = GetNewAssemblyForOriginal(originalType.Module.Assembly);
+        return assembly?.TryGetContextForOriginalType(originalType);
     }
 
-    public TypeRewriteContext? TryGetNewTypeForOriginal(TypeDefinition originalType)
+    public TypeRewriteContext? TryGetNewTypeForOriginal(TypeDefinition? originalType)
     {
-        if (!myAssembliesByOld.TryGetValue(originalType.Module!.Assembly!, out var assembly))
+        if (originalType?.Module?.Assembly == null) return null;
+        if (!myAssembliesByOld.TryGetValue(originalType.Module.Assembly, out var assembly))
             return null;
         return assembly.TryGetContextForOriginalType(originalType);
     }
@@ -102,7 +110,14 @@ public class RewriteGlobalContext : IDisposable
             or GenericInstanceTypeSignature)
             return TypeRewriteContext.TypeSpecifics.ReferenceType;
 
-        var fieldTypeContext = GetNewTypeForOriginal(typeRef.Resolve() ?? throw new($"Could not resolve {typeRef.FullName}"));
+        var resolved = typeRef.Resolve();
+        if (resolved == null)
+            return TypeRewriteContext.TypeSpecifics.ReferenceType; // Fallback for unresolvable types
+
+        var fieldTypeContext = GetNewTypeForOriginal(resolved);
+        if (fieldTypeContext == null)
+            return TypeRewriteContext.TypeSpecifics.ReferenceType; // Fallback for missing types
+
         return fieldTypeContext.ComputedTypeSpecifics;
     }
 
@@ -125,14 +140,16 @@ public class RewriteGlobalContext : IDisposable
         return null;
     }
 
-    public AssemblyRewriteContext GetContextForNewAssembly(AssemblyDefinition assembly)
+    public AssemblyRewriteContext? GetContextForNewAssembly(AssemblyDefinition? assembly)
     {
-        return myAssembliesByNew[assembly];
+        if (assembly == null) return null;
+        return myAssembliesByNew.TryGetValue(assembly, out var result) ? result : null;
     }
 
-    public TypeRewriteContext GetContextForNewType(TypeDefinition type)
+    public TypeRewriteContext? GetContextForNewType(TypeDefinition? type)
     {
-        return GetContextForNewAssembly(type.Module!.Assembly!).GetContextForNewType(type);
+        if (type?.Module?.Assembly == null) return null;
+        return GetContextForNewAssembly(type.Module.Assembly)?.GetContextForNewType(type);
     }
 
     public MethodDefinition? CreateParamsMethod(MethodDefinition originalMethod, MethodDefinition newMethod,
