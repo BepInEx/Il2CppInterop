@@ -18,9 +18,12 @@ public class AssemblyRewriteContext
     private readonly Dictionary<TypeDefinition, TypeRewriteContext> myOldTypeMap = new();
     public readonly AssemblyDefinition NewAssembly;
 
+#nullable disable
+    // OriginalAssembly is null for reference-only contexts (loaded from ExistingInteropDir)
     public readonly AssemblyDefinition OriginalAssembly;
+#nullable enable
 
-    public AssemblyRewriteContext(RewriteGlobalContext globalContext, AssemblyDefinition originalAssembly,
+    public AssemblyRewriteContext(RewriteGlobalContext globalContext, AssemblyDefinition? originalAssembly,
         AssemblyDefinition newAssembly)
     {
         OriginalAssembly = originalAssembly;
@@ -54,6 +57,19 @@ public class AssemblyRewriteContext
             myOldTypeMap[context.OriginalType] = context;
         myNewTypeMap[context.NewType] = context;
         myNameTypeMap[(context.OriginalType ?? context.NewType).FullName] = context;
+    }
+
+    /// <summary>
+    /// Registers a type under an alternative name for lookup purposes.
+    /// Used for reference-only assemblies where Il2Cpp-prefixed types need to be
+    /// findable by their original names (e.g., "System.Type" for "Il2CppSystem.Type").
+    /// </summary>
+    public void RegisterTypeByAlternativeName(string alternativeName, TypeRewriteContext context)
+    {
+        if (!myNameTypeMap.ContainsKey(alternativeName))
+        {
+            myNameTypeMap[alternativeName] = context;
+        }
     }
 
     public IMethodDefOrRef? RewriteMethodRef(IMethodDefOrRef? methodRef)

@@ -1,9 +1,11 @@
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
+using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Generator.MetadataAccess;
 using Il2CppInterop.Generator.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Generator.Contexts;
 
@@ -21,6 +23,9 @@ public class RewriteGlobalContext : IDisposable
 
     internal readonly Dictionary<ModuleDefinition, RuntimeAssemblyReferences> ImportsMap = new();
 
+    // Reference-only assemblies loaded from ExistingInteropDir for incremental mode
+    private readonly Dictionary<string, AssemblyRewriteContext> myReferenceAssemblies = new();
+
     public RewriteGlobalContext(GeneratorOptions options, IIl2CppMetadataAccess gameAssemblies,
         IMetadataAccess unityAssemblies)
     {
@@ -29,6 +34,12 @@ public class RewriteGlobalContext : IDisposable
         UnityAssemblies = unityAssemblies;
 
         Il2CppAssemblyResolver assemblyResolver = new();
+
+        // In incremental mode, load existing interop assemblies as references first
+        if (!string.IsNullOrEmpty(options.ExistingInteropDir) && Directory.Exists(options.ExistingInteropDir))
+        {
+            LoadExistingInteropAssemblies(options.ExistingInteropDir, assemblyResolver);
+        }
 
         foreach (var sourceAssembly in gameAssemblies.Assemblies)
         {
@@ -51,6 +62,90 @@ public class RewriteGlobalContext : IDisposable
         }
     }
 
+    /// <summary>
+    /// Loads existing interop assemblies from ExistingInteropDir as reference-only contexts.
+    /// These are used to resolve types like System.Type when generating hotfix interop.
+    /// </summary>
+    private void LoadExistingInteropAssemblies(string existingInteropDir, Il2CppAssemblyResolver assemblyResolver)
+    {
+        Logger.Instance.LogInformation("Loading existing interop assemblies from {Dir}", existingInteropDir);
+        int loadedCount = 0;
+
+        foreach (var dllPath in Directory.EnumerateFiles(existingInteropDir, "*.dll"))
+        {
+            try
+            {
+                var assembly = AssemblyDefinition.FromFile(dllPath);
+                if (assembly?.ManifestModule == null)
+                    continue;
+
+                // The assembly name in the file (e.g., "Il2Cppmscorlib")
+                var assemblyName = assembly.Name?.Value ?? Path.GetFileNameWithoutExtension(dllPath);
+
+                // Create a reference-only context (no original assembly, just the new/interop assembly)
+                var context = new AssemblyRewriteContext(this, null!, assembly);
+
+                // Register types from the existing interop assembly
+                foreach (var type in assembly.ManifestModule.TopLevelTypes)
+                {
+                    RegisterExistingInteropType(context, type);
+                }
+
+                // Register under the assembly name as it appears in the file
+                myReferenceAssemblies[assemblyName] = context;
+
+                // Also register under the original name (without Il2Cpp prefix) for lookup compatibility
+                // e.g., "Il2Cppmscorlib" should also be findable as "mscorlib"
+                if (assemblyName.StartsWith("Il2Cpp"))
+                {
+                    var originalName = assemblyName.Substring(6);
+                    if (!myReferenceAssemblies.ContainsKey(originalName))
+                    {
+                        myReferenceAssemblies[originalName] = context;
+                    }
+                }
+
+                assemblyResolver.AddToCache(assembly);
+                loadedCount++;
+
+                Logger.Instance.LogTrace("Loaded reference assembly: {Name}", assemblyName);
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogWarning("Failed to load reference assembly {Path}: {Error}",
+                    Path.GetFileName(dllPath), ex.Message);
+            }
+        }
+
+        Logger.Instance.LogInformation("Loaded {Count} reference assemblies from ExistingInteropDir", loadedCount);
+    }
+
+    private void RegisterExistingInteropType(AssemblyRewriteContext context, TypeDefinition type)
+    {
+        // Create a TypeRewriteContext for the existing type (reference-only, no original)
+        var typeContext = new TypeRewriteContext(context, null, type);
+        context.RegisterTypeRewrite(typeContext);
+
+        // Also register under the original (non-Il2Cpp-prefixed) name for lookup compatibility
+        // e.g., "Il2CppSystem.Type" should also be findable as "System.Type"
+        var fullName = type.FullName;
+        if (fullName != null)
+        {
+            // Handle Il2Cpp prefix in namespace
+            if (fullName.StartsWith("Il2Cpp"))
+            {
+                var originalName = fullName.Substring(6); // Remove "Il2Cpp" prefix
+                context.RegisterTypeByAlternativeName(originalName, typeContext);
+            }
+        }
+
+        // Register nested types
+        foreach (var nestedType in type.NestedTypes)
+        {
+            RegisterExistingInteropType(context, nestedType);
+        }
+    }
+
     public GeneratorOptions Options { get; }
     public IIl2CppMetadataAccess GameAssemblies { get; }
     public IMetadataAccess UnityAssemblies { get; }
@@ -59,8 +154,11 @@ public class RewriteGlobalContext : IDisposable
 
     /// <summary>
     /// Gets the mscorlib assembly context. Returns null if mscorlib is not loaded.
+    /// Checks both source assemblies and reference assemblies (from ExistingInteropDir).
     /// </summary>
-    public AssemblyRewriteContext? CorLib => myAssemblies.TryGetValue("mscorlib", out var corlib) ? corlib : null;
+    public AssemblyRewriteContext? CorLib =>
+        myAssemblies.TryGetValue("mscorlib", out var corlib) ? corlib :
+        myReferenceAssemblies.TryGetValue("mscorlib", out var refCorlib) ? refCorlib : null;
 
     internal bool HasGcWbarrierFieldWrite { get; set; }
 
@@ -123,7 +221,14 @@ public class RewriteGlobalContext : IDisposable
 
     public AssemblyRewriteContext GetAssemblyByName(string name)
     {
-        return myAssemblies[name];
+        if (myAssemblies.TryGetValue(name, out var result))
+            return result;
+
+        // Fall back to reference assemblies (from ExistingInteropDir)
+        if (myReferenceAssemblies.TryGetValue(name, out var refResult))
+            return refResult;
+
+        throw new KeyNotFoundException($"Assembly '{name}' not found in source or reference assemblies");
     }
 
     public AssemblyRewriteContext? TryGetAssemblyByName(string? name)
@@ -134,8 +239,17 @@ public class RewriteGlobalContext : IDisposable
         if (myAssemblies.TryGetValue(name, out var result))
             return result;
 
+        // Fall back to reference assemblies (from ExistingInteropDir)
+        if (myReferenceAssemblies.TryGetValue(name, out var refResult))
+            return refResult;
+
         if (name == "netstandard")
-            return myAssemblies.TryGetValue("mscorlib", out var result2) ? result2 : null;
+        {
+            if (myAssemblies.TryGetValue("mscorlib", out var result2))
+                return result2;
+            if (myReferenceAssemblies.TryGetValue("mscorlib", out var refResult2))
+                return refResult2;
+        }
 
         return null;
     }
@@ -143,7 +257,17 @@ public class RewriteGlobalContext : IDisposable
     public AssemblyRewriteContext? GetContextForNewAssembly(AssemblyDefinition? assembly)
     {
         if (assembly == null) return null;
-        return myAssembliesByNew.TryGetValue(assembly, out var result) ? result : null;
+        if (myAssembliesByNew.TryGetValue(assembly, out var result))
+            return result;
+
+        // Check reference assemblies (they are stored by NewAssembly, not in myAssembliesByNew)
+        foreach (var refAsm in myReferenceAssemblies.Values)
+        {
+            if (refAsm.NewAssembly == assembly)
+                return refAsm;
+        }
+
+        return null;
     }
 
     public TypeRewriteContext? GetContextForNewType(TypeDefinition? type)
