@@ -42,7 +42,7 @@ internal class InteropAssemblyGeneratorRunner : IRunner
         {
             using (new TimingCookie("Filtering existing assemblies"))
             {
-                sourceAssemblies = FilterExistingAssemblies(options.Source, options.ExistingInteropDir);
+                sourceAssemblies = FilterExistingAssemblies(options.Source, options.ExistingInteropDir!);
                 if (!sourceAssemblies.Any())
                 {
                     Logger.Instance.LogInformation("All assemblies already exist in ExistingInteropDir, nothing to generate");

@@ -38,7 +38,7 @@ public class RewriteGlobalContext : IDisposable
         // In incremental mode, load existing interop assemblies as references first
         if (!string.IsNullOrEmpty(options.ExistingInteropDir) && Directory.Exists(options.ExistingInteropDir))
         {
-            LoadExistingInteropAssemblies(options.ExistingInteropDir, assemblyResolver);
+            LoadExistingInteropAssemblies(options.ExistingInteropDir!, assemblyResolver);
         }
 
         foreach (var sourceAssembly in gameAssemblies.Assemblies)
