@@ -18,6 +18,13 @@ namespace Il2CppInterop.Runtime.Injection
     /// </summary>
     public static class HybridCLRCompat
     {
+        /// <summary>
+        /// Standard subdirectory name for hotfix interop assemblies.
+        /// Output path should be: {InteropDir}/{HotfixInteropSubdir}
+        /// e.g., BepInEx/interop/hotfix/
+        /// </summary>
+        public const string HotfixInteropSubdir = "hotfix";
+
         private static bool? s_IsHybridCLR;
 
         public static bool IsHybridCLRRuntime()

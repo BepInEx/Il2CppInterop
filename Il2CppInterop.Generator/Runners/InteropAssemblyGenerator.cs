@@ -1,4 +1,5 @@
-﻿using Il2CppInterop.Common;
+﻿using AsmResolver.DotNet;
+using Il2CppInterop.Common;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.MetadataAccess;
@@ -35,19 +36,42 @@ internal class InteropAssemblyGeneratorRunner : IRunner
         if (!Directory.Exists(options.OutputDir))
             Directory.CreateDirectory(options.OutputDir);
 
+        // Filter source assemblies if incremental mode is enabled
+        var sourceAssemblies = options.Source;
+        if (!string.IsNullOrEmpty(options.ExistingInteropDir) && options.SkipExistingAssemblies)
+        {
+            using (new TimingCookie("Filtering existing assemblies"))
+            {
+                sourceAssemblies = FilterExistingAssemblies(options.Source, options.ExistingInteropDir);
+                if (!sourceAssemblies.Any())
+                {
+                    Logger.Instance.LogInformation("All assemblies already exist in ExistingInteropDir, nothing to generate");
+                    return;
+                }
+                Logger.Instance.LogInformation("Incremental mode: generating {Count} assemblies (skipped {Skipped} existing)",
+                    sourceAssemblies.Count, options.Source.Count - sourceAssemblies.Count);
+            }
+        }
+
         RewriteGlobalContext rewriteContext;
         IIl2CppMetadataAccess gameAssemblies;
         IMetadataAccess unityAssemblies;
 
         using (new TimingCookie("Reading assemblies"))
         {
-            gameAssemblies = new AssemblyMetadataAccess(options.Source);
+            gameAssemblies = new AssemblyMetadataAccess(sourceAssemblies);
         }
 
+        // Load reference assemblies: UnityBaseLibsDir or ExistingInteropDir
         if (!string.IsNullOrEmpty(options.UnityBaseLibsDir))
             using (new TimingCookie("Reading unity assemblies"))
             {
                 unityAssemblies = new AssemblyMetadataAccess(Directory.EnumerateFiles(options.UnityBaseLibsDir, "*.dll"));
+            }
+        else if (!string.IsNullOrEmpty(options.ExistingInteropDir))
+            using (new TimingCookie("Reading existing interop assemblies"))
+            {
+                unityAssemblies = new AssemblyMetadataAccess(Directory.EnumerateFiles(options.ExistingInteropDir, "*.dll"));
             }
         else
             unityAssemblies = NullMetadataAccess.Instance;
@@ -181,6 +205,11 @@ internal class InteropAssemblyGeneratorRunner : IRunner
                 Pass81FillUnstrippedMethodBodies.DoPass(rewriteContext);
             }
         }
+        else if (options.ExistingInteropDir != null)
+        {
+            // Incremental mode: skip unstripping as existing interop already has unstripped members
+            Logger.Instance.LogInformation("Incremental mode: skipping unstripping (using existing interop as reference)");
+        }
         else
         {
             Logger.Instance.LogWarning("Not performing unstripping as unity libs are not specified");
@@ -219,4 +248,21 @@ internal class InteropAssemblyGeneratorRunner : IRunner
     }
 
     public void Dispose() { }
+
+    /// <summary>
+    /// Filters out assemblies that already have interop generated in the existing interop directory.
+    /// </summary>
+    private static List<AssemblyDefinition> FilterExistingAssemblies(
+        List<AssemblyDefinition> source,
+        string existingInteropDir)
+    {
+        var existingFiles = new HashSet<string>(
+            Directory.EnumerateFiles(existingInteropDir, "*.dll")
+                .Select(f => Path.GetFileNameWithoutExtension(f)),
+            StringComparer.OrdinalIgnoreCase);
+
+        return source
+            .Where(asm => !existingFiles.Contains(asm.Name ?? string.Empty))
+            .ToList();
+    }
 }

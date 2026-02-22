@@ -38,6 +38,21 @@ public class GeneratorOptions
     public bool IsHybridCLREnvironment { get; set; }
 
     /// <summary>
+    /// Path to existing interop assemblies directory.
+    /// When set, generator runs in incremental mode - only generates
+    /// interop for Source assemblies while referencing existing interop.
+    /// This is useful for generating interop for HybridCLR hotfix assemblies
+    /// that need to reference already-generated AOT interop assemblies.
+    /// </summary>
+    public string? ExistingInteropDir { get; set; }
+
+    /// <summary>
+    /// When true, skips assemblies that already exist in ExistingInteropDir.
+    /// Default is true.
+    /// </summary>
+    public bool SkipExistingAssemblies { get; set; } = true;
+
+    /// <summary>
     ///     Reads a rename map from the specified name into the specified instance of options
     /// </summary>
     public void ReadRenameMap(string fileName)
