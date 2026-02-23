@@ -213,6 +213,9 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
 
         foreach (var candidateCleanType in source)
         {
+            if (candidateCleanType == null)
+                continue;
+
             if (obfType.OriginalType.HasMethods() != candidateCleanType.OriginalType.HasMethods())
                 continue;
 
