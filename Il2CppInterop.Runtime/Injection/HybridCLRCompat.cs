@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using Iced.Intel;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection
@@ -24,6 +25,53 @@ namespace Il2CppInterop.Runtime.Injection
         /// e.g., BepInEx/interop/hotfix/
         /// </summary>
         public const string HotfixInteropSubdir = "hotfix";
+
+        /// <summary>
+        /// When true, uses the legacy HybridCLR MethodInfo layout where bool fields
+        /// (initInterpCallMethodPointer, isInterpterImpl) are stored as independent bytes
+        /// AFTER the three pointer fields.
+        ///
+        /// When false (default), uses the newer layout where these bools are stored as
+        /// bit fields (bits 5-6) in the _bitfield0 byte of the standard MethodInfo struct.
+        ///
+        /// This is auto-detected when first encountering an interpreter method.
+        /// You can also set it manually before any HybridCLR method operations.
+        /// </summary>
+        public static bool UseLegacyMethodInfoLayout
+        {
+            get => s_UseLegacyLayout;
+            set
+            {
+                s_UseLegacyLayout = value;
+                s_LayoutDetected = true;
+            }
+        }
+
+        private static bool s_UseLegacyLayout = false;
+        private static bool s_LayoutDetected = false;
+
+        /// <summary>
+        /// Attempts to detect the layout from a specific method.
+        /// Only works reliably with interpreter methods (isInterpterImpl = true).
+        /// For non-interpreter methods, detection will be inconclusive.
+        /// Modders can manually set UseLegacyMethodInfoLayout before any HybridCLR operations.
+        /// </summary>
+        public static unsafe void DetectLayoutFromMethod(IntPtr methodInfoPtr)
+        {
+            if (s_LayoutDetected || methodInfoPtr == IntPtr.Zero)
+                return;
+
+            var result = ProbeMethodInfoLayout(methodInfoPtr);
+            if (result.HasValue)
+            {
+                s_UseLegacyLayout = result.Value;
+                s_LayoutDetected = true;
+                Logger.Instance.LogInformation(
+                    "HybridCLR MethodInfo layout detected: {Layout}",
+                    s_UseLegacyLayout ? "legacy (bool after pointers)" : "new (bitfield)");
+            }
+            // If inconclusive, don't log - the method might not be an interpreter method
+        }
 
         private static bool? s_IsHybridCLR;
 
@@ -68,6 +116,69 @@ namespace Il2CppInterop.Runtime.Injection
             {
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Probes a method to determine which layout is in use.
+        /// Returns true for legacy layout, false for new layout, null if inconclusive.
+        /// </summary>
+        private static unsafe bool? ProbeMethodInfoLayout(IntPtr methodInfoPtr)
+        {
+            if (methodInfoPtr == IntPtr.Zero)
+                return null;
+
+            byte* ptr = (byte*)methodInfoPtr;
+
+            // Get bitfield offset using ParametersCount address (NOT MethodSize() - 1, which includes padding)
+            // MethodSize() = 0x58 (with padding), but actual bitfield0 is at 0x53
+            var wrapper = UnityVersionHandler.Wrap((Il2CppMethodInfo*)methodInfoPtr);
+            int bitfieldOffset;
+            fixed (byte* pCount = &wrapper.ParametersCount)
+            {
+                bitfieldOffset = (int)(pCount - ptr) + 1;
+            }
+
+            // Extension fields start at MethodSize() (after padding)
+            int extensionStart = UnityVersionHandler.MethodSize();
+
+            byte bitfield0 = *(ptr + bitfieldOffset);
+            bool newLayoutValue = (bitfield0 & 0x40) != 0;
+
+            // LEGACY layout: isInterpterImpl is a byte at extensionStart + IntPtr.Size * 3 + 1
+            byte legacyValue = *(ptr + extensionStart + IntPtr.Size * 3 + 1);
+            bool legacyLayoutValue = legacyValue != 0;
+
+            Logger.Instance.LogDebug(
+                "ProbeMethodInfoLayout: bitfieldOffset=0x{BitfieldOffset:X}, extensionStart=0x{ExtStart:X}, bitfield0=0x{Bitfield:X2}, legacyByte=0x{Legacy:X2}",
+                bitfieldOffset, extensionStart, bitfield0, legacyValue);
+
+            // Detection logic:
+            // - In NEW layout: bits 5-6 of bitfield0 are used by HybridCLR
+            //   - bit 5 = initInterpCallMethodPointer
+            //   - bit 6 = isInterpterImpl
+            // - In LEGACY layout: bits 5-6 of bitfield0 are unused (should be 0)
+            //   - isInterpterImpl is a separate byte (0 or 1) after the pointers
+            //
+            // Standard il2cpp does NOT use bits 5-6 of bitfield0.
+
+            bool bit6Set = (bitfield0 & 0x40) != 0;
+            bool legacyIsValidBool = legacyValue == 0 || legacyValue == 1;
+
+            // Case 1: bit 6 is set -> must be NEW layout (standard il2cpp doesn't use bit 6)
+            if (bit6Set)
+            {
+                return false; // false = new layout
+            }
+
+            // Case 2: bit 6 is NOT set, legacy position has valid bool = 1 -> LEGACY layout
+            if (!bit6Set && legacyIsValidBool && legacyValue == 1)
+            {
+                return true; // true = legacy layout
+            }
+
+            // Case 3: bit 6 is NOT set, legacy position is 0 -> inconclusive (method might not be interpreter)
+            // Case 4: bit 6 is NOT set, legacy position is garbage -> inconclusive
+            return null;
         }
 
         #region HybridCLR Hotfix Assembly Support
@@ -287,35 +398,24 @@ namespace Il2CppInterop.Runtime.Injection
 
         #region HybridCLR Method Detour Support
 
-        // HybridCLR extends MethodInfo with additional fields after the standard structure:
-        //   void* interpData;
-        //   void* methodPointerCallByInterp;
-        //   void* virtualMethodPointerCallByInterp;
-        //
-        // IMPORTANT: initInterpCallMethodPointer and isInterpterImpl are NOT separate fields!
-        // They are bit fields within the standard _bitfield0 byte:
-        //   bit 5: initInterpCallMethodPointer
-        //   bit 6: isInterpterImpl
-        //
-        // We access these via pointer offsets to avoid modifying INativeMethodInfoStruct interface.
-
-        private static int HybridCLRFieldsOffset => UnityVersionHandler.MethodSize();
-
-        private static int InterpDataOffset => HybridCLRFieldsOffset;
-        private static int MethodPointerCallByInterpOffset => HybridCLRFieldsOffset + IntPtr.Size;
-        private static int VirtualMethodPointerCallByInterpOffset => HybridCLRFieldsOffset + IntPtr.Size * 2;
-
-        // isInterpterImpl is bit 6 of _bitfield0, which is at offset (MethodSize - 1)
-        // The _bitfield0 byte is the last byte of the standard MethodInfo struct
-        private static int Bitfield0Offset => UnityVersionHandler.MethodSize() - 1;
-        private const byte IsInterpterImplBit = 0x40; // bit 6
-
         // Cache for prepared methods: methodInfoPtr -> original invoker_method
         private static readonly Dictionary<IntPtr, IntPtr> s_PreparedMethods = new();
         private static readonly object s_PreparedMethodsLock = new();
 
         /// <summary>
+        /// Wraps a MethodInfo pointer with HybridCLR extension support.
+        /// Returns null if the pointer is invalid.
+        /// </summary>
+        public static unsafe IHybridCLRMethodInfoStruct WrapMethodInfo(IntPtr methodInfoPtr)
+        {
+            if (methodInfoPtr == IntPtr.Zero)
+                return null;
+            return UnityVersionHandler.WrapHybridCLR((Il2CppMethodInfo*)methodInfoPtr);
+        }
+
+        /// <summary>
         /// Checks if a method is implemented by the HybridCLR interpreter.
+        /// Also triggers layout auto-detection on first interpreter method found.
         /// </summary>
         public static unsafe bool IsInterpreterMethod(IntPtr methodInfoPtr)
         {
@@ -324,10 +424,12 @@ namespace Il2CppInterop.Runtime.Injection
 
             try
             {
-                byte* ptr = (byte*)methodInfoPtr;
-                byte bitfield0 = *(ptr + Bitfield0Offset);
-                bool isInterpImpl = (bitfield0 & IsInterpterImplBit) != 0;
-                return isInterpImpl;
+                // Try to auto-detect layout if not yet detected
+                if (!s_LayoutDetected)
+                    DetectLayoutFromMethod(methodInfoPtr);
+
+                var methodInfo = WrapMethodInfo(methodInfoPtr);
+                return methodInfo?.IsInterpterImpl ?? false;
             }
             catch
             {
@@ -337,17 +439,78 @@ namespace Il2CppInterop.Runtime.Injection
 
         /// <summary>
         /// Prepares a HybridCLR interpreter method for detouring by copying its bridge code
-        /// to a new memory location, allowing independent hooking.
+        /// to a new memory location and configuring the method to call your detour.
         ///
-        /// The key insight from HybridCLR internals:
-        /// - Bridge functions are shared across multiple interpreter methods
-        /// - We must copy the bridge function for each method we want to hook
-        /// - We must preserve the original invoker_method to call original code
-        /// - We clear isInterpterImpl so Harmony/MonoMod can hook normally
+        /// <para>
+        /// <b>Why this is needed:</b><br/>
+        /// HybridCLR interpreter methods share bridge functions across multiple methods.
+        /// To hook a specific method independently, we must:
+        /// <list type="number">
+        ///   <item>Copy the bridge function to a new memory location (for calling original)</item>
+        ///   <item>Configure the method to call your detour instead</item>
+        ///   <item>Preserve invoker_method for calling original code</item>
+        /// </list>
+        /// </para>
+        ///
+        /// <para>
+        /// <b>What this method does:</b><br/>
+        /// <list type="bullet">
+        ///   <item>Copies bridge code to nearby memory (within ±2GB for rel32 calls)</item>
+        ///   <item>Sets methodPointer to copied bridge (for calling original)</item>
+        ///   <item>Sets methodPointerCallByInterp to detour (interpreter calls your code)</item>
+        ///   <item>Caches original invoker_method (restore with <see cref="RestoreInvokerMethod"/>)</item>
+        /// </list>
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Usage example:</b>
+        /// <code>
+        /// // 1. Define delegate matching the method signature (with methodInfo parameter)
+        /// delegate void MyMethodDelegate(IntPtr instance, IntPtr arg1, Il2CppMethodInfo* methodInfo);
+        ///
+        /// // 2. Create your detour method
+        /// static void MyDetour(IntPtr instance, IntPtr arg1, Il2CppMethodInfo* methodInfo)
+        /// {
+        ///     // Your hook logic here...
+        ///
+        ///     // Call original: use the methodPointer from methodInfo (points to copied bridge)
+        ///     var original = Marshal.GetDelegateForFunctionPointer&lt;MyMethodDelegate&gt;(methodInfo->methodPointer);
+        ///     original(instance, arg1, methodInfo);
+        /// }
+        ///
+        /// // 3. Keep delegate alive (prevent GC collection)
+        /// static MyMethodDelegate _detourDelegate = MyDetour;
+        ///
+        /// // 4. Hook the method
+        /// IntPtr methodInfoPtr = ...; // Get from Il2Cpp reflection
+        /// IntPtr detourAddress = Marshal.GetFunctionPointerForDelegate(_detourDelegate);
+        ///
+        /// if (HybridCLRCompat.PrepareMethodForDetour(methodInfoPtr, detourAddress))
+        /// {
+        ///     HybridCLRCompat.RestoreInvokerMethod(methodInfoPtr); // CRITICAL!
+        /// }
+        /// </code>
+        /// </para>
         /// </summary>
-        /// <returns>True if the method was prepared, false if not needed or failed.</returns>
-        public static unsafe bool PrepareMethodForDetour(IntPtr methodInfoPtr)
+        /// <param name="methodInfoPtr">Pointer to the Il2CppMethodInfo structure.</param>
+        /// <param name="detourAddress">
+        /// Function pointer to your detour method. Obtain via <c>Marshal.GetFunctionPointerForDelegate()</c>.
+        /// The delegate must be kept alive to prevent garbage collection.
+        /// </param>
+        /// <returns>
+        /// <c>true</c> if the method was prepared successfully;
+        /// <c>false</c> if not a HybridCLR runtime, method is not an interpreter method, or preparation failed.
+        /// </returns>
+        /// <remarks>
+        /// After calling this method, you MUST call <see cref="RestoreInvokerMethod"/> to restore
+        /// the original invoker_method. Without this, calling the original method will fail.
+        /// </remarks>
+        public static unsafe bool PrepareMethodForDetour(IntPtr methodInfoPtr, IntPtr detourAddress)
         {
+            Logger.Instance.LogDebug(
+                "PrepareMethodForDetour called: methodPtr=0x{MethodPtr:X}, isHybridCLR={IsHybridCLR}",
+                (ulong)methodInfoPtr, IsHybridCLRRuntime());
+
             if (!IsHybridCLRRuntime() || methodInfoPtr == IntPtr.Zero)
                 return false;
 
@@ -361,16 +524,18 @@ namespace Il2CppInterop.Runtime.Injection
                 }
             }
 
-            if (!IsInterpreterMethod(methodInfoPtr))
+            // Try to auto-detect layout if not yet detected
+            if (!s_LayoutDetected)
+                DetectLayoutFromMethod(methodInfoPtr);
+
+            var methodInfo = WrapMethodInfo(methodInfoPtr);
+            if (methodInfo == null || !methodInfo.IsInterpterImpl)
                 return false;
 
             try
             {
-                byte* methodInfo = (byte*)methodInfoPtr;
-
                 // Get current method pointer (bridge function)
-                IntPtr* methodPointerField = (IntPtr*)methodInfo; // methodPointer is the first field
-                IntPtr originalMethodPointer = *methodPointerField;
+                IntPtr originalMethodPointer = methodInfo.MethodPointer;
 
                 if (originalMethodPointer == IntPtr.Zero)
                 {
@@ -379,8 +544,7 @@ namespace Il2CppInterop.Runtime.Injection
                 }
 
                 // Save original invoker_method - CRITICAL for calling original code later
-                IntPtr* invokerMethodField = (IntPtr*)(methodInfo + IntPtr.Size * 2); // invoker_method is the third field
-                IntPtr originalInvokerMethod = *invokerMethodField;
+                IntPtr originalInvokerMethod = methodInfo.InvokerMethod;
 
                 Logger.Instance.LogDebug(
                     "HybridCLR PrepareMethodForDetour: methodInfo=0x{MethodInfo:X}, methodPointer=0x{MethodPointer:X}, invoker=0x{Invoker:X}",
@@ -396,8 +560,8 @@ namespace Il2CppInterop.Runtime.Injection
 
                 Logger.Instance.LogDebug("HybridCLR bridge length: {Length} bytes", methodLength);
 
-                // Allocate new executable memory and copy the bridge code
-                IntPtr newCode = AllocateExecutableMemory(methodLength);
+                // Allocate new executable memory NEAR the original code (within ±2GB for rel32 calls)
+                IntPtr newCode = AllocateExecutableMemoryNear(originalMethodPointer, methodLength);
                 if (newCode == IntPtr.Zero)
                 {
                     Logger.Instance.LogWarning("Failed to allocate executable memory for HybridCLR method");
@@ -407,24 +571,16 @@ namespace Il2CppInterop.Runtime.Injection
                 // Copy the original bridge code
                 Buffer.MemoryCopy((void*)originalMethodPointer, (void*)newCode, methodLength, methodLength);
 
-                // Update method pointers to point to the new (copied) bridge code
-                *methodPointerField = newCode;
+                // Update standard method pointers to point to the new (copied) bridge code
+                // This ensures calling the "original" method goes through the copied bridge
+                methodInfo.MethodPointer = newCode;
+                methodInfo.VirtualMethodPointer = newCode;
 
-                IntPtr* virtualMethodPointerField = (IntPtr*)(methodInfo + IntPtr.Size);
-                *virtualMethodPointerField = newCode;
-
-                // Update HybridCLR-specific pointers
-                IntPtr* methodPointerCallByInterpField = (IntPtr*)(methodInfo + MethodPointerCallByInterpOffset);
-                if (*methodPointerCallByInterpField != IntPtr.Zero)
-                    *methodPointerCallByInterpField = newCode;
-
-                IntPtr* virtualMethodPointerCallByInterpField = (IntPtr*)(methodInfo + VirtualMethodPointerCallByInterpOffset);
-                if (*virtualMethodPointerCallByInterpField != IntPtr.Zero)
-                    *virtualMethodPointerCallByInterpField = newCode;
-
-                // Clear isInterpterImpl flag (bit 6 of _bitfield0) so Harmony/MonoMod treats this as a native method
-                byte* bitfield0Ptr = methodInfo + Bitfield0Offset;
-                *bitfield0Ptr = (byte)(*bitfield0Ptr & ~IsInterpterImplBit);
+                // Set interpreter pointers to detour - when interpreter calls this method,
+                // it will call the detour instead of the bridge
+                methodInfo.MethodPointerCallByInterp = detourAddress;
+                methodInfo.VirtualMethodPointerCallByInterp = detourAddress;
+                // Keep isInterpterImpl = true so interpreter uses methodPointerCallByInterp (detour)
 
                 // Cache the original invoker_method for later restoration
                 lock (s_PreparedMethodsLock)
@@ -448,8 +604,6 @@ namespace Il2CppInterop.Runtime.Injection
         /// <summary>
         /// Restores the original invoker_method after detour is applied.
         /// This is CRITICAL - without this, calling the original method will fail.
-        /// NOTE: This method is kept for backward compatibility but Il2CppDetourMethodPatcher
-        /// now handles this directly using HybridCLRMethodInfo struct.
         /// </summary>
         public static unsafe void RestoreInvokerMethod(IntPtr methodInfoPtr)
         {
@@ -465,11 +619,12 @@ namespace Il2CppInterop.Runtime.Injection
 
             try
             {
-                byte* methodInfo = (byte*)methodInfoPtr;
-                IntPtr* invokerMethodField = (IntPtr*)(methodInfo + IntPtr.Size * 2);
-                *invokerMethodField = originalInvoker;
-
-                Logger.Instance.LogTrace("HybridCLR invoker_method restored: 0x{Invoker:X}", (ulong)originalInvoker);
+                var methodInfo = WrapMethodInfo(methodInfoPtr);
+                if (methodInfo != null)
+                {
+                    methodInfo.InvokerMethod = originalInvoker;
+                    Logger.Instance.LogTrace("HybridCLR invoker_method restored: 0x{Invoker:X}", (ulong)originalInvoker);
+                }
             }
             catch (Exception ex)
             {
@@ -551,9 +706,19 @@ namespace Il2CppInterop.Runtime.Injection
         /// </summary>
         private static IntPtr AllocateExecutableMemory(int size)
         {
+            return AllocateExecutableMemoryNear(IntPtr.Zero, size);
+        }
+
+        /// <summary>
+        /// Allocates executable memory near a target address (within ±2GB for rel32 addressing).
+        /// This is critical for HybridCLR bridge duplication - bridge code contains relative calls
+        /// that will break if the copy is too far from the original.
+        /// </summary>
+        private static IntPtr AllocateExecutableMemoryNear(IntPtr targetAddress, int size)
+        {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                return AllocateExecutableMemoryWindows(size);
+                return AllocateExecutableMemoryNearWindows(targetAddress, size);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
@@ -565,34 +730,62 @@ namespace Il2CppInterop.Runtime.Injection
             return IntPtr.Zero;
         }
 
-        private static IntPtr AllocateExecutableMemoryWindows(int size)
+        private static IntPtr AllocateExecutableMemoryNearWindows(IntPtr targetAddress, int size)
         {
             // Get system allocation granularity (typically 64KB on Windows)
             int allocGranularity = GetAllocationGranularity();
+            uint allocSize = (uint)((size + allocGranularity - 1) & ~(allocGranularity - 1));
+            if (allocSize < allocGranularity)
+                allocSize = (uint)allocGranularity;
 
-            // Reserve a larger region first, then commit only what we need
-            // This leaves space for hook libraries to place their trampolines nearby
-            uint reserveSize = (uint)(size + allocGranularity);
-
-            IntPtr reserved = VirtualAlloc(IntPtr.Zero, reserveSize, MEM_RESERVE, PAGE_NOACCESS);
-            if (reserved == IntPtr.Zero)
+            // If no target address, use simple allocation
+            if (targetAddress == IntPtr.Zero)
             {
-                Logger.Instance.LogWarning("Failed to reserve memory for HybridCLR method");
-                return IntPtr.Zero;
+                return VirtualAlloc(IntPtr.Zero, allocSize, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
             }
 
-            // Release the reservation so we can re-allocate at the same location
-            VirtualFree(reserved, 0, MEM_RELEASE);
+            // Search for free memory within ±2GB of target address
+            // rel32 range is ±2GB, but we use a smaller range for safety
+            const long searchRange = 0x7FFF0000; // ~2GB
+            long targetAddr = targetAddress.ToInt64();
+            long minAddr = Math.Max(targetAddr - searchRange, 0x10000); // Don't go below 64KB
+            long maxAddr = targetAddr + searchRange;
 
-            // Now allocate the actual code memory at the reserved location
-            IntPtr newCode = VirtualAlloc(reserved, (uint)size, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-            if (newCode == IntPtr.Zero)
+            // Try to allocate at addresses below the target first (usually more space available)
+            long searchStart = (targetAddr - allocGranularity) & ~(allocGranularity - 1);
+
+            // Search downward
+            for (long addr = searchStart; addr >= minAddr; addr -= allocGranularity)
             {
-                // Fallback: let system choose address
-                newCode = VirtualAlloc(IntPtr.Zero, (uint)size, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+                IntPtr result = VirtualAlloc(new IntPtr(addr), allocSize, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+                if (result != IntPtr.Zero)
+                {
+                    Logger.Instance.LogDebug(
+                        "Allocated executable memory near 0x{Target:X} at 0x{Allocated:X} (delta: {Delta})",
+                        (ulong)targetAddress, (ulong)result, result.ToInt64() - targetAddr);
+                    return result;
+                }
             }
 
-            return newCode;
+            // Search upward
+            searchStart = (targetAddr + allocGranularity) & ~(allocGranularity - 1);
+            for (long addr = searchStart; addr <= maxAddr; addr += allocGranularity)
+            {
+                IntPtr result = VirtualAlloc(new IntPtr(addr), allocSize, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+                if (result != IntPtr.Zero)
+                {
+                    Logger.Instance.LogDebug(
+                        "Allocated executable memory near 0x{Target:X} at 0x{Allocated:X} (delta: {Delta})",
+                        (ulong)targetAddress, (ulong)result, result.ToInt64() - targetAddr);
+                    return result;
+                }
+            }
+
+            // Fallback: let system choose address (may be too far for rel32)
+            Logger.Instance.LogWarning(
+                "Could not allocate memory near 0x{Target:X}, falling back to system allocation",
+                (ulong)targetAddress);
+            return VirtualAlloc(IntPtr.Zero, allocSize, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
         }
 
         /// <summary>
@@ -664,5 +857,42 @@ namespace Il2CppInterop.Runtime.Injection
         private static extern IntPtr mmap(IntPtr addr, UIntPtr length, int prot, int flags, int fd, long offset);
 
         #endregion
+
+        /// <summary>
+        /// Updates methodPointerCallByInterp and virtualMethodPointerCallByInterp to point to a new address.
+        /// This uses the correct dynamically-calculated offsets based on the detected layout.
+        /// </summary>
+        public static unsafe void UpdateMethodPointerCallByInterp(IntPtr methodInfoPtr, IntPtr newPointer)
+        {
+            if (methodInfoPtr == IntPtr.Zero)
+                return;
+
+            try
+            {
+                var methodInfo = WrapMethodInfo(methodInfoPtr);
+                if (methodInfo == null)
+                    return;
+
+                if (methodInfo.MethodPointerCallByInterp != IntPtr.Zero)
+                {
+                    Logger.Instance.LogTrace(
+                        "Updating methodPointerCallByInterp: 0x{Old:X} -> 0x{New:X}",
+                        (ulong)methodInfo.MethodPointerCallByInterp, (ulong)newPointer);
+                    methodInfo.MethodPointerCallByInterp = newPointer;
+                }
+
+                if (methodInfo.VirtualMethodPointerCallByInterp != IntPtr.Zero)
+                {
+                    Logger.Instance.LogTrace(
+                        "Updating virtualMethodPointerCallByInterp: 0x{Old:X} -> 0x{New:X}",
+                        (ulong)methodInfo.VirtualMethodPointerCallByInterp, (ulong)newPointer);
+                    methodInfo.VirtualMethodPointerCallByInterp = newPointer;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogWarning("Failed to update methodPointerCallByInterp: {Error}", ex.Message);
+            }
+        }
     }
 }

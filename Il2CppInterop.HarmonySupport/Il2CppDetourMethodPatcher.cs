@@ -122,8 +122,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
                     // Save original invoker_method for later restoration
                     _invokerMethod = pMethodInfo->invoker_method;
 
-                    // Prepare the method for detouring (copy bridge function, clear isInterpterImpl)
-                    HybridCLRCompat.PrepareMethodForDetour(originalNativeMethodInfo.Pointer);
+                    // Note: PrepareMethodForDetour is called in DetourTo() after we have the detour address
                 }
             }
 
@@ -173,24 +172,27 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         var unmanagedDelegate = unmanagedTrampolineMethod.CreateDelegate(unmanagedDelegateType);
         DelegateCache.Add(unmanagedDelegate);
 
+        // Get the detour address
+        var detourAddress = Marshal.GetFunctionPointerForDelegate(unmanagedDelegate);
+
+        // HybridCLR: Prepare method for detouring before applying native detour
+        if (_isHotfixMethod)
+        {
+            // PrepareMethodForDetour copies the bridge and sets up methodPointerCallByInterp to point to detour
+            HybridCLRCompat.PrepareMethodForDetour(originalNativeMethodInfo.Pointer, detourAddress);
+        }
+
         nativeDetour =
             Il2CppInteropRuntime.Instance.DetourProvider.Create(originalNativeMethodInfo.MethodPointer, unmanagedDelegate);
         nativeDetour.Apply();
         modifiedNativeMethodInfo.MethodPointer = nativeDetour.OriginalTrampoline;
 
-        // HybridCLR: After detour is applied, fix all method pointers and restore invoker_method
+        // HybridCLR: After detour is applied, restore invoker_method
         if (_isHotfixMethod)
         {
-            var pMethodInfo = (HybridCLRMethodInfo*)originalNativeMethodInfo.Pointer;
-
-            // Fix all MethodPointer fields to point to the trampoline (which calls our patched code)
-            pMethodInfo->virtualMethodPointer = pMethodInfo->methodPointer;
-            pMethodInfo->methodPointerCallByInterp = pMethodInfo->methodPointer;
-            pMethodInfo->virtualMethodPointerCallByInterp = pMethodInfo->methodPointer;
-
             // Restore invoker_method to original IL interpreter invoker
             // This is CRITICAL - without this, calling the original method will fail
-            pMethodInfo->invoker_method = _invokerMethod;
+            HybridCLRCompat.RestoreInvokerMethod(originalNativeMethodInfo.Pointer);
         }
 
         var detour = new Detour(Original, managedHookedMethod);
