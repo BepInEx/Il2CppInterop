@@ -54,6 +54,9 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             }
         };
 
+        // Compilers might change method location (Unity 2021.2+)
+        // We do a signature scan to find the correct method
+
         public override IntPtr FindTargetMethod()
         {
             var genericMethodGetMethod = s_Signatures
