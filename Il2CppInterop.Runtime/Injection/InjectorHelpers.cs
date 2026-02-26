@@ -63,7 +63,7 @@ namespace Il2CppInterop.Runtime.Injection
         }
 
         private static readonly GenericMethod_GetMethod_Hook GenericMethodGetMethodHook = new();
-        private static readonly GenericMethod_GetMethod_Unity6_Hook GenericMethodGetMethodUnity6Hook = new();
+        private static readonly GenericMethod_GetMethod_Unity6_Hook GenericMethodGetMethodHook_Unity6 = new();
         private static readonly MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook GetTypeInfoFromTypeDefinitionIndexHook = new();
         private static readonly Class_GetFieldDefaultValue_Hook GetFieldDefaultValueHook = new();
         private static readonly Class_FromIl2CppType_Hook FromIl2CppTypeHook = new();
