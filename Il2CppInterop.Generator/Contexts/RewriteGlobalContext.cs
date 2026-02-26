@@ -79,13 +79,13 @@ public class RewriteGlobalContext : IDisposable
 
     public TypeRewriteContext GetNewTypeForOriginal(TypeDefinition originalType)
     {
-        return GetNewAssemblyForOriginal(originalType.Module!.Assembly!)
+        return GetNewAssemblyForOriginal(originalType.DeclaringModule!.Assembly!)
             .GetContextForOriginalType(originalType);
     }
 
     public TypeRewriteContext? TryGetNewTypeForOriginal(TypeDefinition originalType)
     {
-        if (!myAssembliesByOld.TryGetValue(originalType.Module!.Assembly!, out var assembly))
+        if (!myAssembliesByOld.TryGetValue(originalType.DeclaringModule!.Assembly!, out var assembly))
             return null;
         return assembly.TryGetContextForOriginalType(originalType);
     }
@@ -132,7 +132,7 @@ public class RewriteGlobalContext : IDisposable
 
     public TypeRewriteContext GetContextForNewType(TypeDefinition type)
     {
-        return GetContextForNewAssembly(type.Module!.Assembly!).GetContextForNewType(type);
+        return GetContextForNewAssembly(type.DeclaringModule!.Assembly!).GetContextForNewType(type);
     }
 
     public MethodDefinition? CreateParamsMethod(MethodDefinition originalMethod, MethodDefinition newMethod,
@@ -192,10 +192,10 @@ public class RewriteGlobalContext : IDisposable
                 var parameter = paramsMethod.AddParameter(convertedType, originalParameter.Name, originalParameter.Definition?.Attributes ?? default);
 
                 if (isParams)
-                    parameter.Definition!.CustomAttributes.Add(new CustomAttribute(newMethod.Module!.ParamArrayAttributeCtor()));
+                    parameter.Definition!.CustomAttributes.Add(new CustomAttribute(newMethod.DeclaringModule!.ParamArrayAttributeCtor()));
             }
 
-            paramsMethod.CilMethodBody = new(paramsMethod);
+            paramsMethod.CilMethodBody = new();
             var body = paramsMethod.CilMethodBody.Instructions;
 
             if (!newMethod.IsStatic)
