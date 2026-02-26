@@ -132,7 +132,7 @@ public class AssemblyRewriteContext
                 .GetTypeByName("System.Attribute").NewType).ToTypeSignature();
 
         var originalTypeDef = typeRef.Resolve()!;
-        var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.Module!.Assembly!);
+        var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.DeclaringModule!.Assembly!);
         var target = targetAssembly.GetContextForOriginalType(originalTypeDef).NewType;
 
         return sourceModule.DefaultImporter.ImportType(target).ToTypeSignature();

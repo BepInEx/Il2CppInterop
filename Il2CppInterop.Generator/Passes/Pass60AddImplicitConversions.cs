@@ -22,7 +22,7 @@ public static class Pass60AddImplicitConversions
         var methodFromMonoString = new MethodDefinition("op_Implicit", OperatorAttributes,
             MethodSignature.CreateStatic(typeContext.NewType.ToTypeSignature(), assemblyContext.Imports.Module.String()));
         typeContext.NewType.Methods.Add(methodFromMonoString);
-        methodFromMonoString.CilMethodBody = new CilMethodBody(methodFromMonoString);
+        methodFromMonoString.CilMethodBody = new CilMethodBody();
         var fromBuilder = methodFromMonoString.CilMethodBody.Instructions;
 
         var createIl2CppStringNop = new CilInstructionLabel();
@@ -42,7 +42,7 @@ public static class Pass60AddImplicitConversions
         var methodToObject = new MethodDefinition("op_Implicit", OperatorAttributes, MethodSignature.CreateStatic(objectTypeContext.NewType.ToTypeSignature()));
         methodToObject.AddParameter(assemblyContext.Imports.Module.String());
         objectTypeContext.NewType.Methods.Add(methodToObject);
-        methodToObject.CilMethodBody = new CilMethodBody(methodToObject);
+        methodToObject.CilMethodBody = new CilMethodBody();
         var toObjectBuilder = methodToObject.CilMethodBody.Instructions;
         toObjectBuilder.Add(OpCodes.Ldarg_0);
         toObjectBuilder.Add(OpCodes.Call, methodFromMonoString);
@@ -51,7 +51,7 @@ public static class Pass60AddImplicitConversions
         var methodToMonoString = new MethodDefinition("op_Implicit", OperatorAttributes, MethodSignature.CreateStatic(assemblyContext.Imports.Module.String()));
         methodToMonoString.AddParameter(typeContext.NewType.ToTypeSignature());
         typeContext.NewType.Methods.Add(methodToMonoString);
-        methodToMonoString.CilMethodBody = new CilMethodBody(methodToMonoString);
+        methodToMonoString.CilMethodBody = new CilMethodBody();
         var toBuilder = methodToMonoString.CilMethodBody.Instructions;
 
         var createStringNop = new CilInstructionLabel();
@@ -98,7 +98,7 @@ public static class Pass60AddImplicitConversions
             var method = new MethodDefinition("op_Implicit", OperatorAttributes, MethodSignature.CreateStatic(objectTypeContext.NewType.ToTypeSignature()));
             method.AddParameter(systemType, "value");
 
-            method.CilMethodBody = new CilMethodBody(method);
+            method.CilMethodBody = new CilMethodBody();
             var il = method.CilMethodBody.Instructions;
 
             var structLocal = new CilLocalVariable(il2CppSystemType.ToTypeSignature());
@@ -138,18 +138,18 @@ public static class Pass60AddImplicitConversions
 
                 var implicitMethod = new MethodDefinition("op_Implicit", OperatorAttributes, MethodSignature.CreateStatic(typeContext.SelfSubstitutedRef.ToTypeSignature()));
                 typeContext.NewType.Methods.Add(implicitMethod);
-                implicitMethod.CilMethodBody = new CilMethodBody(implicitMethod);
+                implicitMethod.CilMethodBody = new CilMethodBody();
 
                 var hasReturn = invokeMethod.Signature!.ReturnType.FullName != "System.Void";
                 var hasParameters = invokeMethod.Parameters.Count > 0;
 
                 TypeSignature monoDelegateType;
                 if (!hasReturn && !hasParameters)
-                    monoDelegateType = typeContext.NewType.Module!.Action();
+                    monoDelegateType = typeContext.NewType.DeclaringModule!.Action();
                 else if (!hasReturn)
-                    monoDelegateType = typeContext.NewType.Module!.Action(invokeMethod.Parameters.Count);
+                    monoDelegateType = typeContext.NewType.DeclaringModule!.Action(invokeMethod.Parameters.Count);
                 else
-                    monoDelegateType = typeContext.NewType.Module!.Func(invokeMethod.Parameters.Count);
+                    monoDelegateType = typeContext.NewType.DeclaringModule!.Func(invokeMethod.Parameters.Count);
 
                 GenericInstanceTypeSignature? genericInstanceType = null;
                 if (hasParameters)
@@ -166,7 +166,7 @@ public static class Pass60AddImplicitConversions
                 }
 
                 implicitMethod.AddParameter(genericInstanceType != null
-                    ? typeContext.NewType.Module!.DefaultImporter.ImportTypeSignature(genericInstanceType)
+                    ? typeContext.NewType.DeclaringModule!.DefaultImporter.ImportTypeSignature(genericInstanceType)
                     : monoDelegateType);
 
                 var bodyBuilder = implicitMethod.CilMethodBody.Instructions;
@@ -176,7 +176,7 @@ public static class Pass60AddImplicitConversions
                 var genericConvertSignature = MethodSignature.CreateStatic(new GenericParameterSignature(GenericParameterType.Method, 0), 1, assemblyContext.Imports.Module.Delegate());
                 var genericConvertRef = new MemberReference(delegateSupportTypeRef.ToTypeDefOrRef(), "ConvertDelegate", genericConvertSignature);
                 var convertMethodRef = genericConvertRef.MakeGenericInstanceMethod(typeContext.SelfSubstitutedRef.ToTypeSignature());
-                bodyBuilder.Add(OpCodes.Call, typeContext.NewType.Module!.DefaultImporter.ImportMethod(convertMethodRef));
+                bodyBuilder.Add(OpCodes.Call, typeContext.NewType.DeclaringModule!.DefaultImporter.ImportMethod(convertMethodRef));
                 bodyBuilder.Add(OpCodes.Ret);
 
                 // public static T operator+(T lhs, T rhs) => Il2CppSystem.Delegate.Combine(lhs, rhs).Cast<T>();
@@ -184,7 +184,7 @@ public static class Pass60AddImplicitConversions
                 typeContext.NewType.Methods.Add(addMethod);
                 addMethod.AddParameter(typeContext.SelfSubstitutedRef.ToTypeSignature());
                 addMethod.AddParameter(typeContext.SelfSubstitutedRef.ToTypeSignature());
-                addMethod.CilMethodBody = new CilMethodBody(addMethod);
+                addMethod.CilMethodBody = new CilMethodBody();
                 var addBody = addMethod.CilMethodBody.Instructions;
                 addBody.Add(OpCodes.Ldarg_0);
                 addBody.Add(OpCodes.Ldarg_1);
@@ -198,7 +198,7 @@ public static class Pass60AddImplicitConversions
                 typeContext.NewType.Methods.Add(subtractMethod);
                 subtractMethod.AddParameter(typeContext.SelfSubstitutedRef.ToTypeSignature());
                 subtractMethod.AddParameter(typeContext.SelfSubstitutedRef.ToTypeSignature());
-                subtractMethod.CilMethodBody = new CilMethodBody(subtractMethod);
+                subtractMethod.CilMethodBody = new CilMethodBody();
                 var subtractBody = subtractMethod.CilMethodBody.Instructions;
                 subtractBody.Add(OpCodes.Ldarg_0);
                 subtractBody.Add(OpCodes.Ldarg_1);

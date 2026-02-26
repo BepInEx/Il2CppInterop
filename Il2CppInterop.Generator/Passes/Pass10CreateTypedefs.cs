@@ -80,10 +80,10 @@ public static class Pass10CreateTypedefs
             if (assemblyContextGlobalContext.Options.RenameMap.TryGetValue(fullName + "." + convertedTypeName,
                     out var newName))
             {
-                if (type.Module!.TopLevelTypes.Any(t => t.FullName == newName))
+                if (type.DeclaringModule!.TopLevelTypes.Any(t => t.FullName == newName))
                 {
                     Logger.Instance.LogWarning("[Rename map issue] {NewName} already exists in {ModuleName} (mapped from {MappedNamespace}.{MappedType})",
-                        newName, type.Module.Name, fullName, convertedTypeName);
+                        newName, type.DeclaringModule.Name, fullName, convertedTypeName);
                     newName += "_Duplicate";
                 }
 

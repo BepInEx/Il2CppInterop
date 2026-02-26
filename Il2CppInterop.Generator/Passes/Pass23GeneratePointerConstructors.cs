@@ -25,7 +25,7 @@ public static class Pass23GeneratePointerConstructors
 
                 nativeCtor.AddParameter(assemblyContext.Imports.Module.IntPtr(), "pointer");
 
-                nativeCtor.CilMethodBody = new(nativeCtor);
+                nativeCtor.CilMethodBody = new();
                 var ctorBody = nativeCtor.CilMethodBody.Instructions;
                 newType.Methods.Add(nativeCtor);
 

@@ -19,7 +19,7 @@ public static class UnstripTranslator
         if (original.CilMethodBody is null)
             return true;
 
-        target.CilMethodBody = new(target);
+        target.CilMethodBody = new();
 
         var globalContext = typeRewriteContext.AssemblyContext.GlobalContext;
         Dictionary<CilLocalVariable, CilLocalVariable> localVariableMap = new();
@@ -482,7 +482,7 @@ public static class UnstripTranslator
 
     public static void ReplaceBodyWithException(MethodDefinition newMethod, RuntimeAssemblyReferences imports)
     {
-        newMethod.CilMethodBody = new(newMethod);
+        newMethod.CilMethodBody = new();
         var processor = newMethod.CilMethodBody.Instructions;
 
         processor.Add(OpCodes.Ldstr, "Method unstripping failed");

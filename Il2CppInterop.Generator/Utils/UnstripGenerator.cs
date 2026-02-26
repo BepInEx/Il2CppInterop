@@ -109,7 +109,7 @@ public static class UnstripGenerator
         bodyProcessor.Add(OpCodes.Ldstr, GetICallSignature(unityMethod));
 
         var methodRef = imports.IL2CPP_ResolveICall.Value.MakeGenericInstanceMethod(delegateType.ToTypeSignature());
-        bodyProcessor.Add(OpCodes.Call, enclosingType.Module!.DefaultImporter.ImportMethod(methodRef));
+        bodyProcessor.Add(OpCodes.Call, enclosingType.DeclaringModule!.DefaultImporter.ImportMethod(methodRef));
         bodyProcessor.Add(OpCodes.Stsfld, delegateField);
 
         bodyProcessor.Add(OpCodes.Ret); // restore ret

@@ -22,7 +22,7 @@ public static class Pass25GenerateNonBlittableValueTypeDefaultCtors
 
                 typeContext.NewType.Methods.Add(emptyCtor);
 
-                emptyCtor.CilMethodBody = new(emptyCtor);
+                emptyCtor.CilMethodBody = new();
 
                 // NOTE(Kas): This used to stackalloc data of the valuetype's size and box it into an object
                 // but it seems like it caused issues on certain games. If more issues arise - revert this.

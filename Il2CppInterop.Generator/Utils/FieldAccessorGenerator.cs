@@ -17,7 +17,7 @@ internal static class FieldAccessorGenerator
             attributes,
             MethodSignatureCreator.CreateMethodSignature(attributes, property.Signature!.ReturnType, 0));
 
-        getter.CilMethodBody = new(getter);
+        getter.CilMethodBody = new();
         var getterBody = getter.CilMethodBody.Instructions;
         property.DeclaringType!.Methods.Add(getter);
 
@@ -33,7 +33,7 @@ internal static class FieldAccessorGenerator
             if (field.Signature!.FieldType.IsValueType() && !property.Signature.ReturnType.IsValueType())
             {
                 var pointerStore = imports.Il2CppClassPointerStore.MakeGenericInstanceType(property.Signature.ReturnType).ToTypeDefOrRef();
-                var pointerStoreType = property.DeclaringType.Module!.DefaultImporter.ImportType(pointerStore);
+                var pointerStoreType = property.DeclaringType.DeclaringModule!.DefaultImporter.ImportType(pointerStore);
                 getterBody.Add(OpCodes.Ldsfld,
                     new MemberReference(pointerStoreType, "NativeClassPtr", new FieldSignature(imports.Module.IntPtr())));
                 getterBody.Add(OpCodes.Ldc_I4, 0);
@@ -95,7 +95,7 @@ internal static class FieldAccessorGenerator
             attributes,
             MethodSignatureCreator.CreateMethodSignature(attributes, imports.Module.Void(), 0, property.Signature!.ReturnType));
         property.DeclaringType!.Methods.Add(setter);
-        setter.CilMethodBody = new(setter);
+        setter.CilMethodBody = new();
         var setterBody = setter.CilMethodBody.Instructions;
 
         if (field.IsStatic)
