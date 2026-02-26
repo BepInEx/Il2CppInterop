@@ -72,7 +72,7 @@ namespace Il2CppInterop.Runtime.Injection
         {
             if (InjectedAssembly == null) CreateInjectedAssembly();
             if (Il2CppInteropRuntime.Instance.UnityVersion.Major >= 6000)
-                GenericMethodGetMethodUnity6Hook.ApplyHook();
+                GenericMethodGetMethodHook_Unity6.ApplyHook();
             else
                 GenericMethodGetMethodHook.ApplyHook();
             GetTypeInfoFromTypeDefinitionIndexHook.ApplyHook();
