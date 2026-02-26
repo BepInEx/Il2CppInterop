@@ -41,7 +41,7 @@ public static class Pass20GenerateStaticConstructors
         }
         else
         {
-            ctorBuilder.Add(OpCodes.Ldstr, oldType.Module?.Name ?? "");
+            ctorBuilder.Add(OpCodes.Ldstr, oldType.DeclaringModule?.Name ?? "");
             ctorBuilder.Add(OpCodes.Ldstr, oldType.Namespace ?? "");
             ctorBuilder.Add(OpCodes.Ldstr, oldType.Name ?? "");
             ctorBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_GetIl2CppClass.Value);
@@ -51,11 +51,11 @@ public static class Pass20GenerateStaticConstructors
         {
             var il2CppTypeTypeRewriteContext = assemblyContext.GlobalContext.GetAssemblyByName("mscorlib")
                 .GetTypeByName("System.Type");
-            var il2CppSystemTypeRef = newType.Module!.DefaultImporter.ImportType(il2CppTypeTypeRewriteContext.NewType);
+            var il2CppSystemTypeRef = newType.DeclaringModule!.DefaultImporter.ImportType(il2CppTypeTypeRewriteContext.NewType);
 
             var il2CppTypeHandleTypeRewriteContext = assemblyContext.GlobalContext.GetAssemblyByName("mscorlib")
                 .GetTypeByName("System.RuntimeTypeHandle");
-            var il2CppSystemTypeHandleRef = newType.Module.DefaultImporter.ImportType(il2CppTypeHandleTypeRewriteContext.NewType);
+            var il2CppSystemTypeHandleRef = newType.DeclaringModule.DefaultImporter.ImportType(il2CppTypeHandleTypeRewriteContext.NewType);
 
             ctorBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_il2cpp_class_get_type.Value);
             ctorBuilder.Add(OpCodes.Call,

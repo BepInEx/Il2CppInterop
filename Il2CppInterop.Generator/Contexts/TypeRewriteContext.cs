@@ -72,13 +72,13 @@ public class TypeRewriteContext
             var genericInstanceType = new GenericInstanceTypeSignature(NewType, NewType.IsValueType());
             foreach (var newTypeGenericParameter in NewType.GenericParameters)
                 genericInstanceType.TypeArguments.Add(newTypeGenericParameter.ToTypeSignature());
-            SelfSubstitutedRef = NewType.Module!.DefaultImporter.ImportTypeSignature(genericInstanceType).ToTypeDefOrRef();
+            SelfSubstitutedRef = NewType.DeclaringModule!.DefaultImporter.ImportTypeSignature(genericInstanceType).ToTypeDefOrRef();
             var genericTypeRef = new GenericInstanceTypeSignature(
                 AssemblyContext.Imports.Il2CppClassPointerStore.ToTypeDefOrRef(),
                 AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType(),
                 SelfSubstitutedRef.ToTypeSignature());
             ClassPointerFieldRef = ReferenceCreator.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
-                NewType.Module.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
+                NewType.DeclaringModule.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
         }
         else
         {
@@ -88,11 +88,11 @@ public class TypeRewriteContext
                 AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType());
             if (OriginalType.ToTypeSignature().IsPrimitive() || OriginalType.FullName == "System.String")
                 genericTypeRef.TypeArguments.Add(
-                    NewType.Module!.ImportCorlibReference(OriginalType.FullName));
+                    NewType.DeclaringModule!.ImportCorlibReference(OriginalType.FullName));
             else
                 genericTypeRef.TypeArguments.Add(SelfSubstitutedRef.ToTypeSignature());
             ClassPointerFieldRef = ReferenceCreator.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
-                NewType.Module!.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
+                NewType.DeclaringModule!.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
         }
 
         if (OriginalType.IsEnum) return;
