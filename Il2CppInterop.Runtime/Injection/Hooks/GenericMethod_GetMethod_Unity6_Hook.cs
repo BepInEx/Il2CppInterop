@@ -7,8 +7,6 @@ using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Startup;
 using Microsoft.Extensions.Logging;
 
-// hello :)
-
 namespace Il2CppInterop.Runtime.Injection.Hooks
 {
     /// Unity 6 (6000.x.x): the 1-param GetMethod(const Il2CppGenericMethod&amp;) is inlined into
