@@ -183,15 +183,15 @@ public class RewriteGlobalContext : IDisposable
 
     public TypeRewriteContext? GetNewTypeForOriginal(TypeDefinition? originalType)
     {
-        if (originalType?.Module?.Assembly == null) return null;
-        var assembly = GetNewAssemblyForOriginal(originalType.Module.Assembly);
+        if (originalType?.DeclaringModule?.Assembly == null) return null;
+        var assembly = GetNewAssemblyForOriginal(originalType.DeclaringModule.Assembly);
         return assembly?.TryGetContextForOriginalType(originalType);
     }
 
     public TypeRewriteContext? TryGetNewTypeForOriginal(TypeDefinition? originalType)
     {
-        if (originalType?.Module?.Assembly == null) return null;
-        if (!myAssembliesByOld.TryGetValue(originalType.Module.Assembly, out var assembly))
+        if (originalType?.DeclaringModule?.Assembly == null) return null;
+        if (!myAssembliesByOld.TryGetValue(originalType.DeclaringModule.Assembly, out var assembly))
             return null;
         return assembly.TryGetContextForOriginalType(originalType);
     }
@@ -272,8 +272,8 @@ public class RewriteGlobalContext : IDisposable
 
     public TypeRewriteContext? GetContextForNewType(TypeDefinition? type)
     {
-        if (type?.Module?.Assembly == null) return null;
-        return GetContextForNewAssembly(type.Module.Assembly)?.GetContextForNewType(type);
+        if (type?.DeclaringModule?.Assembly == null) return null;
+        return GetContextForNewAssembly(type.DeclaringModule.Assembly)?.GetContextForNewType(type);
     }
 
     public MethodDefinition? CreateParamsMethod(MethodDefinition originalMethod, MethodDefinition newMethod,
@@ -333,10 +333,10 @@ public class RewriteGlobalContext : IDisposable
                 var parameter = paramsMethod.AddParameter(convertedType, originalParameter.Name, originalParameter.Definition?.Attributes ?? default);
 
                 if (isParams)
-                    parameter.Definition!.CustomAttributes.Add(new CustomAttribute(newMethod.Module!.ParamArrayAttributeCtor()));
+                    parameter.Definition!.CustomAttributes.Add(new CustomAttribute(newMethod.DeclaringModule!.ParamArrayAttributeCtor()));
             }
 
-            paramsMethod.CilMethodBody = new(paramsMethod);
+            paramsMethod.CilMethodBody = new();
             var body = paramsMethod.CilMethodBody.Instructions;
 
             if (!newMethod.IsStatic)

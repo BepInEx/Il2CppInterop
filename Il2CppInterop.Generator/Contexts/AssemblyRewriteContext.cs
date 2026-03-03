@@ -177,7 +177,7 @@ public class AssemblyRewriteContext
             return sourceModule.CorLibTypeFactory.Object;
         }
 
-        var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.Module?.Assembly);
+        var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.DeclaringModule?.Assembly);
         if (targetAssembly == null)
         {
             // Assembly not found - return Object as fallback
