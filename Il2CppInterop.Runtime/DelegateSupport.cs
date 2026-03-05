@@ -163,11 +163,11 @@ public static class DelegateSupport
 
         bodyBuilder.Emit(OpCodes.Call, managedMethod);
 
-        if (returnType == typeof(string))
+        if (managedMethod.ReturnType == typeof(string))
         {
             bodyBuilder.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!);
         }
-        else if (!returnType.IsValueType)
+        else if (!managedMethod.ReturnType.IsValueType)
         {
             var labelNull = bodyBuilder.DefineLabel();
             var labelDone = bodyBuilder.DefineLabel();
