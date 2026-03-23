@@ -62,12 +62,14 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                     }
 
                     var inflatedMethod = methods.Item1.MakeGenericMethod(typeArguments);
+                    Logger.Instance.LogTrace("Inflated method: {InflatedMethod}", inflatedMethod.Name);
 
                     // Use the specific UnityVersionHandler for Unity 6
                     var wrappedMethod = UnityVersionHandler.Wrap(methodDefinition);
                     if (wrappedMethod == null) return Original(methodDefinition, classInst, methodInst);
 
-                    inflatedMethodPointer = (IntPtr)ClassInjector.ConvertMethodInfo(inflatedMethod, UnityVersionHandler.Wrap(wrappedMethod.Class));
+                    inflatedMethodPointer = (IntPtr)ClassInjector.ConvertMethodInfo(
+                        inflatedMethod, UnityVersionHandler.Wrap(wrappedMethod.Class));
 
                     // Cache the result to prevent recalculating next time
                     methods.Item2.Add((IntPtr)methodInst, inflatedMethodPointer);
