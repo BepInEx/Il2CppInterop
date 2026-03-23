@@ -27,7 +27,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             if (methodDefinition == null)
                 return Original(methodDefinition, classInst, methodInst);
 
-            try 
+            try
             {
                 // Check if the dictionary even exists before trying to access it
                 if (ClassInjector.InflatedMethodFromContextDictionary == null)
@@ -49,7 +49,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
                     // Validate the GenericInst structure before reading it
                     // On Linux, memory alignment is strict. Ensure type_argc is sane.
-                    if (methodInst->type_argc > 256 || methodInst->type_argv == null) 
+                    if (methodInst->type_argc > 256 || methodInst->type_argv == null)
                         return Original(methodDefinition, classInst, methodInst);
 
                     var typeArguments = new Type[methodInst->type_argc];
@@ -57,18 +57,18 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                     {
                         var il2cppType = methodInst->type_argv[i];
                         if (il2cppType == null) return Original(methodDefinition, classInst, methodInst);
-                        
+
                         typeArguments[i] = ClassInjector.SystemTypeFromIl2CppType(il2cppType);
                     }
 
                     var inflatedMethod = methods.Item1.MakeGenericMethod(typeArguments);
-                    
+
                     // Use the specific UnityVersionHandler for Unity 6
                     var wrappedMethod = UnityVersionHandler.Wrap(methodDefinition);
                     if (wrappedMethod == null) return Original(methodDefinition, classInst, methodInst);
 
                     inflatedMethodPointer = (IntPtr)ClassInjector.ConvertMethodInfo(inflatedMethod, UnityVersionHandler.Wrap(wrappedMethod.Class));
-                    
+
                     // Cache the result to prevent recalculating next time
                     methods.Item2.Add((IntPtr)methodInst, inflatedMethodPointer);
 
@@ -79,9 +79,9 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             {
                 // CRITICAL: On Linux, an unhandled exception in a hook = SIGSEGV.
                 // We must catch and log, then return original.
-                #if DEBUG
+#if DEBUG
                 Logger.Instance.LogError($"[GenericHook] Exception: {ex.Message}");
-                #endif
+#endif
             }
 
             return Original(methodDefinition, classInst, methodInst);
@@ -102,20 +102,20 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
             // On Linux Unity 6, it's usually the LAST jump before the end of the function
             IntPtr getGenericVirtualMethod = xrefs.Last();
-            
+
             // Now, inside GetGenericVirtualMethod, there is a tail-call (jmp) to GenericMethod::GetMethod
             var finalXrefs = XrefScannerLowLevel.JumpTargets(getGenericVirtualMethod).ToArray();
-            
-            if (finalXrefs.Length == 0) 
+
+            if (finalXrefs.Length == 0)
                 return IntPtr.Zero;
 
             IntPtr candidate = finalXrefs.Last();
-            
+
             // VERIFICATION: On Linux, GenericMethod::GetMethod is a large function. 
             // If the address is too close to the caller, it's probably wrong.
-            #if DEBUG
+#if DEBUG
             Logger.Instance.LogDebug($"[Scanner] Found GenericMethod::GetMethod candidate: 0x{candidate:X}");
-            #endif
+#endif
 
             return candidate;
         }
