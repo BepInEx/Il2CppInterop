@@ -69,7 +69,6 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
 
     // HybridCLR hotfix method support
     private bool _isHotfixMethod;
-    private IntPtr _invokerMethod;
 
     /// <summary>
     ///     Constructs a new instance of <see cref="MonoMod.RuntimeDetour.NativeDetour" /> method patcher.
@@ -107,20 +106,17 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
             // HybridCLR hotfix method handling
             if (HybridCLRCompat.IsHybridCLRRuntime())
             {
-                var pMethodInfo = (HybridCLRMethodInfo*)originalNativeMethodInfo.Pointer;
-                _isHotfixMethod = pMethodInfo->IsInterpterImpl;
+                var hybridInfo = HybridCLRCompat.WrapMethodInfo(originalNativeMethodInfo.Pointer);
+                _isHotfixMethod = hybridInfo?.IsInterpterImpl ?? false;
 
                 if (_isHotfixMethod)
                 {
-                    if (pMethodInfo->interpData == IntPtr.Zero)
+                    if ((hybridInfo?.InterpData ?? IntPtr.Zero) == IntPtr.Zero)
                     {
                         Logger.Instance.LogError(
                             "HybridCLR method {Method} has no interpData - it may have been transformed to native code",
                             Original.FullDescription());
                     }
-
-                    // Save original invoker_method for later restoration
-                    _invokerMethod = pMethodInfo->invoker_method;
 
                     // Note: PrepareMethodForDetour is called in DetourTo() after we have the detour address
                 }
@@ -178,8 +174,8 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         // HybridCLR: Prepare method for detouring before applying native detour
         if (_isHotfixMethod)
         {
-            // PrepareMethodForDetour copies the bridge and sets up methodPointerCallByInterp to point to detour
-            HybridCLRCompat.PrepareMethodForDetour(originalNativeMethodInfo.Pointer, detourAddress);
+            // PrepareMethodForDetour copies the bridge so we can hook this method independently
+            HybridCLRCompat.PrepareMethodForDetour(originalNativeMethodInfo.Pointer);
         }
 
         nativeDetour =
@@ -492,51 +488,4 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         }
     }
 
-    /// <summary>
-    /// HybridCLR extended MethodInfo structure.
-    /// This structure includes additional fields added by HybridCLR for interpreter support.
-    ///
-    /// IMPORTANT: The HybridCLR fields (initInterpCallMethodPointer, isInterpterImpl) are bit fields
-    /// within _bitfield0, NOT separate bool fields at the end of the struct!
-    ///
-    /// Bit layout of _bitfield0:
-    ///   bit 0: is_generic
-    ///   bit 1: is_inflated
-    ///   bit 2: wrapper_type
-    ///   bit 3: has_full_generic_sharing_signature
-    ///   bit 4: indirect_call_via_invokers
-    ///   bit 5: initInterpCallMethodPointer (HybridCLR)
-    ///   bit 6: isInterpterImpl (HybridCLR)
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    private struct HybridCLRMethodInfo
-    {
-        // Standard Il2Cpp MethodInfo fields (Unity 2021.2.0+)
-        public IntPtr methodPointer;
-        public IntPtr virtualMethodPointer;
-        public IntPtr invoker_method;
-        public IntPtr name;
-        public IntPtr klass;
-        public IntPtr return_type;
-        public IntPtr parameters;
-        public IntPtr rgctx_data;    // union: rgctx_data or methodMetadataHandle
-        public IntPtr genericMethod; // union: genericMethod or genericContainerHandle
-        public uint token;
-        public ushort flags;
-        public ushort iflags;
-        public ushort slot;
-        public byte parameters_count;
-        public byte _bitfield0; // includes HybridCLR bits: initInterpCallMethodPointer (bit 5), isInterpterImpl (bit 6)
-
-        // HybridCLR extension fields (after the standard struct)
-        public IntPtr interpData;
-        public IntPtr methodPointerCallByInterp;
-        public IntPtr virtualMethodPointerCallByInterp;
-
-        // Bit field accessors
-        public bool IsInterpterImpl => (_bitfield0 & 0x40) != 0; // bit 6
-        public bool InitInterpCallMethodPointer => (_bitfield0 & 0x20) != 0; // bit 5
-
-        public void ClearIsInterpterImpl() => _bitfield0 = (byte)(_bitfield0 & ~0x40);
-    }
 }

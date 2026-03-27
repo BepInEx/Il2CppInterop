@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using Iced.Intel;
 using Il2CppInterop.Common;
@@ -14,8 +12,7 @@ namespace Il2CppInterop.Runtime.Injection
 {
     /// <summary>
     /// Compatibility layer for HybridCLR-modified IL2CPP runtimes.
-    /// Provides APIs for detecting HybridCLR runtime, accessing hotfix assemblies,
-    /// and preparing interpreter methods for detouring.
+    /// Provides APIs for detecting HybridCLR runtime and preparing interpreter methods for detouring.
     /// </summary>
     public static class HybridCLRCompat
     {
@@ -181,221 +178,6 @@ namespace Il2CppInterop.Runtime.Injection
             return null;
         }
 
-        #region HybridCLR Hotfix Assembly Support
-
-        private static readonly HashSet<string> s_HotfixAssemblies = new();
-        private static readonly object s_AssemblyLock = new();
-
-        /// <summary>
-        /// Refreshes the assembly cache to detect newly loaded HybridCLR hotfix assemblies.
-        /// Call this after hotfix DLLs have been loaded by the game.
-        /// </summary>
-        /// <returns>List of newly detected hotfix assembly names.</returns>
-        public static unsafe string[] RefreshHotfixAssemblies()
-        {
-            if (!IsHybridCLRRuntime())
-                return Array.Empty<string>();
-
-            var newAssemblies = new List<string>();
-
-            try
-            {
-                var domain = IL2CPP.il2cpp_domain_get();
-                if (domain == IntPtr.Zero)
-                    return Array.Empty<string>();
-
-                uint assembliesCount = 0;
-                var assemblies = IL2CPP.il2cpp_domain_get_assemblies(domain, ref assembliesCount);
-
-                for (var i = 0; i < assembliesCount; i++)
-                {
-                    var image = IL2CPP.il2cpp_assembly_get_image(assemblies[i]);
-                    var imageName = IL2CPP.il2cpp_image_get_name_(image);
-                    if (string.IsNullOrEmpty(imageName))
-                        continue;
-
-                    // Check if this is a new assembly not in the original cache
-                    if (IL2CPP.GetIl2CppImage(imageName) != IntPtr.Zero)
-                        continue;
-
-                    // Check if it's a hotfix assembly by examining its methods
-                    if (IsHotfixImage(image))
-                    {
-                        lock (s_AssemblyLock)
-                        {
-                            if (s_HotfixAssemblies.Add(imageName))
-                            {
-                                newAssemblies.Add(imageName);
-                                Logger.Instance.LogInformation("Detected HybridCLR hotfix assembly: {AssemblyName}", imageName);
-                            }
-                        }
-
-                        // Register in IL2CPP image cache for future access
-                        RegisterHotfixImage(imageName, image);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Instance.LogWarning("Failed to refresh hotfix assemblies: {Error}", ex.Message);
-            }
-
-            return newAssemblies.ToArray();
-        }
-
-        /// <summary>
-        /// Gets all detected hotfix assembly names.
-        /// </summary>
-        public static string[] GetHotfixAssemblyNames()
-        {
-            lock (s_AssemblyLock)
-            {
-                return s_HotfixAssemblies.ToArray();
-            }
-        }
-
-        /// <summary>
-        /// Checks if an assembly is a HybridCLR hotfix assembly.
-        /// </summary>
-        public static bool IsHotfixAssembly(string assemblyName)
-        {
-            lock (s_AssemblyLock)
-            {
-                return s_HotfixAssemblies.Contains(assemblyName);
-            }
-        }
-
-        /// <summary>
-        /// Gets a class from a hotfix assembly by name.
-        /// </summary>
-        public static IntPtr GetHotfixClass(string assemblyName, string namespaceName, string className)
-        {
-            if (!IsHybridCLRRuntime())
-                return IntPtr.Zero;
-
-            // Ensure hotfix assemblies are detected
-            if (!IsHotfixAssembly(assemblyName))
-                RefreshHotfixAssemblies();
-
-            return IL2CPP.GetIl2CppClass(assemblyName, namespaceName, className);
-        }
-
-        /// <summary>
-        /// Creates an instance of a hotfix class.
-        /// </summary>
-        public static IntPtr CreateHotfixInstance(IntPtr klass)
-        {
-            if (klass == IntPtr.Zero)
-                return IntPtr.Zero;
-
-            return IL2CPP.il2cpp_object_new(klass);
-        }
-
-        /// <summary>
-        /// Creates an instance of a hotfix class by name.
-        /// </summary>
-        public static IntPtr CreateHotfixInstance(string assemblyName, string namespaceName, string className)
-        {
-            var klass = GetHotfixClass(assemblyName, namespaceName, className);
-            return CreateHotfixInstance(klass);
-        }
-
-        /// <summary>
-        /// Gets a method from a hotfix class.
-        /// </summary>
-        public static IntPtr GetHotfixMethod(IntPtr klass, string methodName, int argCount = -1)
-        {
-            if (klass == IntPtr.Zero)
-                return IntPtr.Zero;
-
-            return IL2CPP.il2cpp_class_get_method_from_name(klass, methodName, argCount);
-        }
-
-        /// <summary>
-        /// Invokes a method on a hotfix object.
-        /// </summary>
-        public static unsafe IntPtr InvokeHotfixMethod(IntPtr methodInfo, IntPtr obj, void** args)
-        {
-            if (methodInfo == IntPtr.Zero)
-                return IntPtr.Zero;
-
-            IntPtr exception = IntPtr.Zero;
-            var result = IL2CPP.il2cpp_runtime_invoke(methodInfo, obj, args, ref exception);
-
-            if (exception != IntPtr.Zero)
-            {
-                Logger.Instance.LogError("Exception while invoking hotfix method: 0x{ExceptionPtr:X}", (ulong)exception);
-                // Let the caller handle the exception - don't rethrow here
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Checks if an image contains interpreter methods (hotfix assembly).
-        /// </summary>
-        private static unsafe bool IsHotfixImage(IntPtr image)
-        {
-            // Disabled for now - need to verify HybridCLR MethodInfo structure layout
-            // The isInterpterImpl field offset may vary between HybridCLR versions
-            return false;
-
-            /*
-            if (image == IntPtr.Zero)
-                return false;
-
-            try
-            {
-                uint classCount = IL2CPP.il2cpp_image_get_class_count(image);
-                for (uint i = 0; i < Math.Min(classCount, 10); i++) // Check first 10 classes
-                {
-                    var klass = IL2CPP.il2cpp_image_get_class(image, i);
-                    if (klass == IntPtr.Zero)
-                        continue;
-
-                    var iter = IntPtr.Zero;
-                    IntPtr method;
-                    while ((method = IL2CPP.il2cpp_class_get_methods(klass, ref iter)) != IntPtr.Zero)
-                    {
-                        if (IsInterpreterMethod(method))
-                            return true;
-                    }
-                }
-            }
-            catch
-            {
-                // Ignore errors during detection
-            }
-
-            return false;
-            */
-        }
-
-        /// <summary>
-        /// Registers a hotfix image in the IL2CPP image cache.
-        /// Uses reflection to access the private cache.
-        /// </summary>
-        private static void RegisterHotfixImage(string name, IntPtr image)
-        {
-            try
-            {
-                var field = typeof(IL2CPP).GetField("ourImagesMap", BindingFlags.NonPublic | BindingFlags.Static);
-                if (field?.GetValue(null) is Dictionary<string, IntPtr> imagesMap)
-                {
-                    lock (imagesMap)
-                    {
-                        imagesMap[name] = image;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Instance.LogWarning("Failed to register hotfix image: {Error}", ex.Message);
-            }
-        }
-
-        #endregion
-
         #region HybridCLR Method Detour Support
 
         // Cache for prepared methods: methodInfoPtr -> original invoker_method
@@ -439,7 +221,7 @@ namespace Il2CppInterop.Runtime.Injection
 
         /// <summary>
         /// Prepares a HybridCLR interpreter method for detouring by copying its bridge code
-        /// to a new memory location and configuring the method to call your detour.
+        /// to a new memory location.
         ///
         /// <para>
         /// <b>Why this is needed:</b><br/>
@@ -447,7 +229,7 @@ namespace Il2CppInterop.Runtime.Injection
         /// To hook a specific method independently, we must:
         /// <list type="number">
         ///   <item>Copy the bridge function to a new memory location (for calling original)</item>
-        ///   <item>Configure the method to call your detour instead</item>
+        ///   <item>Update methodPointer/virtualMethodPointer to the copied bridge</item>
         ///   <item>Preserve invoker_method for calling original code</item>
         /// </list>
         /// </para>
@@ -455,48 +237,13 @@ namespace Il2CppInterop.Runtime.Injection
         /// <para>
         /// <b>What this method does:</b><br/>
         /// <list type="bullet">
-        ///   <item>Copies bridge code to nearby memory (within ±2GB for rel32 calls)</item>
-        ///   <item>Sets methodPointer to copied bridge (for calling original)</item>
-        ///   <item>Sets methodPointerCallByInterp to detour (interpreter calls your code)</item>
+        ///   <item>Copies bridge code to nearby memory (within +/-2GB for rel32 calls)</item>
+        ///   <item>Sets methodPointer/virtualMethodPointer to copied bridge</item>
         ///   <item>Caches original invoker_method (restore with <see cref="RestoreInvokerMethod"/>)</item>
         /// </list>
         /// </para>
-        ///
-        /// <para>
-        /// <b>Usage example:</b>
-        /// <code>
-        /// // 1. Define delegate matching the method signature (with methodInfo parameter)
-        /// delegate void MyMethodDelegate(IntPtr instance, IntPtr arg1, Il2CppMethodInfo* methodInfo);
-        ///
-        /// // 2. Create your detour method
-        /// static void MyDetour(IntPtr instance, IntPtr arg1, Il2CppMethodInfo* methodInfo)
-        /// {
-        ///     // Your hook logic here...
-        ///
-        ///     // Call original: use the methodPointer from methodInfo (points to copied bridge)
-        ///     var original = Marshal.GetDelegateForFunctionPointer&lt;MyMethodDelegate&gt;(methodInfo->methodPointer);
-        ///     original(instance, arg1, methodInfo);
-        /// }
-        ///
-        /// // 3. Keep delegate alive (prevent GC collection)
-        /// static MyMethodDelegate _detourDelegate = MyDetour;
-        ///
-        /// // 4. Hook the method
-        /// IntPtr methodInfoPtr = ...; // Get from Il2Cpp reflection
-        /// IntPtr detourAddress = Marshal.GetFunctionPointerForDelegate(_detourDelegate);
-        ///
-        /// if (HybridCLRCompat.PrepareMethodForDetour(methodInfoPtr, detourAddress))
-        /// {
-        ///     HybridCLRCompat.RestoreInvokerMethod(methodInfoPtr); // CRITICAL!
-        /// }
-        /// </code>
-        /// </para>
         /// </summary>
         /// <param name="methodInfoPtr">Pointer to the Il2CppMethodInfo structure.</param>
-        /// <param name="detourAddress">
-        /// Function pointer to your detour method. Obtain via <c>Marshal.GetFunctionPointerForDelegate()</c>.
-        /// The delegate must be kept alive to prevent garbage collection.
-        /// </param>
         /// <returns>
         /// <c>true</c> if the method was prepared successfully;
         /// <c>false</c> if not a HybridCLR runtime, method is not an interpreter method, or preparation failed.
@@ -505,7 +252,7 @@ namespace Il2CppInterop.Runtime.Injection
         /// After calling this method, you MUST call <see cref="RestoreInvokerMethod"/> to restore
         /// the original invoker_method. Without this, calling the original method will fail.
         /// </remarks>
-        public static unsafe bool PrepareMethodForDetour(IntPtr methodInfoPtr, IntPtr detourAddress)
+        public static unsafe bool PrepareMethodForDetour(IntPtr methodInfoPtr)
         {
             Logger.Instance.LogDebug(
                 "PrepareMethodForDetour called: methodPtr=0x{MethodPtr:X}, isHybridCLR={IsHybridCLR}",
@@ -576,12 +323,6 @@ namespace Il2CppInterop.Runtime.Injection
                 methodInfo.MethodPointer = newCode;
                 methodInfo.VirtualMethodPointer = newCode;
 
-                // Set interpreter pointers to detour - when interpreter calls this method,
-                // it will call the detour instead of the bridge
-                methodInfo.MethodPointerCallByInterp = detourAddress;
-                methodInfo.VirtualMethodPointerCallByInterp = detourAddress;
-                // Keep isInterpterImpl = true so interpreter uses methodPointerCallByInterp (detour)
-
                 // Cache the original invoker_method for later restoration
                 lock (s_PreparedMethodsLock)
                 {
@@ -629,17 +370,6 @@ namespace Il2CppInterop.Runtime.Injection
             catch (Exception ex)
             {
                 Logger.Instance.LogWarning("Failed to restore HybridCLR invoker_method: {Error}", ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Checks if a method has been prepared for detouring.
-        /// </summary>
-        public static bool IsMethodPrepared(IntPtr methodInfoPtr)
-        {
-            lock (s_PreparedMethodsLock)
-            {
-                return s_PreparedMethods.ContainsKey(methodInfoPtr);
             }
         }
 
@@ -701,16 +431,7 @@ namespace Il2CppInterop.Runtime.Injection
         }
 
         /// <summary>
-        /// Allocates executable memory for code duplication.
-        /// Reserves extra space for hook libraries (Dobby/MonoMod) to use.
-        /// </summary>
-        private static IntPtr AllocateExecutableMemory(int size)
-        {
-            return AllocateExecutableMemoryNear(IntPtr.Zero, size);
-        }
-
-        /// <summary>
-        /// Allocates executable memory near a target address (within ±2GB for rel32 addressing).
+        /// Allocates executable memory near a target address (within +/-2GB for rel32 addressing).
         /// This is critical for HybridCLR bridge duplication - bridge code contains relative calls
         /// that will break if the copy is too far from the original.
         /// </summary>
@@ -815,16 +536,10 @@ namespace Il2CppInterop.Runtime.Injection
         // Windows API
         private const uint MEM_COMMIT = 0x1000;
         private const uint MEM_RESERVE = 0x2000;
-        private const uint MEM_RELEASE = 0x8000;
-        private const uint PAGE_NOACCESS = 0x01;
         private const uint PAGE_EXECUTE_READWRITE = 0x40;
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern IntPtr VirtualAlloc(IntPtr lpAddress, uint dwSize, uint flAllocationType, uint flProtect);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool VirtualFree(IntPtr lpAddress, uint dwSize, uint dwFreeType);
 
         [DllImport("kernel32.dll")]
         private static extern void GetSystemInfo(out SYSTEM_INFO lpSystemInfo);
@@ -857,42 +572,5 @@ namespace Il2CppInterop.Runtime.Injection
         private static extern IntPtr mmap(IntPtr addr, UIntPtr length, int prot, int flags, int fd, long offset);
 
         #endregion
-
-        /// <summary>
-        /// Updates methodPointerCallByInterp and virtualMethodPointerCallByInterp to point to a new address.
-        /// This uses the correct dynamically-calculated offsets based on the detected layout.
-        /// </summary>
-        public static unsafe void UpdateMethodPointerCallByInterp(IntPtr methodInfoPtr, IntPtr newPointer)
-        {
-            if (methodInfoPtr == IntPtr.Zero)
-                return;
-
-            try
-            {
-                var methodInfo = WrapMethodInfo(methodInfoPtr);
-                if (methodInfo == null)
-                    return;
-
-                if (methodInfo.MethodPointerCallByInterp != IntPtr.Zero)
-                {
-                    Logger.Instance.LogTrace(
-                        "Updating methodPointerCallByInterp: 0x{Old:X} -> 0x{New:X}",
-                        (ulong)methodInfo.MethodPointerCallByInterp, (ulong)newPointer);
-                    methodInfo.MethodPointerCallByInterp = newPointer;
-                }
-
-                if (methodInfo.VirtualMethodPointerCallByInterp != IntPtr.Zero)
-                {
-                    Logger.Instance.LogTrace(
-                        "Updating virtualMethodPointerCallByInterp: 0x{Old:X} -> 0x{New:X}",
-                        (ulong)methodInfo.VirtualMethodPointerCallByInterp, (ulong)newPointer);
-                    methodInfo.VirtualMethodPointerCallByInterp = newPointer;
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Instance.LogWarning("Failed to update methodPointerCallByInterp: {Error}", ex.Message);
-            }
-        }
     }
 }
