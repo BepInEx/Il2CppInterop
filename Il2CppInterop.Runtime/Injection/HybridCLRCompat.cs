@@ -318,6 +318,12 @@ namespace Il2CppInterop.Runtime.Injection
                 // Copy the original bridge code
                 Buffer.MemoryCopy((void*)originalMethodPointer, (void*)newCode, methodLength, methodLength);
 
+                // Fix relative call/jmp instructions in the copied code.
+                // The bridge contains rel32 calls (e.g. to Interpreter::Execute) that are
+                // encoded as offsets from the instruction address. After copying to a new
+                // location, these offsets point to wrong addresses and must be adjusted.
+                RelocateRelativeBranches(newCode, originalMethodPointer, methodLength);
+
                 // Update standard method pointers to point to the new (copied) bridge code
                 // This ensures calling the "original" method goes through the copied bridge
                 methodInfo.MethodPointer = newCode;
@@ -427,6 +433,66 @@ namespace Il2CppInterop.Runtime.Injection
             {
                 Logger.Instance.LogWarning("GetMethodLength failed: {Error}", ex.Message);
                 return 0;
+            }
+        }
+
+        /// <summary>
+        /// Fixes relative call/jmp instructions in copied bridge code.
+        /// After memcpy, rel32 offsets still point relative to the original location.
+        /// This method recalculates them to point to the correct absolute targets.
+        /// </summary>
+        private static unsafe void RelocateRelativeBranches(IntPtr newCode, IntPtr originalCode, int length)
+        {
+            try
+            {
+                var stream = new UnmanagedMemoryStream((byte*)newCode, length, length, FileAccess.Read);
+                var codeReader = new StreamCodeReader(stream);
+                var decoder = Decoder.Create(64, codeReader);
+                decoder.IP = (ulong)newCode;
+
+                long delta = (long)originalCode - (long)newCode;
+                int patchCount = 0;
+
+                while (decoder.IP < (ulong)newCode + (ulong)length)
+                {
+                    int instrOffset = (int)(decoder.IP - (ulong)newCode);
+                    decoder.Decode(out var instr);
+                    if (decoder.LastError != DecoderError.None)
+                        break;
+
+                    if (instr.FlowControl == FlowControl.Call ||
+                        instr.FlowControl == FlowControl.UnconditionalBranch ||
+                        instr.FlowControl == FlowControl.ConditionalBranch)
+                    {
+                        ulong target = instr.NearBranchTarget;
+                        if (target == 0) continue;
+
+                        bool isInsideBlock = target >= (ulong)newCode && target < (ulong)newCode + (ulong)length;
+                        if (isInsideBlock) continue;
+
+                        ulong originalTarget = (ulong)((long)target + delta);
+                        int instrEnd = instrOffset + instr.Length;
+                        int newRel32 = (int)((long)originalTarget - ((long)newCode + instrEnd));
+                        int rel32Pos = instrOffset + instr.Length - 4;
+
+                        byte* patchAddr = (byte*)newCode + rel32Pos;
+                        *(int*)patchAddr = newRel32;
+                        patchCount++;
+
+                        Logger.Instance.LogTrace(
+                            "RelocateRelativeBranches: patched {Mnemonic} at +0x{Offset:X}: 0x{OldTarget:X} -> 0x{NewTarget:X}",
+                            instr.Mnemonic, instrOffset, target, originalTarget);
+                    }
+                }
+
+                if (patchCount > 0)
+                    Logger.Instance.LogInformation(
+                        "RelocateRelativeBranches: fixed {Count} relative branch(es) in {Length} bytes",
+                        patchCount, length);
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogWarning("RelocateRelativeBranches failed: {Error}", ex.Message);
             }
         }
 
