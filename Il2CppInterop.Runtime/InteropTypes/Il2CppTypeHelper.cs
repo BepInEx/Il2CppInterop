@@ -138,7 +138,14 @@ public static class Il2CppTypeHelper
 
     public static unsafe IntPtr Box<T>(this T? value) where T : IIl2CppType<T>
     {
-        if (value is null)
+        if (typeof(T).IsValueType)
+        {
+            byte* data = stackalloc byte[T.Size];
+            WriteToPointer(value, data);
+            IntPtr boxedPtr = IL2CPP.il2cpp_value_box(value!.ObjectClass, (IntPtr)data);
+            return boxedPtr;
+        }
+        else if (value is null)
         {
             return IntPtr.Zero;
         }
@@ -146,10 +153,11 @@ public static class Il2CppTypeHelper
         {
             return @object.Pointer;
         }
-        else if (value.GetType().IsValueType)
+        else if (value is IIl2CppValueType valueType)
         {
-            byte* data = stackalloc byte[T.Size];
-            WriteToPointer(value, data);
+            int size = valueType.Size;
+            byte* data = stackalloc byte[size];
+            valueType.WriteToSpan(new Span<byte>(data, size));
             IntPtr boxedPtr = IL2CPP.il2cpp_value_box(value.ObjectClass, (IntPtr)data);
             return boxedPtr;
         }
