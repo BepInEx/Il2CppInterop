@@ -4,6 +4,7 @@ using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Logging;
 using Cpp2IL.Core.Model.Contexts;
 using Cpp2IL.Core.Model.CustomAttributes;
+using Il2CppInterop.Generator.Operands;
 using LibCpp2IL.BinaryStructures;
 
 namespace Il2CppInterop.Generator;
@@ -128,6 +129,12 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
             Dictionary<MethodDefinition, MethodAnalysisContext> methodLookup = new();
             foreach (var method in type.Methods)
             {
+                if (method.IsPInvokeImpl)
+                {
+                    // No p/invoke methods
+                    continue;
+                }
+
                 if (TryInjectMethod(method, typeContext, out var methodContext))
                 {
                     methodLookup.Add(method, methodContext);
@@ -193,11 +200,33 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                     continue;
                 }
 
+                if (method.IsPInvokeImpl)
+                {
+                    // No p/invoke methods
+                    continue;
+                }
+
                 if (!TryInjectMethod(method, typeContext, out var methodContext))
                     continue;
 
                 methodLookup.Add(method, methodContext);
-                methodsNeedingBodies.Add((methodContext, method));
+                if (method.IsAbstract)
+                {
+                    methodContext.Attributes &= ~System.Reflection.MethodAttributes.Abstract; // We convert abstract methods to virtual methods
+
+                    methodContext.PutExtraData(new OriginalMethodBody()
+                    {
+                        Instructions =
+                        [
+                            new Instruction(CilOpCodes.Ldnull),
+                            new Instruction(CilOpCodes.Throw),
+                        ]
+                    });
+                }
+                else
+                {
+                    methodsNeedingBodies.Add((methodContext, method));
+                }
 
                 foreach (var implementation in type.MethodImplementations)
                 {
