@@ -130,6 +130,7 @@ public partial class ConflictRenamingProcessingLayer : Cpp2IlProcessingLayer
         foreach (var method in finalizeMethods)
         {
             method.OverrideName = newFinalizeName;
+            method.Overrides.Clear(); // Since this is no longer the Finalize method, it shouldn't have an explicit override.
         }
     }
 

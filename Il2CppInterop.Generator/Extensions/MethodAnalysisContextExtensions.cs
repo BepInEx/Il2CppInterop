@@ -72,22 +72,7 @@ internal static class MethodAnalysisContextExtensions
         public bool IsPublic => (method.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public;
         public bool IsSpecialName => (method.Attributes & MethodAttributes.SpecialName) != default;
 
-        public bool ImplementsAnInterfaceMethod
-        {
-            get
-            {
-                var count = 0;
-                foreach (var x in method.Overrides)
-                {
-                    count++;
-                    if (count > 1)
-                    {
-                        return true;
-                    }
-                }
-                return count == 1 && method.BaseMethod is null;
-            }
-        }
+        public bool ImplementsAnInterfaceMethod => method.Overrides.Count > 0;
 
         public ushort Slot => method.Definition?.slot ?? ushort.MaxValue;
 
