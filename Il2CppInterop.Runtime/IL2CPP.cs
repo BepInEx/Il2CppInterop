@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -362,14 +363,14 @@ public static unsafe partial class IL2CPP
 
         if (invoke.ReturnType == typeof(void))
         {
-            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, typeof(void), parameterTypes);
+            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConventions.Standard, typeof(void), parameterTypes, []);
         }
         else
         {
             var returnType = invoke.ReturnType;
             var nativeStruct = TrampolineHelpers.NativeType(returnType);
 
-            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, nativeStruct, parameterTypes);
+            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConventions.Standard, nativeStruct, parameterTypes, []);
 
             var returnLocal = bodyBuilder.DeclareLocal(nativeStruct);
             bodyBuilder.Emit(OpCodes.Stloc, returnLocal);
