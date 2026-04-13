@@ -24,7 +24,7 @@ public class MscorlibAssemblyInjectionProcessingLayer : UnstripBaseProcessingLay
 
             assemblyList = Directory.GetFiles(directoryPath, "*.dll", SearchOption.AllDirectories)
                 .Where(x => x.Contains("mscorlib", StringComparison.OrdinalIgnoreCase))
-                .Select(AssemblyDefinition.FromFile)
+                .Select(path => AssemblyDefinition.FromFile(path))
                 .ToList();
         }
 

@@ -9,9 +9,9 @@ namespace Il2CppInterop.Generator;
 
 public class OriginalMethodBody : MethodBodyBase
 {
-    public static bool MaybeStoreOriginalMethodBody(MethodDefinition originalMethod, MethodAnalysisContext methodContext)
+    public static bool MaybeStoreOriginalMethodBody(MethodDefinition originalMethod, MethodAnalysisContext methodContext, RuntimeContext runtimeContext)
     {
-        if (TryResolveOriginalMethodBody(originalMethod, methodContext, out var originalMethodBody))
+        if (TryResolveOriginalMethodBody(originalMethod, methodContext, runtimeContext, out var originalMethodBody))
         {
             methodContext.PutExtraData(originalMethodBody);
             return true;
@@ -22,7 +22,7 @@ public class OriginalMethodBody : MethodBodyBase
         }
     }
 
-    private static bool TryResolveOriginalMethodBody(MethodDefinition method, MethodAnalysisContext methodContext, [NotNullWhen(true)] out OriginalMethodBody? originalMethodBody)
+    private static bool TryResolveOriginalMethodBody(MethodDefinition method, MethodAnalysisContext methodContext, RuntimeContext runtimeContext, [NotNullWhen(true)] out OriginalMethodBody? originalMethodBody)
     {
         var body = method.CilMethodBody;
         if (body is null)
@@ -31,7 +31,7 @@ public class OriginalMethodBody : MethodBodyBase
             return false;
         }
 
-        var resolver = new ContextResolver(methodContext);
+        var resolver = new ContextResolver(methodContext, runtimeContext);
 
         var originalInstructions = body.Instructions;
         originalInstructions.ExpandMacrosBackport();
@@ -79,7 +79,7 @@ public class OriginalMethodBody : MethodBodyBase
             }
             else
             {
-                exceptionType = resolver.Resolve(exceptionHandler.ExceptionType.ToTypeSignature());
+                exceptionType = resolver.Resolve(exceptionHandler.ExceptionType);
                 if (exceptionType is null)
                 {
                     originalMethodBody = default;
@@ -109,7 +109,7 @@ public class OriginalMethodBody : MethodBodyBase
                 AsmResolver.Utf8String utf8String => utf8String.ToString(),
                 CilLocalVariable localVariable => newLocalVariables[localVariable.Index],
                 Parameter parameter => parameter == method.Parameters.ThisParameter ? This.Instance : methodContext.Parameters[parameter.Index],
-                ITypeDescriptor typeDescriptor => resolver.Resolve(typeDescriptor.ToTypeSignature()),
+                ITypeDescriptor typeDescriptor => resolver.Resolve(typeDescriptor),
                 IFieldDescriptor { Signature: not null } fieldDescriptor => resolver.Resolve(fieldDescriptor),
                 IMethodDescriptor { Signature: not null } methodDescriptor => resolver.Resolve(methodDescriptor),
                 ICilLabel label => ResolveLabel(newInstructions, originalInstructions, label),

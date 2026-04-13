@@ -12,27 +12,31 @@ public readonly struct ContextResolver
     private readonly AssemblyAnalysisContext referencedFrom;
     private readonly TypeAnalysisContext? referencingType;
     private readonly MethodAnalysisContext? referencingMethod;
+    private readonly RuntimeContext runtimeContext;
 
-    public ContextResolver(AssemblyAnalysisContext referencedFrom)
+    public ContextResolver(AssemblyAnalysisContext referencedFrom, RuntimeContext runtimeContext)
     {
         this.referencedFrom = referencedFrom;
+        this.runtimeContext = runtimeContext;
     }
 
-    public ContextResolver(TypeAnalysisContext referencingType)
+    public ContextResolver(TypeAnalysisContext referencingType, RuntimeContext runtimeContext)
     {
         if (referencingType is ReferencedTypeAnalysisContext)
             throw new ArgumentException("Must be a simple type", nameof(referencingType));
         referencedFrom = referencingType.DeclaringAssembly;
         this.referencingType = referencingType;
+        this.runtimeContext = runtimeContext;
     }
 
-    public ContextResolver(MethodAnalysisContext referencingMethod)
+    public ContextResolver(MethodAnalysisContext referencingMethod, RuntimeContext runtimeContext)
     {
         if (referencingMethod is ConcreteGenericMethodAnalysisContext)
             throw new ArgumentException("Must be a simple method", nameof(referencingMethod));
         referencedFrom = referencingMethod.CustomAttributeAssembly;
         referencingType = referencingMethod.DeclaringType;
         this.referencingMethod = referencingMethod;
+        this.runtimeContext = runtimeContext;
     }
 
     public TypeAnalysisContext? Resolve(TypeSignature? type) => type switch
@@ -86,6 +90,16 @@ public readonly struct ContextResolver
 
     private TypeAnalysisContext? Resolve(TypeDefOrRefSignature typeDefOrRef)
     {
+        return Resolve(typeDefOrRef.Type);
+    }
+
+    private TypeAnalysisContext? Resolve(ITypeDefOrRef typeDefOrRef)
+    {
+        if (typeDefOrRef is TypeSpecification typeSpecification)
+        {
+            return Resolve(typeSpecification.Signature);
+        }
+
         if (typeDefOrRef.DeclaringType is not null)
         {
             if (!TryResolve(typeDefOrRef.DeclaringType, out var declaringType))
@@ -102,9 +116,9 @@ public readonly struct ContextResolver
             return null;
         }
 
-        if (typeDefOrRef.Type is not TypeDefinition)
+        if (typeDefOrRef is not TypeDefinition)
         {
-            typeDefOrRef = (TypeDefOrRefSignature?)typeDefOrRef.Resolve()?.ToTypeSignature() ?? typeDefOrRef;
+            typeDefOrRef = typeDefOrRef.TryResolve(runtimeContext) ?? typeDefOrRef;
         }
 
         var assemblyName = GetName(typeDefOrRef.Scope);
@@ -132,7 +146,12 @@ public readonly struct ContextResolver
 
     public TypeAnalysisContext? Resolve(ITypeDescriptor? type)
     {
-        return Resolve(type?.ToTypeSignature());
+        return type switch
+        {
+            TypeSignature signature => Resolve(signature),
+            ITypeDefOrRef typeDefOrRef => Resolve(typeDefOrRef),
+            _ => null,
+        };
     }
 
     public bool TryResolve(ITypeDescriptor? type, [NotNullWhen(true)] out TypeAnalysisContext? result)
@@ -169,7 +188,7 @@ public readonly struct ContextResolver
 
     public FieldAnalysisContext? Resolve(IFieldDescriptor fieldDescriptor)
     {
-        var declaringType = Resolve(fieldDescriptor.DeclaringType?.ToTypeSignature());
+        var declaringType = Resolve(fieldDescriptor.DeclaringType);
         if (declaringType is null)
             return null;
 
@@ -222,7 +241,7 @@ public readonly struct ContextResolver
 
         Debug.Assert(nonGenericDeclaringType is not ReferencedTypeAnalysisContext);
 
-        var targetMethod = new ContextResolver(nonGenericDeclaringType).ResolveInType(methodDefOrRef);
+        var targetMethod = new ContextResolver(nonGenericDeclaringType, runtimeContext).ResolveInType(methodDefOrRef);
         if (targetMethod is null)
             return null;
 
@@ -245,7 +264,7 @@ public readonly struct ContextResolver
     public MethodAnalysisContext? Resolve(MethodDefinition methodDefinition)
     {
         // The declaring type can be resolved with nothing, but resolution for the method itself requires a context.
-        return TryResolve(methodDefinition.DeclaringType, out var declaringType) ? new ContextResolver(declaringType).ResolveInType(methodDefinition) : null;
+        return TryResolve(methodDefinition.DeclaringType, out var declaringType) ? new ContextResolver(declaringType, runtimeContext).ResolveInType(methodDefinition) : null;
     }
 
     public MethodAnalysisContext? ResolveInType(IMethodDefOrRef methodDefOrRef)
@@ -274,7 +293,7 @@ public readonly struct ContextResolver
                 continue;
 
             // We need to use a resolver for the method context to resolve potential method generic parameters correctly.
-            var methodResolver = new ContextResolver(methodContext);
+            var methodResolver = new ContextResolver(methodContext, runtimeContext);
 
             if (!methodResolver.TryResolve(methodDefOrRef.Signature.ReturnType, out var returnType) ||
                 !TypeAnalysisContextEqualityComparer.Instance.Equals(methodContext.ReturnType, returnType))
@@ -303,63 +322,5 @@ public readonly struct ContextResolver
             return null;
 
         return baseMethod.MakeGenericInstanceMethod(methodTypeArguments);
-    }
-
-    public TypeAnalysisContext ResolveOrThrow(Type? type, bool allowGenericInstance = true)
-    {
-        return Resolve(type, allowGenericInstance) ?? throw new($"Unable to resolve type {type?.FullName}");
-    }
-
-    public TypeAnalysisContext? Resolve(Type? type) => Resolve(type, true);
-    public TypeAnalysisContext? Resolve(Type? type, bool allowGenericInstance)
-    {
-        if (type is null)
-            return null;
-
-        if (type.IsSZArray)
-            return Resolve(type.GetElementType())?.MakeSzArrayType();
-
-        if (type.IsByRef)
-            return Resolve(type.GetElementType())?.MakeByReferenceType();
-
-        if (type.IsPointer)
-            return Resolve(type.GetElementType())?.MakePointerType();
-
-        if (type.IsArray)
-            return Resolve(type.GetElementType())?.MakeArrayType(type.GetArrayRank());
-
-        if (type.IsGenericParameter)
-        {
-            if (type.IsGenericTypeParameter)
-            {
-                return TryGetGenericParameter(referencingType?.GenericParameters, type.GenericParameterPosition);
-            }
-            else
-            {
-                Debug.Assert(type.IsGenericMethodParameter);
-                return TryGetGenericParameter(referencingMethod?.GenericParameters, type.GenericParameterPosition);
-            }
-        }
-
-        if (type.IsGenericType && allowGenericInstance)
-        {
-            var genericArguments = type.GetGenericArguments().Select(Resolve).ToArray();
-            if (genericArguments.Any(x => x is null))
-                return null;
-
-            var genericType = type.GetGenericTypeDefinition();
-            return Resolve(genericType, false)?.MakeGenericInstanceType(genericArguments!);
-        }
-
-        if (type.IsFunctionPointer)
-            throw new NotSupportedException($"Function pointers are not supported: {type.Name}");
-
-        // Custom modifiers might be possible to support, but probably not necessary
-
-        var assemblyName = type.Assembly.GetName().Name!;
-        if (assemblyName == "System.Private.CoreLib")
-            assemblyName = "mscorlib";
-        var assembly = referencedFrom.AppContext.GetAssemblyByName(assemblyName);
-        return assembly?.GetTypeByFullName(type.FullName!);
     }
 }

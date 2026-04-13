@@ -18,10 +18,21 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
     {
         // Inject assemblies
         var assemblyDictionary = new Dictionary<ModuleDefinition, AssemblyAnalysisContext>(assemblyList.Count);
+        RuntimeContext? runtimeContext = null;
         foreach (var assembly in assemblyList)
         {
             if (IsEmpty(assembly.ManifestModule!))
                 continue; // Skip empty assemblies
+
+            var assemblyRuntimeContext = assembly.RuntimeContext ?? throw new InvalidOperationException("Assembly is missing runtime context");
+            if (runtimeContext is null)
+            {
+                runtimeContext = assemblyRuntimeContext;
+            }
+            else if (runtimeContext != assemblyRuntimeContext)
+            {
+                throw new InvalidOperationException("All assemblies must have the same runtime context");
+            }
 
             if (!appContext.AssembliesByName.TryGetValue(assembly.Name!, out var assemblyContext))
             {
@@ -29,6 +40,11 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                 assemblyContext.IsUnstripped = true;
             }
             assemblyDictionary.Add(assembly.ManifestModule!, assemblyContext);
+        }
+
+        if (runtimeContext is null)
+        {
+            return; // No assemblies were injected, so we can skip the rest of the process
         }
 
         // Inject types
@@ -66,7 +82,7 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
         // Set up type hierarchy
         foreach (var (type, typeContext) in injectedTypes)
         {
-            var resolver = new ContextResolver(typeContext);
+            var resolver = new ContextResolver(typeContext, runtimeContext);
             if (type.BaseType is not null)
             {
                 if (resolver.TryResolve(type.BaseType, out var baseTypeContext))
@@ -114,16 +130,16 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
         List<(MethodAnalysisContext, MethodDefinition)> methodsNeedingBodies = new();
         foreach (var (type, typeContext) in injectedTypes)
         {
-            CopyCustomAttributes(type, typeContext, typeContext.DeclaringAssembly);
+            CopyCustomAttributes(type, typeContext, typeContext.DeclaringAssembly, runtimeContext);
 
             for (var i = 0; i < type.GenericParameters.Count; i++)
             {
-                CopyCustomAttributes(type.GenericParameters[i], typeContext.GenericParameters[i], typeContext.DeclaringAssembly);
+                CopyCustomAttributes(type.GenericParameters[i], typeContext.GenericParameters[i], typeContext.DeclaringAssembly, runtimeContext);
             }
 
             foreach (var field in type.Fields)
             {
-                TryInjectField(field, typeContext);
+                TryInjectField(field, typeContext, runtimeContext);
             }
 
             Dictionary<MethodDefinition, MethodAnalysisContext> methodLookup = new();
@@ -135,7 +151,7 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                     continue;
                 }
 
-                if (TryInjectMethod(method, typeContext, out var methodContext))
+                if (TryInjectMethod(method, typeContext, runtimeContext, out var methodContext))
                 {
                     methodLookup.Add(method, methodContext);
                     methodsNeedingBodies.Add((methodContext, method));
@@ -144,12 +160,12 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
 
             foreach (var property in type.Properties)
             {
-                TryInjectProperty(property, typeContext, methodLookup);
+                TryInjectProperty(property, typeContext, runtimeContext, methodLookup);
             }
 
             foreach (var @event in type.Events)
             {
-                TryInjectEvent(@event, typeContext, methodLookup);
+                TryInjectEvent(@event, typeContext, runtimeContext, methodLookup);
             }
 
             foreach (var implementation in type.MethodImplementations)
@@ -177,13 +193,13 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                 if (field.Constant is null)
                     continue; // Skip fields without a constant value
 
-                TryInjectField(field, typeContext);
+                TryInjectField(field, typeContext, runtimeContext);
             }
 
             Dictionary<MethodDefinition, MethodAnalysisContext> methodLookup = new();
             foreach (var method in type.Methods)
             {
-                var existingMethodContext = new ContextResolver(typeContext).ResolveInType(method);
+                var existingMethodContext = new ContextResolver(typeContext, runtimeContext).ResolveInType(method);
                 if (existingMethodContext is not null)
                 {
                     methodLookup.Add(method, existingMethodContext);
@@ -206,7 +222,7 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                     continue;
                 }
 
-                if (!TryInjectMethod(method, typeContext, out var methodContext))
+                if (!TryInjectMethod(method, typeContext, runtimeContext, out var methodContext))
                     continue;
 
                 methodLookup.Add(method, methodContext);
@@ -241,7 +257,7 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                 if (typeContext.Properties.Any(p => p.Name == property.Name))
                     continue; // Already present
 
-                TryInjectProperty(property, typeContext, methodLookup);
+                TryInjectProperty(property, typeContext, runtimeContext, methodLookup);
             }
 
             foreach (var @event in type.Events)
@@ -249,14 +265,14 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                 if (typeContext.Events.Any(e => e.Name == @event.Name))
                     continue; // Already present
 
-                TryInjectEvent(@event, typeContext, methodLookup);
+                TryInjectEvent(@event, typeContext, runtimeContext, methodLookup);
             }
         }
 
         // Assign method overrides
         foreach (var (methodContext, declaration) in methodsNeedingOverrides)
         {
-            var declarationContext = new ContextResolver(methodContext.DeclaringType!).Resolve(declaration);
+            var declarationContext = new ContextResolver(methodContext.DeclaringType!, runtimeContext).Resolve(declaration);
             if (declarationContext is not null)
             {
                 methodContext.Overrides.Add((MethodAnalysisContext)declarationContext);
@@ -269,7 +285,7 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
             var successfulCount = 0;
             foreach (var (methodContext, methodDefinition) in methodsNeedingBodies)
             {
-                var successful = OriginalMethodBody.MaybeStoreOriginalMethodBody(methodDefinition, methodContext);
+                var successful = OriginalMethodBody.MaybeStoreOriginalMethodBody(methodDefinition, methodContext, runtimeContext);
                 if (successful)
                 {
                     successfulCount++;
@@ -311,9 +327,9 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
         }
     }
 
-    private static bool TryInjectField(FieldDefinition field, TypeAnalysisContext typeContext)
+    private static bool TryInjectField(FieldDefinition field, TypeAnalysisContext typeContext, RuntimeContext runtimeContext)
     {
-        if (field.Name is not null && new ContextResolver(typeContext).TryResolve(field.Signature?.FieldType, out var fieldTypeContext))
+        if (field.Name is not null && new ContextResolver(typeContext, runtimeContext).TryResolve(field.Signature?.FieldType, out var fieldTypeContext))
         {
             var fieldContext = new InjectedFieldAnalysisContext(
                 field.Name!,
@@ -322,14 +338,9 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                 typeContext);
             typeContext.Fields.Add(fieldContext);
 
-            if (field.Constant is { Type: not AsmResolver.PE.DotNet.Metadata.Tables.ElementType.Class })
-            {
-                fieldContext.OverrideConstantValue = field.Constant.Value?.InterpretData(field.Constant.Type);
-            }
-            // https://github.com/Washi1337/AsmResolver/pull/627
-            //fieldContext.OverrideConstantValue = field.Constant?.InterpretData();
+            fieldContext.OverrideConstantValue = field.Constant?.InterpretData();
 
-            CopyCustomAttributes(field, fieldContext, typeContext.DeclaringAssembly);
+            CopyCustomAttributes(field, fieldContext, typeContext.DeclaringAssembly, runtimeContext);
 
             fieldContext.IsUnstripped = true;
 
@@ -339,7 +350,7 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
         return false;
     }
 
-    private static bool TryInjectMethod(MethodDefinition method, TypeAnalysisContext typeContext, [NotNullWhen(true)] out InjectedMethodAnalysisContext? methodContext)
+    private static bool TryInjectMethod(MethodDefinition method, TypeAnalysisContext typeContext, RuntimeContext runtimeContext, [NotNullWhen(true)] out InjectedMethodAnalysisContext? methodContext)
     {
         // Due to an unfortunate reality of resolving types, we need to create a method and add it to our target type before we can resolve its signature.
         // This is because the method signature can reference the method's generic parameters, so we need to create the method first.
@@ -361,7 +372,7 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
 
         typeContext.Methods.Add(methodContext);
 
-        var methodResolver = new ContextResolver(methodContext);
+        var methodResolver = new ContextResolver(methodContext, runtimeContext);
 
         if (!methodResolver.TryResolve(method.Signature?.ReturnType, out var returnTypeContext))
         {
@@ -387,29 +398,29 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
             }
         }
 
-        if (!TryAddGenericConstraints(method, methodContext))
+        if (!TryAddGenericConstraints(method, methodContext, runtimeContext))
         {
             typeContext.Methods.Remove(methodContext);
             return false;
         }
 
-        CopyCustomAttributes(method, methodContext, typeContext.DeclaringAssembly);
+        CopyCustomAttributes(method, methodContext, typeContext.DeclaringAssembly, runtimeContext);
         for (var i = 0; i < method.Parameters.Count; i++)
         {
-            CopyCustomAttributes(method.Parameters[i].GetOrCreateDefinition(), methodContext.Parameters[i], typeContext.DeclaringAssembly);
+            CopyCustomAttributes(method.Parameters[i].GetOrCreateDefinition(), methodContext.Parameters[i], typeContext.DeclaringAssembly, runtimeContext);
         }
         for (var i = 0; i < method.GenericParameters.Count; i++)
         {
-            CopyCustomAttributes(method.GenericParameters[i], methodContext.GenericParameters[i], typeContext.DeclaringAssembly);
+            CopyCustomAttributes(method.GenericParameters[i], methodContext.GenericParameters[i], typeContext.DeclaringAssembly, runtimeContext);
         }
 
         methodContext.IsUnstripped = true;
 
         return true;
 
-        static bool TryAddGenericConstraints(MethodDefinition method, InjectedMethodAnalysisContext methodContext)
+        static bool TryAddGenericConstraints(MethodDefinition method, InjectedMethodAnalysisContext methodContext, RuntimeContext runtimeContext)
         {
-            var methodResolver = new ContextResolver(methodContext);
+            var methodResolver = new ContextResolver(methodContext, runtimeContext);
             var anyInvalidConstraints = false;
             for (var i = 0; i < method.GenericParameters.Count; i++)
             {
@@ -435,9 +446,9 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
         }
     }
 
-    private static bool TryInjectProperty(PropertyDefinition property, TypeAnalysisContext typeContext, Dictionary<MethodDefinition, MethodAnalysisContext> methodLookup)
+    private static bool TryInjectProperty(PropertyDefinition property, TypeAnalysisContext typeContext, RuntimeContext runtimeContext, Dictionary<MethodDefinition, MethodAnalysisContext> methodLookup)
     {
-        var resolver = new ContextResolver(typeContext);
+        var resolver = new ContextResolver(typeContext, runtimeContext);
 
         if (!resolver.TryResolve(property.Signature?.ReturnType, out var propertyTypeContext))
             return false;
@@ -459,18 +470,18 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
             typeContext);
         typeContext.Properties.Add(propertyContext);
 
-        CopyCustomAttributes(property, propertyContext, typeContext.DeclaringAssembly);
+        CopyCustomAttributes(property, propertyContext, typeContext.DeclaringAssembly, runtimeContext);
 
         propertyContext.IsUnstripped = true;
 
         return true;
     }
 
-    private static bool TryInjectEvent(EventDefinition @event, TypeAnalysisContext typeContext, Dictionary<MethodDefinition, MethodAnalysisContext> methodLookup)
+    private static bool TryInjectEvent(EventDefinition @event, TypeAnalysisContext typeContext, RuntimeContext runtimeContext, Dictionary<MethodDefinition, MethodAnalysisContext> methodLookup)
     {
-        var resolver = new ContextResolver(typeContext);
+        var resolver = new ContextResolver(typeContext, runtimeContext);
 
-        if (!resolver.TryResolve(@event.EventType!.ToTypeSignature(), out var eventTypeContext))
+        if (!resolver.TryResolve(@event.EventType, out var eventTypeContext))
             return false;
 
         var addMethodContext = methodLookup.TryGetValue(@event.AddMethod);
@@ -495,21 +506,21 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
             typeContext);
         typeContext.Events.Add(eventContext);
 
-        CopyCustomAttributes(@event, eventContext, typeContext.DeclaringAssembly);
+        CopyCustomAttributes(@event, eventContext, typeContext.DeclaringAssembly, runtimeContext);
 
         eventContext.IsUnstripped = true;
 
         return true;
     }
 
-    private static void CopyCustomAttributes(IHasCustomAttribute source, HasCustomAttributes destination, AssemblyAnalysisContext assembly)
+    private static void CopyCustomAttributes(IHasCustomAttribute source, HasCustomAttributes destination, AssemblyAnalysisContext assembly, RuntimeContext runtimeContext)
     {
         foreach (var customAttribute in source.CustomAttributes)
         {
             if (customAttribute.Constructor is null or { Signature: null or { ParameterTypes.Count: > 0 } })
                 continue; // Skip custom attributes with parameters or an invalid constructor
 
-            if (!new ContextResolver(assembly).TryResolve(customAttribute.Constructor, out var constructorContext))
+            if (!new ContextResolver(assembly, runtimeContext).TryResolve(customAttribute.Constructor, out var constructorContext))
                 continue; // Skip custom attributes with an invalid constructor
 
             destination.CustomAttributes ??= [];

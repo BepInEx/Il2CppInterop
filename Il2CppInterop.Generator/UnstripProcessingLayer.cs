@@ -22,9 +22,15 @@ public class UnstripProcessingLayer : UnstripBaseProcessingLayer
                 return;
             }
 
+            RuntimeContext runtimeContext = new(DotNetRuntimeInfo.NetFramework(4, 7), null, KnownCorLibs.MsCorLib_v4_0_0_0, null, Directory.GetDirectories(directoryPath, "*", SearchOption.AllDirectories).Append(directoryPath));
             assemblyList = Directory.GetFiles(directoryPath, "*.dll", SearchOption.AllDirectories)
-                .Select(AssemblyDefinition.FromFile)
+                .Select(path => AssemblyDefinition.FromFile(path, createRuntimeContext: false))
                 .ToList();
+
+            foreach (var assembly in assemblyList)
+            {
+                runtimeContext.AddAssembly(assembly);
+            }
         }
 
         if (assemblyList.Count == 0)

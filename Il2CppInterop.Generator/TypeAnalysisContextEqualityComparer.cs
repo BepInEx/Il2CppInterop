@@ -257,14 +257,46 @@ public class TypeAnalysisContextEqualityComparer :
             else if (y.DeclaringType is not null)
                 return false;
 
-            //AssemblyDescriptor assemblyDescriptor = y.Scope as AssemblyDescriptor ?? (y.Scope as ModuleReference)?.
-            return false;
+            return true;
         }
     }
 
     public bool Equals(TypeAnalysisContext? x, ITypeDescriptor? y)
     {
-        return Equals(x, y?.ToTypeSignature());
+        return y switch
+        {
+            null => x is null,
+            TypeSignature typeSignature => Equals(x, typeSignature),
+            ITypeDefOrRef typeDefOrRef => Equals(x, typeDefOrRef),
+            _ => false,
+        };
+    }
+
+    public bool Equals(TypeAnalysisContext? x, ITypeDefOrRef? y)
+    {
+        if (y is TypeSpecification typeSpecification)
+            return Equals(x, typeSpecification.Signature);
+        if (x is null)
+            return y is null;
+        if (y is null)
+            return false;
+        if (x is ReferencedTypeAnalysisContext)
+            return false;
+
+        return SimpleTypeEquals(x, y);
+
+        bool SimpleTypeEquals(TypeAnalysisContext x, ITypeDefOrRef y)
+        {
+            if (x.Name != y.Name || x.Namespace != y.Namespace)
+                return false;
+
+            if (x.DeclaringType is not null)
+                return Equals(x.DeclaringType, y.DeclaringType);
+            else if (y.DeclaringType is not null)
+                return false;
+
+            return true;
+        }
     }
 
     public bool Equals(GenericInstanceTypeAnalysisContext? x, GenericInstanceTypeSignature? y)
