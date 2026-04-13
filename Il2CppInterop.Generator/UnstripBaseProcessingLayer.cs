@@ -190,7 +190,7 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                 if (typeContext.Fields.Any(f => f.Name == field.Name))
                     continue; // Already present
 
-                if (field.Constant is null)
+                if (field.Constant?.InterpretData() is null)
                     continue; // Skip fields without a constant value
 
                 TryInjectField(field, typeContext, runtimeContext);

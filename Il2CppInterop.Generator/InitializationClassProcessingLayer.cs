@@ -206,6 +206,9 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         if (field.IsInjected)
                             continue;
 
+                        if (field.IsUnstripped && !type.IsUnstripped)
+                            continue;
+
                         field.InitializationClassIndex = index;
 
                         var infoStore = initializationType.InjectFieldContext(
