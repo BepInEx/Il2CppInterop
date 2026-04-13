@@ -44,7 +44,7 @@ public class MscorlibAssemblyInjectionProcessingLayer : UnstripBaseProcessingLay
 
         Logger.InfoNewline($"Injecting new mscorlib...", nameof(MscorlibAssemblyInjectionProcessingLayer));
 
-        InjectAssemblies(appContext, [mscorlib], false);
+        InjectAssemblies(appContext, [mscorlib], false, true);
 
         // Need to reset the system types context to use the new corlib
         appContext.SystemTypes = new SystemTypesContext(appContext);

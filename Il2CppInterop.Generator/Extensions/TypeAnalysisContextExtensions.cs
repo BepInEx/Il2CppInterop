@@ -139,7 +139,7 @@ internal static class TypeAnalysisContextExtensions
             return instructions;
         }
 
-        public MethodAnalysisContext GetMethodByName(string name)
+        public MethodAnalysisContext? TryGetMethodByName(string name)
         {
             for (var i = type.Methods.Count - 1; i >= 0; i--)
             {
@@ -149,7 +149,12 @@ internal static class TypeAnalysisContextExtensions
                     return method;
                 }
             }
-            throw new Exception($"Method {name} not found in type {type.Name}");
+            return null;
+        }
+
+        public MethodAnalysisContext GetMethodByName(string name)
+        {
+            return type.TryGetMethodByName(name) ?? throw new Exception($"Method {name} not found in type {type.Name}");
         }
 
         public FieldAnalysisContext GetFieldByName(string? name)

@@ -14,7 +14,7 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
     public const string AssembliesKey = "unstrip-assemblies";
     public const string DirectoryKey = "unstrip-directory";
 
-    protected static void InjectAssemblies(ApplicationAnalysisContext appContext, IReadOnlyList<AssemblyDefinition> assemblyList, bool storeMethodBodies)
+    protected static void InjectAssemblies(ApplicationAnalysisContext appContext, IReadOnlyList<AssemblyDefinition> assemblyList, bool storeMethodBodies, bool allowGenericTypes)
     {
         // Inject assemblies
         var assemblyDictionary = new Dictionary<ModuleDefinition, AssemblyAnalysisContext>(assemblyList.Count);
@@ -50,33 +50,162 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
         // Inject types
         var injectedTypes = new List<(TypeDefinition, InjectedTypeAnalysisContext)>();
         var existingTypes = new List<(TypeDefinition, TypeAnalysisContext)>();
-        foreach ((var module, var assemblyContext) in assemblyDictionary)
+        if (allowGenericTypes)
         {
-            foreach (var type in module.TopLevelTypes)
+            foreach ((var module, var assemblyContext) in assemblyDictionary)
             {
-                var typeContext = assemblyContext.GetTypeByFullName(type.FullName);
-                if (typeContext is null)
+                foreach (var type in module.TopLevelTypes)
                 {
-                    typeContext = assemblyContext.InjectType((string?)type.Namespace ?? "", (string?)type.Name ?? "", null, (System.Reflection.TypeAttributes)type.Attributes);
-                    foreach (var genericParameter in type.GenericParameters)
+                    var typeContext = assemblyContext.GetTypeByFullName(type.FullName);
+                    if (typeContext is null)
                     {
-                        var genericParameterContext = new GenericParameterTypeAnalysisContext(
-                            genericParameter.Name!,
-                            genericParameter.Number,
-                            Il2CppTypeEnum.IL2CPP_TYPE_VAR,
-                            (System.Reflection.GenericParameterAttributes)genericParameter.Attributes,
-                            typeContext);
-                        typeContext.GenericParameters.Add(genericParameterContext);
+                        typeContext = assemblyContext.InjectType((string?)type.Namespace ?? "", (string?)type.Name ?? "", null, (System.Reflection.TypeAttributes)type.Attributes);
+                        foreach (var genericParameter in type.GenericParameters)
+                        {
+                            var genericParameterContext = new GenericParameterTypeAnalysisContext(
+                                genericParameter.Name!,
+                                genericParameter.Number,
+                                Il2CppTypeEnum.IL2CPP_TYPE_VAR,
+                                (System.Reflection.GenericParameterAttributes)genericParameter.Attributes,
+                                typeContext);
+                            typeContext.GenericParameters.Add(genericParameterContext);
+                        }
+                        injectedTypes.Add((type, (InjectedTypeAnalysisContext)typeContext));
+                        typeContext.IsUnstripped = true;
                     }
-                    injectedTypes.Add((type, (InjectedTypeAnalysisContext)typeContext));
+                    else
+                    {
+                        existingTypes.Add((type, typeContext));
+                    }
+                    InjectNestedTypes(type, typeContext, injectedTypes, existingTypes);
+                }
+            }
+        }
+        else
+        {
+            var nonExistingTypes = new Queue<TypeDefinition>();
+            var existingTypesDictionary = new Dictionary<TypeDefinition, TypeAnalysisContext>(runtimeContext.SignatureComparer);
+            foreach ((var module, var assemblyContext) in assemblyDictionary)
+            {
+                foreach (var type in module.TopLevelTypes)
+                {
+                    var typeContext = assemblyContext.GetTypeByFullName(type.FullName);
+                    if (typeContext is null)
+                    {
+                        nonExistingTypes.Enqueue(type);
+                        AddNestedTypes(type, nonExistingTypes);
+                    }
+                    else
+                    {
+                        existingTypesDictionary.Add(type, typeContext);
+                        AddNestedTypes(type, typeContext, nonExistingTypes, existingTypesDictionary);
+                    }
+                }
+            }
+
+            var invalidTypes = new HashSet<TypeDefinition>(runtimeContext.SignatureComparer);
+            var injectedTypesDictionary = new Dictionary<TypeDefinition, TypeAnalysisContext>(runtimeContext.SignatureComparer);
+            while (nonExistingTypes.TryDequeue(out var nonExistingType))
+            {
+                if (nonExistingType.GenericParameters.Count > 0)
+                {
+                    invalidTypes.Add(nonExistingType);
+                    continue;
+                }
+
+                var baseType = nonExistingType.BaseType;
+                if (baseType is not null)
+                {
+                    var baseTypeResolved = baseType.TryResolve(runtimeContext);
+                    if (baseTypeResolved is null)
+                    {
+                        invalidTypes.Add(nonExistingType);
+                        continue;
+                    }
+
+                    if (baseTypeResolved.GenericParameters.Count > 0)
+                    {
+                        invalidTypes.Add(nonExistingType);
+                        continue;
+                    }
+
+                    if (invalidTypes.Contains(baseTypeResolved))
+                    {
+                        invalidTypes.Add(nonExistingType);
+                        continue;
+                    }
+
+                    if (!existingTypesDictionary.ContainsKey(baseTypeResolved) && !injectedTypesDictionary.ContainsKey(baseTypeResolved))
+                    {
+                        nonExistingTypes.Enqueue(nonExistingType);
+                        continue;
+                    }
+                }
+
+                var shouldSkipToNextType = false;
+                foreach (var interfaceType in nonExistingType.Interfaces.Select(i => i.Interface))
+                {
+                    var interfaceTypeResolved = interfaceType?.TryResolve(runtimeContext);
+                    if (interfaceTypeResolved is null)
+                    {
+                        invalidTypes.Add(nonExistingType);
+                        shouldSkipToNextType = true;
+                        break;
+                    }
+                    if (interfaceTypeResolved.GenericParameters.Count > 0)
+                    {
+                        invalidTypes.Add(nonExistingType);
+                        shouldSkipToNextType = true;
+                        break;
+                    }
+                    if (invalidTypes.Contains(interfaceTypeResolved))
+                    {
+                        invalidTypes.Add(nonExistingType);
+                        shouldSkipToNextType = true;
+                        break;
+                    }
+                    if (!existingTypesDictionary.ContainsKey(interfaceTypeResolved) && !injectedTypesDictionary.ContainsKey(interfaceTypeResolved))
+                    {
+                        nonExistingTypes.Enqueue(nonExistingType);
+                        shouldSkipToNextType = true;
+                        break;
+                    }
+                }
+                if (shouldSkipToNextType)
+                {
+                    continue;
+                }
+
+                if (nonExistingType.DeclaringType is null)
+                {
+                    var typeContext = assemblyDictionary[nonExistingType.DeclaringModule!].InjectType((string?)nonExistingType.Namespace ?? "", (string?)nonExistingType.Name ?? "", null, (System.Reflection.TypeAttributes)nonExistingType.Attributes);
+                    injectedTypesDictionary.Add(nonExistingType, typeContext);
+                    typeContext.IsUnstripped = true;
+                }
+                else if (invalidTypes.Contains(nonExistingType.DeclaringType))
+                {
+                    invalidTypes.Add(nonExistingType);
+                }
+                else if (nonExistingType.DeclaringType.GenericParameters.Count > 0)
+                {
+                    invalidTypes.Add(nonExistingType);
+                }
+                else if (existingTypesDictionary.TryGetValue(nonExistingType.DeclaringType, out var declaringTypeContext) || injectedTypesDictionary.TryGetValue(nonExistingType.DeclaringType, out declaringTypeContext))
+                {
+                    var typeContext = declaringTypeContext.InjectNestedType((string?)nonExistingType.Name ?? "", null, (System.Reflection.TypeAttributes)nonExistingType.Attributes);
+                    injectedTypesDictionary.Add(nonExistingType, typeContext);
                     typeContext.IsUnstripped = true;
                 }
                 else
                 {
-                    existingTypes.Add((type, typeContext));
+                    nonExistingTypes.Enqueue(nonExistingType);
                 }
-                InjectNestedTypes(type, typeContext, injectedTypes, existingTypes);
             }
+
+            injectedTypes.Capacity = injectedTypesDictionary.Count;
+            existingTypes.Capacity = existingTypesDictionary.Count;
+            injectedTypes.AddRange(injectedTypesDictionary.Select(kv => (kv.Key, (InjectedTypeAnalysisContext)kv.Value)));
+            existingTypes.AddRange(existingTypesDictionary.Select(kv => (kv.Key, kv.Value)));
         }
 
         // Set up type hierarchy
@@ -294,6 +423,33 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
 
             // Report how many method bodies were successfully stored.
             Logger.InfoNewline($"Recovered the original method body for {successfulCount}/{methodsNeedingBodies.Count} attempts.", nameof(UnstripBaseProcessingLayer));
+        }
+    }
+
+    private static void AddNestedTypes(TypeDefinition declaringType, TypeAnalysisContext declaringTypeContext, Queue<TypeDefinition> nonExistingTypes, Dictionary<TypeDefinition, TypeAnalysisContext> existingTypes)
+    {
+        foreach (var nestedType in declaringType.NestedTypes)
+        {
+            var nestedTypeContext = declaringTypeContext.NestedTypes.FirstOrDefault(t => t.Name == nestedType.Name);
+            if (nestedTypeContext is null)
+            {
+                nonExistingTypes.Enqueue(nestedType);
+                AddNestedTypes(nestedType, nonExistingTypes);
+            }
+            else
+            {
+                existingTypes.Add(nestedType, nestedTypeContext);
+                AddNestedTypes(nestedType, nestedTypeContext, nonExistingTypes, existingTypes);
+            }
+        }
+    }
+
+    private static void AddNestedTypes(TypeDefinition declaringType, Queue<TypeDefinition> nonExistingTypes)
+    {
+        foreach (var nestedType in declaringType.NestedTypes)
+        {
+            nonExistingTypes.Enqueue(nestedType);
+            AddNestedTypes(nestedType, nonExistingTypes);
         }
     }
 

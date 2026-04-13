@@ -41,6 +41,6 @@ public class UnstripProcessingLayer : UnstripBaseProcessingLayer
 
         Logger.InfoNewline($"Unstripping {assemblyList.Count} assemblies...", nameof(UnstripProcessingLayer));
 
-        InjectAssemblies(appContext, assemblyList, true);
+        InjectAssemblies(appContext, assemblyList, true, false);
     }
 }

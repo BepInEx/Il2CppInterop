@@ -61,7 +61,13 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                     }
                 }
 
-                var invokeMethod = type.GetMethodByName("Invoke");
+                var invokeMethod = type.TryGetMethodByName("Invoke");
+                if (invokeMethod is null)
+                {
+                    // The delegate does not have an Invoke method.
+                    // This can happen if the delegate is unstripped, but a parameter type could not unstripped.
+                    continue;
+                }
 
                 TypeAnalysisContext managedDelegateType;
 
