@@ -169,7 +169,7 @@ public static class Pass50GenerateMethods
                         else
                         {
                             bodyBuilder.EmitObjectToPointer(originalMethod.Parameters[i].ParameterType, newParam.ParameterType,
-                                methodRewriteContext.DeclaringType, argOffset + i, false, true, true, false, out var refVar);
+                                methodRewriteContext.DeclaringType, argOffset + i, false, true, true, out var refVar);
                             if (refVar != null)
                                 byRefParams.Add((i, refVar));
                         }
@@ -205,7 +205,7 @@ public static class Pass50GenerateMethods
                         bodyBuilder.Add(OpCodes.Ldc_I4_0);
                     else
                         bodyBuilder.EmitObjectToPointer(originalMethod.DeclaringType.ToTypeSignature(), newMethod.DeclaringType!.ToTypeSignature(), typeContext, 0,
-                            true, false, true, true, out _);
+                            true, false, true, out _);
 
                     bodyBuilder.Add(OpCodes.Ldloc, argArray);
                     bodyBuilder.Add(OpCodes.Ldloca, exceptionLocal);

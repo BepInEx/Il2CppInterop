@@ -146,7 +146,7 @@ public static class ILGeneratorEx
 
     public static void EmitObjectToPointer(this ILProcessor body, TypeSignature originalType, TypeSignature newType,
         TypeRewriteContext enclosingType, int argumentIndex, bool valueTypeArgument0IsAPointer, bool allowNullable,
-        bool unboxNonBlittableType, bool unboxNonBlittableGeneric, out CilLocalVariable? refVariable)
+        bool unboxNonBlittableType, out CilLocalVariable? refVariable)
     {
         // input stack: not used
         // output stack: IntPtr to either Il2CppObject or IL2CPP value type
@@ -155,7 +155,7 @@ public static class ILGeneratorEx
         if (originalType is GenericParameterSignature)
         {
             EmitObjectToPointerGeneric(body, originalType, newType, enclosingType, argumentIndex,
-                valueTypeArgument0IsAPointer, allowNullable, unboxNonBlittableGeneric);
+                valueTypeArgument0IsAPointer, allowNullable, unboxNonBlittableType);
             return;
         }
 
@@ -261,6 +261,12 @@ public static class ILGeneratorEx
             body.Add(OpCodes.Dup);
             body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_object_get_class.Value);
             body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_class_is_valuetype.Value);
+            body.Add(OpCodes.Brfalse_S, finalNop); // return reference types immediately
+            body.Add(OpCodes.Ldtoken, imports.Il2CppSystemValueType.ToTypeDefOrRef());
+            body.Add(OpCodes.Call, enclosingType.NewType.Module!.TypeGetTypeFromHandle());
+            body.Add(OpCodes.Ldtoken, newType.ToTypeDefOrRef());
+            body.Add(OpCodes.Call, enclosingType.NewType.Module!.TypeGetTypeFromHandle());
+            body.Add(OpCodes.Call, enclosingType.NewType.Module!.TypeGetIsAssignableFrom());
             body.Add(OpCodes.Brfalse_S, finalNop); // return reference types immediately
             body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_object_unbox.Value);
         }
