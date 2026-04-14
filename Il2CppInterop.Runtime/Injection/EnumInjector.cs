@@ -7,6 +7,7 @@ using Il2CppInterop.Runtime.Runtime;
 using Il2CppSystem;
 using Microsoft.Extensions.Logging;
 using ArgumentException = System.ArgumentException;
+using ArgumentNullException = System.ArgumentNullException;
 using Convert = System.Convert;
 using Enum = System.Enum;
 using IntPtr = System.IntPtr;
@@ -33,14 +34,14 @@ public static unsafe class EnumInjector
 
     public static void InjectEnumValues(Type type, Dictionary<string, object> valuesToAdd)
     {
-        if (type == null)
-            throw new ArgumentException("Type argument cannot be null");
+        ArgumentNullException.ThrowIfNull(type);
+
         if (!type.IsEnum)
-            throw new ArgumentException("Type argument needs to be an enum");
+            throw new ArgumentException("Type argument needs to be an enum", nameof(type));
 
         var enumPtr = Il2CppClassPointerStore.GetNativeClassPointer(type);
         if (enumPtr == IntPtr.Zero)
-            throw new ArgumentException("Type needs to be an Il2Cpp enum");
+            throw new ArgumentException("Type needs to be an Il2Cpp enum", nameof(type));
 
         InjectorHelpers.Setup();
 
@@ -86,8 +87,7 @@ public static unsafe class EnumInjector
         il2cppEnum.FieldCount = (ushort)newFieldCount;
         il2cppEnum.Fields = newFields;
 
-        var runtimeEnumType = Il2CppType.TypeFromPointer(enumPtr) as RuntimeType;
-        if (runtimeEnumType != null)
+        if (Il2CppType.TypeFromPointer(enumPtr) is RuntimeType runtimeEnumType)
             // The mono runtime caches the enum names and values the first time they are requested, so we reset this cache
             runtimeEnumType.GenericCache = null;
     }
@@ -110,7 +110,7 @@ public static unsafe class EnumInjector
             Il2CppTypeEnum.IL2CPP_TYPE_I8 => sizeof(long),
             Il2CppTypeEnum.IL2CPP_TYPE_U8 => sizeof(ulong),
 
-            _ => throw new ArgumentException($"The type provided {type} is invalid")
+            _ => throw new ArgumentException($"The type provided {type} is invalid", nameof(type))
         };
     }
 
@@ -173,22 +173,21 @@ public static unsafe class EnumInjector
                 *(ulong*)blob = (ulong)valueData;
                 break;
 
-            default: throw new ArgumentException($"The type provided {type} is invalid");
+            default: throw new ArgumentException($"The type provided {type} is invalid", nameof(type));
         }
     }
 
-    public static void RegisterEnumInIl2Cpp<TEnum>(bool logSuccess = true) where TEnum : Enum
+    public static void RegisterEnumInIl2Cpp<TEnum>() where TEnum : Enum
     {
-        RegisterEnumInIl2Cpp(typeof(TEnum), logSuccess);
+        RegisterEnumInIl2Cpp(typeof(TEnum));
     }
 
-    public static void RegisterEnumInIl2Cpp(Type type, bool logSuccess = true)
+    public static void RegisterEnumInIl2Cpp(Type type)
     {
-        if (type == null)
-            throw new ArgumentException("Type argument cannot be null");
+        ArgumentNullException.ThrowIfNull(type);
 
         if (!type.IsEnum)
-            throw new ArgumentException("Type argument needs to be an enum");
+            throw new ArgumentException("Type argument needs to be an enum", nameof(type));
 
         var enumPtr = Il2CppClassPointerStore.GetNativeClassPointer(type);
         if (enumPtr != IntPtr.Zero)
@@ -291,8 +290,5 @@ public static unsafe class EnumInjector
         Il2CppClassPointerStore.SetNativeClassPointer(type, il2cppEnum.Pointer);
 
         InjectorHelpers.AddTypeToLookup(type, il2cppEnum.Pointer);
-
-        if (logSuccess)
-            Logger.Instance.LogInformation("Registered managed enum {Type} in il2cpp domain", type);
     }
 }
