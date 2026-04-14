@@ -15,11 +15,4 @@
     <ProjectReference Include="..\Il2CppInterop.Runtime\Il2CppInterop.Runtime.csproj"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="Il2Cppmscorlib">
-      <Private>false</Private>
-      <HintPath>..\Il2CppInterop.Runtime\Libs\Il2Cppmscorlib.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>
