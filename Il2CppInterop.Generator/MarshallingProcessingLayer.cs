@@ -30,7 +30,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
         var iil2CppTypeGeneric_WriteToSpan = iil2CppTypeGeneric.GetMethodByName(nameof(IIl2CppType<>.WriteToSpan));
 
         var il2CppClassPointerStore = appContext.ResolveTypeOrThrow(typeof(Il2CppClassPointerStore<>));
-        var il2CppClassPointerStore_NativeClassPtr = il2CppClassPointerStore.GetFieldByName(nameof(Il2CppClassPointerStore<>.NativeClassPtr));
+        var il2CppClassPointerStore_NativeClassPointer = il2CppClassPointerStore.GetFieldByName(nameof(Il2CppClassPointerStore<>.NativeClassPointer));
 
         var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeHelper));
         var il2CppTypeHelper_ReadReference = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.ReadReference));
@@ -109,7 +109,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     {
                         Instructions =
                         [
-                            new Instruction(CilOpCodes.Ldsfld, new ConcreteGenericFieldAnalysisContext(il2CppClassPointerStore_NativeClassPtr, il2CppClassPointerStore.MakeGenericInstanceType([classReferenceType]))),
+                            new Instruction(CilOpCodes.Ldsfld, new ConcreteGenericFieldAnalysisContext(il2CppClassPointerStore_NativeClassPointer, il2CppClassPointerStore.MakeGenericInstanceType([classReferenceType]))),
                             new Instruction(CilOpCodes.Ret),
                         ],
                     });

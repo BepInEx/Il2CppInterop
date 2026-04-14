@@ -10,7 +10,7 @@ public unsafe partial class ClassInjector
 {
     public static void Dump<T>()
     {
-        Dump((Il2CppClass*)Il2CppClassPointerStore<T>.NativeClassPtr);
+        Dump((Il2CppClass*)Il2CppClassPointerStore<T>.NativeClassPointer);
     }
 
     private static string ToString(Il2CppClass* il2CppClass)

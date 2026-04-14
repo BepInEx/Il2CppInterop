@@ -28,8 +28,8 @@ internal class XrefScanImpl : IXrefScannerImpl
         if (valueAtMov != nint.Zero)
         {
             var targetClass = (nint)Marshal.ReadInt64(valueAtMov);
-            return targetClass == Il2CppClassPointerStore<String>.NativeClassPtr ||
-                   targetClass == Il2CppClassPointerStore<Type>.NativeClassPtr;
+            return targetClass == Il2CppClassPointerStore<String>.NativeClassPointer ||
+                   targetClass == Il2CppClassPointerStore<Type>.NativeClassPointer;
         }
 
         return false;

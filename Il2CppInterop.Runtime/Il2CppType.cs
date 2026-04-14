@@ -49,7 +49,7 @@ public static class Il2CppType
 
     public static Type? Of<T>(bool throwOnFailure)
     {
-        var classPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
+        var classPointer = Il2CppClassPointerStore<T>.NativeClassPointer;
         return TypeFromPointerInternal(classPointer, typeof(T).Name, throwOnFailure);
     }
 }

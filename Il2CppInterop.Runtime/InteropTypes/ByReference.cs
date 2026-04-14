@@ -76,7 +76,7 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
 
     private static int ReferenceSize => T.Size;
 
-    readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<ByReference<T>>.NativeClassPtr;
+    readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<ByReference<T>>.NativeClassPointer;
 
     static int IIl2CppType<ByReference<T>>.Size => IntPtr.Size;
 

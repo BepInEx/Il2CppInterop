@@ -37,7 +37,7 @@ public unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>>
 
     static int IIl2CppType<Pointer<T>>.Size => IntPtr.Size;
 
-    readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Pointer<T>>.NativeClassPtr;
+    readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Pointer<T>>.NativeClassPointer;
 
     static Pointer<T> IIl2CppType<Pointer<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => (Pointer<T>)(void*)Il2CppTypeHelper.ReadPointer(span);
     static void IIl2CppType<Pointer<T>>.WriteToSpan(Pointer<T> value, Span<byte> span) => Il2CppTypeHelper.WritePointer((IntPtr)value._pointer, span);

@@ -99,7 +99,7 @@ public abstract class Il2CppArrayBase : Il2CppSystem.Array
         where TArray : Il2CppArrayBase
         where TElement : IIl2CppType<TElement>
     {
-        Il2CppClassPointerStore<TArray>.NativeClassPtr = IL2CPP.il2cpp_array_class_get(Il2CppClassPointerStore<TElement>.NativeClassPtr, rank);
+        Il2CppClassPointerStore<TArray>.NativeClassPointer = IL2CPP.il2cpp_array_class_get(Il2CppClassPointerStore<TElement>.NativeClassPointer, rank);
     }
 }
 public abstract class Il2CppArrayBase<T> : Il2CppArrayBase

@@ -240,7 +240,7 @@ public static class DelegateSupport
         if (classTypePtr == IntPtr.Zero)
             throw new ArgumentException($"Type {typeof(TIl2Cpp)} has uninitialized class pointer");
 
-        if (Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPtr == IntPtr.Zero)
+        if (Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPointer == IntPtr.Zero)
             ClassInjector.RegisterTypeInIl2Cpp<Il2CppToMonoDelegateReference>();
 
         var il2CppDelegateType = Il2CppSystem.Type.internal_from_handle(IL2CPP.il2cpp_class_get_type(classTypePtr));
@@ -266,7 +266,7 @@ public static class DelegateSupport
             }
 
             var classPointerFromManagedType = (IntPtr)typeof(Il2CppClassPointerStore<>).MakeGenericType(managedType)
-                .GetField(nameof(Il2CppClassPointerStore<>.NativeClassPtr))!.GetValue(null)!;
+                .GetField(nameof(Il2CppClassPointerStore<>.NativeClassPointer))!.GetValue(null)!;
 
             var classPointerFromNativeType = IL2CPP.il2cpp_class_from_type(nativeType._impl.value);
 
@@ -401,7 +401,7 @@ public static class DelegateSupport
 
         static int IIl2CppType<Il2CppToMonoDelegateReference>.Size => nint.Size;
 
-        nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPtr;
+        nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPointer;
 
         static Il2CppToMonoDelegateReference? IIl2CppType<Il2CppToMonoDelegateReference>.ReadFromSpan(ReadOnlySpan<byte> span)
         {

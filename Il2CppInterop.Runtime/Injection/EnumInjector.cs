@@ -196,7 +196,7 @@ public static unsafe class EnumInjector
         InjectorHelpers.Setup();
 
         var baseEnum =
-            UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<Il2CppSystem.Enum>.NativeClassPtr);
+            UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<Il2CppSystem.Enum>.NativeClassPointer);
 
         InjectorHelpers.ClassInit(baseEnum.ClassPointer);
 

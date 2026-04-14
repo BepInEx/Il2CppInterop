@@ -33,7 +33,7 @@ public sealed class Il2CppArrayRank1<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
     static Il2CppArrayRank1()
     {
         SetClassPointer<Il2CppArrayRank1<T>, T>(1);
-        Il2CppObjectPool.RegisterInitializer(Il2CppClassPointerStore<Il2CppArrayRank1<T>>.NativeClassPtr, static (ptr) => new Il2CppArrayRank1<T>(ptr));
+        Il2CppObjectPool.RegisterInitializer(Il2CppClassPointerStore<Il2CppArrayRank1<T>>.NativeClassPointer, static (ptr) => new Il2CppArrayRank1<T>(ptr));
     }
 
     public Il2CppArrayRank1(ObjectPointer pointer) : base(pointer)
@@ -56,7 +56,7 @@ public sealed class Il2CppArrayRank1<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
     {
         ArgumentOutOfRangeException.ThrowIfNegative(length);
 
-        var elementTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
+        var elementTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPointer;
         if (elementTypeClassPointer == IntPtr.Zero)
             throw new ArgumentException($"{nameof(Il2CppArrayRank1<>)} requires an Il2Cpp type, which {typeof(T)} isn't");
         return (ObjectPointer)IL2CPP.il2cpp_array_new(elementTypeClassPointer, (ulong)length);
@@ -165,7 +165,7 @@ public sealed class Il2CppArrayRank1<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
 
     #region IIl2CppType Implementation
     static int IIl2CppType<Il2CppArrayRank1<T>>.Size => IntPtr.Size;
-    nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppArrayRank2<T>>.NativeClassPtr;
+    nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppArrayRank2<T>>.NativeClassPointer;
     static void IIl2CppType<Il2CppArrayRank1<T>>.WriteToSpan(Il2CppArrayRank1<T>? value, Span<byte> span) => Il2CppTypeHelper.WriteReference(value, span);
     static Il2CppArrayRank1<T>? IIl2CppType<Il2CppArrayRank1<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => Il2CppTypeHelper.ReadReference<Il2CppArrayRank1<T>>(span);
     #endregion

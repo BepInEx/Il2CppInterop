@@ -225,7 +225,7 @@ public static unsafe partial class IL2CPP
 
     public static ObjectPointer NewObjectPointer<T>()
     {
-        return (ObjectPointer)il2cpp_object_new(Il2CppClassPointerStore<T>.NativeClassPtr);
+        return (ObjectPointer)il2cpp_object_new(Il2CppClassPointerStore<T>.NativeClassPointer);
     }
 
     public static nint Il2CppGCHandleGetTargetOrThrow(nint gchandle)

@@ -29,7 +29,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var runClassConstructor = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.Runtime.CompilerServices.RuntimeHelpers")
             .Methods.First(m => m.Name == nameof(RuntimeHelpers.RunClassConstructor) && m.Parameters[0].ParameterType != appContext.SystemTypes.SystemIntPtrType);
         var il2CppClassPointerStore = appContext.ResolveTypeOrThrow(typeof(Il2CppClassPointerStore<>));
-        var classPointerField = il2CppClassPointerStore.GetFieldByName("NativeClassPtr");
+        var classPointerField = il2CppClassPointerStore.GetFieldByName(nameof(Il2CppClassPointerStore<>.NativeClassPointer));
 
         var il2CppStaticClass = appContext.ResolveTypeOrThrow(typeof(IL2CPP));
         var getIl2CppNestedType = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppNestedType));
@@ -139,7 +139,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(new Instruction(CilOpCodes.Ldtoken, typeToInitialize.DeclaringType));
                             instructions.Add(new Instruction(CilOpCodes.Call, runClassConstructor));
 
-                            // Il2CppClassPointerStore<NestedClass>.NativeClassPtr = IL2CPP.GetIl2CppNestedType(Il2CppClassPointerStore<DeclaringType>.NativeClassPtr, "NestedClass");
+                            // Il2CppClassPointerStore<NestedClass>.NativeClassPointer = IL2CPP.GetIl2CppNestedType(Il2CppClassPointerStore<DeclaringType>.NativeClassPointer, "NestedClass");
                             var declaringTypeClassPointerField = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([typeToInitialize.DeclaringType]));
                             instructions.Add(new Instruction(CilOpCodes.Ldsfld, declaringTypeClassPointerField));
                             instructions.Add(new Instruction(CilOpCodes.Ldstr, type.DefaultName));// typeToInitialize can have the wrong DefaultName
@@ -147,7 +147,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         }
                         else
                         {
-                            // Il2CppClassPointerStore<Class>.NativeClassPtr = IL2CPP.GetIl2CppClass("Assembly-CSharp.dll", "", "Class");
+                            // Il2CppClassPointerStore<Class>.NativeClassPointer = IL2CPP.GetIl2CppClass("Assembly-CSharp.dll", "", "Class");
                             var assemblyName = assembly.DefaultName;
                             if (!assemblyName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) && assemblyName is not "__Generated")
                             {
@@ -176,11 +176,11 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         instructions.Add(new Instruction(CilOpCodes.Stsfld, concreteClassPointerField));
                     }
 
-                    // IL2CPP.il2cpp_runtime_class_init(Il2CppClassPointerStore<Class>.NativeClassPtr);
+                    // IL2CPP.il2cpp_runtime_class_init(Il2CppClassPointerStore<Class>.NativeClassPointer);
                     instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
                     instructions.Add(new Instruction(CilOpCodes.Call, il2CppRuntimeClassInit));
 
-                    // Size = IL2CPP.il2cpp_class_value_size(Il2CppClassPointerStore<Class>.NativeClassPtr, ref align);
+                    // Size = IL2CPP.il2cpp_class_value_size(Il2CppClassPointerStore<Class>.NativeClassPointer, ref align);
                     if (type.IsValueType)
                     {
                         var sizeStore = initializationType.InjectFieldContext(
@@ -198,7 +198,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         instructions.Add(new Instruction(CilOpCodes.Stsfld, instantiatedSizeStore));
                     }
 
-                    // FieldOffset_0 = (int)IL2CPP.il2cpp_field_get_offset(IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Class>.NativeClassPtr, "field_name"));
+                    // FieldOffset_0 = (int)IL2CPP.il2cpp_field_get_offset(IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Class>.NativeClassPointer, "field_name"));
                     for (var index = 0; index < type.Fields.Count; index++)
                     {
                         var field = type.Fields[index];

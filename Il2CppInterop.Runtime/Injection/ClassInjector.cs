@@ -506,7 +506,7 @@ public static unsafe partial class ClassInjector
         converted.MethodPointer = Marshal.GetFunctionPointerForDelegate(voidCtor);
         converted.Slot = ushort.MaxValue;
         converted.ReturnType =
-            (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore<Void>.NativeClassPtr);
+            (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore<Void>.NativeClassPointer);
 
         converted.Flags = Il2CppMethodFlags.METHOD_ATTRIBUTE_PUBLIC |
                           Il2CppMethodFlags.METHOD_ATTRIBUTE_HIDE_BY_SIG |
@@ -742,7 +742,7 @@ public static unsafe partial class ClassInjector
                 var returnValue = body.DeclareLocal(monoMethod.ReturnType);
                 body.Emit(OpCodes.Stloc, returnValue);
                 var classField = typeof(Il2CppClassPointerStore<>).MakeGenericType(monoMethod.ReturnType)
-                    .GetField(nameof(Il2CppClassPointerStore<int>.NativeClassPtr));
+                    .GetField(nameof(Il2CppClassPointerStore<int>.NativeClassPointer));
                 body.Emit(OpCodes.Ldsfld, classField);
                 body.Emit(OpCodes.Ldloca, returnValue);
                 body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_value_box))!);

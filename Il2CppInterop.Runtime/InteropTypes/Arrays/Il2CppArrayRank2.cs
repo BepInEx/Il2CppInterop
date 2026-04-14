@@ -10,19 +10,19 @@ public sealed class Il2CppArrayRank2<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
 {
     static int IIl2CppType<Il2CppArrayRank2<T>>.Size => IntPtr.Size;
 
-    nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppArrayRank2<T>>.NativeClassPtr;
+    nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppArrayRank2<T>>.NativeClassPointer;
 
     static Il2CppArrayRank2()
     {
         SetClassPointer<Il2CppArrayRank2<T>, T>(2);
-        Il2CppObjectPool.RegisterInitializer(Il2CppClassPointerStore<Il2CppArrayRank2<T>>.NativeClassPtr, static (ptr) => new Il2CppArrayRank2<T>(ptr));
+        Il2CppObjectPool.RegisterInitializer(Il2CppClassPointerStore<Il2CppArrayRank2<T>>.NativeClassPointer, static (ptr) => new Il2CppArrayRank2<T>(ptr));
     }
 
     public Il2CppArrayRank2(ObjectPointer pointer) : base(pointer)
     {
     }
 
-    public Il2CppArrayRank2(int length0, int length1) : base([length0, length1], Il2CppClassPointerStore<Il2CppArrayRank2<T>>.NativeClassPtr)
+    public Il2CppArrayRank2(int length0, int length1) : base([length0, length1], Il2CppClassPointerStore<Il2CppArrayRank2<T>>.NativeClassPointer)
     {
     }
 
