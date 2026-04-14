@@ -42,7 +42,7 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(IL2CPP),
             typeof(Il2CppClassPointerStore<>),
             typeof(Il2CppObjectPool),
-            typeof(ClassInjector),
+            typeof(TypeInjector),
             typeof(DelegateSupport),
             typeof(Pointer<>),
             typeof(ByReference<>),

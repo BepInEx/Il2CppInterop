@@ -44,10 +44,10 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var getIl2CppValueSize = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2cppValueSize));
         var resolveICall = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.ResolveICall));
 
-        var classInjector = appContext.ResolveTypeOrThrow(typeof(ClassInjector));
-        var registerTypeInIl2Cpp = classInjector.Methods.Single(m =>
+        var typeInjector = appContext.ResolveTypeOrThrow(typeof(TypeInjector));
+        var registerTypeInIl2Cpp = typeInjector.Methods.Single(m =>
         {
-            return m.Name == nameof(ClassInjector.RegisterTypeInIl2Cpp) && m.Parameters.Count is 0 && m.GenericParameters.Count == 1;
+            return m.Name == nameof(TypeInjector.RegisterTypeInIl2Cpp) && m.Parameters.Count is 0 && m.GenericParameters.Count == 1;
         });
 
         var multicastDelegateType = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.MulticastDelegate");
