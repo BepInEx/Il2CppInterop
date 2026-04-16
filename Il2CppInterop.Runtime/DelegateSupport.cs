@@ -6,6 +6,7 @@ using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Text;
 using Il2CppInterop.Common;
+using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.CoreLib;
@@ -377,14 +378,38 @@ public static class DelegateSupport
 
     private class Il2CppToMonoDelegateReference : Object, IIl2CppType<Il2CppToMonoDelegateReference>
     {
-        public IntPtr MethodInfo;
-        public Delegate ReferencedDelegate;
+        [Il2CppField]
+        public Il2CppSystem.IntPtr MethodInfo
+        {
+            get => FieldAccess.GetInstanceFieldValue<Il2CppSystem.IntPtr>(this, MethodInfoFieldOffset);
+            set => FieldAccess.SetInstanceFieldValue(this, MethodInfoFieldOffset, value);
+        }
+        [Il2CppField]
+        private Il2CppSystem.IntPtr DelegateHandleValue
+        {
+            get => FieldAccess.GetInstanceFieldValue<Il2CppSystem.IntPtr>(this, DelegateHandleFieldOffset);
+            set => FieldAccess.SetInstanceFieldValue(this, DelegateHandleFieldOffset, value);
+        }
+        private GCHandle<Delegate> DelegateHandle
+        {
+            get => GCHandle<Delegate>.FromIntPtr(DelegateHandleValue);
+            set => DelegateHandleValue = GCHandle<Delegate>.ToIntPtr(value);
+        }
+        public Delegate ReferencedDelegate
+        {
+            get => DelegateHandle.Target;
+            set
+            {
+                DelegateHandle.Dispose();
+                DelegateHandle = value is not null ? new(value) : default;
+            }
+        }
 
         public Il2CppToMonoDelegateReference(ObjectPointer obj0) : base(obj0)
         {
         }
 
-        public Il2CppToMonoDelegateReference(Delegate referencedDelegate, IntPtr methodInfo) : base(IL2CPP.NewObjectPointer<Il2CppToMonoDelegateReference>())
+        public Il2CppToMonoDelegateReference(Delegate referencedDelegate, IntPtr methodInfo) : this(IL2CPP.NewObjectPointer<Il2CppToMonoDelegateReference>())
         {
             ClassInjector.DerivedConstructorBody(this);
 
@@ -392,6 +417,7 @@ public static class DelegateSupport
             MethodInfo = methodInfo;
         }
 
+        // When an API for injecting finalizers is available, we can make this disposal happen when the object is collected by the Il2Cpp GC instead of the managed GC.
         ~Il2CppToMonoDelegateReference()
         {
             Marshal.FreeHGlobal(MethodInfo);
@@ -411,6 +437,16 @@ public static class DelegateSupport
         static void IIl2CppType<Il2CppToMonoDelegateReference>.WriteToSpan(Il2CppToMonoDelegateReference? value, Span<byte> span)
         {
             Il2CppTypeHelper.WriteReference(value, span);
+        }
+
+        static readonly int MethodInfoFieldOffset;
+        static readonly int DelegateHandleFieldOffset;
+
+        static Il2CppToMonoDelegateReference()
+        {
+            TypeInjector.RegisterTypeInIl2Cpp<Il2CppToMonoDelegateReference>();
+            MethodInfoFieldOffset = (int)IL2CPP.il2cpp_field_get_offset(IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPointer, nameof(MethodInfo)));
+            DelegateHandleFieldOffset = (int)IL2CPP.il2cpp_field_get_offset(IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPointer, nameof(DelegateHandleValue)));
         }
     }
 }
