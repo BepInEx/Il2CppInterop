@@ -158,7 +158,7 @@ public static class Il2CppTypeHelper
         {
             return @object.Pointer;
         }
-        else if (value is IIl2CppValueType valueType)
+        else if (value is Il2CppSystem.IValueType valueType)
         {
             int size = valueType.Size;
             byte* data = stackalloc byte[size];

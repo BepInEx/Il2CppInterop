@@ -17,10 +17,6 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
         var iil2CppType = appContext.ResolveTypeOrThrow(typeof(IIl2CppType));
         var iil2CppType_get_ObjectClass = iil2CppType.GetMethodByName($"get_{nameof(IIl2CppType.ObjectClass)}");
 
-        var iil2CppValueType = appContext.ResolveTypeOrThrow(typeof(IIl2CppValueType));
-        var iil2CppValueType_get_Size = iil2CppValueType.GetMethodByName($"get_{nameof(IIl2CppValueType.Size)}");
-        var iil2CppValueType_WriteToSpan = iil2CppValueType.GetMethodByName(nameof(IIl2CppValueType.WriteToSpan));
-
         var iil2CppTypeGeneric = appContext.ResolveTypeOrThrow(typeof(IIl2CppType<>));
         var iil2CppTypeGeneric_get_Size = iil2CppTypeGeneric.GetMethodByName($"get_{nameof(IIl2CppType<>.Size)}");
         var iil2CppTypeGeneric_get_AssemblyName = iil2CppTypeGeneric.GetMethodByName($"get_{nameof(IIl2CppType<>.AssemblyName)}");
@@ -47,6 +43,51 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
         var il2CppSystemIValueType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IValueType");
         var il2CppSystemIEnum = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IEnum");
 
+        var il2CppSystemValueType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.ValueType");
+
+        // IValueType.Size
+        MethodAnalysisContext il2cppSystemIValueType_get_Size;
+        {
+            il2cppSystemIValueType_get_Size = new InjectedMethodAnalysisContext(
+                il2CppSystemIValueType,
+                $"get_{nameof(Il2CppSystem.IValueType.Size)}",
+                appContext.SystemTypes.SystemInt32Type,
+                MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Abstract | MethodAttributes.Virtual | MethodAttributes.SpecialName | MethodAttributes.NewSlot,
+                [])
+            {
+                IsInjected = true,
+            };
+            il2CppSystemIValueType.Methods.Add(il2cppSystemIValueType_get_Size);
+
+            var property = new InjectedPropertyAnalysisContext(
+                nameof(Il2CppSystem.IValueType.Size),
+                il2cppSystemIValueType_get_Size.ReturnType,
+                il2cppSystemIValueType_get_Size,
+                null,
+                PropertyAttributes.None,
+                il2CppSystemIValueType)
+            {
+                IsInjected = true,
+            };
+            il2CppSystemIValueType.Properties.Add(property);
+        }
+
+        // IValueType.WriteToSpan(Span<byte>)
+        MethodAnalysisContext il2cppSystemIValueType_WriteToSpan;
+        {
+            var spanOfByteType = il2CppTypeHelper_WriteToSpan.Parameters[^1].ParameterType;
+            il2cppSystemIValueType_WriteToSpan = new InjectedMethodAnalysisContext(
+                il2CppSystemIValueType,
+                nameof(Il2CppSystem.IValueType.WriteToSpan),
+                appContext.SystemTypes.SystemVoidType,
+                MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Abstract | MethodAttributes.Virtual | MethodAttributes.NewSlot,
+                [spanOfByteType])
+            {
+                IsInjected = true,
+            };
+            il2CppSystemIValueType.Methods.Add(il2cppSystemIValueType_WriteToSpan);
+        }
+
         foreach (var assembly in appContext.Assemblies)
         {
             if (assembly.IsReferenceAssembly || assembly.IsInjected)
@@ -62,11 +103,6 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                 var instantiatedType = type.SelfInstantiateIfGeneric();
                 var instantiatedIl2CppTypeGeneric = iil2CppTypeGeneric.MakeGenericInstanceType([instantiatedType]);
                 type.InterfaceContexts.Add(instantiatedIl2CppTypeGeneric);
-
-                if (type.IsValueType)
-                {
-                    type.InterfaceContexts.Add(iil2CppValueType);
-                }
 
                 TypeAnalysisContext nameReferenceType;
                 TypeAnalysisContext classReferenceType;
@@ -130,86 +166,88 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
 
                 // Size
                 {
-                    var instantiated_iil2CppTypeGeneric_get_Size = new ConcreteGenericMethodAnalysisContext(iil2CppTypeGeneric_get_Size, [instantiatedType], []);
-                    var methodName = $"{instantiatedIl2CppTypeGeneric.FullName}.get_{nameof(IIl2CppType<>.Size)}";
-                    var method = new InjectedMethodAnalysisContext(
-                        type,
-                        methodName,
-                        instantiated_iil2CppTypeGeneric_get_Size.ReturnType,
-                        MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
-                        [])
-                    {
-                        IsInjected = true,
-                    };
-                    type.Methods.Add(method);
-                    method.Overrides.Add(instantiated_iil2CppTypeGeneric_get_Size);
-
                     var instantiatedSizeStorage = type.SizeStorage is null
                         ? null
                         : type.GenericParameters.Count > 0
                             ? type.SizeStorage!.MakeConcreteGeneric(type.GenericParameters)
                             : type.SizeStorage;
 
-                    method.PutExtraData(new NativeMethodBody()
+                    // IIl2CppType<T>.Size
                     {
-                        Instructions =
-                        [
-                            instantiatedSizeStorage is not null ? new Instruction(CilOpCodes.Ldsfld, instantiatedSizeStorage) : new Instruction(CilOpCodes.Call, intPtr_get_Size),
-                            new Instruction(CilOpCodes.Ret),
-                        ],
-                    });
-
-                    var propertyName = $"{instantiatedIl2CppTypeGeneric.FullName}.{nameof(IIl2CppType<>.Size)}";
-                    var property = new InjectedPropertyAnalysisContext(
-                        propertyName,
-                        method.ReturnType,
-                        method,
-                        null,
-                        PropertyAttributes.None,
-                        type)
-                    {
-                        IsInjected = true,
-                    };
-                    type.Properties.Add(property);
-
-                    // IIl2CppValueType.Size
-                    if (type.IsValueType)
-                    {
-                        Debug.Assert(instantiatedSizeStorage is not null);
-                        var valueTypeMethodName = $"{iil2CppValueType.FullName}.get_{nameof(IIl2CppValueType.Size)}";
-                        var valueTypeMethod = new InjectedMethodAnalysisContext(
+                        var instantiated_iil2CppTypeGeneric_get_Size = new ConcreteGenericMethodAnalysisContext(iil2CppTypeGeneric_get_Size, [instantiatedType], []);
+                        var methodName = $"{instantiatedIl2CppTypeGeneric.FullName}.get_{nameof(IIl2CppType<>.Size)}";
+                        var method = new InjectedMethodAnalysisContext(
                             type,
-                            valueTypeMethodName,
-                            iil2CppValueType_get_Size.ReturnType,
-                            MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.Final | MethodAttributes.SpecialName | MethodAttributes.NewSlot,
+                            methodName,
+                            instantiated_iil2CppTypeGeneric_get_Size.ReturnType,
+                            MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
                             [])
                         {
                             IsInjected = true,
                         };
-                        type.Methods.Add(valueTypeMethod);
-                        valueTypeMethod.Overrides.Add(iil2CppValueType_get_Size);
+                        type.Methods.Add(method);
+                        method.Overrides.Add(instantiated_iil2CppTypeGeneric_get_Size);
 
-                        valueTypeMethod.PutExtraData(new NativeMethodBody()
+                        method.PutExtraData(new NativeMethodBody()
                         {
                             Instructions =
                             [
-                                new Instruction(CilOpCodes.Ldsfld, instantiatedSizeStorage),
+                                instantiatedSizeStorage is not null ? new Instruction(CilOpCodes.Ldsfld, instantiatedSizeStorage) : new Instruction(CilOpCodes.Call, intPtr_get_Size),
                                 new Instruction(CilOpCodes.Ret),
                             ],
                         });
 
-                        var valueTypePropertyName = $"{iil2CppValueType.FullName}.{nameof(IIl2CppValueType.Size)}";
-                        var valueTypeProperty = new InjectedPropertyAnalysisContext(
-                            valueTypePropertyName,
-                            valueTypeMethod.ReturnType,
-                            valueTypeMethod,
+                        var propertyName = $"{instantiatedIl2CppTypeGeneric.FullName}.{nameof(IIl2CppType<>.Size)}";
+                        var property = new InjectedPropertyAnalysisContext(
+                            propertyName,
+                            method.ReturnType,
+                            method,
                             null,
                             PropertyAttributes.None,
                             type)
                         {
                             IsInjected = true,
                         };
-                        type.Properties.Add(valueTypeProperty);
+                        type.Properties.Add(property);
+                    }
+
+                    // IValueType.Size
+                    if (type.IsValueType || type == il2CppSystemValueType)
+                    {
+                        var methodName = $"{il2CppSystemIValueType.FullName}.get_{nameof(Il2CppSystem.IValueType.Size)}";
+                        var method = new InjectedMethodAnalysisContext(
+                            type,
+                            methodName,
+                            il2cppSystemIValueType_get_Size.ReturnType,
+                            MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.Final | MethodAttributes.SpecialName | MethodAttributes.NewSlot,
+                            [])
+                        {
+                            IsInjected = true,
+                        };
+                        type.Methods.Add(method);
+                        method.Overrides.Add(il2cppSystemIValueType_get_Size);
+
+                        method.PutExtraData(new NativeMethodBody()
+                        {
+                            Instructions =
+                            [
+                                instantiatedSizeStorage is not null ? new Instruction(CilOpCodes.Ldsfld, instantiatedSizeStorage) : new Instruction(CilOpCodes.Call, intPtr_get_Size),
+                                new Instruction(CilOpCodes.Ret),
+                            ],
+                        });
+
+                        var propertyName = $"{il2CppSystemIValueType.FullName}.{nameof(Il2CppSystem.IValueType.Size)}";
+                        var property = new InjectedPropertyAnalysisContext(
+                            propertyName,
+                            method.ReturnType,
+                            method,
+                            null,
+                            PropertyAttributes.None,
+                            type)
+                        {
+                            IsInjected = true,
+                        };
+                        type.Properties.Add(property);
                     }
                 }
 
@@ -507,33 +545,49 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         });
                     }
                 }
-                // IIl2CppValueType.WriteToSpan
-                if (type.IsValueType)
+                // IValueType.WriteToSpan
+                if (type.IsValueType || type == il2CppSystemValueType)
                 {
-                    var methodName = $"{iil2CppValueType.FullName}.{nameof(IIl2CppValueType.WriteToSpan)}";
+                    var methodName = $"{il2CppSystemIValueType.FullName}.{nameof(Il2CppSystem.IValueType.WriteToSpan)}";
                     var method = new InjectedMethodAnalysisContext(
                         type,
                         methodName,
-                        iil2CppValueType_WriteToSpan.ReturnType,
+                        il2cppSystemIValueType_WriteToSpan.ReturnType,
                         MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.Final | MethodAttributes.NewSlot,
-                        iil2CppValueType_WriteToSpan.Parameters.Select(p => p.ParameterType).ToArray())
+                        il2cppSystemIValueType_WriteToSpan.Parameters.Select(p => p.ParameterType).ToArray())
                     {
                         IsInjected = true,
                     };
                     type.Methods.Add(method);
-                    method.Overrides.Add(iil2CppValueType_WriteToSpan);
+                    method.Overrides.Add(il2cppSystemIValueType_WriteToSpan);
 
-                    method.PutExtraData(new NativeMethodBody()
+                    if (type.IsValueType)
                     {
-                        Instructions =
-                        [
-                            new Instruction(CilOpCodes.Ldarg_0),
-                            new Instruction(CilOpCodes.Ldobj, instantiatedType),
-                            new Instruction(CilOpCodes.Ldarg_1),
-                            new Instruction(CilOpCodes.Call, il2CppTypeHelper_WriteToSpan.MakeGenericInstanceMethod(instantiatedType)),
-                            new Instruction(CilOpCodes.Ret),
-                        ],
-                    });
+                        method.PutExtraData(new NativeMethodBody()
+                        {
+                            Instructions =
+                            [
+                                new Instruction(CilOpCodes.Ldarg_0),
+                                new Instruction(CilOpCodes.Ldobj, instantiatedType),
+                                new Instruction(CilOpCodes.Ldarg_1),
+                                new Instruction(CilOpCodes.Call, il2CppTypeHelper_WriteToSpan.MakeGenericInstanceMethod(instantiatedType)),
+                                new Instruction(CilOpCodes.Ret),
+                            ],
+                        });
+                    }
+                    else
+                    {
+                        method.PutExtraData(new NativeMethodBody()
+                        {
+                            Instructions =
+                            [
+                                new Instruction(CilOpCodes.Ldarg_0),
+                                new Instruction(CilOpCodes.Ldarg_1),
+                                new Instruction(CilOpCodes.Call, il2CppTypeHelper_WriteReference.MakeGenericInstanceMethod(instantiatedType)),
+                                new Instruction(CilOpCodes.Ret),
+                            ],
+                        });
+                    }
                 }
             }
         }
