@@ -1,4 +1,5 @@
 using System;
+using Il2CppInterop.Common;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 

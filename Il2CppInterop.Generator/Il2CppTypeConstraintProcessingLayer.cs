@@ -1,6 +1,6 @@
 ﻿using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
-using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppInterop.Common;
 
 namespace Il2CppInterop.Generator;
 

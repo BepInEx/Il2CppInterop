@@ -1,10 +1,8 @@
-using System;
-
-namespace Il2CppInterop.Runtime.InteropTypes;
+namespace Il2CppInterop.Common;
 
 public interface IIl2CppType
 {
-    IntPtr ObjectClass => Il2CppClassPointerStore.GetNativeClassPointer(GetType());
+    IntPtr ObjectClass { get; }
 }
 public interface IIl2CppType<TSelf> : IIl2CppType where TSelf : notnull, IIl2CppType<TSelf>
 {

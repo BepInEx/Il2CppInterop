@@ -1,4 +1,5 @@
 ﻿using System;
+using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.InteropTypes;
 
 namespace Il2CppInterop.Runtime.Injection;
