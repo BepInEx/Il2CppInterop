@@ -165,7 +165,7 @@ public sealed class Il2CppArrayRank1<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
 
     #region IIl2CppType Implementation
     static int IIl2CppType<Il2CppArrayRank1<T>>.Size => IntPtr.Size;
-    nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppArrayRank2<T>>.NativeClassPointer;
+    nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppArrayRank1<T>>.NativeClassPointer;
     static void IIl2CppType<Il2CppArrayRank1<T>>.WriteToSpan(Il2CppArrayRank1<T>? value, Span<byte> span) => Il2CppTypeHelper.WriteReference(value, span);
     static Il2CppArrayRank1<T>? IIl2CppType<Il2CppArrayRank1<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => Il2CppTypeHelper.ReadReference<Il2CppArrayRank1<T>>(span);
     #endregion

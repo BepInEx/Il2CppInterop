@@ -4,7 +4,7 @@ namespace Il2CppInterop.Runtime.InteropTypes;
 
 public interface IIl2CppType
 {
-    IntPtr ObjectClass { get; }
+    IntPtr ObjectClass => Il2CppClassPointerStore.GetNativeClassPointer(GetType());
 }
 public interface IIl2CppType<TSelf> : IIl2CppType where TSelf : notnull, IIl2CppType<TSelf>
 {
