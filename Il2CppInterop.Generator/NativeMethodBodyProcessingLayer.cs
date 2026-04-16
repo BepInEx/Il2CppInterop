@@ -13,11 +13,11 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
     public override string Id => "native_method_body_processor";
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
-        var runtimeInvokeHelper = appContext.ResolveTypeOrThrow(typeof(RuntimeInvokeHelper));
-        var invokeAction = runtimeInvokeHelper.GetMethodByName(nameof(RuntimeInvokeHelper.InvokeAction));
-        var invokeFunction = runtimeInvokeHelper.GetMethodByName(nameof(RuntimeInvokeHelper.InvokeFunction));
-        var getPointerForThis = runtimeInvokeHelper.GetMethodByName(nameof(RuntimeInvokeHelper.GetPointerForThis));
-        var getPointerForParameter = runtimeInvokeHelper.GetMethodByName(nameof(RuntimeInvokeHelper.GetPointerForParameter));
+        var runtimeInvokeHelper = appContext.ResolveTypeOrThrow(typeof(RuntimeInvoke));
+        var invokeAction = runtimeInvokeHelper.GetMethodByName(nameof(RuntimeInvoke.InvokeAction));
+        var invokeFunction = runtimeInvokeHelper.GetMethodByName(nameof(RuntimeInvoke.InvokeFunction));
+        var getPointerForThis = runtimeInvokeHelper.GetMethodByName(nameof(RuntimeInvoke.GetPointerForThis));
+        var getPointerForParameter = runtimeInvokeHelper.GetMethodByName(nameof(RuntimeInvoke.GetPointerForParameter));
 
         var intptrPointerType = appContext.SystemTypes.SystemIntPtrType.MakePointerType();
 

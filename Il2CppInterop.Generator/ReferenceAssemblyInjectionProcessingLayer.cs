@@ -48,12 +48,12 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(ByReference<>),
             typeof(ByReference),
             typeof(Il2CppType),
-            typeof(FieldAccessHelper),
+            typeof(FieldAccess),
             typeof(IIl2CppType),
             typeof(IIl2CppType<>),
             typeof(IIl2CppValueType),
             typeof(IIl2CppException),
-            typeof(RuntimeInvokeHelper),
+            typeof(RuntimeInvoke),
             typeof(Il2CppTypeHelper),
 
             // Because of ClassInjector

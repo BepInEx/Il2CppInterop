@@ -4,7 +4,7 @@ using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 
-public static unsafe class RuntimeInvokeHelper
+public static unsafe class RuntimeInvoke
 {
     private static IntPtr Il2CppRuntimeInvoke(IntPtr method, IntPtr obj, void** parameters)
     {

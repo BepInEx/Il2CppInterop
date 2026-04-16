@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 
-public static unsafe class FieldAccessHelper
+public static unsafe class FieldAccess
 {
     public static T? GetStaticFieldValue<T>(IntPtr fieldInfoPtr) where T : IIl2CppType<T>
     {
@@ -79,7 +79,7 @@ public static unsafe class FieldAccessHelper
     private static class FunctionPointerCache<T> where T : IIl2CppType<T>
     {
         public static readonly delegate*<Object, int, T?, void> SetInstanceFieldValue = WbarriorSupport
-            ? &FieldAccessHelper.SetInstanceFieldValue_Wbarrior
-            : &FieldAccessHelper.SetInstanceFieldValue_Pointer;
+            ? &FieldAccess.SetInstanceFieldValue_Wbarrior
+            : &FieldAccess.SetInstanceFieldValue_Pointer;
     }
 }
