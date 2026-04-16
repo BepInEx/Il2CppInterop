@@ -238,8 +238,13 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         instructions.Add(new Instruction(CilOpCodes.Stsfld, instantiatedInfoStore));
                         instructions.Add(new Instruction(CilOpCodes.Call, il2CppFieldGetOffset));
                         instructions.Add(new Instruction(CilOpCodes.Conv_I4));
-                        instructions.Add(new Instruction(CilOpCodes.Ldc_I4, headerSize)); // il2cpp_field_get_offset returns offset including the object header
-                        instructions.Add(new Instruction(CilOpCodes.Sub));
+                        if (type.IsValueType)
+                        {
+                            // il2cpp_field_get_offset returns offset including the object header
+                            // For value types, we need to subtract the header size to get the offset of the field within the struct
+                            instructions.Add(new Instruction(CilOpCodes.Ldc_I4, headerSize));
+                            instructions.Add(new Instruction(CilOpCodes.Sub));
+                        }
                         instructions.Add(new Instruction(CilOpCodes.Stsfld, instantiatedOffsetStore));
                     }
 
