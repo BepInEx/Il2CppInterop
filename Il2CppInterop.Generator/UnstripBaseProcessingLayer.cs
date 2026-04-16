@@ -112,6 +112,11 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                     invalidTypes.Add(nonExistingType);
                     continue;
                 }
+                if (ContainsAnyAbstractGenericMethods(nonExistingType, runtimeContext))
+                {
+                    invalidTypes.Add(nonExistingType);
+                    continue;
+                }
 
                 var baseType = nonExistingType.BaseType;
                 if (baseType is not null)
@@ -122,19 +127,21 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                         invalidTypes.Add(nonExistingType);
                         continue;
                     }
-
                     if (baseTypeResolved.GenericParameters.Count > 0)
                     {
                         invalidTypes.Add(nonExistingType);
                         continue;
                     }
-
                     if (invalidTypes.Contains(baseTypeResolved))
                     {
                         invalidTypes.Add(nonExistingType);
                         continue;
                     }
-
+                    if (ContainsAnyAbstractGenericMethods(baseTypeResolved, runtimeContext))
+                    {
+                        invalidTypes.Add(nonExistingType);
+                        continue;
+                    }
                     if (!existingTypesDictionary.ContainsKey(baseTypeResolved) && !injectedTypesDictionary.ContainsKey(baseTypeResolved))
                     {
                         nonExistingTypes.Enqueue(nonExistingType);
@@ -159,6 +166,12 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                         break;
                     }
                     if (invalidTypes.Contains(interfaceTypeResolved))
+                    {
+                        invalidTypes.Add(nonExistingType);
+                        shouldSkipToNextType = true;
+                        break;
+                    }
+                    if (ContainsAnyAbstractGenericMethods(interfaceTypeResolved, runtimeContext))
                     {
                         invalidTypes.Add(nonExistingType);
                         shouldSkipToNextType = true;
@@ -424,6 +437,22 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
             // Report how many method bodies were successfully stored.
             Logger.InfoNewline($"Recovered the original method body for {successfulCount}/{methodsNeedingBodies.Count} attempts.", nameof(UnstripBaseProcessingLayer));
         }
+    }
+
+    private static bool ContainsAnyAbstractGenericMethods(TypeDefinition type, RuntimeContext runtimeContext)
+    {
+        while (type.IsAbstract)
+        {
+            if (type.Methods.Any(m => m.IsAbstract && m.GenericParameters.Count > 0))
+                return true;
+            if (type.BaseType is null)
+                break;
+            var baseTypeResolved = type.BaseType.TryResolve(runtimeContext);
+            if (baseTypeResolved is null)
+                return true; // If we can't resolve the base type, we have to assume it contains abstract generic methods
+            type = baseTypeResolved;
+        }
+        return false;
     }
 
     private static void AddNestedTypes(TypeDefinition declaringType, TypeAnalysisContext declaringTypeContext, Queue<TypeDefinition> nonExistingTypes, Dictionary<TypeDefinition, TypeAnalysisContext> existingTypes)
