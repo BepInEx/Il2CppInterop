@@ -50,6 +50,11 @@ public static class Il2CppTypeHelper
         return T.Name;
     }
 
+    public static (string AssemblyName, string Namespace, string Name) GetFullyQualifiedName<T>() where T : IIl2CppType<T>
+    {
+        return (T.AssemblyName, T.Namespace, T.Name);
+    }
+
     public static void WriteToSpan<T>(this T? value, Span<byte> span) where T : IIl2CppType<T>
     {
         T.WriteToSpan(value, span);
