@@ -513,6 +513,19 @@ public static unsafe partial class ClassInjector
                           Il2CppMethodFlags.METHOD_ATTRIBUTE_RT_SPECIAL_NAME;
 
         return converted.MethodInfoPointer;
+
+        static void StaticVoidIntPtrInvoker_MetadataV29(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj,
+            IntPtr* args, IntPtr* returnValue)
+        {
+            Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)((ObjectPointer)obj);
+        }
+
+        static IntPtr StaticVoidIntPtrInvoker(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj,
+            IntPtr* args)
+        {
+            Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)((ObjectPointer)obj);
+            return IntPtr.Zero;
+        }
     }
 
     internal static Il2CppMethodInfo* ConvertMethodInfo(MethodInfo monoMethod, INativeClassStruct declaringClass)
@@ -614,6 +627,9 @@ public static unsafe partial class ClassInjector
         converted.Flags = Il2CppMethodFlags.METHOD_ATTRIBUTE_PUBLIC |
                           Il2CppMethodFlags.METHOD_ATTRIBUTE_HIDE_BY_SIG;
 
+        if (monoMethod.IsStatic)
+            converted.Flags |= Il2CppMethodFlags.METHOD_ATTRIBUTE_STATIC;
+
         if (monoMethod.IsAbstract)
         {
             converted.Flags |= Il2CppMethodFlags.METHOD_ATTRIBUTE_ABSTRACT;
@@ -673,17 +689,17 @@ public static unsafe partial class ClassInjector
             static (_, monoMethodInner) => CreateInvoker(monoMethodInner), monoMethod);
     }
 
-    private static Delegate GetOrCreateTrampoline(MethodInfo monoMethod)
-    {
-        return CreateTrampoline(monoMethod);
-    }
-
     private static Delegate CreateInvoker(MethodInfo monoMethod)
     {
         DynamicMethod method;
         if (UnityVersionHandler.IsMetadataV29OrHigher)
         {
             var parameterTypes = new[] { typeof(IntPtr), typeof(Il2CppMethodInfo*), typeof(IntPtr), typeof(IntPtr*), typeof(IntPtr*) };
+            // Method pointer
+            // Method info pointer
+            // this pointer
+            // arguments pointer
+            // return value pointer (if not void)
 
             method = new DynamicMethod("Invoker_" + ExtractSignature(monoMethod),
                 MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, typeof(void),
@@ -692,6 +708,10 @@ public static unsafe partial class ClassInjector
         else
         {
             var parameterTypes = new[] { typeof(IntPtr), typeof(Il2CppMethodInfo*), typeof(IntPtr), typeof(IntPtr*) };
+            // Method pointer
+            // Method info pointer
+            // this pointer
+            // arguments pointer
 
             method = new DynamicMethod("Invoker_" + ExtractSignature(monoMethod),
                 MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, typeof(IntPtr),
@@ -700,7 +720,8 @@ public static unsafe partial class ClassInjector
 
         var body = method.GetILGenerator();
 
-        body.Emit(OpCodes.Ldarg_2);
+        if (!monoMethod.IsStatic)
+            body.Emit(OpCodes.Ldarg_2); // obj
         for (var i = 0; i < monoMethod.GetParameters().Length; i++)
         {
             var parameterInfo = monoMethod.GetParameters()[i];
@@ -713,10 +734,16 @@ public static unsafe partial class ClassInjector
                 body.Emit(OpCodes.Ldobj, nativeType);
         }
 
-        body.Emit(OpCodes.Ldarg_0);
-        body.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, monoMethod.ReturnType.NativeType(),
-            new[] { typeof(IntPtr) }.Concat(monoMethod.GetParameters().Select(it => it.ParameterType.NativeType()))
-                .ToArray());
+        body.Emit(OpCodes.Ldarg_1); // methodMetadata
+        body.Emit(OpCodes.Ldarg_0); // methodPointer
+
+        Type[] nativeParameterTypes =
+        [
+            ..(ReadOnlySpan<Type>)(monoMethod.IsStatic ? [] : [typeof(IntPtr)]),
+            ..monoMethod.GetParameters().Select(it => it.ParameterType.NativeType()),
+            typeof(Il2CppMethodInfo*),
+        ];
+        body.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, monoMethod.ReturnType.NativeType(), nativeParameterTypes);
 
         if (UnityVersionHandler.IsMetadataV29OrHigher)
         {
@@ -741,7 +768,7 @@ public static unsafe partial class ClassInjector
                 var returnValue = body.DeclareLocal(monoMethod.ReturnType);
                 body.Emit(OpCodes.Stloc, returnValue);
                 var classField = typeof(Il2CppClassPointerStore<>).MakeGenericType(monoMethod.ReturnType)
-                    .GetField(nameof(Il2CppClassPointerStore<int>.NativeClassPointer));
+                    .GetField(nameof(Il2CppClassPointerStore<>.NativeClassPointer));
                 body.Emit(OpCodes.Ldsfld, classField);
                 body.Emit(OpCodes.Ldloca, returnValue);
                 body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_value_box))!);
@@ -752,41 +779,32 @@ public static unsafe partial class ClassInjector
 
         GCHandle.Alloc(method);
 
-        var @delegate = method.CreateDelegate(GetInvokerDelegateType());
+        var invokerDelegateType = UnityVersionHandler.IsMetadataV29OrHigher ? typeof(InvokerDelegateMetadataV29) : typeof(InvokerDelegate);
+
+        var @delegate = method.CreateDelegate(invokerDelegateType);
         GCHandle.Alloc(@delegate);
         return @delegate;
     }
 
-    private static Type GetInvokerDelegateType()
+    private static Delegate GetOrCreateTrampoline(MethodInfo monoMethod)
     {
-        if (UnityVersionHandler.IsMetadataV29OrHigher)
-        {
-            return typeof(InvokerDelegateMetadataV29);
-        }
-
-        return typeof(InvokerDelegate);
-    }
-
-    private static IntPtr StaticVoidIntPtrInvoker(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj,
-        IntPtr* args)
-    {
-        Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)((ObjectPointer)obj);
-        return IntPtr.Zero;
-    }
-
-    private static void StaticVoidIntPtrInvoker_MetadataV29(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj,
-        IntPtr* args, IntPtr* returnValue)
-    {
-        Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)((ObjectPointer)obj);
+        return CreateTrampoline(monoMethod);
     }
 
     private static Delegate CreateTrampoline(MethodInfo monoMethod)
     {
-        var nativeParameterTypes = new[] { typeof(IntPtr) }.Concat(monoMethod.GetParameters()
-            .Select(it => it.ParameterType.NativeType()).Concat(new[] { typeof(Il2CppMethodInfo*) })).ToArray();
+        Type[] nativeParameterTypes =
+        [
+            ..(ReadOnlySpan<Type>)(monoMethod.IsStatic ? [] : [typeof(IntPtr)]),
+            ..monoMethod.GetParameters().Select(it => it.ParameterType.NativeType()),
+            typeof(Il2CppMethodInfo*),
+        ];
 
-        var managedParameters = new[] { monoMethod.DeclaringType }
-            .Concat(monoMethod.GetParameters().Select(it => it.ParameterType)).ToArray();
+        Type[] managedParameters =
+        [
+            ..(ReadOnlySpan<Type>)(monoMethod.IsStatic ? [] : [monoMethod.DeclaringType!]),
+            ..monoMethod.GetParameters().Select(it => it.ParameterType),
+        ];
 
         var method = new DynamicMethod(
             "Trampoline_" + ExtractSignature(monoMethod) + monoMethod.DeclaringType + monoMethod.Name,
@@ -794,21 +812,25 @@ public static unsafe partial class ClassInjector
             monoMethod.ReturnType.NativeType(), nativeParameterTypes,
             monoMethod.DeclaringType, true);
 
-        var signature = new DelegateSupport.MethodSignature(monoMethod, true);
+        var signature = new DelegateSupport.MethodSignature(monoMethod, !monoMethod.IsStatic);
         var delegateType = DelegateSupport.GetOrCreateDelegateType(signature, monoMethod);
 
         var body = method.GetILGenerator();
 
         body.BeginExceptionBlock();
 
-        body.Emit(OpCodes.Ldarg_0);
-        body.Emit(OpCodes.Call,
-            typeof(ClassInjectorBase).GetMethod(nameof(ClassInjectorBase.GetMonoObjectFromIl2CppPointer))!);
-        body.Emit(OpCodes.Castclass, monoMethod.DeclaringType);
+        if (!monoMethod.IsStatic)
+        {
+            body.Emit(OpCodes.Ldarg_0);
+            body.Emit(OpCodes.Call, typeof(ClassInjectorBase).GetMethod(nameof(ClassInjectorBase.GetMonoObjectFromIl2CppPointer))!);
+            body.Emit(OpCodes.Castclass, monoMethod.DeclaringType);
+        }
 
         var indirectVariables = new LocalBuilder[managedParameters.Length];
 
-        for (var i = 1; i < managedParameters.Length; i++)
+        var argOffset = method.IsStatic ? 0 : 1;
+
+        for (var i = argOffset; i < managedParameters.Length; i++)
         {
             var parameter = managedParameters[i];
             if (parameter.IsSubclassOf(typeof(ValueType)))
@@ -871,14 +893,14 @@ public static unsafe partial class ClassInjector
         }
 
         body.Emit(OpCodes.Call, monoMethod);
-        LocalBuilder managedReturnVariable = null;
+        LocalBuilder? managedReturnVariable = null;
         if (monoMethod.ReturnType != typeof(void))
         {
             managedReturnVariable = body.DeclareLocal(monoMethod.ReturnType);
             body.Emit(OpCodes.Stloc, managedReturnVariable);
         }
 
-        for (var i = 1; i < managedParameters.Length; i++)
+        for (var i = argOffset; i < managedParameters.Length; i++)
         {
             var variable = indirectVariables[i];
             if (variable == null)
@@ -894,7 +916,6 @@ public static unsafe partial class ClassInjector
                 ? stindOpCodde
                 : OpCodes.Stind_I);
         }
-        // body.Emit(OpCodes.Ret); // breaks coreclr
 
         var exceptionLocal = body.DeclareLocal(typeof(Exception));
         body.BeginCatchBlock(typeof(Exception));
