@@ -150,6 +150,12 @@ namespace Il2CppInterop.Runtime.Injection
         {
             new MemoryUtils.SignatureDefinition
             {
+                pattern = "\xE8\x00\x00\x00\x00\x8B\x3B\x48\x83\xC3",
+                mask = "x????xxxxx",
+                xref = true
+            },
+            new MemoryUtils.SignatureDefinition
+            {
                 pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x28\x83",
                 mask = "x????xxxxx",
                 xref = true
@@ -166,7 +172,12 @@ namespace Il2CppInterop.Runtime.Injection
         {
             static nint GetClassInitSubstitute()
             {
-                if (TryGetIl2CppExport("mono_class_instance_size", out nint classInit))
+                if (TryGetIl2CppExport("il2cpp_runtime_class_init", out nint classInit))
+                {
+                    Logger.Instance.LogTrace("Picked il2cpp_runtime_class_init as a Class::Init substitute");
+                    return classInit;
+                }
+                if (TryGetIl2CppExport("mono_class_instance_size", out classInit))
                 {
                     Logger.Instance.LogTrace("Picked mono_class_instance_size as a Class::Init substitute");
                     return classInit;
