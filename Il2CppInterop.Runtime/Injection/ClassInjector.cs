@@ -142,7 +142,7 @@ public static unsafe partial class ClassInjector
         var interfaceFunctionCount = interfaces.Sum(i => i.MethodCount);
         var classPointer = UnityVersionHandler.NewClass(baseClassPointer.VtableCount + interfaceFunctionCount);
 
-        classPointer.Image = InjectorHelpers.InjectedImage.ImagePointer;
+        classPointer.Image = InjectorHelpers.GetOrCreateImage("InjectedMonoTypes").ImagePointer;
         classPointer.Parent = baseClassPointer.ClassPointer;
         classPointer.ElementClass = classPointer.Class = classPointer.CastClass = classPointer.ClassPointer;
         classPointer.NativeSize = -1;

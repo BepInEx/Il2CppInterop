@@ -8,13 +8,8 @@ using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Il2CppInterop.Common;
-using Il2CppInterop.Common.Extensions;
-using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Runtime.Injection.Hooks;
 using Il2CppInterop.Runtime.Runtime;
-using Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly;
-using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
-using Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Image;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
 using Il2CppInterop.Runtime.Startup;
@@ -24,9 +19,8 @@ namespace Il2CppInterop.Runtime.Injection
 {
     internal static unsafe class InjectorHelpers
     {
+        private static readonly Dictionary<string, INativeImageStruct> images = new();
         internal static Assembly Il2CppMscorlib = typeof(Il2CppSystem.Type).Assembly;
-        internal static INativeAssemblyStruct InjectedAssembly;
-        internal static INativeImageStruct InjectedImage;
         internal static ProcessModule Il2CppModule = Process.GetCurrentProcess()
             .Modules.OfType<ProcessModule>()
             .Single((x) => x.ModuleName is "GameAssembly.dll" or "GameAssembly.so" or "UserAssembly.dll");
@@ -48,20 +42,6 @@ namespace Il2CppInterop.Runtime.Injection
             [typeof(double)] = OpCodes.Stind_R8
         };
 
-        private static void CreateInjectedAssembly()
-        {
-            InjectedAssembly = UnityVersionHandler.NewAssembly();
-            InjectedImage = UnityVersionHandler.NewImage();
-
-            InjectedAssembly.Name.Name = Marshal.StringToCoTaskMemUTF8("InjectedMonoTypes");
-
-            InjectedImage.Assembly = InjectedAssembly.AssemblyPointer;
-            InjectedImage.Dynamic = 1;
-            InjectedImage.Name = InjectedAssembly.Name.Name;
-            if (InjectedImage.HasNameNoExt)
-                InjectedImage.NameNoExt = InjectedAssembly.Name.Name;
-        }
-
         private static readonly GenericMethod_GetMethod_Hook GenericMethodGetMethodHook = new();
         private static readonly GenericMethod_GetMethod_Unity6_Hook GenericMethodGetMethodHook_Unity6 = new();
         private static readonly MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook GetTypeInfoFromTypeDefinitionIndexHook = new();
@@ -70,7 +50,6 @@ namespace Il2CppInterop.Runtime.Injection
         private static readonly Class_FromName_Hook FromNameHook = new();
         internal static void Setup()
         {
-            if (InjectedAssembly == null) CreateInjectedAssembly();
             if (Il2CppInteropRuntime.Instance.UnityVersion.Major >= 6000)
                 GenericMethodGetMethodHook_Unity6.ApplyHook();
             else
@@ -80,6 +59,47 @@ namespace Il2CppInterop.Runtime.Injection
             ClassInit ??= FindClassInit();
             FromIl2CppTypeHook.ApplyHook();
             FromNameHook.ApplyHook();
+        }
+
+        internal static INativeImageStruct GetOrCreateImage(string name)
+        {
+            lock (images)
+            {
+                if (images.Count == 0)
+                {
+                    foreach (var imagePtr in IL2CPP.GetIl2CppImages())
+                    {
+                        var image = UnityVersionHandler.Wrap((Il2CppImage*)imagePtr);
+                        string imageName;
+                        if (image.HasNameNoExt)
+                        {
+                            imageName = Marshal.PtrToStringUTF8(image.NameNoExt)!;
+                        }
+                        else
+                        {
+                            imageName = Marshal.PtrToStringUTF8(image.Name)!;
+
+                            if (imageName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                                imageName = imageName.Substring(0, imageName.Length - 4);
+                        }
+
+                        images[imageName] = image;
+                    }
+                }
+                if (!images.TryGetValue(name, out var result))
+                {
+                    var assembly = UnityVersionHandler.NewAssembly();
+                    assembly.Name.Name = Marshal.StringToCoTaskMemUTF8(name);
+                    result = UnityVersionHandler.NewImage();
+                    result.Assembly = assembly.AssemblyPointer;
+                    result.Dynamic = 1;
+                    result.Name = assembly.Name.Name;
+                    if (result.HasNameNoExt)
+                        result.NameNoExt = assembly.Name.Name;
+                    images[name] = result;
+                }
+                return result;
+            }
         }
 
         internal static long CreateClassToken(IntPtr classPointer)
