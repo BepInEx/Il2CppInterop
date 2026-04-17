@@ -7,7 +7,7 @@ string unstripDirectory = args[2];
 
 // Unstrip directory needs to contain all files recursively contained in these directories:
 // \Editor\Data\MonoBleedingEdge\lib\mono\unityaot-win32
-// \Editor\Data\PlaybackEngines\windowsstandalonesupport\Variations\win64_player_development_il2cpp\Data\Managed
+// \Editor\Data\PlaybackEngines\windowsstandalonesupport\Variations\win64_player_nondevelopment_il2cpp\Data\Managed
 
 Il2CppGame.Process(
     gameExePath,
@@ -65,7 +65,7 @@ Required for runtime testing:
 
 Ideal:
 - System interfaces
-- overloads with arrays, delegates, primitives
+- overloads with delegates, primitives
 - Source generation for user-injected types
 - Add attributes to "Unsafe" methods so that users cannot see them
 */
