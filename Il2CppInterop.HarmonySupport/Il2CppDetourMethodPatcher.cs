@@ -416,17 +416,46 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
     {
         variable = null;
 
-        if (managedParamType.IsSubclassOf(typeof(ValueType)))
+        bool needsBoxing = managedParamType.IsSubclassOf(typeof(ValueType));
+
+        if (needsBoxing)
         {
-            // Box struct into object first before conversion
-            il.Emit(OpCodes.Ldc_I8, Il2CppClassPointerStore.GetNativeClassPointer(managedParamType).ToInt64());
-            il.Emit(OpCodes.Conv_I);
-            // On x64, struct is always a pointer but it is a non-pointer on x86
-            // We don't handle byref structs on x86 yet but we're yet to encounter those
-            il.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga_S, argIndex);
-            il.Emit(OpCodes.Call,
-                AccessTools.Method(typeof(IL2CPP),
-                    nameof(IL2CPP.il2cpp_value_box)));
+            var classPtr = Il2CppClassPointerStore.GetNativeClassPointer(managedParamType);
+
+            // il2cpp_value_box uses .NET boxing semantics which boxes Nullable<T> as just T,
+            // losing the HasValue field. Manually box Nullable<T> to preserve full data.
+            bool isNullable = managedParamType.IsGenericType &&
+                managedParamType.GetGenericTypeDefinition().FullName == "Il2CppSystem.Nullable`1";
+
+            if (isNullable)
+            {
+                uint align = 0;
+                var valueSize = IL2CPP.il2cpp_class_value_size(classPtr, ref align);
+
+                il.Emit(OpCodes.Ldc_I8, classPtr.ToInt64());
+                il.Emit(OpCodes.Conv_I);
+                il.Emit(OpCodes.Call, AccessTools.Method(typeof(IL2CPP), nameof(IL2CPP.il2cpp_object_new)));
+                var objLocal = il.DeclareLocal(typeof(IntPtr));
+                il.Emit(OpCodes.Stloc, objLocal);
+                il.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga_S, argIndex);
+                il.Emit(OpCodes.Ldloc, objLocal);
+                il.Emit(OpCodes.Call, AccessTools.Method(typeof(IL2CPP), nameof(IL2CPP.il2cpp_object_unbox)));
+                il.Emit(OpCodes.Ldc_I4, (int)valueSize);
+                il.Emit(OpCodes.Call, AccessTools.Method(typeof(Il2CppDetourMethodPatcher), nameof(CopyMemory)));
+                il.Emit(OpCodes.Ldloc, objLocal);
+            }
+            else
+            {
+                // Box struct into object first before conversion
+                il.Emit(OpCodes.Ldc_I8, classPtr.ToInt64());
+                il.Emit(OpCodes.Conv_I);
+                // On x64, struct is always a pointer but it is a non-pointer on x86
+                // We don't handle byref structs on x86 yet but we're yet to encounter those
+                il.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga_S, argIndex);
+                il.Emit(OpCodes.Call,
+                    AccessTools.Method(typeof(IL2CPP),
+                        nameof(IL2CPP.il2cpp_value_box)));
+            }
         }
         else
         {
@@ -488,4 +517,6 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         }
     }
 
+    private static void CopyMemory(IntPtr src, IntPtr dest, int size) =>
+        Buffer.MemoryCopy(src.ToPointer(), dest.ToPointer(), size, size);
 }
