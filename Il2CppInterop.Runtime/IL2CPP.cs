@@ -696,6 +696,10 @@ public static unsafe partial class IL2CPP
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_raise_exception(nint ex);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial nint il2cpp_exception_from_name_msg(nint image, nint name_space, nint name, nint msg);
 
     [LibraryImport("GameAssembly")]
