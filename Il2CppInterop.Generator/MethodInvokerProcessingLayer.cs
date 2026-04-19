@@ -50,6 +50,8 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                     var method = type.Methods[methodIndex];
                     if (method.IsInjected)
                         continue;
+                    if (method.IsAbstract)
+                        continue;
 
                     var redirectedType = instantiatedType.KnownType switch
                     {

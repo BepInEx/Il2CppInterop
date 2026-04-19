@@ -34,6 +34,8 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
                 {
                     if (method.IsInjected)
                         continue;
+                    if (method.IsAbstract)
+                        continue;
 
                     var implementation = method.UnsafeImplementationMethod;
                     Debug.Assert(implementation is not null);
