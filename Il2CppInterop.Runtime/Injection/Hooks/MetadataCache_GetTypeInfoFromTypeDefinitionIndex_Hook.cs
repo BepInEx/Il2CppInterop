@@ -18,8 +18,30 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate Il2CppClass* MethodDelegate(int index);
 
+        // [HybridCLR] Mid-function hook signature at +08: test ecx, 0xf0000000; jne ...; mov rax, [rip+...]
+        // We hook at +08 to avoid short jump corruption at function start
+        // Extended signature includes the mov instruction to uniquely identify GetTypeInfoFromTypeDefinitionIndex
+        private static readonly MemoryUtils.SignatureDefinition[] s_HybridCLRSignatures =
+        {
+            new MemoryUtils.SignatureDefinition
+            {
+                // test ecx, 0xf0000000; jne rel32; mov rax, [rip+...]
+                // The ?? are wildcards for the relative jump offset
+                pattern = "\xF7\xC1\x00\x00\x00\xF0\x0F\x85\x00\x00\x00\x00\x48\x8B\x05",
+                mask = "xxxxxxxx????xxx",
+                xref = false
+            }
+        };
+
+        // [HybridCLR] Flag indicating mid-function hook is active
+        private bool _isMidFunctionHook = false;
+
         private Il2CppClass* Hook(int index)
         {
+            // [HybridCLR] Handle -1 check when using mid-function hook
+            if (_isMidFunctionHook && index == -1)
+                return null;
+
             if (InjectorHelpers.s_InjectedClasses.TryGetValue(index, out IntPtr classPtr))
                 return (Il2CppClass*)classPtr;
 
@@ -116,6 +138,23 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
         public override IntPtr FindTargetMethod()
         {
+            // [HybridCLR] Use mid-function hook to avoid short jump corruption at function start
+            if (HybridCLRCompat.IsHybridCLRRuntime())
+            {
+                Logger.Instance.LogTrace("HybridCLR detected, using mid-function hook strategy");
+                var hookAddress = s_HybridCLRSignatures
+                    .Select(s => MemoryUtils.FindSignatureInModule(InjectorHelpers.Il2CppModule, s))
+                    .FirstOrDefault(p => p != 0);
+
+                if (hookAddress != 0)
+                {
+                    _isMidFunctionHook = true;
+                    Logger.Instance.LogTrace("Found via mid-function signature: 0x{Address:X}", (long)hookAddress);
+                    return hookAddress;
+                }
+                Logger.Instance.LogTrace("HybridCLR signature not found, falling back to xref method");
+            }
+
             return FindGetTypeInfoFromTypeDefinitionIndex();
         }
     }
