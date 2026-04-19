@@ -136,8 +136,7 @@ public static class DelegateSupport
         bodyBuilder.Emit(OpCodes.Call,
             typeof(ClassInjectorBase).GetMethod(nameof(ClassInjectorBase.GetMonoObjectFromIl2CppPointer))!);
         bodyBuilder.Emit(OpCodes.Castclass, typeof(Il2CppToMonoDelegateReference));
-        bodyBuilder.Emit(OpCodes.Ldfld,
-            typeof(Il2CppToMonoDelegateReference).GetField(nameof(Il2CppToMonoDelegateReference.ReferencedDelegate)));
+        bodyBuilder.Emit(OpCodes.Callvirt, typeof(Il2CppToMonoDelegateReference).GetProperty(nameof(Il2CppToMonoDelegateReference.ReferencedDelegate))!.GetMethod!);
 
         for (var i = 0; i < managedParameters.Length; i++)
         {
@@ -174,8 +173,7 @@ public static class DelegateSupport
             var labelDone = bodyBuilder.DefineLabel();
             bodyBuilder.Emit(OpCodes.Dup);
             bodyBuilder.Emit(OpCodes.Brfalse, labelNull);
-            bodyBuilder.Emit(OpCodes.Call,
-                typeof(Object).GetProperty(nameof(Object.Pointer))!.GetMethod);
+            bodyBuilder.Emit(OpCodes.Call, typeof(Object).GetProperty(nameof(Object.Pointer))!.GetMethod!);
             bodyBuilder.Emit(OpCodes.Br, labelDone);
             bodyBuilder.MarkLabel(labelNull);
             bodyBuilder.Emit(OpCodes.Pop);
@@ -184,7 +182,7 @@ public static class DelegateSupport
             bodyBuilder.MarkLabel(labelDone);
         }
 
-        LocalBuilder returnLocal = null;
+        LocalBuilder? returnLocal = null;
         if (returnType != typeof(void))
         {
             returnLocal = bodyBuilder.DeclareLocal(returnType);
@@ -339,7 +337,7 @@ public static class DelegateSupport
             var hashCode = new HashCode();
 
             hashCode.Add(methodInfo.ReturnType.NativeType());
-            if (hasThis) hashCode.Add(methodInfo.DeclaringType.NativeType());
+            if (hasThis) hashCode.Add(methodInfo.DeclaringType!.NativeType());
             foreach (var parameterInfo in methodInfo.GetParameters())
             {
                 hashCode.Add(parameterInfo.ParameterType.NativeType());
