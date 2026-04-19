@@ -33,29 +33,6 @@ public static unsafe partial class ClassInjector
     private static readonly ConcurrentDictionary<(Type type, FieldAttributes attrs), IntPtr>
         _injectedFieldTypes = new();
 
-    private static readonly VoidCtorDelegate FinalizeDelegate = Finalize;
-
-    public static void ProcessNewObject(Object obj)
-    {
-        var pointer = obj.Pointer;
-        var handle = GCHandle.Alloc(obj, GCHandleType.Normal);
-        AssignGcHandle(pointer, handle);
-    }
-
-    public static void DerivedConstructorBody(Object objectBase)
-    {
-        var ownGcHandle = GCHandle.Alloc(objectBase, GCHandleType.Normal);
-        AssignGcHandle(objectBase.Pointer, ownGcHandle);
-    }
-
-    public static void AssignGcHandle(IntPtr pointer, GCHandle gcHandle)
-    {
-        var handleAsPointer = GCHandle.ToIntPtr(gcHandle);
-        if (pointer == IntPtr.Zero) throw new NullReferenceException(nameof(pointer));
-        ClassInjectorBase.GetInjectedData(pointer)->managedGcHandle = GCHandle.ToIntPtr(gcHandle);
-    }
-
-
     public static bool IsTypeRegisteredInIl2Cpp<T>()
     {
         return IsTypeRegisteredInIl2Cpp(typeof(T));
@@ -217,25 +194,18 @@ public static unsafe partial class ClassInjector
 
         classPointer.Fields = il2cppFields;
 
-        classPointer.InstanceSize = (uint)(fieldOffset + sizeof(InjectedClassData));
+        classPointer.InstanceSize = (uint)fieldOffset;
         classPointer.ActualSize = classPointer.InstanceSize;
 
         var eligibleMethods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).Where(IsMethodEligible).ToArray();
-        var methodsOffset = type.IsAbstract ? 1 : 2; // 1 is the finalizer, 1 is empty ctor
+        var methodsOffset = type.IsAbstract ? 0 : 1; // empty ctor
         var methodCount = methodsOffset + eligibleMethods.Length;
 
         classPointer.MethodCount = (ushort)methodCount;
         var methodPointerArray = (Il2CppMethodInfo**)Marshal.AllocHGlobal(methodCount * IntPtr.Size);
         classPointer.Methods = methodPointerArray;
 
-        methodPointerArray[0] = ConvertStaticMethod(FinalizeDelegate, "Finalize", classPointer);
-        var finalizeMethod = UnityVersionHandler.Wrap(methodPointerArray[0]);
-        var fieldsToInitialize = type
-            .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-            .Where(IsFieldEligible)
-            .ToArray();
-
-        if (!type.IsAbstract) methodPointerArray[1] = ConvertStaticMethod(CreateEmptyCtor(type, fieldsToInitialize), ".ctor", classPointer);
+        if (!type.IsAbstract) methodPointerArray[0] = ConvertStaticMethod(CreateEmptyCtor(type), ".ctor", classPointer);
         var infos = new Dictionary<(string, int, bool), int>(eligibleMethods.Length);
         for (var i = 0; i < eligibleMethods.Length; i++)
         {
@@ -334,13 +304,6 @@ public static unsafe partial class ClassInjector
             }
 
             var methodName = Marshal.PtrToStringUTF8(baseMethod.Name);
-
-            if (methodName == "Finalize") // slot number is not static
-            {
-                vTablePointer[i].method = methodPointerArray[0];
-                vTablePointer[i].methodPtr = finalizeMethod.MethodPointer;
-                continue;
-            }
 
             var parameters = new Type[baseMethod.ParametersCount];
 
@@ -638,7 +601,7 @@ public static unsafe partial class ClassInjector
         return converted.MethodInfoPointer;
     }
 
-    private static VoidCtorDelegate CreateEmptyCtor(Type targetType, FieldInfo[] fieldsToInitialize)
+    private static VoidCtorDelegate CreateEmptyCtor(Type targetType)
     {
         var method = new DynamicMethod("FromIl2CppCtorDelegate", MethodAttributes.Public | MethodAttributes.Static,
             CallingConventions.Standard, typeof(void), new[] { typeof(ObjectPointer) }, targetType, true);
@@ -656,31 +619,11 @@ public static unsafe partial class ClassInjector
             throw new NotSupportedException($"Type {targetType} must have a constructor with a single ObjectPointer argument");
         }
 
-        foreach (var field in fieldsToInitialize)
-        {
-            body.Emit(OpCodes.Dup);
-            body.Emit(OpCodes.Dup);
-            body.Emit(OpCodes.Ldstr, field.Name);
-            body.Emit(OpCodes.Newobj, field.FieldType.GetConstructor(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
-                new[] { typeof(Object), typeof(string) }, Array.Empty<ParameterModifier>())
-            );
-            body.Emit(OpCodes.Stfld, field);
-        }
-
-        body.Emit(OpCodes.Call, typeof(ClassInjector).GetMethod(nameof(ProcessNewObject))!);
-
         body.Emit(OpCodes.Ret);
 
-        var @delegate = (VoidCtorDelegate)method.CreateDelegate(typeof(VoidCtorDelegate));
+        var @delegate = method.CreateDelegate<VoidCtorDelegate>();
         GCHandle.Alloc(@delegate); // pin it forever
         return @delegate;
-    }
-
-    public static void Finalize(ObjectPointer ptr)
-    {
-        var gcHandle = ClassInjectorBase.GetGcHandlePtrFromIl2CppObject((IntPtr)ptr);
-        GCHandle.FromIntPtr(gcHandle).Free();
     }
 
     private static Delegate GetOrCreateInvoker(MethodInfo monoMethod)
@@ -822,7 +765,7 @@ public static unsafe partial class ClassInjector
         if (!monoMethod.IsStatic)
         {
             body.Emit(OpCodes.Ldarg_0);
-            body.Emit(OpCodes.Call, typeof(ClassInjectorBase).GetMethod(nameof(ClassInjectorBase.GetMonoObjectFromIl2CppPointer))!);
+            body.Emit(OpCodes.Call, typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!);
             body.Emit(OpCodes.Castclass, monoMethod.DeclaringType);
         }
 

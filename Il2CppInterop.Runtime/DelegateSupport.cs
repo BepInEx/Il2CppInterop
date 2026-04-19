@@ -133,8 +133,7 @@ public static class DelegateSupport
         var tryLabel = bodyBuilder.BeginExceptionBlock();
 
         bodyBuilder.Emit(OpCodes.Ldarg_0);
-        bodyBuilder.Emit(OpCodes.Call,
-            typeof(ClassInjectorBase).GetMethod(nameof(ClassInjectorBase.GetMonoObjectFromIl2CppPointer))!);
+        bodyBuilder.Emit(OpCodes.Call, typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!);
         bodyBuilder.Emit(OpCodes.Castclass, typeof(Il2CppToMonoDelegateReference));
         bodyBuilder.Emit(OpCodes.Callvirt, typeof(Il2CppToMonoDelegateReference).GetProperty(nameof(Il2CppToMonoDelegateReference.ReferencedDelegate))!.GetMethod!);
 
@@ -409,15 +408,17 @@ public static class DelegateSupport
 
         public Il2CppToMonoDelegateReference(Delegate referencedDelegate, IntPtr methodInfo) : this(IL2CPP.NewObjectPointer<Il2CppToMonoDelegateReference>())
         {
-            ClassInjector.DerivedConstructorBody(this);
-
             ReferencedDelegate = referencedDelegate;
             MethodInfo = methodInfo;
         }
 
-        // When an API for injecting finalizers is available, we can make this disposal happen when the object is collected by the Il2Cpp GC instead of the managed GC.
-        ~Il2CppToMonoDelegateReference()
+        [Il2CppMethod(Name = "Finalize")] // WIP: does nothing right now
+        public void Finalize_()
         {
+            // This disposal happens when the object is collected by the Il2Cpp GC instead of the managed GC.
+            // That ensures that the delegate is kept alive as long as the Il2Cpp object is alive, even if the managed wrapper gets collected.
+            // In theory, the managed wrapper could be collected and recreated multiple times during the lifetime of the Il2Cpp object,
+            // so this ensures that the managed fields are not disposed prematurely.
             Marshal.FreeHGlobal(MethodInfo);
             MethodInfo = IntPtr.Zero;
             ReferencedDelegate = null!;
