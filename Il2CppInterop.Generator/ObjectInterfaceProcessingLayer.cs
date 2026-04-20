@@ -2,6 +2,7 @@
 using System.Reflection;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
+using Il2CppInterop.Generator.Operands;
 
 namespace Il2CppInterop.Generator;
 
@@ -106,22 +107,7 @@ public class ObjectInterfaceProcessingLayer : Cpp2IlProcessingLayer
         Debug.Assert(classType.GenericParameters.Count == 0);
         Debug.Assert(interfaceType.IsInjected);
 
-        var @explicitlyImplements = false;
-        var overridesList = new List<MethodAnalysisContext>();
-        foreach (var @override in classMethod.Overrides)
-        {
-            var actualOverride = @override;
-            while (actualOverride.BaseMethod is { } baseMethod)
-            {
-                actualOverride = baseMethod;
-            }
-            actualOverride = actualOverride.InterfaceRedirectMethod ?? actualOverride;
-            if (actualOverride.DeclaringType is { IsInterface: true })
-            {
-                @explicitlyImplements = true;
-                overridesList.Add(actualOverride);
-            }
-        }
+        var @explicitlyImplements = classMethod.DefaultName.Contains('.');
 
         var interfaceMethod = new InjectedMethodAnalysisContext(
             interfaceType,
@@ -138,25 +124,57 @@ public class ObjectInterfaceProcessingLayer : Cpp2IlProcessingLayer
         };
         interfaceType.Methods.Add(interfaceMethod);
 
-        interfaceMethod.Overrides.AddRange(overridesList);
-
-        if (overridesList.Count == 1)
+        foreach (var @override in classMethod.Overrides)
         {
-            Debug.Assert(interfaceMethod != overridesList[0]);
-            interfaceMethod.InterfaceRedirectMethod = overridesList[0];
-            if (!interfaceMethod.Name.Contains('.'))
+            if (@override.DeclaringType is not { IsInterface: true })
             {
-                var prefix = overridesList[0].DeclaringType!.FullName + ".";
-                interfaceMethod.OverrideName = prefix + interfaceMethod.Name;
+                continue;
             }
+            if (@explicitlyImplements)
+            {
+                interfaceMethod.Overrides.Add(@override);
+                @explicitlyImplements = true;
+                continue;
+            }
+
+            var overrideImplementation = new InjectedMethodAnalysisContext(
+                interfaceType,
+                $"{@override.DeclaringType!.FullName}.{interfaceMethod.Name}",
+                classMethod.ReturnType,
+                MethodAttributes.Private | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.Final,
+                classMethod.Parameters.Select(p => p.ParameterType).ToArray(),
+                classMethod.Parameters.Select(p => p.Name).ToArray(),
+                classMethod.Parameters.Select(p => p.Attributes).ToArray())
+            {
+                OverrideName = classMethod.OverrideName,
+                IsInjected = true,
+            };
+            interfaceType.Methods.Add(overrideImplementation);
+            overrideImplementation.Overrides.Add(@override);
+
+            List<Instruction> instructions =
+            [
+                new Instruction(CilOpCodes.Ldarg_0),
+                ..Enumerable.Range(0, classMethod.Parameters.Count).Select(i => new Instruction
+                {
+                    Code = CilOpCodes.Ldarg,
+                    Operand = overrideImplementation.Parameters[i],
+                }),
+                new Instruction(CilOpCodes.Callvirt, interfaceMethod),
+                new Instruction(CilOpCodes.Ret),
+            ];
+            overrideImplementation.PutExtraData(new NativeMethodBody()
+            {
+                Instructions = instructions,
+            });
         }
 
         classMethod.InterfaceRedirectMethod = interfaceMethod;
         if (!classMethod.IsVirtual)
         {
             // If the class method isn't virtual, we want to make sure it can't be overridden in subclasses.
-            classMethod.OverrideAttributes = classMethod.Attributes | MethodAttributes.Final | MethodAttributes.NewSlot;
+            classMethod.Attributes |= MethodAttributes.Final | MethodAttributes.NewSlot;
         }
-        classMethod.OverrideAttributes = classMethod.Attributes | MethodAttributes.Virtual | MethodAttributes.HideBySig;
+        classMethod.Attributes |= MethodAttributes.Virtual | MethodAttributes.HideBySig;
     }
 }
