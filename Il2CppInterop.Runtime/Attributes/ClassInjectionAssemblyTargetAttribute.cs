@@ -10,14 +10,12 @@ public class ClassInjectionAssemblyTargetAttribute : Attribute
 
     public ClassInjectionAssemblyTargetAttribute(string assembly)
     {
-        if (string.IsNullOrWhiteSpace(assembly)) assemblies = new string[0];
-        else assemblies = new[] { assembly };
+        assemblies = string.IsNullOrWhiteSpace(assembly) ? [] : [assembly];
     }
 
     public ClassInjectionAssemblyTargetAttribute(string[] assemblies)
     {
-        if (assemblies is null) this.assemblies = new string[0];
-        else this.assemblies = assemblies;
+        this.assemblies = assemblies ?? [];
     }
 
     internal IntPtr[] GetImagePointers()

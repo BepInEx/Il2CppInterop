@@ -10,7 +10,7 @@ public unsafe partial class ClassInjector
 {
     public static void Dump<T>()
     {
-        Dump((Il2CppClass*)Il2CppClassPointerStore<T>.NativeClassPtr);
+        Dump((Il2CppClass*)Il2CppClassPointerStore<T>.NativeClassPointer);
     }
 
     private static string ToString(Il2CppClass* il2CppClass)
@@ -23,12 +23,12 @@ public unsafe partial class ClassInjector
     private static string ToString(Il2CppTypeStruct* il2CppType)
     {
         if (il2CppType == default) return "null";
-        return IL2CPP.il2cpp_type_get_name_((IntPtr)il2CppType)!;
+        return IL2CPP.il2cpp_type_get_name((IntPtr)il2CppType)!;
     }
 
     public static void Dump(Il2CppClass* il2CppClass)
     {
-        if (il2CppClass == default) throw new ArgumentNullException(nameof(il2CppClass));
+        ArgumentNullException.ThrowIfNull(il2CppClass);
 
         InjectorHelpers.Setup();
         InjectorHelpers.ClassInit(il2CppClass);

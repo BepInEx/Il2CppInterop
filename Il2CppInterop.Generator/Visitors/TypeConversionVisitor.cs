@@ -1,0 +1,76 @@
+﻿using Cpp2IL.Core.Model.Contexts;
+using Il2CppInterop.Generator;
+using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
+
+namespace Il2CppInterop.Generator.Visitors;
+
+internal sealed class TypeConversionVisitor : TypeReplacementVisitor
+{
+    private TypeConversionVisitor(Dictionary<TypeAnalysisContext, TypeAnalysisContext> replacements) : base(replacements)
+    {
+    }
+
+    public required TypeAnalysisContext Pointer { get; init; }
+    public required TypeAnalysisContext ByRef { get; init; }
+    public required TypeAnalysisContext ArrayRank1 { get; init; }
+    public required TypeAnalysisContext ArrayRank2 { get; init; }
+    public required TypeAnalysisContext ArrayRank3 { get; init; }
+
+    public static TypeConversionVisitor Create(ApplicationAnalysisContext appContext)
+    {
+        var il2CppMscorlib = appContext.AssembliesByName["Il2Cppmscorlib"];
+        var mscorlib = appContext.AssembliesByName["mscorlib"];
+        var il2CppInteropRuntime = appContext.AssembliesByName["Il2CppInterop.Runtime"];
+
+        var pointer = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Pointer<>));
+        var byRef = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(ByReference<>));
+        var arrayRank1 = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Il2CppArrayRank1<>));
+        var arrayRank2 = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Il2CppArrayRank2<>));
+        var arrayRank3 = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Il2CppArrayRank3<>));
+
+        (string, string)[] replacements =
+        [
+            ("Il2CppSystem.Object", "Il2CppSystem.IObject"),
+            ("Il2CppSystem.Enum", "Il2CppSystem.IEnum"),
+            ("Il2CppSystem.ValueType", "Il2CppSystem.IValueType"),
+        ];
+
+        var replacementDictionary = replacements.ToDictionary(pair => il2CppMscorlib.GetTypeByFullNameOrThrow(pair.Item1), pair => il2CppMscorlib.GetTypeByFullNameOrThrow(pair.Item2), TypeAnalysisContextEqualityComparer.Instance);
+
+        return new TypeConversionVisitor(replacementDictionary)
+        {
+            Pointer = pointer,
+            ByRef = byRef,
+            ArrayRank1 = arrayRank1,
+            ArrayRank2 = arrayRank2,
+            ArrayRank3 = arrayRank3,
+        };
+    }
+
+    protected override TypeAnalysisContext CombineResults(ArrayTypeAnalysisContext type, TypeAnalysisContext elementResult)
+    {
+        return type.Rank switch
+        {
+            1 => ArrayRank1.MakeGenericInstanceType([elementResult]),
+            2 => ArrayRank2.MakeGenericInstanceType([elementResult]),
+            3 => ArrayRank3.MakeGenericInstanceType([elementResult]),
+            _ => throw new NotImplementedException($"Support for arrays with rank {type.Rank} has not been implemented."),
+        };
+    }
+
+    protected override TypeAnalysisContext CombineResults(SzArrayTypeAnalysisContext type, TypeAnalysisContext elementResult)
+    {
+        return ArrayRank1.MakeGenericInstanceType([elementResult]);
+    }
+
+    protected override TypeAnalysisContext CombineResults(PointerTypeAnalysisContext type, TypeAnalysisContext elementResult)
+    {
+        return Pointer.MakeGenericInstanceType([elementResult]);
+    }
+
+    protected override TypeAnalysisContext CombineResults(ByRefTypeAnalysisContext type, TypeAnalysisContext elementResult)
+    {
+        return ByRef.MakeGenericInstanceType([elementResult]);
+    }
+}

@@ -1,0 +1,12 @@
+﻿namespace Il2CppInterop.Common.Attributes;
+
+/// <summary>
+/// Indicates that the attributed property is associated with a property in the IL2CPP runtime.
+/// </summary>
+/// <remarks>
+/// Marking the accessor methods with <see cref="Il2CppMethodAttribute"/> is optional.
+/// </remarks>
+[AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+public sealed class Il2CppPropertyAttribute : Il2CppMemberAttribute
+{
+}

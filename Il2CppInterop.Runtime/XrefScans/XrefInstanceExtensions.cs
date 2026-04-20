@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common.XrefScans;
-using Il2CppSystem;
+using Il2CppInterop.Runtime.Runtime;
 using IntPtr = System.IntPtr;
 using InvalidOperationException = System.InvalidOperationException;
 
@@ -17,10 +17,10 @@ public static class XrefInstanceExtensions
         if (valueAtPointer == IntPtr.Zero)
             return null;
 
-        return new Object(valueAtPointer);
+        return Il2CppObjectPool.Get(valueAtPointer) as Object;
     }
 
-    public static MethodBase TryResolve(this XrefInstance self)
+    public static MethodBase? TryResolve(this XrefInstance self)
     {
         if (self.Type != XrefType.Method) throw new InvalidOperationException("Can't resolve non-method xrefs");
 

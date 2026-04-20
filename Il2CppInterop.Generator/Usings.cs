@@ -1,3 +1,3 @@
-﻿global using ILProcessor = AsmResolver.DotNet.Code.Cil.CilInstructionCollection;
-global using OpCode = AsmResolver.PE.DotNet.Cil.CilOpCode;
-global using OpCodes = AsmResolver.PE.DotNet.Cil.CilOpCodes;
+﻿global using AsmResolver.PE.DotNet.Cil;
+global using Il2CppInterop.Generator.Extensions;
+global using Object = Il2CppSystem.Object;

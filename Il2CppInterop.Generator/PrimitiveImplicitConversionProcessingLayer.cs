@@ -1,0 +1,175 @@
+﻿using System.Reflection;
+using Cpp2IL.Core.Api;
+using Cpp2IL.Core.Model.Contexts;
+using Il2CppInterop.Common;
+using Il2CppInterop.Generator.Operands;
+using Il2CppInterop.Runtime;
+
+namespace Il2CppInterop.Generator;
+
+public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
+{
+    public override string Id => "primitive_implicit_conversions";
+    public override string Name => "Primitive Implicit Conversions";
+
+    public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
+    {
+        var il2CppMscorlib = appContext.Il2CppMscorlib;
+        var mscorlib = appContext.Mscorlib;
+
+        // Il2CppSystem.String
+        {
+            var il2CppType = il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.String");
+            var monoType = mscorlib.GetTypeByFullNameOrThrow("System.String");
+
+            var objectPointerType = appContext.ResolveTypeOrThrow(typeof(ObjectPointer));
+            var objectPointerConversionFromIntPtr = objectPointerType.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);
+
+            var il2CppStaticType = appContext.ResolveTypeOrThrow(typeof(IL2CPP));
+            var managedStringToIl2Cpp = il2CppStaticType.Methods.First(m => m.Name == nameof(IL2CPP.ManagedStringToIl2Cpp));
+            var il2CppObjectBaseToPointer = il2CppStaticType.Methods.First(m => m.Name == nameof(IL2CPP.Il2CppObjectToPtr));
+            var il2CppStringToManaged = il2CppStaticType.Methods.First(m => m.Name == nameof(IL2CPP.Il2CppStringToManaged));
+
+            // Il2Cpp -> Mono
+            {
+                var implicitConversion = new InjectedMethodAnalysisContext(
+                    il2CppType,
+                    "op_Implicit",
+                    monoType,
+                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Static,
+                    [il2CppType]);
+                implicitConversion.IsInjected = true;
+                il2CppType.Methods.Add(implicitConversion);
+
+                var createStringNop = new Instruction(CilOpCodes.Nop);
+
+                implicitConversion.PutExtraData(new TranslatedMethodBody()
+                {
+                    Instructions = [
+                        new Instruction(CilOpCodes.Ldarg_0),
+                        new Instruction(CilOpCodes.Call, il2CppObjectBaseToPointer),
+                        new Instruction(CilOpCodes.Dup),
+                        new Instruction(CilOpCodes.Brtrue, createStringNop),
+                        new Instruction(CilOpCodes.Pop),
+                        new Instruction(CilOpCodes.Ldnull),
+                        new Instruction(CilOpCodes.Ret),
+                        createStringNop,
+                        new Instruction(CilOpCodes.Call, il2CppStringToManaged),
+                        new Instruction(CilOpCodes.Ret),
+                    ]
+                });
+            }
+
+            // Mono -> Il2Cpp
+            {
+                var implicitConversion = new InjectedMethodAnalysisContext(
+                    il2CppType,
+                    "op_Implicit",
+                    il2CppType,
+                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Static,
+                    [monoType]);
+                implicitConversion.IsInjected = true;
+                il2CppType.Methods.Add(implicitConversion);
+
+                var createIl2CppStringNop = new Instruction(CilOpCodes.Nop);
+
+                implicitConversion.PutExtraData(new TranslatedMethodBody()
+                {
+                    Instructions = [
+                        new Instruction(CilOpCodes.Ldarg_0),
+                        new Instruction(CilOpCodes.Dup),
+                        new Instruction(CilOpCodes.Brtrue, createIl2CppStringNop),
+                        new Instruction(CilOpCodes.Pop),
+                        new Instruction(CilOpCodes.Ldnull),
+                        new Instruction(CilOpCodes.Ret),
+                        createIl2CppStringNop,
+                        new Instruction(CilOpCodes.Call, managedStringToIl2Cpp),
+                        new Instruction(CilOpCodes.Call, objectPointerConversionFromIntPtr),
+                        new Instruction(CilOpCodes.Newobj, il2CppType.PointerConstructor!),
+                        new Instruction(CilOpCodes.Ret),
+                    ]
+                });
+            }
+        }
+
+        ReadOnlySpan<(string, string)> numericPairs =
+        [
+            ("Il2CppSystem.SByte", "System.SByte"),
+            ("Il2CppSystem.Byte", "System.Byte"),
+            ("Il2CppSystem.Int16", "System.Int16"),
+            ("Il2CppSystem.UInt16", "System.UInt16"),
+            ("Il2CppSystem.Int32", "System.Int32"),
+            ("Il2CppSystem.UInt32", "System.UInt32"),
+            ("Il2CppSystem.Int64", "System.Int64"),
+            ("Il2CppSystem.UInt64", "System.UInt64"),
+            ("Il2CppSystem.Single", "System.Single"),
+            ("Il2CppSystem.Double", "System.Double"),
+            ("Il2CppSystem.Char", "System.Char"),
+            ("Il2CppSystem.Boolean", "System.Boolean"),
+            ("Il2CppSystem.IntPtr", "System.IntPtr"),
+            ("Il2CppSystem.UIntPtr", "System.UIntPtr"),
+        ];
+
+        foreach (var (il2CppTypeName, monoTypeName) in numericPairs)
+        {
+            var il2CppType = il2CppMscorlib.GetTypeByFullNameOrThrow(il2CppTypeName);
+            var monoType = mscorlib.GetTypeByFullNameOrThrow(monoTypeName);
+            var field = il2CppType.Fields.Single(f => !f.IsStatic);
+            field.OverrideFieldType = monoType;
+
+            if (monoTypeName is "System.Boolean")
+            {
+                // Not sure this does anything meaningful
+
+                // Ensure boolean size is 1 byte
+                il2CppType.Definition!.RawSizes.native_size = 1;
+
+                // The fact that we have to change the layout here might indicate an issue in Cpp2IL.
+                // It only emits sizes for structs with explicit layout, but not for sequential layout.
+                il2CppType.Attributes = (il2CppType.Attributes & ~TypeAttributes.LayoutMask) | TypeAttributes.ExplicitLayout;
+            }
+
+            // Il2Cpp -> Mono
+            {
+                var implicitConversion = new InjectedMethodAnalysisContext(
+                    il2CppType,
+                    "op_Implicit",
+                    monoType,
+                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Static,
+                    [il2CppType]);
+                implicitConversion.IsInjected = true;
+                implicitConversion.PutExtraData(new TranslatedMethodBody()
+                {
+                    Instructions = [
+                        new Instruction(CilOpCodes.Ldarg, implicitConversion.Parameters[0]),
+                        new Instruction(CilOpCodes.Ldfld, field),
+                        new Instruction(CilOpCodes.Ret),
+                    ]
+                });
+                il2CppType.Methods.Add(implicitConversion);
+            }
+
+            // Mono -> Il2Cpp
+            {
+                var implicitConversion = new InjectedMethodAnalysisContext(
+                    il2CppType,
+                    "op_Implicit",
+                    il2CppType,
+                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Static,
+                    [monoType]);
+                implicitConversion.IsInjected = true;
+                implicitConversion.PutExtraData(new TranslatedMethodBody()
+                {
+                    Instructions = [
+                        new Instruction(CilOpCodes.Ldarga, implicitConversion.Parameters[0]),
+                        new Instruction(CilOpCodes.Conv_U),
+                        new Instruction(CilOpCodes.Ldobj, il2CppType),
+                        new Instruction(CilOpCodes.Ret),
+                    ]
+                });
+                il2CppType.Methods.Add(implicitConversion);
+            }
+        }
+    }
+
+}

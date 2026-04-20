@@ -6,11 +6,12 @@ using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Text;
 using Il2CppInterop.Common;
+using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppInterop.Runtime.InteropTypes.CoreLib;
 using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
-using Object = Il2CppSystem.Object;
 using ValueType = Il2CppSystem.ValueType;
 
 namespace Il2CppInterop.Runtime;
@@ -132,11 +133,9 @@ public static class DelegateSupport
         var tryLabel = bodyBuilder.BeginExceptionBlock();
 
         bodyBuilder.Emit(OpCodes.Ldarg_0);
-        bodyBuilder.Emit(OpCodes.Call,
-            typeof(ClassInjectorBase).GetMethod(nameof(ClassInjectorBase.GetMonoObjectFromIl2CppPointer))!);
+        bodyBuilder.Emit(OpCodes.Call, typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!);
         bodyBuilder.Emit(OpCodes.Castclass, typeof(Il2CppToMonoDelegateReference));
-        bodyBuilder.Emit(OpCodes.Ldfld,
-            typeof(Il2CppToMonoDelegateReference).GetField(nameof(Il2CppToMonoDelegateReference.ReferencedDelegate)));
+        bodyBuilder.Emit(OpCodes.Callvirt, typeof(Il2CppToMonoDelegateReference).GetProperty(nameof(Il2CppToMonoDelegateReference.ReferencedDelegate))!.GetMethod!);
 
         for (var i = 0; i < managedParameters.Length; i++)
         {
@@ -173,8 +172,7 @@ public static class DelegateSupport
             var labelDone = bodyBuilder.DefineLabel();
             bodyBuilder.Emit(OpCodes.Dup);
             bodyBuilder.Emit(OpCodes.Brfalse, labelNull);
-            bodyBuilder.Emit(OpCodes.Call,
-                typeof(Il2CppObjectBase).GetProperty(nameof(Il2CppObjectBase.Pointer))!.GetMethod);
+            bodyBuilder.Emit(OpCodes.Call, typeof(Object).GetProperty(nameof(Object.Pointer))!.GetMethod!);
             bodyBuilder.Emit(OpCodes.Br, labelDone);
             bodyBuilder.MarkLabel(labelNull);
             bodyBuilder.Emit(OpCodes.Pop);
@@ -183,7 +181,7 @@ public static class DelegateSupport
             bodyBuilder.MarkLabel(labelDone);
         }
 
-        LocalBuilder returnLocal = null;
+        LocalBuilder? returnLocal = null;
         if (returnType != typeof(void))
         {
             returnLocal = bodyBuilder.DeclareLocal(returnType);
@@ -214,7 +212,7 @@ public static class DelegateSupport
         Logger.Instance.LogError("{Message}", message);
     }
 
-    public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppObjectBase
+    public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppSystem.Delegate
     {
         if (@delegate == null)
             return null;
@@ -240,7 +238,7 @@ public static class DelegateSupport
         if (classTypePtr == IntPtr.Zero)
             throw new ArgumentException($"Type {typeof(TIl2Cpp)} has uninitialized class pointer");
 
-        if (Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPtr == IntPtr.Zero)
+        if (Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPointer == IntPtr.Zero)
             ClassInjector.RegisterTypeInIl2Cpp<Il2CppToMonoDelegateReference>();
 
         var il2CppDelegateType = Il2CppSystem.Type.internal_from_handle(IL2CPP.il2cpp_class_get_type(classTypePtr));
@@ -266,7 +264,7 @@ public static class DelegateSupport
             }
 
             var classPointerFromManagedType = (IntPtr)typeof(Il2CppClassPointerStore<>).MakeGenericType(managedType)
-                .GetField(nameof(Il2CppClassPointerStore<int>.NativeClassPtr)).GetValue(null);
+                .GetField(nameof(Il2CppClassPointerStore<>.NativeClassPointer))!.GetValue(null)!;
 
             var classPointerFromNativeType = IL2CPP.il2cpp_class_from_type(nativeType._impl.value);
 
@@ -290,17 +288,7 @@ public static class DelegateSupport
 
         var delegateReference = new Il2CppToMonoDelegateReference(@delegate, methodInfo.Pointer);
 
-        Il2CppSystem.Delegate converted;
-        if (UnityVersionHandler.MustUseDelegateConstructor)
-        {
-            converted = ((TIl2Cpp)Activator.CreateInstance(typeof(TIl2Cpp), delegateReference.Cast<Object>(),
-                methodInfo.Pointer)).Cast<Il2CppSystem.Delegate>();
-        }
-        else
-        {
-            var nativeDelegatePtr = IL2CPP.il2cpp_object_new(classTypePtr);
-            converted = new Il2CppSystem.Delegate(nativeDelegatePtr);
-        }
+        TIl2Cpp converted = (TIl2Cpp)Activator.CreateInstance(typeof(TIl2Cpp), delegateReference, methodInfo.Pointer)!;
 
         converted.method_ptr = methodInfo.MethodPointer;
         converted.method_info = nativeDelegateInvokeMethod; // todo: is this truly a good hack?
@@ -311,13 +299,13 @@ public static class DelegateSupport
         {
             // U2021.2.0+ hack in case the constructor did the wrong thing anyway
             converted.invoke_impl = converted.method_ptr;
-            converted.method_code = converted.m_target.Pointer;
+            converted.method_code = delegateReference.Pointer;
         }
 
-        return converted.Cast<TIl2Cpp>();
+        return converted;
     }
 
-    internal class MethodSignature : IEquatable<MethodSignature>
+    internal sealed class MethodSignature : IEquatable<MethodSignature>
     {
         public readonly bool ConstructedFromNative;
         public readonly bool HasThis;
@@ -348,7 +336,7 @@ public static class DelegateSupport
             var hashCode = new HashCode();
 
             hashCode.Add(methodInfo.ReturnType.NativeType());
-            if (hasThis) hashCode.Add(methodInfo.DeclaringType.NativeType());
+            if (hasThis) hashCode.Add(methodInfo.DeclaringType!.NativeType());
             foreach (var parameterInfo in methodInfo.GetParameters())
             {
                 hashCode.Add(parameterInfo.ParameterType.NativeType());
@@ -362,55 +350,113 @@ public static class DelegateSupport
             return _hashCode;
         }
 
-        public bool Equals(MethodSignature other)
+        public bool Equals(MethodSignature? other)
         {
-            if (ReferenceEquals(null, other)) return false;
+            if (other is null) return false;
             if (ReferenceEquals(this, other)) return true;
             return _hashCode.GetHashCode() == other.GetHashCode();
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != GetType()) return false;
-            return Equals((MethodSignature)obj);
+            return Equals(obj as MethodSignature);
         }
 
-        public static bool operator ==(MethodSignature left, MethodSignature right)
+        public static bool operator ==(MethodSignature? left, MethodSignature? right)
         {
             return Equals(left, right);
         }
 
-        public static bool operator !=(MethodSignature left, MethodSignature right)
+        public static bool operator !=(MethodSignature? left, MethodSignature? right)
         {
             return !Equals(left, right);
         }
     }
 
-    private class Il2CppToMonoDelegateReference : Object
+    private class Il2CppToMonoDelegateReference : Object, IIl2CppType<Il2CppToMonoDelegateReference>
     {
-        public IntPtr MethodInfo;
-        public Delegate ReferencedDelegate;
+        [Il2CppField]
+        public Il2CppSystem.IntPtr MethodInfo
+        {
+            get => FieldAccess.GetInstanceFieldValue<Il2CppSystem.IntPtr>(this, MethodInfoFieldOffset);
+            set => FieldAccess.SetInstanceFieldValue(this, MethodInfoFieldOffset, value);
+        }
+        [Il2CppField]
+        private Il2CppSystem.IntPtr DelegateHandleValue
+        {
+            get => FieldAccess.GetInstanceFieldValue<Il2CppSystem.IntPtr>(this, DelegateHandleFieldOffset);
+            set => FieldAccess.SetInstanceFieldValue(this, DelegateHandleFieldOffset, value);
+        }
+        private GCHandle<Delegate> DelegateHandle
+        {
+            get => GCHandle<Delegate>.FromIntPtr(DelegateHandleValue);
+            set => DelegateHandleValue = GCHandle<Delegate>.ToIntPtr(value);
+        }
+        public Delegate ReferencedDelegate
+        {
+            get => DelegateHandle.Target;
+            set
+            {
+                DelegateHandle.Dispose();
+                DelegateHandle = value is not null ? new(value) : default;
+            }
+        }
 
-        public Il2CppToMonoDelegateReference(IntPtr obj0) : base(obj0)
+        public Il2CppToMonoDelegateReference(ObjectPointer obj0) : base(obj0)
         {
         }
 
-        public Il2CppToMonoDelegateReference(Delegate referencedDelegate, IntPtr methodInfo) : base(
-            ClassInjector.DerivedConstructorPointer<Il2CppToMonoDelegateReference>())
+        public Il2CppToMonoDelegateReference(Delegate referencedDelegate, IntPtr methodInfo) : this(IL2CPP.NewObjectPointer<Il2CppToMonoDelegateReference>())
         {
-            ClassInjector.DerivedConstructorBody(this);
-
             ReferencedDelegate = referencedDelegate;
             MethodInfo = methodInfo;
         }
 
-        ~Il2CppToMonoDelegateReference()
+        [Il2CppMethod(Name = "Finalize")] // WIP: does nothing right now
+        public override void Il2CppFinalize()
         {
-            Marshal.FreeHGlobal(MethodInfo);
-            MethodInfo = IntPtr.Zero;
-            ReferencedDelegate = null;
+            // This disposal happens when the object is collected by the Il2Cpp GC instead of the managed GC.
+            // That ensures that the delegate is kept alive as long as the Il2Cpp object is alive, even if the managed wrapper gets collected.
+            // In theory, the managed wrapper could be collected and recreated multiple times during the lifetime of the Il2Cpp object,
+            // so this ensures that the managed fields are not disposed prematurely.
+            try
+            {
+                Marshal.FreeHGlobal(MethodInfo);
+                MethodInfo = IntPtr.Zero;
+                ReferencedDelegate = null!;
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogError($"Exception in {nameof(Il2CppToMonoDelegateReference)}.{nameof(Il2CppFinalize)}: {{Exception}}", ex);
+            }
+            finally
+            {
+                base.Il2CppFinalize(); // Must call base method
+            }
+        }
+
+        static int IIl2CppType<Il2CppToMonoDelegateReference>.Size => nint.Size;
+
+        nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPointer;
+
+        static Il2CppToMonoDelegateReference? IIl2CppType<Il2CppToMonoDelegateReference>.ReadFromSpan(ReadOnlySpan<byte> span)
+        {
+            return Il2CppTypeHelper.ReadReference<Il2CppToMonoDelegateReference>(span);
+        }
+
+        static void IIl2CppType<Il2CppToMonoDelegateReference>.WriteToSpan(Il2CppToMonoDelegateReference? value, Span<byte> span)
+        {
+            Il2CppTypeHelper.WriteReference(value, span);
+        }
+
+        static readonly int MethodInfoFieldOffset;
+        static readonly int DelegateHandleFieldOffset;
+
+        static Il2CppToMonoDelegateReference()
+        {
+            TypeInjector.RegisterTypeInIl2Cpp<Il2CppToMonoDelegateReference>();
+            MethodInfoFieldOffset = (int)IL2CPP.il2cpp_field_get_offset(IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPointer, nameof(MethodInfo)));
+            DelegateHandleFieldOffset = (int)IL2CPP.il2cpp_field_get_offset(IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPointer, nameof(DelegateHandleValue)));
         }
     }
 }
