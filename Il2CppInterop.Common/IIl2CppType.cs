@@ -13,7 +13,14 @@ public interface IIl2CppType<TSelf> : IIl2CppType where TSelf : notnull, IIl2Cpp
     /// <summary>
     /// The name of the assembly that the type is defined in
     /// </summary>
-    static virtual string AssemblyName => typeof(TSelf).Assembly.GetName().Name ?? "";
+    static virtual string AssemblyName
+    {
+        get
+        {
+            var result = typeof(TSelf).Assembly.GetName().Name;
+            return string.IsNullOrEmpty(result) ? "Assembly-CSharp" : result;
+        }
+    }
     /// <summary>
     /// The namespace of type
     /// </summary>
