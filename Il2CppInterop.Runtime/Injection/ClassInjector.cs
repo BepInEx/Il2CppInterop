@@ -205,7 +205,7 @@ public static unsafe partial class ClassInjector
         var methodPointerArray = (Il2CppMethodInfo**)Marshal.AllocHGlobal(methodCount * IntPtr.Size);
         classPointer.Methods = methodPointerArray;
 
-        if (!type.IsAbstract) methodPointerArray[0] = ConvertStaticMethod(CreateEmptyCtor(type), ".ctor", classPointer);
+        if (!type.IsAbstract) methodPointerArray[0] = CreateEmptyCtor(classPointer);
         var infos = new Dictionary<(string, int, bool), int>(eligibleMethods.Length);
         for (var i = 0; i < eligibleMethods.Length; i++)
         {
@@ -445,30 +445,26 @@ public static unsafe partial class ClassInjector
         return true;
     }
 
-    private static Il2CppMethodInfo* ConvertStaticMethod(VoidCtorDelegate voidCtor, string methodName,
-        INativeClassStruct declaringClass)
+    private static Il2CppMethodInfo* CreateEmptyCtor(INativeClassStruct declaringClass)
     {
         var converted = UnityVersionHandler.NewMethod();
-        converted.Name = Marshal.StringToCoTaskMemUTF8(methodName);
+        converted.Name = Marshal.StringToCoTaskMemUTF8(".ctor");
         converted.Class = declaringClass.ClassPointer;
 
-        Delegate invoker;
+        void* invoker;
         if (UnityVersionHandler.IsMetadataV29OrHigher)
         {
-            invoker = new InvokerDelegateMetadataV29(StaticVoidIntPtrInvoker_MetadataV29);
+            invoker = (delegate* unmanaged<IntPtr, Il2CppMethodInfo*, IntPtr, IntPtr*, IntPtr*, void>)&Invoker_MetadataV29;
         }
         else
         {
-            invoker = new InvokerDelegate(StaticVoidIntPtrInvoker);
+            invoker = (delegate* unmanaged<IntPtr, Il2CppMethodInfo*, IntPtr, IntPtr*, IntPtr>)&Invoker;
         }
 
-        GCHandle.Alloc(invoker);
-        converted.InvokerMethod = Marshal.GetFunctionPointerForDelegate(invoker);
-
-        converted.MethodPointer = Marshal.GetFunctionPointerForDelegate(voidCtor);
+        converted.InvokerMethod = (nint)invoker;
+        converted.MethodPointer = (nint)(delegate* unmanaged<IntPtr, Il2CppMethodInfo*, void>)&Method;
         converted.Slot = ushort.MaxValue;
-        converted.ReturnType =
-            (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore<Void>.NativeClassPointer);
+        converted.ReturnType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore<Il2CppSystem.Void>.NativeClassPointer);
 
         converted.Flags = Il2CppMethodFlags.METHOD_ATTRIBUTE_PUBLIC |
                           Il2CppMethodFlags.METHOD_ATTRIBUTE_HIDE_BY_SIG |
@@ -477,17 +473,22 @@ public static unsafe partial class ClassInjector
 
         return converted.MethodInfoPointer;
 
-        static void StaticVoidIntPtrInvoker_MetadataV29(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj,
-            IntPtr* args, IntPtr* returnValue)
+        [UnmanagedCallersOnly]
+        static void Invoker_MetadataV29(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj, IntPtr* args, IntPtr* returnValue)
         {
-            Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)((ObjectPointer)obj, methodInfo);
+            if (returnValue != null)
+                *returnValue = IntPtr.Zero;
         }
 
-        static IntPtr StaticVoidIntPtrInvoker(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj,
-            IntPtr* args)
+        [UnmanagedCallersOnly]
+        static IntPtr Invoker(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj, IntPtr* args)
         {
-            Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)((ObjectPointer)obj, methodInfo);
             return IntPtr.Zero;
+        }
+
+        [UnmanagedCallersOnly]
+        static void Method(IntPtr obj, Il2CppMethodInfo* methodInfo)
+        {
         }
     }
 
@@ -599,31 +600,6 @@ public static unsafe partial class ClassInjector
         }
 
         return converted.MethodInfoPointer;
-    }
-
-    private static VoidCtorDelegate CreateEmptyCtor(Type targetType)
-    {
-        var method = new DynamicMethod("FromIl2CppCtorDelegate", MethodAttributes.Public | MethodAttributes.Static,
-            CallingConventions.Standard, typeof(void), new[] { typeof(ObjectPointer), typeof(Il2CppMethodInfo*) }, targetType, true);
-
-        var body = method.GetILGenerator();
-
-        var monoCtor = targetType.GetConstructor(new[] { typeof(ObjectPointer) });
-        if (monoCtor != null)
-        {
-            body.Emit(OpCodes.Ldarg_0);
-            body.Emit(OpCodes.Newobj, monoCtor);
-        }
-        else
-        {
-            throw new NotSupportedException($"Type {targetType} must have a constructor with a single ObjectPointer argument");
-        }
-
-        body.Emit(OpCodes.Ret);
-
-        var @delegate = method.CreateDelegate<VoidCtorDelegate>();
-        GCHandle.Alloc(@delegate); // pin it forever
-        return @delegate;
     }
 
     private static Delegate GetOrCreateInvoker(MethodInfo monoMethod)
