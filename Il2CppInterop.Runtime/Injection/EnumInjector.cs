@@ -22,7 +22,7 @@ public static unsafe class EnumInjector
 
     private static readonly IntPtr value__Cached = Marshal.StringToCoTaskMemUTF8("value__");
 
-    internal static bool GetDefaultValueOverride(Il2CppFieldInfo* fieldInfo, out IntPtr defaultValueBlob)
+    internal static bool GetFieldDefaultValueOverride(Il2CppFieldInfo* fieldInfo, out IntPtr defaultValueBlob)
     {
         return s_DefaultValueOverrides.TryGetValue((IntPtr)fieldInfo, out defaultValueBlob);
     }
@@ -126,7 +126,7 @@ public static unsafe class EnumInjector
     {
         var typeEnum = UnityVersionHandler.Wrap(type).Type;
 
-        if (!GetDefaultValueOverride(field, out var newBlob))
+        if (!GetFieldDefaultValueOverride(field, out var newBlob))
         {
             newBlob = AllocateNewDefaultValueBlob(typeEnum);
             s_DefaultValueOverrides[(IntPtr)field] = newBlob;
