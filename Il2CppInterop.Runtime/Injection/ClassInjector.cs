@@ -480,13 +480,13 @@ public static unsafe partial class ClassInjector
         static void StaticVoidIntPtrInvoker_MetadataV29(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj,
             IntPtr* args, IntPtr* returnValue)
         {
-            Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)((ObjectPointer)obj);
+            Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)((ObjectPointer)obj, methodInfo);
         }
 
         static IntPtr StaticVoidIntPtrInvoker(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj,
             IntPtr* args)
         {
-            Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)((ObjectPointer)obj);
+            Marshal.GetDelegateForFunctionPointer<VoidCtorDelegate>(methodPointer)((ObjectPointer)obj, methodInfo);
             return IntPtr.Zero;
         }
     }
@@ -604,7 +604,7 @@ public static unsafe partial class ClassInjector
     private static VoidCtorDelegate CreateEmptyCtor(Type targetType)
     {
         var method = new DynamicMethod("FromIl2CppCtorDelegate", MethodAttributes.Public | MethodAttributes.Static,
-            CallingConventions.Standard, typeof(void), new[] { typeof(ObjectPointer) }, targetType, true);
+            CallingConventions.Standard, typeof(void), new[] { typeof(ObjectPointer), typeof(Il2CppMethodInfo*) }, targetType, true);
 
         var body = method.GetILGenerator();
 
@@ -1003,5 +1003,5 @@ public static unsafe partial class ClassInjector
     private delegate IntPtr InvokerDelegate(IntPtr methodPointer, Il2CppMethodInfo* methodInfo, IntPtr obj, IntPtr* args);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate void VoidCtorDelegate(ObjectPointer objectPointer);
+    private delegate void VoidCtorDelegate(ObjectPointer objectPointer, Il2CppMethodInfo* methodInfo);
 }
