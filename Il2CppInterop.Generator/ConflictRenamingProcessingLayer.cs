@@ -6,29 +6,18 @@ using Cpp2IL.Core.Model.Contexts;
 namespace Il2CppInterop.Generator;
 
 /// <summary>
-/// 4 virtual methods in Il2CppSystem.Object conflict with their System.Object counterparts.
+/// 3 virtual methods in Il2CppSystem.Object conflict with their System.Object counterparts.
 /// </summary>
 public partial class ConflictRenamingProcessingLayer : Cpp2IlProcessingLayer
 {
     public override string Name => "Conflict Renaming";
     public override string Id => "conflictrenamer";
 
-    private const int EqualsLength = 6; // "Equals".Length
-    private const int ToStringLength = 8; // "ToString".Length
-    private const int GetHashCodeLength = 11; // "GetHashCode".Length
-    private const int FinalizeLength = 8; // "Finalize".Length
-
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
-        List<MethodAnalysisContext> equalsMethods = [];
-        List<MethodAnalysisContext> toStringMethods = [];
-        List<MethodAnalysisContext> getHashCodeMethods = [];
-        List<MethodAnalysisContext> finalizeMethods = [];
-
-        HashSet<int> equalsUnderscoreCount = [];
-        HashSet<int> toStringUnderscoreCount = [];
-        HashSet<int> getHashCodeUnderscoreCount = [];
-        HashSet<int> finalizeUnderscoreCount = [];
+        // ToString => ToIl2CppString
+        // GetHashCode => GetIl2CppHashCode
+        // Finalize => Il2CppFinalize
 
         var il2CppSystemObject = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Object");
 
@@ -44,21 +33,21 @@ public partial class ConflictRenamingProcessingLayer : Cpp2IlProcessingLayer
                 if (type.IsInjected)
                     continue;
 
-                MaybeAddToHashSet(type.Name, equalsUnderscoreCount, toStringUnderscoreCount, getHashCodeUnderscoreCount, finalizeUnderscoreCount);
+                MaybeAppendUnderscore(type.Name, type);
 
                 foreach (var field in type.Fields)
                 {
-                    MaybeAddToHashSet(field.Name, equalsUnderscoreCount, toStringUnderscoreCount, getHashCodeUnderscoreCount, finalizeUnderscoreCount);
+                    MaybeAppendUnderscore(field.Name, field);
                 }
 
                 foreach (var property in type.Properties)
                 {
-                    MaybeAddToHashSet(property.Name, equalsUnderscoreCount, toStringUnderscoreCount, getHashCodeUnderscoreCount, finalizeUnderscoreCount);
+                    MaybeAppendUnderscore(property.Name, property);
                 }
 
                 foreach (var @event in type.Events)
                 {
-                    MaybeAddToHashSet(@event.Name, equalsUnderscoreCount, toStringUnderscoreCount, getHashCodeUnderscoreCount, finalizeUnderscoreCount);
+                    MaybeAppendUnderscore(@event.Name, @event);
                 }
 
                 foreach (var method in type.Methods)
@@ -66,36 +55,30 @@ public partial class ConflictRenamingProcessingLayer : Cpp2IlProcessingLayer
                     var name = method.Name;
                     switch (name)
                     {
-                        case "Equals":
-                            if (method.Parameters.Count == 1 && method.Parameters[0].ParameterType == il2CppSystemObject && method.GenericParameters.Count == 0)
-                            {
-                                Debug.Assert(!method.IsInjected);
-                                equalsMethods.Add(method);
-                            }
-                            break;
                         case "ToString":
                             if (method.Parameters.Count == 0 && method.GenericParameters.Count == 0)
                             {
                                 Debug.Assert(!method.IsInjected);
-                                toStringMethods.Add(method);
+                                method.Name = "ToIl2CppString";
                             }
                             break;
                         case "GetHashCode":
                             if (method.Parameters.Count == 0 && method.GenericParameters.Count == 0)
                             {
                                 Debug.Assert(!method.IsInjected);
-                                getHashCodeMethods.Add(method);
+                                method.Name = "GetIl2CppHashCode";
                             }
                             break;
                         case "Finalize":
                             if (method.Parameters.Count == 0 && method.GenericParameters.Count == 0)
                             {
                                 Debug.Assert(!method.IsInjected);
-                                finalizeMethods.Add(method);
+                                method.Name = "Il2CppFinalize";
+                                method.Overrides.Clear(); // Since this is no longer the Finalize method, it shouldn't have an explicit override.
                             }
                             break;
                         default:
-                            MaybeAddToHashSet(name, equalsUnderscoreCount, toStringUnderscoreCount, getHashCodeUnderscoreCount, finalizeUnderscoreCount);
+                            MaybeAppendUnderscore(name, method);
                             break;
                     }
                 }
@@ -103,82 +86,31 @@ public partial class ConflictRenamingProcessingLayer : Cpp2IlProcessingLayer
 
             progressCallback?.Invoke(i, appContext.Assemblies.Count);
         }
-
-        // Equals
-        var newEqualsName = GetNewName("Equals", equalsUnderscoreCount);
-        foreach (var method in equalsMethods)
-        {
-            method.OverrideName = newEqualsName;
-        }
-
-        // ToString
-        var newToStringName = GetNewName("ToString", toStringUnderscoreCount);
-        foreach (var method in toStringMethods)
-        {
-            method.OverrideName = newToStringName;
-        }
-
-        // GetHashCode
-        var newGetHashCodeName = GetNewName("GetHashCode", getHashCodeUnderscoreCount);
-        foreach (var method in getHashCodeMethods)
-        {
-            method.OverrideName = newGetHashCodeName;
-        }
-
-        // Finalize
-        var newFinalizeName = GetNewName("Finalize", finalizeUnderscoreCount);
-        foreach (var method in finalizeMethods)
-        {
-            method.OverrideName = newFinalizeName;
-            method.Overrides.Clear(); // Since this is no longer the Finalize method, it shouldn't have an explicit override.
-        }
     }
 
-    private static void MaybeAddToHashSet(string name, HashSet<int> equalsUnderscoreCount, HashSet<int> toStringUnderscoreCount, HashSet<int> getHashCodeUnderscoreCount, HashSet<int> finalizeUnderscoreCount)
+    private static void MaybeAppendUnderscore(string name, HasCustomAttributesAndName context)
     {
-        if (EqualsRegex.IsMatch(name))
+        // If the name matches any of the patterns, append an underscore to avoid conflicts.
+        if (ToStringRegex.IsMatch(name))
         {
-            equalsUnderscoreCount.Add(name.Length - EqualsLength);
-        }
-        else if (ToStringRegex.IsMatch(name))
-        {
-            toStringUnderscoreCount.Add(name.Length - ToStringLength);
+            context.Name = $"{name}_";
         }
         else if (GetHashCodeRegex.IsMatch(name))
         {
-            getHashCodeUnderscoreCount.Add(name.Length - GetHashCodeLength);
+            context.Name = $"{name}_";
         }
         else if (FinalizeRegex.IsMatch(name))
         {
-            finalizeUnderscoreCount.Add(name.Length - FinalizeLength);
+            context.Name = $"{name}_";
         }
     }
 
-    private static string GetNewName(string baseName, HashSet<int> existingUnderscoreCounts)
-    {
-        var underscoreCount = GetNextAvailableUnderscoreCount(existingUnderscoreCounts);
-        return baseName + new string('_', underscoreCount);
-    }
-
-    private static int GetNextAvailableUnderscoreCount(HashSet<int> existingUnderscoreCounts)
-    {
-        var count = 1;
-        while (existingUnderscoreCounts.Contains(count))
-        {
-            count++;
-        }
-        return count;
-    }
-
-    [GeneratedRegex(@"^Equals_+$")]
-    private static partial Regex EqualsRegex { get; }
-
-    [GeneratedRegex(@"^ToString_+$")]
+    [GeneratedRegex(@"^ToIl2CppString_*$")]
     private static partial Regex ToStringRegex { get; }
 
-    [GeneratedRegex(@"^GetHashCode_+$")]
+    [GeneratedRegex(@"^GetIl2CppHashCode_*$")]
     private static partial Regex GetHashCodeRegex { get; }
 
-    [GeneratedRegex(@"^Finalize_+$")]
+    [GeneratedRegex(@"^Il2CppFinalize_*$")]
     private static partial Regex FinalizeRegex { get; }
 }

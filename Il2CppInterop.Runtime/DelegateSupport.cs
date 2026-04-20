@@ -413,15 +413,26 @@ public static class DelegateSupport
         }
 
         [Il2CppMethod(Name = "Finalize")] // WIP: does nothing right now
-        public void Finalize_()
+        public override void Il2CppFinalize()
         {
             // This disposal happens when the object is collected by the Il2Cpp GC instead of the managed GC.
             // That ensures that the delegate is kept alive as long as the Il2Cpp object is alive, even if the managed wrapper gets collected.
             // In theory, the managed wrapper could be collected and recreated multiple times during the lifetime of the Il2Cpp object,
             // so this ensures that the managed fields are not disposed prematurely.
-            Marshal.FreeHGlobal(MethodInfo);
-            MethodInfo = IntPtr.Zero;
-            ReferencedDelegate = null!;
+            try
+            {
+                Marshal.FreeHGlobal(MethodInfo);
+                MethodInfo = IntPtr.Zero;
+                ReferencedDelegate = null!;
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogError($"Exception in {nameof(Il2CppToMonoDelegateReference)}.{nameof(Il2CppFinalize)}: {{Exception}}", ex);
+            }
+            finally
+            {
+                base.Il2CppFinalize(); // Must call base method
+            }
         }
 
         static int IIl2CppType<Il2CppToMonoDelegateReference>.Size => nint.Size;
