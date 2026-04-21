@@ -30,13 +30,10 @@ public static class DelegateSupport
 
     internal static Type GetOrCreateDelegateType(MethodSignature signature, MethodInfo managedMethod)
     {
-        return ourDelegateTypes.GetOrAdd(signature,
-            (signature, managedMethodInner) =>
-                CreateDelegateType(managedMethodInner, signature),
-            managedMethod);
+        return ourDelegateTypes.GetOrAdd(signature, CreateDelegateType, managedMethod);
     }
 
-    private static Type CreateDelegateType(MethodInfo managedMethodInner, MethodSignature signature)
+    private static Type CreateDelegateType(MethodSignature signature, MethodInfo managedMethodInner)
     {
         var typeName = "Il2CppToManagedDelegate_" + managedMethodInner.DeclaringType + "_" + signature.GetHashCode() +
                        (signature.HasThis ? "HasThis" : "") +
