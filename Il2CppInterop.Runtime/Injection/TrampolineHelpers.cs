@@ -55,16 +55,25 @@ internal static class TrampolineHelpers
             // bool is byte in Il2Cpp, but int in CLR => force size to be correct
             return typeof(byte);
         }
-        else if (managedType.IsValueType)
-        {
-            // Struct that's passed on the stack => handle as general struct
-            var fixedSize = IL2CPP.GetIl2cppValueSize(Il2CppClassPointerStore.GetNativeClassPointer(managedType));
-            return GetFixedSizeStructType(fixedSize);
-        }
         else
         {
-            // General reference type
-            return typeof(IntPtr);
+            var nativeClassPtr = Il2CppClassPointerStore.GetNativeClassPointer(managedType);
+            if (nativeClassPtr == IntPtr.Zero)
+            {
+                throw new NotSupportedException($"Type {managedType.FullName} is not an Il2Cpp type.");
+            }
+
+            if (IL2CPP.il2cpp_class_is_valuetype(nativeClassPtr))
+            {
+                // Struct that's passed on the stack => handle as general struct
+                var fixedSize = IL2CPP.GetIl2cppValueSize(nativeClassPtr);
+                return GetFixedSizeStructType(fixedSize);
+            }
+            else
+            {
+                // General reference type
+                return typeof(IntPtr);
+            }
         }
     }
 }
