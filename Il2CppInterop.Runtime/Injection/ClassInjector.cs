@@ -1110,7 +1110,42 @@ public static unsafe partial class ClassInjector
 
         return type;
     }
-
+    [Flags]
+    public enum Il2CppTypeNameOptions
+    {
+        None = 0,
+        Namespace = 1 << 0,
+        Name = 1 << 1,
+        Assembly = 1 << 2,
+        All = Namespace | Name | Assembly
+    }
+    internal static string GetTypeName(Type type, Il2CppTypeNameOptions options = Il2CppTypeNameOptions.All)
+    {
+        var assembly = type.Assembly;
+        var fullName = new StringBuilder();
+        var names = new Stack<string>();
+        var outerType = type;
+        while (outerType.DeclaringType != null)
+            outerType = outerType.DeclaringType;
+        var namespaceName = outerType.Namespace ?? "";
+        if (options.HasFlag(Il2CppTypeNameOptions.Namespace) && namespaceName.Length > 0)
+        {
+            fullName.Append(namespaceName);
+            fullName.Append('.');
+        }
+        if (options.HasFlag(Il2CppTypeNameOptions.Name) && names.Count > 0)
+            fullName.Append(string.Join("+", names));
+        if (options.HasFlag(Il2CppTypeNameOptions.Assembly))
+        {
+            var assemblyName = assembly.FullName;
+            if (assemblyName != "mscorlib")
+            {
+                fullName.Append(", ");
+                fullName.Append(assemblyName);
+            }
+        }
+        return fullName.ToString();
+    } // Could add same options to GetIl2CppTypeFullName too.
     private static string GetIl2CppTypeFullName(Il2CppTypeStruct* typePointer)
     {
         var klass = UnityVersionHandler.Wrap((Il2CppClass*)IL2CPP.il2cpp_class_from_type((IntPtr)typePointer));
