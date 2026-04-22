@@ -371,14 +371,14 @@ public static unsafe partial class IL2CPP
 
         if (invoke.ReturnType == typeof(void))
         {
-            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConventions.Standard, typeof(void), parameterTypes, []);
+            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConventions.Standard, typeof(void), parameterTypes, null);
         }
         else
         {
             var returnType = invoke.ReturnType;
             var nativeStruct = TrampolineHelpers.NativeType(returnType);
 
-            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConventions.Standard, nativeStruct, parameterTypes, []);
+            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConventions.Standard, nativeStruct, parameterTypes, null);
 
             var returnLocal = bodyBuilder.DeclareLocal(nativeStruct);
             bodyBuilder.Emit(OpCodes.Stloc, returnLocal);
