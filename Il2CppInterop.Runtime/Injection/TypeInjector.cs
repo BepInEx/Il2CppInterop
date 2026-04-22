@@ -755,6 +755,10 @@ public static unsafe class TypeInjector
             count += CountIl2CppMethods(currentType);
             currentType = currentType.BaseType;
         }
+        if (type.IsValueType)
+        {
+            count += UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<Il2CppSystem.ValueType>.NativeClassPointer).VtableCount;
+        }
         return int.Min(count, ushort.MaxValue);
 
         static int CountIl2CppMethods(Type type) => type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Count(IsIl2CppMethod);
