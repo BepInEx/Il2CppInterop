@@ -128,63 +128,21 @@ public static class DelegateSupport
 
         for (var i = 0; i < managedParameters.Length; i++)
         {
-            var parameterType = managedParameters[i].ParameterType;
-
             bodyBuilder.Emit(OpCodes.Ldarg, i + 1);
-            if (parameterType == typeof(string))
-            {
-                bodyBuilder.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppStringToManaged))!);
-            }
-            else if (!parameterType.IsValueType)
-            {
-                var labelNull = bodyBuilder.DefineLabel();
-                var labelDone = bodyBuilder.DefineLabel();
-                bodyBuilder.Emit(OpCodes.Brfalse, labelNull);
-                bodyBuilder.Emit(OpCodes.Ldarg, i + 1);
-                bodyBuilder.Emit(OpCodes.Newobj, parameterType.GetConstructor(new[] { typeof(IntPtr) })!);
-                bodyBuilder.Emit(OpCodes.Br, labelDone);
-                bodyBuilder.MarkLabel(labelNull);
-                bodyBuilder.Emit(OpCodes.Ldnull);
-                bodyBuilder.MarkLabel(labelDone);
-            }
+            bodyBuilder.Emit(OpCodes.Call, typeof(DelegateSupport).GetMethod(nameof(ConvertNativeArgument), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(parameterTypes[i + 1], managedParameters[i].ParameterType));
         }
 
         bodyBuilder.Emit(OpCodes.Call, managedMethod);
-
-        if (managedMethod.ReturnType == typeof(string))
-        {
-            bodyBuilder.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!);
-        }
-        else if (!managedMethod.ReturnType.IsValueType)
-        {
-            var labelNull = bodyBuilder.DefineLabel();
-            var labelDone = bodyBuilder.DefineLabel();
-            bodyBuilder.Emit(OpCodes.Dup);
-            bodyBuilder.Emit(OpCodes.Brfalse, labelNull);
-            bodyBuilder.Emit(OpCodes.Call, typeof(Object).GetProperty(nameof(Object.Pointer))!.GetMethod!);
-            bodyBuilder.Emit(OpCodes.Br, labelDone);
-            bodyBuilder.MarkLabel(labelNull);
-            bodyBuilder.Emit(OpCodes.Pop);
-            bodyBuilder.Emit(OpCodes.Ldc_I4_0);
-            bodyBuilder.Emit(OpCodes.Conv_I);
-            bodyBuilder.MarkLabel(labelDone);
-        }
 
         LocalBuilder? returnLocal = null;
         if (returnType != typeof(void))
         {
             returnLocal = bodyBuilder.DeclareLocal(returnType);
+            bodyBuilder.Emit(OpCodes.Call, typeof(DelegateSupport).GetMethod(nameof(ConvertReturnValue), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(managedMethod.ReturnType, returnType));
             bodyBuilder.Emit(OpCodes.Stloc, returnLocal);
         }
 
-        var exceptionLocal = bodyBuilder.DeclareLocal(typeof(Exception));
         bodyBuilder.BeginCatchBlock(typeof(Exception));
-        bodyBuilder.Emit(OpCodes.Stloc, exceptionLocal);
-        bodyBuilder.Emit(OpCodes.Ldstr, "Exception in IL2CPP-to-Managed trampoline, not passing it to il2cpp: ");
-        bodyBuilder.Emit(OpCodes.Ldloc, exceptionLocal);
-        bodyBuilder.Emit(OpCodes.Callvirt, typeof(object).GetMethod(nameof(ToString))!);
-        bodyBuilder.Emit(OpCodes.Call,
-            typeof(string).GetMethod(nameof(string.Concat), new[] { typeof(string), typeof(string) })!);
         bodyBuilder.Emit(OpCodes.Call, typeof(DelegateSupport).GetMethod(nameof(LogError), BindingFlags.Static | BindingFlags.NonPublic)!);
 
         bodyBuilder.EndExceptionBlock();
@@ -196,9 +154,27 @@ public static class DelegateSupport
         return trampoline.CreateDelegate(GetOrCreateDelegateType(signature, managedMethod));
     }
 
-    private static void LogError(string message)
+    private static void LogError(Exception exception)
     {
-        Logger.Instance.LogError("{Message}", message);
+        Logger.Instance.LogError("Exception in IL2CPP-to-Managed trampoline, not passing it to il2cpp: {Exception}", exception);
+    }
+
+    private static unsafe TManaged? ConvertNativeArgument<TNative, TManaged>(TNative value)
+        where TNative : unmanaged
+        where TManaged : IIl2CppType<TManaged>
+    {
+        var span = new ReadOnlySpan<byte>(&value, sizeof(TNative));
+        return TManaged.ReadFromSpan(span);
+    }
+
+    private static unsafe TNative ConvertReturnValue<TManaged, TNative>(TManaged? value)
+        where TNative : unmanaged
+        where TManaged : IIl2CppType<TManaged>
+    {
+        TNative result = default;
+        var span = new Span<byte>(&result, sizeof(TNative));
+        TManaged.WriteToSpan(value, span);
+        return result;
     }
 
     public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppSystem.Delegate
