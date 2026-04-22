@@ -8,11 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MonoMod.RuntimeDetour" Version="25.3.3" />
+    <PackageReference Include="MonoMod.RuntimeDetour" Version="25.3.4" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Il2CppInterop.Runtime\Il2CppInterop.Runtime.csproj"/>
+    <ProjectReference Include="..\Il2CppInterop.Runtime\Il2CppInterop.Runtime.csproj" />
   </ItemGroup>
 
 </Project>
