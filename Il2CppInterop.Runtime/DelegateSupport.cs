@@ -192,7 +192,7 @@ public static class DelegateSupport
                     $"Delegate has unsubstituted generic parameter ({parameterType}) which is not supported");
         }
 
-        var classTypePtr = Il2CppClassPointerStore.GetNativeClassPointer(typeof(TIl2Cpp));
+        var classTypePtr = Il2CppClassPointerStore<TIl2Cpp>.NativeClassPointer;
         if (classTypePtr == IntPtr.Zero)
             throw new ArgumentException($"Type {typeof(TIl2Cpp)} has uninitialized class pointer");
 
@@ -209,8 +209,7 @@ public static class DelegateSupport
             var nativeType = nativeParameters[i].ParameterType;
             var managedType = parameterInfos[i].ParameterType;
 
-            var classPointerFromManagedType = (IntPtr)typeof(Il2CppClassPointerStore<>).MakeGenericType(managedType)
-                .GetField(nameof(Il2CppClassPointerStore<>.NativeClassPointer))!.GetValue(null)!;
+            var classPointerFromManagedType = Il2CppClassPointerStore.GetNativeClassPointer(managedType);
 
             var classPointerFromNativeType = IL2CPP.il2cpp_class_from_type(nativeType._impl.value);
 
