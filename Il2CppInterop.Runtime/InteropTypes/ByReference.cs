@@ -75,7 +75,7 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
 
     private static int ReferenceSize => T.Size;
 
-    readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<ByReference<T>>.NativeClassPointer;
+    readonly nint IIl2CppType.ObjectClass => 0; // ByReference types have no class
 
     static int IIl2CppType<ByReference<T>>.Size => IntPtr.Size;
 
@@ -100,10 +100,4 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
 
     static void IIl2CppType<ByReference<T>>.WriteToSpan(ByReference<T> value, Span<byte> span) => Il2CppTypeHelper.WritePointer((IntPtr)value._pointer, span);
     static ByReference<T> IIl2CppType<ByReference<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => (ByReference<T>)(void*)Il2CppTypeHelper.ReadPointer(span);
-
-    static ByReference()
-    {
-        var elementType = Il2CppSystem.Type.internal_from_handle(IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore<T>.NativeClassPointer));
-        Il2CppClassPointerStore<ByReference<T>>.NativeClassPointer = IL2CPP.il2cpp_class_from_type(elementType.MakeByRefType().TypeHandle.value);
-    }
 }

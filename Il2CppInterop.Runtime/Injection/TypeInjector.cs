@@ -648,7 +648,7 @@ public static unsafe class TypeInjector
 
     private static Il2CppSystem.String GetFullName(Type type)
     {
-        return GetFullName((Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore.GetNativeClassPointer(type)));
+        return GetFullName((Il2CppTypeStruct*)Il2CppTypePointerStore.GetNativeTypePointer(type));
     }
 
     private static Il2CppSystem.String GetFullName(Il2CppTypeStruct* type)
@@ -1037,7 +1037,7 @@ public static unsafe class TypeInjector
                     param.Token = 0;
                 }
 
-                param.ParameterType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore.GetNativeClassPointer(parameterInfo.ParameterType));
+                param.ParameterType = (Il2CppTypeStruct*)Il2CppTypePointerStore.GetNativeTypePointer(parameterInfo.ParameterType);
             }
         }
 
@@ -1057,7 +1057,7 @@ public static unsafe class TypeInjector
 
         converted.Slot = ushort.MaxValue;
 
-        converted.ReturnType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore.GetNativeClassPointer(monoMethod.ReturnType));
+        converted.ReturnType = (Il2CppTypeStruct*)Il2CppTypePointerStore.GetNativeTypePointer(monoMethod.ReturnType);
 
         converted.Flags = MethodAttributesToMethodFlags(monoMethod.Attributes);
 
