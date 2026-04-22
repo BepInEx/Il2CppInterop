@@ -132,6 +132,12 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                         invalidTypes.Add(nonExistingType);
                         continue;
                     }
+                    if (baseTypeResolved.DeclaringType is not null)
+                    {
+                        // We don't currently support nested types
+                        invalidTypes.Add(nonExistingType);
+                        continue;
+                    }
                     if (invalidTypes.Contains(baseTypeResolved))
                     {
                         invalidTypes.Add(nonExistingType);
@@ -161,6 +167,13 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                     }
                     if (interfaceTypeResolved.GenericParameters.Count > 0)
                     {
+                        invalidTypes.Add(nonExistingType);
+                        shouldSkipToNextType = true;
+                        break;
+                    }
+                    if (interfaceTypeResolved.DeclaringType is not null)
+                    {
+                        // We don't currently support nested types
                         invalidTypes.Add(nonExistingType);
                         shouldSkipToNextType = true;
                         break;
