@@ -198,9 +198,6 @@ public static class DelegateSupport
         if (classTypePtr == IntPtr.Zero)
             throw new ArgumentException($"Type {typeof(TIl2Cpp)} has uninitialized class pointer");
 
-        if (Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPointer == IntPtr.Zero)
-            ClassInjector.RegisterTypeInIl2Cpp<Il2CppToMonoDelegateReference>();
-
         var il2CppDelegateType = Il2CppSystem.Type.internal_from_handle(IL2CPP.il2cpp_class_get_type(classTypePtr));
         var nativeDelegateInvokeMethod = il2CppDelegateType.GetMethod("Invoke");
 
@@ -359,7 +356,7 @@ public static class DelegateSupport
             MethodInfo = methodInfo;
         }
 
-        [Il2CppMethod(Name = "Finalize")] // WIP: does nothing right now
+        [Il2CppMethod(Name = "Finalize")]
         public override void Il2CppFinalize()
         {
             // This disposal happens when the object is collected by the Il2Cpp GC instead of the managed GC.

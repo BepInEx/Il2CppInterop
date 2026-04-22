@@ -59,11 +59,6 @@ Console.WriteLine("Done!");
 
 /*
 Todo
-
-Required for runtime testing:
-- Class injection rewrite
-
-Ideal:
 - System interfaces
 - overloads with delegates, primitives
 - Source generation for user-injected types

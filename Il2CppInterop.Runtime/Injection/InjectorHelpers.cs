@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Il2CppInterop.Common;
@@ -12,7 +11,6 @@ using Il2CppInterop.Runtime.Injection.Hooks;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Image;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
-using Il2CppInterop.Runtime.Startup;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection
@@ -27,33 +25,12 @@ namespace Il2CppInterop.Runtime.Injection
 
         internal static IntPtr Il2CppHandle = NativeLibrary.Load("GameAssembly", typeof(InjectorHelpers).Assembly, null);
 
-        internal static readonly Dictionary<Type, OpCode> StIndOpcodes = new()
-        {
-            [typeof(byte)] = OpCodes.Stind_I1,
-            [typeof(sbyte)] = OpCodes.Stind_I1,
-            [typeof(bool)] = OpCodes.Stind_I1,
-            [typeof(short)] = OpCodes.Stind_I2,
-            [typeof(ushort)] = OpCodes.Stind_I2,
-            [typeof(int)] = OpCodes.Stind_I4,
-            [typeof(uint)] = OpCodes.Stind_I4,
-            [typeof(long)] = OpCodes.Stind_I8,
-            [typeof(ulong)] = OpCodes.Stind_I8,
-            [typeof(float)] = OpCodes.Stind_R4,
-            [typeof(double)] = OpCodes.Stind_R8
-        };
-
-        private static readonly GenericMethod_GetMethod_Hook GenericMethodGetMethodHook = new();
-        private static readonly GenericMethod_GetMethod_Unity6_Hook GenericMethodGetMethodHook_Unity6 = new();
         private static readonly MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook GetTypeInfoFromTypeDefinitionIndexHook = new();
         private static readonly Class_GetFieldDefaultValue_Hook GetFieldDefaultValueHook = new();
         private static readonly Class_FromIl2CppType_Hook FromIl2CppTypeHook = new();
         private static readonly Class_FromName_Hook FromNameHook = new();
         internal static void Setup()
         {
-            if (Il2CppInteropRuntime.Instance.UnityVersion.Major >= 6000)
-                GenericMethodGetMethodHook_Unity6.ApplyHook();
-            else
-                GenericMethodGetMethodHook.ApplyHook();
             GetTypeInfoFromTypeDefinitionIndexHook.ApplyHook();
             GetFieldDefaultValueHook.ApplyHook();
             ClassInit ??= FindClassInit();
@@ -109,18 +86,10 @@ namespace Il2CppInterop.Runtime.Injection
             return newToken;
         }
 
-        internal static void AddTypeToLookup<T>(IntPtr typePointer) where T : class => AddTypeToLookup(typeof(T), typePointer);
-        internal static void AddTypeToLookup(Type type, IntPtr typePointer)
+        internal static void AddTypeToLookup(string assemblyName, string namespaze, string klass, IntPtr typePointer)
         {
-            string klass = type.Name;
-            if (klass == null) return;
-            string namespaze = type.Namespace ?? string.Empty;
-            var attribute = Attribute.GetCustomAttribute(type, typeof(Il2CppInterop.Runtime.Attributes.ClassInjectionAssemblyTargetAttribute)) as Il2CppInterop.Runtime.Attributes.ClassInjectionAssemblyTargetAttribute;
-
-            foreach (IntPtr image in (attribute is null) ? IL2CPP.GetIl2CppImages() : attribute.GetImagePointers())
-            {
-                s_ClassNameLookup.Add((namespaze, klass, image), typePointer);
-            }
+            var image = GetOrCreateImage(assemblyName).ImagePointer;
+            s_ClassNameLookup.Add((namespaze, klass, (IntPtr)image), typePointer);
         }
 
         internal static IntPtr GetIl2CppExport(string name)

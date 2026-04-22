@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using Il2CppInterop.Common;
-using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
@@ -28,7 +27,7 @@ public sealed class Il2CppInteropDetourFactory(IDetourFactory? fallback = null) 
     private static bool TryCreateDetour(CreateDetourRequest request, [NotNullWhen(true)] out Il2CppInteropDetour? detour)
     {
         var declaringType = request.Source.DeclaringType;
-        if (declaringType != null && Il2CppType.From(declaringType, false) != null && !ClassInjector.IsManagedTypeInjected(declaringType))
+        if (declaringType != null && TypeInjector.IsPreexistingType(declaringType))
         {
             if (!request.CreateSourceCloneIfNotILClone)
             {

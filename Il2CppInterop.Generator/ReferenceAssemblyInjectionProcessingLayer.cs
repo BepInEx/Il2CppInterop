@@ -55,10 +55,6 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(IIl2CppException),
             typeof(RuntimeInvoke),
             typeof(Il2CppTypeHelper),
-
-            // Because of ClassInjector
-            typeof(Il2CppClass),
-            typeof(Il2CppTypeStruct),
         ];
         InjectTypes(appContext, typeof(Il2CppArrayBase).Assembly, il2CppInteropRuntimeTypes);
     }
