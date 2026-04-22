@@ -1317,7 +1317,7 @@ public static unsafe class TypeInjector
         var instanceField = enumType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Single();
         var underlyingType = instanceField.FieldType;
         var primitiveType = underlyingType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Single().FieldType;
-        var underlyingTypeConversionToPrimitiveType = underlyingType.GetMethod("op_Explicit", BindingFlags.Public | BindingFlags.Static, null, [underlyingType], null)!;
+        var underlyingTypeConversionToPrimitiveType = underlyingType.GetMethod("op_Implicit", BindingFlags.Public | BindingFlags.Static, null, [underlyingType], null)!;
 
         (string Name, object Value)[] result = new (string Name, object Value)[fields.Length];
         for (var i = 0; i < fields.Length; i++)
