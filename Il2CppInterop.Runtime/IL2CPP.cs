@@ -282,7 +282,7 @@ public static unsafe partial class IL2CPP
         {
             Logger.Instance.LogTrace("Original class was inflated, falling back to reflection");
 
-            return RuntimeReflectionHelper.GetNestedTypeViaReflection(enclosingType, nestedTypeName);
+            return GetNestedTypeViaReflection(enclosingType, nestedTypeName);
         }
 
         while ((nestedTypePtr = il2cpp_class_get_nested_types(enclosingType, ref iter)) != nint.Zero)
@@ -293,6 +293,14 @@ public static unsafe partial class IL2CPP
             "Nested type {NestedTypeName} on {EnclosingTypeName} not found!", nestedTypeName, il2cpp_class_get_name(enclosingType));
 
         return nint.Zero;
+
+        static IntPtr GetNestedTypeViaReflection(nint enclosingClass, string nestedTypeName)
+        {
+            var reflectionType = Il2CppSystem.Type.internal_from_handle(il2cpp_class_get_type(enclosingClass));
+            var nestedType = reflectionType.GetNestedType(nestedTypeName, Il2CppSystem.Reflection.BindingFlags.Public | Il2CppSystem.Reflection.BindingFlags.NonPublic);
+
+            return nestedType != null ? il2cpp_class_from_system_type(nestedType.Pointer) : IntPtr.Zero;
+        }
     }
 
     public static T ResolveICall<T>(string signature) where T : Delegate
