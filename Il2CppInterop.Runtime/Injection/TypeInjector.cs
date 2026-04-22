@@ -598,7 +598,7 @@ public static unsafe class TypeInjector
         hash.Append(GetFullName(methodInfo.ReturnType));
         for (var i = 0; i < methodInfo.ParametersCount; i++)
         {
-            var parameter = UnityVersionHandler.Wrap(methodInfo.Parameters + i);
+            var parameter = UnityVersionHandler.Wrap(methodInfo.Parameters, i);
             hash.Append(GetFullName(parameter.ParameterType));
         }
         return hash.GetCurrentHashAsUInt128();
