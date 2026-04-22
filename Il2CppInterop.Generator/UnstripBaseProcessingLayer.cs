@@ -93,12 +93,12 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                     if (typeContext is null)
                     {
                         nonExistingTypes.Enqueue(type);
-                        AddNestedTypes(type, nonExistingTypes);
+                        //AddNestedTypes(type, nonExistingTypes);
                     }
                     else
                     {
                         existingTypesDictionary.Add(type, typeContext);
-                        AddNestedTypes(type, typeContext, nonExistingTypes, existingTypesDictionary);
+                        //AddNestedTypes(type, typeContext, nonExistingTypes, existingTypesDictionary);
                     }
                 }
             }

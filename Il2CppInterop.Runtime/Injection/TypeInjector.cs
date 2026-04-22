@@ -679,6 +679,9 @@ public static unsafe class TypeInjector
         if (type.IsGenericType)
             throw new ArgumentException("Generic types cannot be registered in Il2Cpp.", nameof(type));
 
+        if (type.DeclaringType is not null)
+            throw new ArgumentException("Nested types cannot be registered in Il2Cpp.", nameof(type));
+
         // Types must inherit from IIl2CppType
         if (!typeof(IIl2CppType).IsAssignableFrom(type))
             throw new ArgumentException("Types must implement IIl2CppType to be registered in Il2Cpp.", nameof(type));
