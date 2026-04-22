@@ -45,4 +45,10 @@ public unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>>
 
     public static explicit operator Pointer<T>(void* value) => new(value);
     public static explicit operator void*(Pointer<T> pointer) => pointer._pointer;
+
+    static Pointer()
+    {
+        var elementType = Il2CppSystem.Type.internal_from_handle(IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore<T>.NativeClassPointer));
+        Il2CppClassPointerStore<Pointer<T>>.NativeClassPointer = IL2CPP.il2cpp_class_from_type(elementType.MakePointerType().TypeHandle.value);
+    }
 }
