@@ -98,21 +98,16 @@ public static class DelegateSupport
         return builder.ToString();
     }
 
-    private static Delegate GetOrCreateNativeToManagedTrampoline(MethodSignature signature,
-        Il2CppSystem.Reflection.MethodInfo nativeMethod, MethodInfo managedMethod)
+    private static Delegate GetOrCreateNativeToManagedTrampoline(MethodSignature signature, MethodInfo managedMethod)
     {
-        return NativeToManagedTrampolines.GetOrAdd(managedMethod,
-            (_, tuple) => GenerateNativeToManagedTrampoline(tuple.nativeMethod, tuple.managedMethod, tuple.signature),
-            (nativeMethod, managedMethod, signature));
+        return NativeToManagedTrampolines.GetOrAdd(managedMethod, GenerateNativeToManagedTrampoline, signature);
     }
 
-    private static Delegate GenerateNativeToManagedTrampoline(Il2CppSystem.Reflection.MethodInfo nativeMethod,
-        MethodInfo managedMethod, MethodSignature signature)
+    private static Delegate GenerateNativeToManagedTrampoline(MethodInfo managedMethod, MethodSignature signature)
     {
         var returnType = managedMethod.ReturnType.NativeType();
 
         var managedParameters = managedMethod.GetParameters();
-        var nativeParameters = nativeMethod.GetParameters();
         var parameterTypes = new Type[managedParameters.Length + 1 + 1]; // thisptr for target, methodInfo last arg
         parameterTypes[0] = typeof(IntPtr);
         parameterTypes[managedParameters.Length + 1] = typeof(Il2CppMethodInfo*);
@@ -271,8 +266,7 @@ public static class DelegateSupport
         }
 
         var signature = new MethodSignature(nativeDelegateInvokeMethod, true);
-        var managedTrampoline =
-            GetOrCreateNativeToManagedTrampoline(signature, nativeDelegateInvokeMethod, managedInvokeMethod);
+        var managedTrampoline = GetOrCreateNativeToManagedTrampoline(signature, managedInvokeMethod);
 
         var methodInfo = UnityVersionHandler.NewMethod();
         methodInfo.MethodPointer = Marshal.GetFunctionPointerForDelegate(managedTrampoline);
