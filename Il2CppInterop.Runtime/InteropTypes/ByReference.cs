@@ -1,7 +1,5 @@
 using System;
-using System.Runtime.CompilerServices;
 using Il2CppInterop.Common;
-using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 
@@ -33,7 +31,7 @@ public static class ByReference
         return new ByReference<U>((byte*)byReference.ToPointer() + offset);
     }
 }
-public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
+public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>, IByReference
     where T : IIl2CppType<T>
 {
     private readonly void* _pointer = pointer;

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using Il2CppInterop.Runtime.InteropTypes;
 
 namespace Il2CppInterop.Runtime.Injection;
 
@@ -54,6 +55,11 @@ internal static class TrampolineHelpers
         {
             // bool is byte in Il2Cpp, but int in CLR => force size to be correct
             return typeof(byte);
+        }
+        else if (typeof(IByReference).IsAssignableFrom(managedType))
+        {
+            // ByReference types have no class, so we need this marker interface to identify them.
+            return typeof(IntPtr);
         }
         else
         {
