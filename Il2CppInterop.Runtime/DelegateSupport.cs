@@ -41,9 +41,6 @@ public static class DelegateSupport
 
         var newType = ModuleBuilder.DefineType(typeName, TypeAttributes.Sealed | TypeAttributes.Public,
             typeof(MulticastDelegate));
-        newType.SetCustomAttribute(new CustomAttributeBuilder(
-            typeof(UnmanagedFunctionPointerAttribute).GetConstructor(new[] { typeof(CallingConvention) })!,
-            new object[] { CallingConvention.Cdecl }));
 
         var ctor = newType.DefineConstructor(
             MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName |
