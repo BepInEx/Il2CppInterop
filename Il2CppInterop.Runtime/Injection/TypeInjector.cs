@@ -196,14 +196,18 @@ public static unsafe class TypeInjector
             //var properties = GetIl2CppProperties(type).ToArray();
 
             var methods = GetIl2CppMethods(type).ToArray();
-            const int methodsOffset = 1; // empty ctor
+            var methodsOffset = type.IsInterface ? 0 : 1; // empty ctor
             var methodCount = methodsOffset + methods.Length;
 
             classPointer.MethodCount = (ushort)methodCount;
             var methodPointerArray = (Il2CppMethodInfo**)Marshal.AllocHGlobal(methodCount * IntPtr.Size);
             classPointer.Methods = methodPointerArray;
 
-            methodPointerArray[0] = CreateEmptyCtor(classPointer);
+            if (!type.IsInterface)
+            {
+                methodPointerArray[0] = CreateEmptyCtor(classPointer);
+            }
+
             for (var i = 0; i < methods.Length; i++)
             {
                 var methodInfo = methods[i];
