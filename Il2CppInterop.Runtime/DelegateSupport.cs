@@ -12,7 +12,6 @@ using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.CoreLib;
 using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
-using ValueType = Il2CppSystem.ValueType;
 
 namespace Il2CppInterop.Runtime;
 
@@ -193,10 +192,6 @@ public static class DelegateSupport
             if (parameterType.IsGenericParameter)
                 throw new ArgumentException(
                     $"Delegate has unsubstituted generic parameter ({parameterType}) which is not supported");
-
-            if (parameterType.BaseType == typeof(ValueType))
-                throw new ArgumentException(
-                    $"Delegate has parameter of type {parameterType} (non-blittable struct) which is not supported");
         }
 
         var classTypePtr = Il2CppClassPointerStore.GetNativeClassPointer(typeof(TIl2Cpp));
@@ -219,15 +214,6 @@ public static class DelegateSupport
             var nativeType = nativeParameters[i].ParameterType;
             var managedType = parameterInfos[i].ParameterType;
 
-            if (nativeType.IsPrimitive || managedType.IsPrimitive)
-            {
-                if (nativeType.FullName != managedType.FullName)
-                    throw new ArgumentException(
-                        $"Parameter type mismatch at parameter {i}: {nativeType.FullName} != {managedType.FullName}");
-
-                continue;
-            }
-
             var classPointerFromManagedType = (IntPtr)typeof(Il2CppClassPointerStore<>).MakeGenericType(managedType)
                 .GetField(nameof(Il2CppClassPointerStore<>.NativeClassPointer))!.GetValue(null)!;
 
@@ -236,9 +222,6 @@ public static class DelegateSupport
             if (classPointerFromManagedType != classPointerFromNativeType)
                 throw new ArgumentException(
                     $"Parameter type at {i} has mismatched native type pointers; types: {nativeType.FullName} != {managedType.FullName}");
-
-            if (nativeType.IsByRef || managedType.IsByRef)
-                throw new ArgumentException($"Parameter at {i} is passed by reference, this is not supported");
         }
 
         var signature = new MethodSignature(nativeDelegateInvokeMethod, true);
