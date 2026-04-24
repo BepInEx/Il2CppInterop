@@ -61,7 +61,7 @@ public static class Pass61ImplementAwaiters
                 var parameter = proxyOnCompleted.Parameters[0].GetOrCreateDefinition();
                 parameter.Name = "continuation";
 
-                var body = proxyOnCompleted.CilMethodBody ??= new(proxyOnCompleted);
+                var body = proxyOnCompleted.CilMethodBody ??= new();
 
                 typeContext.NewType.Interfaces.Add(new(notifyCompletionRef.Value));
                 typeContext.NewType.Methods.Add(proxyOnCompleted);

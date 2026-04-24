@@ -58,7 +58,7 @@ public class MethodRewriteContext
             ? MethodSignature.CreateStatic(declaringType.AssemblyContext.Imports.Module.Void(), originalMethod.GenericParameters.Count)
             : MethodSignature.CreateInstance(declaringType.AssemblyContext.Imports.Module.Void(), originalMethod.GenericParameters.Count);
         var newMethod = new MethodDefinition("", newAttributes, newSignature);
-        newMethod.CilMethodBody = new(newMethod);
+        newMethod.CilMethodBody = new();
         NewMethod = newMethod;
 
         HasExtensionAttribute =
@@ -162,9 +162,9 @@ public class MethodRewriteContext
                 DeclaringType.AssemblyContext.Imports.Module.IntPtr());
             genericMethodInfoStoreType.Fields.Add(pointerField);
 
-            GenericInstantiationsStoreSelfSubstRef = DeclaringType.NewType.Module!.DefaultImporter.ImportType(selfSubstRef.ToTypeDefOrRef());
+            GenericInstantiationsStoreSelfSubstRef = DeclaringType.NewType.DeclaringModule!.DefaultImporter.ImportType(selfSubstRef.ToTypeDefOrRef());
             GenericInstantiationsStoreSelfSubstMethodRef =
-                DeclaringType.NewType.Module.DefaultImporter.ImportType(selfSubstMethodRef.ToTypeDefOrRef());
+                DeclaringType.NewType.DeclaringModule.DefaultImporter.ImportType(selfSubstMethodRef.ToTypeDefOrRef());
         }
 
         DeclaringType.NewType.Methods.Add(NewMethod);
