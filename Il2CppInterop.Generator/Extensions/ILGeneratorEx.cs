@@ -264,10 +264,10 @@ public static class ILGeneratorEx
             body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_class_is_valuetype.Value);
             body.Add(OpCodes.Brfalse_S, finalNop); // return reference types immediately
             body.Add(OpCodes.Ldtoken, imports.Il2CppSystemValueType.ToTypeDefOrRef());
-            body.Add(OpCodes.Call, enclosingType.NewType.Module!.TypeGetTypeFromHandle());
+            body.Add(OpCodes.Call, enclosingType.NewType.DeclaringModule!.TypeGetTypeFromHandle());
             body.Add(OpCodes.Ldtoken, newType.ToTypeDefOrRef());
-            body.Add(OpCodes.Call, enclosingType.NewType.Module!.TypeGetTypeFromHandle());
-            body.Add(OpCodes.Call, enclosingType.NewType.Module!.TypeGetIsAssignableFrom());
+            body.Add(OpCodes.Call, enclosingType.NewType.DeclaringModule!.TypeGetTypeFromHandle());
+            body.Add(OpCodes.Call, enclosingType.NewType.DeclaringModule!.TypeGetIsAssignableFrom());
             body.Add(OpCodes.Brfalse_S, finalNop); // return reference types immediately
             body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_object_unbox.Value);
         }
