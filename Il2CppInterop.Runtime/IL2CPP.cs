@@ -287,8 +287,7 @@ public static unsafe class IL2CPP
             else
                 objectPointer = *(IntPtr*)objectPointer;
         }
-
-        if (!valueTypeWouldBeBoxed && il2cpp_class_is_valuetype(Il2CppClassPointerStore<T>.NativeClassPtr))
+        else if (!valueTypeWouldBeBoxed && il2cpp_class_is_valuetype(Il2CppClassPointerStore<T>.NativeClassPtr))
             objectPointer = il2cpp_value_box(Il2CppClassPointerStore<T>.NativeClassPtr, objectPointer);
 
         if (typeof(T) == typeof(string))
