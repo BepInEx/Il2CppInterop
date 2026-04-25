@@ -570,10 +570,17 @@ public static unsafe class TypeInjector
     private static Dictionary<UInt128, INativeMethodInfoStruct> CreateHashToNativeMethodInfoDictionary(INativeClassStruct classPointer)
     {
         var dict = new Dictionary<UInt128, INativeMethodInfoStruct>(classPointer.MethodCount);
-        for (var i = 0; i < classPointer.MethodCount; i++)
+        var currentClassPointer = classPointer;
+        while (true)
         {
-            var methodInfo = UnityVersionHandler.Wrap(classPointer.Methods[i]);
-            dict.Add(HashSignature(methodInfo), methodInfo);
+            for (var i = 0; i < currentClassPointer.MethodCount; i++)
+            {
+                var methodInfo = UnityVersionHandler.Wrap(currentClassPointer.Methods[i]);
+                dict.TryAdd(HashSignature(methodInfo), methodInfo);
+            }
+            if (currentClassPointer.Parent is null)
+                break;
+            currentClassPointer = UnityVersionHandler.Wrap(currentClassPointer.Parent);
         }
         return dict;
     }
@@ -581,10 +588,17 @@ public static unsafe class TypeInjector
     private static Dictionary<IntPtr, UInt128> CreateNativeMethodInfoToHashDictionary(INativeClassStruct classPointer)
     {
         var dict = new Dictionary<IntPtr, UInt128>(classPointer.MethodCount);
-        for (var i = 0; i < classPointer.MethodCount; i++)
+        var currentClassPointer = classPointer;
+        while (true)
         {
-            var methodInfo = UnityVersionHandler.Wrap(classPointer.Methods[i]);
-            dict.Add(methodInfo.Pointer, HashSignature(methodInfo));
+            for (var i = 0; i < currentClassPointer.MethodCount; i++)
+            {
+                var methodInfo = UnityVersionHandler.Wrap(currentClassPointer.Methods[i]);
+                dict.Add(methodInfo.Pointer, HashSignature(methodInfo));
+            }
+            if (currentClassPointer.Parent is null)
+                break;
+            currentClassPointer = UnityVersionHandler.Wrap(currentClassPointer.Parent);
         }
         return dict;
     }
