@@ -174,11 +174,11 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppGenericInstanceType));
                         }
                         instructions.Add(new Instruction(CilOpCodes.Stsfld, concreteClassPointerField));
-                    }
 
-                    // IL2CPP.il2cpp_runtime_class_init(Il2CppClassPointerStore<Class>.NativeClassPointer);
-                    instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
-                    instructions.Add(new Instruction(CilOpCodes.Call, il2CppRuntimeClassInit));
+                        // IL2CPP.il2cpp_runtime_class_init(Il2CppClassPointerStore<Class>.NativeClassPointer);
+                        instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                        instructions.Add(new Instruction(CilOpCodes.Call, il2CppRuntimeClassInit));
+                    }
 
                     // Size = IL2CPP.il2cpp_class_value_size(Il2CppClassPointerStore<Class>.NativeClassPointer, ref align);
                     if (type.IsValueType)
