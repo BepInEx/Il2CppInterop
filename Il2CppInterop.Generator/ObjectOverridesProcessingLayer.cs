@@ -69,15 +69,19 @@ public class ObjectOverridesProcessingLayer : Cpp2IlProcessingLayer
         }
     }
 
-    private static void ImplementVirtualMethods(TypeAnalysisContext systemObject, TypeAnalysisContext il2CppSystemIObject, (MethodAnalysisContext, MethodAnalysisContext)[] virtualMethods, TypeAnalysisContext type, bool box)
+    private static void ImplementVirtualMethods(TypeAnalysisContext systemObject, TypeAnalysisContext il2CppSystemIObject, (MethodAnalysisContext, MethodAnalysisContext)[] virtualMethods, TypeAnalysisContext type, bool isValueType)
     {
         foreach ((var systemMethod, var il2CppMethod) in virtualMethods)
         {
+            // Overrides on value types cannot be sealed
+            var attributes = isValueType
+                ? MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig
+                : MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual | MethodAttributes.HideBySig;
             var newMethod = new InjectedMethodAnalysisContext(
                 type,
                 systemMethod.DefaultName,
                 systemMethod.ReturnType,
-                MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual | MethodAttributes.HideBySig,
+                attributes,
                 systemMethod.Parameters.Select(p => p.ParameterType).ToArray(),
                 systemMethod.Parameters.Select(p => p.Name).ToArray(),
                 systemMethod.Parameters.Select(p => p.Attributes).ToArray())
@@ -90,8 +94,9 @@ public class ObjectOverridesProcessingLayer : Cpp2IlProcessingLayer
             [
                 new Instruction(CilOpCodes.Ldarg_0),
             ];
-            if (box)
+            if (isValueType)
             {
+                // Value types need to be boxed
                 var instantiatedType = type.SelfInstantiateIfGeneric();
                 instructions.Add(CilOpCodes.Ldobj, instantiatedType);
                 instructions.Add(CilOpCodes.Box, instantiatedType);
