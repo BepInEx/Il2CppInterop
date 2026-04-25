@@ -110,9 +110,9 @@ public static unsafe class TypeInjector
                 EnsureNativeClassPointerNotNull(interfaceType);
             }
 
-            foreach (var field in GetIl2CppFields(type))
+            foreach (var (fieldType, _, _) in GetIl2CppFields(type))
             {
-                EnsureNativeClassPointerNotNull(field.PropertyType);
+                EnsureNativeClassPointerNotNull(fieldType);
             }
 
             foreach (var property in GetIl2CppProperties(type))
@@ -457,9 +457,8 @@ public static unsafe class TypeInjector
             {
                 SetClassData(type, classPointer);
             }
-            foreach (var field in GetIl2CppInstanceFields(type))
+            foreach (var fieldType in GetIl2CppInstanceFieldTypes(type))
             {
-                var fieldType = field.PropertyType;
                 if (fieldType.IsValueType && NeedsFieldsSet.Contains(fieldType))
                 {
                     SetFields(fieldType, UnityVersionHandler.Wrap((Il2CppClass*)GetNativeClassPointerNotNull(fieldType)));
@@ -478,22 +477,11 @@ public static unsafe class TypeInjector
             var fieldOffset = (int)classPointer.InstanceSize;
             for (var i = 0; i < classPointer.FieldCount; i++)
             {
-                var field = fieldsToInject[i];
-                var il2cppFieldAttribute = field.GetCustomAttribute<Il2CppFieldAttribute>()!;
+                var (fieldType, fieldAttributes, fieldName) = fieldsToInject[i];
 
-                var fieldType = field.PropertyType;
-                var fieldAttributes = FieldAttributes.Public;
-                if (field.IsStatic())
-                {
-                    fieldAttributes |= FieldAttributes.Static;
-                }
-                if (il2cppFieldAttribute.Name is not null && il2cppFieldAttribute.Name.EndsWith(">k__BackingField", StringComparison.Ordinal))
-                {
-                    fieldAttributes |= FieldAttributes.SpecialName;
-                }
                 var fieldInfoClass = Il2CppClassPointerStore.GetNativeClassPointer(fieldType);
                 if (fieldInfoClass == IntPtr.Zero)
-                    throw new Exception($"Type {fieldType} in {type}.{field.Name} doesn't exist in Il2Cpp");
+                    throw new Exception($"Type {fieldType} in {type}.{fieldName} doesn't exist in Il2Cpp");
                 if (!_injectedFieldTypes.TryGetValue((fieldType, fieldAttributes), out var fieldTypePtr))
                 {
                     var classType =
@@ -511,11 +499,11 @@ public static unsafe class TypeInjector
                 }
 
                 var fieldInfo = UnityVersionHandler.Wrap(il2cppFields + i * UnityVersionHandler.FieldInfoSize());
-                fieldInfo.Name = Marshal.StringToCoTaskMemUTF8(il2cppFieldAttribute.Name ?? field.Name);
+                fieldInfo.Name = Marshal.StringToCoTaskMemUTF8(fieldName);
                 fieldInfo.Parent = classPointer.ClassPointer;
                 fieldInfo.Type = (Il2CppTypeStruct*)fieldTypePtr;
 
-                if (field.IsStatic())
+                if (fieldAttributes.HasFlag(FieldAttributes.Static))
                 {
                     fieldInfo.Offset = 0;
                 }
@@ -684,8 +672,51 @@ public static unsafe class TypeInjector
     private static IEnumerable<MethodInfo> GetAllIl2CppMethods(Type type) => type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static).Where(IsIl2CppMethod);
     private static IEnumerable<MethodInfo> GetIl2CppMethods(Type type) => type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(IsIl2CppMethod);
     private static IEnumerable<PropertyInfo> GetIl2CppProperties(Type type) => type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(IsIl2CppProperty);
-    private static IEnumerable<PropertyInfo> GetIl2CppFields(Type type) => type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(IsIl2CppField);
-    private static IEnumerable<PropertyInfo> GetIl2CppInstanceFields(Type type) => type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly).Where(IsIl2CppField);
+    private static IEnumerable<(Type FieldType, FieldAttributes Attributes, string Name)> GetIl2CppFields(Type type)
+    {
+        List<(Type, FieldAttributes, string)> fields = new();
+        foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+        {
+            if (IsIl2CppField(property))
+            {
+                var fieldAttribute = property.GetCustomAttribute<Il2CppFieldAttribute>();
+                var fieldName = fieldAttribute?.Name ?? property.Name;
+                var fieldType = property.PropertyType;
+                FieldAttributes fieldAttributes = default;
+                if (property.IsStatic())
+                {
+                    fieldAttributes |= FieldAttributes.Static;
+                }
+                if (fieldName.EndsWith(">k__BackingField", StringComparison.Ordinal))
+                {
+                    fieldAttributes |= FieldAttributes.SpecialName;
+                    fieldAttributes |= FieldAttributes.Private;
+                }
+                else
+                {
+                    fieldAttributes |= FieldAttributes.Public;
+                }
+                fields.Add((fieldType, fieldAttributes, fieldName));
+            }
+        }
+        foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+        {
+            if (IsIl2CppField(field))
+            {
+                var fieldAttribute = field.GetCustomAttribute<Il2CppFieldAttribute>();
+                var fieldName = fieldAttribute?.Name ?? field.Name;
+                var fieldType = field.FieldType;
+                var fieldAttributes = field.Attributes;
+                fields.Add((fieldType, fieldAttributes, fieldName));
+            }
+        }
+        return fields;
+    }
+
+    private static IEnumerable<Type> GetIl2CppInstanceFieldTypes(Type type)
+    {
+        return GetIl2CppFields(type).Where(f => !f.Attributes.HasFlag(FieldAttributes.Static)).Select(f => f.FieldType);
+    }
 
     private static void ValidateTypeUsingReflection(Type type)
     {
@@ -952,6 +983,12 @@ public static unsafe class TypeInjector
     {
         // Has Il2CppFieldAttribute
         return property.GetCustomAttribute<Il2CppFieldAttribute>() is not null;
+    }
+
+    private static bool IsIl2CppField(FieldInfo field)
+    {
+        // Has Il2CppFieldAttribute
+        return field.GetCustomAttribute<Il2CppFieldAttribute>() is not null;
     }
 
     private static bool IsIl2CppProperty(PropertyInfo property)
