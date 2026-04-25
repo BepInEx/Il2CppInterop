@@ -95,6 +95,7 @@ public static unsafe class TypeInjector
         RegisteredTypes.Add(type);
         NeedsInitialized.Add(type);
         NeedsVTableSet.Add(type, vtableUpperBound);
+        NeedsFieldsSet.Add(type);
         Il2CppClassPointerStore.SetNativeClassPointer(type, (nint)classPointer.ClassPointer);
         InjectorHelpers.AddTypeToLookup(assemblyName, @namespace, name, (nint)classPointer.ClassPointer);
 
