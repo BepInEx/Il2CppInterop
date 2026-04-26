@@ -17,6 +17,7 @@ public class ObjectInternalsProcessingLayer : Cpp2IlProcessingLayer
         var il2CppSystemObject = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Object");
 
         var il2CppStaticClass = appContext.ResolveTypeOrThrow(typeof(IL2CPP));
+        var generationInternalsType = appContext.ResolveTypeOrThrow(typeof(GenerationInternals));
 
         var il2CppObjectPool = appContext.ResolveTypeOrThrow(typeof(Il2CppObjectPool));
 
@@ -100,7 +101,7 @@ public class ObjectInternalsProcessingLayer : Cpp2IlProcessingLayer
                 Instructions = [
                     new Instruction(CilOpCodes.Ldarg_0),
                     new Instruction(CilOpCodes.Ldfld, gcHandleField),
-                    new Instruction(CilOpCodes.Call, il2CppStaticClass.GetMethodByName(nameof(IL2CPP.Il2CppGCHandleGetTargetOrThrow))),
+                    new Instruction(CilOpCodes.Call, generationInternalsType.GetMethodByName(nameof(GenerationInternals.Il2CppGCHandleGetTargetOrThrow))),
                     new Instruction(CilOpCodes.Ret),
                 ]
             });
@@ -136,7 +137,7 @@ public class ObjectInternalsProcessingLayer : Cpp2IlProcessingLayer
                 Instructions = [
                     new Instruction(CilOpCodes.Ldarg_0),
                     new Instruction(CilOpCodes.Ldfld, gcHandleField),
-                    new Instruction(CilOpCodes.Call, il2CppStaticClass.GetMethodByName(nameof(IL2CPP.Il2CppGCHandleGetTargetWasCollected))),
+                    new Instruction(CilOpCodes.Call, generationInternalsType.GetMethodByName(nameof(GenerationInternals.Il2CppGCHandleGetTargetWasCollected))),
                     new Instruction(CilOpCodes.Ret),
                 ]
             });

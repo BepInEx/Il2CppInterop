@@ -25,9 +25,9 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
             var objectPointerType = appContext.ResolveTypeOrThrow(typeof(ObjectPointer));
             var objectPointerConversionFromIntPtr = objectPointerType.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);
 
-            var generationInteralsType = appContext.ResolveTypeOrThrow(typeof(GenerationInternals));
-            var managedStringToIl2Cpp = generationInteralsType.Methods.First(m => m.Name == nameof(GenerationInternals.ManagedStringToIl2Cpp));
-            var il2CppStringToManaged = generationInteralsType.Methods.First(m => m.Name == nameof(GenerationInternals.Il2CppStringToManaged));
+            var generationInternalsType = appContext.ResolveTypeOrThrow(typeof(GenerationInternals));
+            var managedStringToIl2Cpp = generationInternalsType.Methods.First(m => m.Name == nameof(GenerationInternals.ManagedStringToIl2Cpp));
+            var il2CppStringToManaged = generationInternalsType.Methods.First(m => m.Name == nameof(GenerationInternals.Il2CppStringToManaged));
 
             // Il2Cpp -> Mono
             {

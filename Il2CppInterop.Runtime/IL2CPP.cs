@@ -206,20 +206,6 @@ public static unsafe partial class IL2CPP
         return (ObjectPointer)il2cpp_object_new(Il2CppClassPointerStore<T>.NativeClassPointer);
     }
 
-    public static nint Il2CppGCHandleGetTargetOrThrow(nint gchandle)
-    {
-        var obj = il2cpp_gchandle_get_target(gchandle);
-        if (obj == nint.Zero)
-            throw new ObjectCollectedException("Object was garbage collected in IL2CPP domain");
-        return obj;
-    }
-
-    public static bool Il2CppGCHandleGetTargetWasCollected(nint gchandle)
-    {
-        var obj = il2cpp_gchandle_get_target(gchandle);
-        return obj == nint.Zero;
-    }
-
     public static nint GetIl2CppNestedType(nint enclosingType, string nestedTypeName)
     {
         if (enclosingType == nint.Zero) return nint.Zero;

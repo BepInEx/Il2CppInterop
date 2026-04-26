@@ -32,4 +32,18 @@ public static class GenerationInternals
             return new Il2CppSystem.String((ObjectPointer)IL2CPP.il2cpp_string_new_utf16(chars, str.Length));
         }
     }
+
+    public static nint Il2CppGCHandleGetTargetOrThrow(nint gchandle)
+    {
+        var obj = IL2CPP.il2cpp_gchandle_get_target(gchandle);
+        if (obj == nint.Zero)
+            throw new ObjectCollectedException("Object was garbage collected in IL2CPP domain");
+        return obj;
+    }
+
+    public static bool Il2CppGCHandleGetTargetWasCollected(nint gchandle)
+    {
+        var obj = IL2CPP.il2cpp_gchandle_get_target(gchandle);
+        return obj == nint.Zero;
+    }
 }
