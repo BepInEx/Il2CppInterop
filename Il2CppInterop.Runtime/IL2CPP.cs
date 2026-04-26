@@ -16,38 +16,6 @@ namespace Il2CppInterop.Runtime;
 
 public static unsafe partial class IL2CPP
 {
-    private static readonly Dictionary<string, nint> ourImagesMap = new();
-
-    static IL2CPP()
-    {
-        var domain = il2cpp_domain_get();
-        if (domain == nint.Zero)
-        {
-            Logger.Instance.LogError("No il2cpp domain found; sad!");
-            return;
-        }
-
-        uint assembliesCount = 0;
-        var assemblies = il2cpp_domain_get_assemblies(domain, ref assembliesCount);
-        for (var i = 0; i < assembliesCount; i++)
-        {
-            var image = il2cpp_assembly_get_image(assemblies[i]);
-            var name = il2cpp_image_get_name(image)!;
-            ourImagesMap[name] = image;
-        }
-    }
-
-    internal static nint GetIl2CppImage(string name)
-    {
-        if (ourImagesMap.ContainsKey(name)) return ourImagesMap[name];
-        return nint.Zero;
-    }
-
-    internal static nint[] GetIl2CppImages()
-    {
-        return ourImagesMap.Values.ToArray();
-    }
-
     public static void Il2CppRuntimeClassInit(nint @class)
     {
         if (@class != nint.Zero)
@@ -56,14 +24,7 @@ public static unsafe partial class IL2CPP
 
     public static nint GetIl2CppClass(string assemblyName, string namespaze, string className)
     {
-        if (!ourImagesMap.TryGetValue(assemblyName, out var image))
-        {
-            Logger.Instance.LogError("Assembly {AssemblyName} is not registered in il2cpp", assemblyName);
-            return nint.Zero;
-        }
-
-        var clazz = il2cpp_class_from_name(image, namespaze, className);
-        return clazz;
+        return il2cpp_class_from_name(AssemblyInjector.GetOrCreateImage(assemblyName).Pointer, namespaze, className);
     }
 
     public static nint GetIl2CppField(nint clazz, string fieldName)

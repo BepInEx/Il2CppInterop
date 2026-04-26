@@ -69,7 +69,7 @@ public static unsafe class TypeInjector
 
         // Initialize as much of the class pointer as possible without touching other types.
         (var assemblyName, var @namespace, var name) = GetFullyQualifiedName(type);
-        classPointer.Image = InjectorHelpers.GetOrCreateImage(assemblyName).ImagePointer;
+        classPointer.Image = AssemblyInjector.GetOrCreateImage(assemblyName).ImagePointer;
         classPointer.Name = Marshal.StringToCoTaskMemUTF8(name);
         classPointer.Namespace = Marshal.StringToCoTaskMemUTF8(@namespace);
         classPointer.ElementClass = classPointer.Class = classPointer.CastClass = classPointer.ClassPointer;
@@ -887,7 +887,7 @@ public static unsafe class TypeInjector
                 (Il2CppClass*)Il2CppClassPointerStore.GetNativeClassPointer(GetEnumUnderlyingType(type)));
 
         (var assemblyName, var @namespace, var name) = GetFullyQualifiedName(type);
-        il2cppEnum.Image = InjectorHelpers.GetOrCreateImage(assemblyName).ImagePointer;
+        il2cppEnum.Image = AssemblyInjector.GetOrCreateImage(assemblyName).ImagePointer;
         il2cppEnum.Class = il2cppEnum.CastClass = il2cppEnum.ElementClass = elementClass.ClassPointer;
         il2cppEnum.Parent = baseEnum.ClassPointer;
         il2cppEnum.ActualSize = il2cppEnum.InstanceSize =
