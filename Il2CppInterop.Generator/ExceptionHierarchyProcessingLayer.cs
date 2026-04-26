@@ -14,8 +14,6 @@ public class ExceptionHierarchyProcessingLayer : Cpp2IlProcessingLayer
 
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
-        var systemExceptionType = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.Exception");
-
         var il2CppSystemExceptionType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Exception");
 
         var il2CppExceptionInterface = appContext.ResolveTypeOrThrow(typeof(IIl2CppException));
@@ -101,7 +99,7 @@ public class ExceptionHierarchyProcessingLayer : Cpp2IlProcessingLayer
                 var interfaceMethod = new InjectedMethodAnalysisContext(
                     exceptionType,
                     il2CppExceptionInterfaceMethodName,
-                    systemExceptionType,
+                    il2CppSystemExceptionType,
                     MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.Final | MethodAttributes.NewSlot,
                     [])
                 {

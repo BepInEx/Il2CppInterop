@@ -329,8 +329,8 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     case CilCode.Throw:
                         {
-                            translatedInstruction.Code = CilOpCodes.Callvirt;
-                            translatedInstruction.Operand = methodContext.AppContext.ResolveTypeOrThrow(typeof(IIl2CppException)).GetMethodByName(nameof(IIl2CppException.CreateSystemException));
+                            translatedInstruction.Code = CilOpCodes.Call;
+                            translatedInstruction.Operand = methodContext.AppContext.ResolveTypeOrThrow(typeof(Il2CppException)).GetMethodByName(nameof(Il2CppException.FromNativeObject));
                             translatedInstructions.Add(new Instruction(originalCode));
                         }
                         break;

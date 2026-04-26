@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Il2CppInterop.Runtime.Runtime;
 
@@ -7,7 +8,7 @@ namespace Il2CppInterop.Runtime;
 
 public interface IIl2CppException
 {
-    Exception CreateSystemException();
+    Il2CppException CreateSystemException();
 }
 public class Il2CppException : Exception
 {
@@ -57,5 +58,11 @@ public class Il2CppException : Exception
         Debug.Assert(il2cppException is not null);
 
         throw il2cppException.CreateSystemException();
+    }
+
+    [return: NotNullIfNotNull(nameof(exception))]
+    public static Il2CppException? FromNativeObject(IIl2CppException? exception)
+    {
+        return exception?.CreateSystemException();
     }
 }
