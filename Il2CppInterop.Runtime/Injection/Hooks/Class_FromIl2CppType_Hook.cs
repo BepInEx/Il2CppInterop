@@ -27,7 +27,10 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
         private Il2CppClass* Hook(Il2CppType* type, bool throwOnError)
         {
-            if ((nint)type->data < 0 && (type->type == Il2CppTypeEnum.IL2CPP_TYPE_CLASS || type->type == Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE))
+            if (type == null)
+                return Original(type, throwOnError);
+
+            if ((nint)type->data < 0 && (type->type is Il2CppTypeEnum.IL2CPP_TYPE_CLASS or Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE))
             {
                 InjectorHelpers.s_InjectedClasses.TryGetValue((nint)type->data, out var classPointer);
                 return (Il2CppClass*)classPointer;

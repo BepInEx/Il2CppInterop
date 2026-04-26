@@ -13,7 +13,7 @@ internal static class XrefScannerManagerExtensions
 
 internal class XrefScannerManager : IHostComponent
 {
-    private static IXrefScannerImpl s_xrefScanner;
+    private static IXrefScannerImpl? s_xrefScanner;
 
     public static IXrefScannerImpl Impl
     {

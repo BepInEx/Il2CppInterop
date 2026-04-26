@@ -14,7 +14,7 @@ internal static class MiniIlParser
         {
             if (fieldInfo.FieldType != typeof(OpCode)) continue;
 
-            var fieldValue = (OpCode)fieldInfo.GetValue(null);
+            var fieldValue = (OpCode)fieldInfo.GetValue(null)!;
             OpCodesMap[fieldValue.Value] = fieldValue;
             if ((ushort)fieldValue.Value > byte.MaxValue)
                 PrefixCodes.Add((byte)((ushort)fieldValue.Value >> 8));

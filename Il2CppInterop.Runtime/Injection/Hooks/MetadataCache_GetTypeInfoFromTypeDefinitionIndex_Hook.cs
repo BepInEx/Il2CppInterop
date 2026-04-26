@@ -37,7 +37,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 // https://github.com/Unity-Technologies/mono/blob/unity-2018.2/mcs/class/corlib/System.Runtime.CompilerServices/RuntimeHelpers.cs#L53-L54
                 IntPtr runtimeHelpersInitializeArray = InjectorHelpers.GetIl2CppMethodPointer(
                     typeof(Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers)
-                        .GetMethod("InitializeArray", new Type[] { typeof(Il2CppSystem.Array), typeof(IntPtr) })
+                        .GetMethod(nameof(Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers.InitializeArray), new Type[] { typeof(Il2CppSystem.Array), typeof(IntPtr) })
                 );
                 Logger.Instance.LogTrace("Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers::InitializeArray: 0x{RuntimeHelpersInitializeArrayAddress}", runtimeHelpersInitializeArray.ToInt64().ToString("X2"));
 

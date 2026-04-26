@@ -1,0 +1,113 @@
+﻿using Cpp2IL.Core.Api;
+using Cpp2IL.Core.Model.Contexts;
+using Il2CppInterop.Generator.Visitors;
+
+namespace Il2CppInterop.Generator;
+
+public class ReferenceReplacementProcessingLayer : Cpp2IlProcessingLayer
+{
+    public override string Id => "reference_replacement";
+    public override string Name => "Reference Replacement";
+
+    public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
+    {
+        var il2CppMscorlib = appContext.AssembliesByName["Il2Cppmscorlib"];
+        var mscorlib = appContext.AssembliesByName["mscorlib"];
+
+        var monoSystemObject = mscorlib.GetTypeByFullNameOrThrow("System.Object");
+        var monoSystemValueType = mscorlib.GetTypeByFullNameOrThrow("System.ValueType");
+        var monoSystemVoid = mscorlib.GetTypeByFullNameOrThrow("System.Void");
+
+        var il2CppSystemObject = il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Object");
+        var il2CppSystemVoid = il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Void");
+        var il2CppSystemEnum = il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Enum");
+        var il2CppSystemValueType = il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.ValueType");
+
+        var visitor = TypeConversionVisitor.Create(appContext);
+
+        il2CppSystemObject.OverrideBaseType = monoSystemObject;
+
+        foreach (var assembly in appContext.Assemblies)
+        {
+            if (assembly.IsReferenceAssembly || assembly.IsInjected)
+                continue;
+
+            foreach (var type in assembly.Types)
+            {
+                if (type.IsInterface)
+                {
+                    type.OverrideBaseType = null;
+                }
+                else if (type.IsStatic)
+                {
+                    type.OverrideBaseType = monoSystemObject;
+                }
+                else if (type == il2CppSystemObject || type == il2CppSystemEnum || type == il2CppSystemValueType)
+                {
+                }
+                else if (type.BaseType is null || type.BaseType == il2CppSystemObject)
+                {
+                    type.OverrideBaseType = il2CppSystemObject;
+                }
+                else if (type.BaseType == il2CppSystemValueType)
+                {
+                    type.OverrideBaseType = monoSystemValueType;
+                }
+                else if (type.BaseType == il2CppSystemEnum)
+                {
+                    type.OverrideBaseType = monoSystemValueType;
+                }
+                else
+                {
+                    type.OverrideBaseType = visitor.Replace(type.BaseType);
+                }
+
+                visitor.Modify(type.InterfaceContexts);
+                foreach (var genericParameter in type.GenericParameters)
+                {
+                    visitor.Modify(genericParameter.ConstraintTypes);
+                }
+
+                foreach (var field in type.Fields)
+                {
+                    field.OverrideFieldType = visitor.Replace(field.FieldType);
+                }
+
+                foreach (var method in type.Methods)
+                {
+                    if (method.ReturnType == il2CppSystemVoid)
+                    {
+                        // Special case for void return type.
+                        method.OverrideReturnType = monoSystemVoid;
+                    }
+                    else
+                    {
+                        method.OverrideReturnType = visitor.Replace(method.ReturnType);
+                    }
+                    foreach (var parameter in method.Parameters)
+                    {
+                        parameter.OverrideParameterType = visitor.Replace(parameter.ParameterType);
+                    }
+                    foreach (var genericParameter in method.GenericParameters)
+                    {
+                        visitor.Modify(genericParameter.ConstraintTypes);
+                    }
+                    for (var i = 0; i < method.Overrides.Count; i++)
+                    {
+                        method.Overrides[i] = visitor.Replace(method.Overrides[i]);
+                    }
+                }
+
+                foreach (var property in type.Properties)
+                {
+                    property.OverridePropertyType = visitor.Replace(property.PropertyType);
+                }
+
+                foreach (var @event in type.Events)
+                {
+                    @event.OverrideEventType = visitor.Replace(@event.EventType);
+                }
+            }
+        }
+    }
+}

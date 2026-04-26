@@ -1,38 +1,61 @@
 using System.Reflection;
-using System.Reflection.Emit;
+using Il2CppInterop.Common.Attributes;
 
 namespace Il2CppInterop.Common;
 
 public static class Il2CppInteropUtils
 {
-    private static FieldInfo? GetFieldInfoFromMethod(MethodBase method, string prefix)
+    private static FieldInfo? GetFieldInfo(Type declaringType, string prefix, int index)
     {
-        var body = method.GetMethodBody();
-        if (body == null) throw new ArgumentException("Target method may not be abstract");
-        var methodModule = method.DeclaringType.Assembly.Modules.Single();
-        foreach (var (opCode, opArg) in MiniIlParser.Decode(body.GetILAsByteArray()))
+        if (index < 0)
+            return null;
+
+        var internalsType = ResolveInternals(declaringType);
+        if (internalsType == null)
+            return null;
+
+        return internalsType.GetField($"{prefix}{index}", BindingFlags.Static | BindingFlags.NonPublic);
+
+        static Type? ResolveInternals(Type declaringType)
         {
-            if (opCode != OpCodes.Ldsfld) continue;
+            var attr = declaringType.GetCustomAttribute<Il2CppTypeAttribute>();
+            if (attr == null)
+                return null;
 
-            var fieldInfo = methodModule.ResolveField((int)opArg, method.DeclaringType.GenericTypeArguments, method.GetGenericArguments());
-            if (fieldInfo?.FieldType != typeof(IntPtr)) continue;
+            var internals = attr.Internals;
 
-            if (fieldInfo.Name.StartsWith(prefix)) return fieldInfo;
+            if (internals.IsGenericTypeDefinition && declaringType.IsConstructedGenericType)
+            {
+                internals = internals.MakeGenericType(declaringType.GetGenericArguments());
+            }
 
-            // Resolve generic method info pointer fields
-            if (method.IsGenericMethod && fieldInfo.DeclaringType.Name.StartsWith("MethodInfoStoreGeneric_") && fieldInfo.Name == "Pointer") return fieldInfo;
+            return internals;
         }
-
-        return null;
     }
 
-    public static FieldInfo GetIl2CppMethodInfoPointerFieldForGeneratedMethod(MethodBase method)
+    public static FieldInfo? GetIl2CppMethodInfoPointerFieldForGeneratedMethod(MethodBase method)
     {
-        return GetFieldInfoFromMethod(method, "NativeMethodInfoPtr_");
+        var declaringType = method.DeclaringType;
+        if (declaringType == null)
+            return null;
+
+        var index = method.GetCustomAttribute<Il2CppMethodAttribute>()?.Index ?? -1;
+
+        return GetFieldInfo(declaringType, "MethodInfoPtr_", index);
     }
 
-    public static FieldInfo GetIl2CppFieldInfoPointerFieldForGeneratedFieldAccessor(MethodBase method)
+    public static FieldInfo? GetIl2CppFieldInfoPointerFieldForGeneratedFieldAccessor(MethodBase method)
     {
-        return GetFieldInfoFromMethod(method, "NativeFieldInfoPtr_");
+        var declaringType = method.DeclaringType;
+        if (declaringType == null)
+            return null;
+
+        var prop = declaringType
+            .GetProperties(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+            .FirstOrDefault(p => p.GetMethod == method || p.SetMethod == method);
+
+        var index = prop?.GetCustomAttribute<Il2CppFieldAttribute>()?.Index ?? -1;
+
+        return GetFieldInfo(declaringType, "FieldInfoPtr_", index);
     }
 }

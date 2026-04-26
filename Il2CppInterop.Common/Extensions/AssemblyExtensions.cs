@@ -12,7 +12,7 @@ internal static class AssemblyExtensions
         }
         catch (ReflectionTypeLoadException ex)
         {
-            return ex.Types.Where(t => t != null).ToArray();
+            return ex.Types.Where(t => t != null).ToArray()!;
         }
     }
 }
