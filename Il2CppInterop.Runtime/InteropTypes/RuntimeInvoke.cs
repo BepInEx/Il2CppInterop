@@ -9,6 +9,7 @@ public static unsafe class RuntimeInvoke
 {
     private static IntPtr Il2CppRuntimeInvoke(IntPtr method, IntPtr obj, void** parameters)
     {
+        ArgumentNullException.ThrowIfNull(method.ToPointer(), nameof(method));
         IntPtr exception = default;
         var result = IL2CPP.il2cpp_runtime_invoke(method, obj, parameters, ref exception);
         Il2CppException.RaiseExceptionIfNecessary(exception);

@@ -35,9 +35,9 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var getIl2CppNestedType = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppNestedType));
         var getIl2CppClass = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppClass));
         var getIl2CppGenericInstanceType = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppGenericInstanceType));
-        var il2CppRuntimeClassInit = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.il2cpp_runtime_class_init));
+        var il2CppRuntimeClassInit = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.Il2CppRuntimeClassInit));
         var getIl2CppField = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppField));
-        var il2CppFieldGetOffset = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.il2cpp_field_get_offset));
+        var getIl2CppFieldOffset = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppFieldOffset));
         var getIl2CppMethod = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppMethod));
         var getIl2CppMethodByToken = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppMethodByToken));
         var getIl2CppGenericInstanceMethod = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppGenericInstanceMethod));
@@ -236,7 +236,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppField));
                         instructions.Add(new Instruction(CilOpCodes.Dup));
                         instructions.Add(new Instruction(CilOpCodes.Stsfld, instantiatedInfoStore));
-                        instructions.Add(new Instruction(CilOpCodes.Call, il2CppFieldGetOffset));
+                        instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppFieldOffset));
                         instructions.Add(new Instruction(CilOpCodes.Conv_I4));
                         if (type.IsValueType)
                         {

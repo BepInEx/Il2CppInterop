@@ -48,6 +48,12 @@ public static unsafe partial class IL2CPP
         return ourImagesMap.Values.ToArray();
     }
 
+    public static void Il2CppRuntimeClassInit(nint @class)
+    {
+        if (@class != nint.Zero)
+            il2cpp_runtime_class_init(@class);
+    }
+
     public static nint GetIl2CppClass(string assemblyName, string namespaze, string className)
     {
         if (!ourImagesMap.TryGetValue(assemblyName, out var image))
@@ -62,7 +68,8 @@ public static unsafe partial class IL2CPP
 
     public static nint GetIl2CppField(nint clazz, string fieldName)
     {
-        if (clazz == nint.Zero) return nint.Zero;
+        if (clazz == nint.Zero)
+            return nint.Zero;
 
         var field = il2cpp_class_get_field_from_name(clazz, fieldName);
         if (field == nint.Zero)
@@ -71,8 +78,17 @@ public static unsafe partial class IL2CPP
         return field;
     }
 
+    public static int GetIl2CppFieldOffset(nint field)
+    {
+        if (field == nint.Zero)
+            return -1;
+        return (int)il2cpp_field_get_offset(field);
+    }
+
     public static int GetIl2cppValueSize(nint klass)
     {
+        if (klass == nint.Zero)
+            return 0;
         uint align = 0;
         return il2cpp_class_value_size(klass, ref align);
     }
@@ -262,7 +278,7 @@ public static unsafe partial class IL2CPP
         }
     }
 
-    public static nint Il2CppObjectToPtr(Object obj)
+    public static nint Il2CppObjectToPtr(Object? obj)
     {
         return obj?.Pointer ?? nint.Zero;
     }

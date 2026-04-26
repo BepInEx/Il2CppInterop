@@ -8,6 +8,7 @@ public static unsafe class FieldAccess
 {
     public static T? GetStaticFieldValue<T>(IntPtr fieldInfoPtr) where T : IIl2CppType<T>
     {
+        ArgumentNullException.ThrowIfNull(fieldInfoPtr.ToPointer(), nameof(fieldInfoPtr));
         var data = stackalloc byte[T.Size];
         IL2CPP.il2cpp_field_static_get_value(fieldInfoPtr, data);
         return T.ReadFromSpan(new ReadOnlySpan<byte>(data, T.Size));
@@ -15,6 +16,7 @@ public static unsafe class FieldAccess
 
     public static void SetStaticFieldValue<T>(IntPtr fieldInfoPtr, T? value) where T : IIl2CppType<T>
     {
+        ArgumentNullException.ThrowIfNull(fieldInfoPtr.ToPointer(), nameof(fieldInfoPtr));
         if (typeof(T).IsValueType)
         {
             var data = stackalloc byte[T.Size];
@@ -29,6 +31,7 @@ public static unsafe class FieldAccess
 
     public static T? GetInstanceFieldValue<T>(Object instance, int fieldOffset) where T : IIl2CppType<T>
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(fieldOffset);
         var data = (byte*)instance.Pointer + fieldOffset;
         return Il2CppTypeHelper.ReadFromPointer<T>(data);
     }
@@ -40,6 +43,7 @@ public static unsafe class FieldAccess
 
     public static void SetInstanceFieldValue_Wbarrior<T>(Object instance, int fieldOffset, T? value) where T : IIl2CppType<T>
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(fieldOffset);
         var data = (byte*)instance.Pointer + fieldOffset;
         if (typeof(T).IsValueType)
         {
@@ -53,6 +57,7 @@ public static unsafe class FieldAccess
 
     public static void SetInstanceFieldValue_Pointer<T>(Object instance, int fieldOffset, T? value) where T : IIl2CppType<T>
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(fieldOffset);
         var data = (byte*)instance.Pointer + fieldOffset;
         if (typeof(T).IsValueType)
         {
