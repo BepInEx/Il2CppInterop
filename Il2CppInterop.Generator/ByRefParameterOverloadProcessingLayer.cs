@@ -20,8 +20,8 @@ public sealed class ByRefParameterOverloadProcessingLayer : Cpp2IlProcessingLaye
         var byReference_CopyTo = byReference.GetMethodByName(nameof(ByReference<>.CopyTo));
         var byReference_Clear = byReference.GetMethodByName(nameof(ByReference<>.Clear));
 
-        var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeHelper));
-        var il2CppTypeHelper_SizeOf = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.SizeOf));
+        var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppType));
+        var il2CppTypeHelper_SizeOf = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.SizeOf));
 
         foreach (var assembly in appContext.Assemblies)
         {

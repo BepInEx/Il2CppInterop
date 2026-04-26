@@ -33,7 +33,7 @@ public static unsafe class FieldAccess
     {
         ArgumentOutOfRangeException.ThrowIfNegative(fieldOffset);
         var data = (byte*)instance.Pointer + fieldOffset;
-        return Il2CppTypeHelper.ReadFromPointer<T>(data);
+        return Il2CppType.ReadFromPointer<T>(data);
     }
 
     public static void SetInstanceFieldValue<T>(Object instance, int fieldOffset, T? value) where T : IIl2CppType<T>

@@ -47,8 +47,8 @@ public sealed class Il2CppArrayRank2<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
     }
     public ByReference<T> GetElementAddress(int index0, int index1) => GetElementAddress([index0, index1]);
 
-    static void IIl2CppType<Il2CppArrayRank2<T>>.WriteToSpan(Il2CppArrayRank2<T>? value, Span<byte> span) => Il2CppTypeHelper.WriteReference(value, span);
-    static Il2CppArrayRank2<T>? IIl2CppType<Il2CppArrayRank2<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => Il2CppTypeHelper.ReadReference<Il2CppArrayRank2<T>>(span);
+    static void IIl2CppType<Il2CppArrayRank2<T>>.WriteToSpan(Il2CppArrayRank2<T>? value, Span<byte> span) => Il2CppType.WriteReference(value, span);
+    static Il2CppArrayRank2<T>? IIl2CppType<Il2CppArrayRank2<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => Il2CppType.ReadReference<Il2CppArrayRank2<T>>(span);
 
     [return: NotNullIfNotNull(nameof(array))]
     public static explicit operator Il2CppArrayRank2<T>?(T[,]? array) => array is null ? null : new(array);

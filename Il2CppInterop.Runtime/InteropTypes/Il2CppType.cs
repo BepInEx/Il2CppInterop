@@ -7,7 +7,7 @@ using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 
-public static class Il2CppTypeHelper
+public static class Il2CppType
 {
     public static bool IsBlittable<T>() where T : IIl2CppType<T>
     {

@@ -65,6 +65,6 @@ public static class Il2CppObjectPool
     public static unsafe object ValueTypeInitializer<T>(ObjectPointer obj) where T : struct, IIl2CppType<T>
     {
         var unboxed = IL2CPP.il2cpp_object_unbox((nint)obj);
-        return Il2CppTypeHelper.ReadFromPointer<T>((void*)unboxed);
+        return Il2CppType.ReadFromPointer<T>((void*)unboxed);
     }
 }

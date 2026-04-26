@@ -304,7 +304,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
             {
                 il.Emit(OpCodes.Ldloc, managedReturnVariable);
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Call, typeof(Il2CppTypeHelper).GetMethod(nameof(Il2CppTypeHelper.WriteToPointer))!.MakeGenericMethod(managedReturnType));
+                il.Emit(OpCodes.Call, typeof(Il2CppType).GetMethod(nameof(Il2CppType.WriteToPointer))!.MakeGenericMethod(managedReturnType));
 
                 // Return the same pointer to the return buffer
                 il.Emit(OpCodes.Ldarg_0);
@@ -314,7 +314,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
                 var unmanagedReturnVariable = il.DeclareLocal(unmanagedReturnType);
                 il.Emit(OpCodes.Ldloc, managedReturnVariable);
                 il.Emit(OpCodes.Ldloca, unmanagedReturnVariable);
-                il.Emit(OpCodes.Call, typeof(Il2CppTypeHelper).GetMethod(nameof(Il2CppTypeHelper.WriteToPointer))!.MakeGenericMethod(managedReturnType));
+                il.Emit(OpCodes.Call, typeof(Il2CppType).GetMethod(nameof(Il2CppType.WriteToPointer))!.MakeGenericMethod(managedReturnType));
                 il.Emit(OpCodes.Ldloc, unmanagedReturnVariable);
             }
         }
@@ -331,6 +331,6 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         Type managedParamType)
     {
         il.Emit(OpCodes.Ldarga, argIndex);
-        il.Emit(OpCodes.Call, typeof(Il2CppTypeHelper).GetMethod(nameof(Il2CppTypeHelper.ReadFromPointer))!.MakeGenericMethod(managedParamType));
+        il.Emit(OpCodes.Call, typeof(Il2CppType).GetMethod(nameof(Il2CppType.ReadFromPointer))!.MakeGenericMethod(managedParamType));
     }
 }

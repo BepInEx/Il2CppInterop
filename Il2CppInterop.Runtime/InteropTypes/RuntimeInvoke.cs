@@ -35,7 +35,7 @@ public static unsafe class RuntimeInvoke
         {
             // This is a performance optimization. The other code path would also return the correct result.
             var data = (byte*)IL2CPP.il2cpp_object_unbox(result);
-            return Il2CppTypeHelper.ReadFromPointer<TResult>(data);
+            return Il2CppType.ReadFromPointer<TResult>(data);
         }
         else
         {

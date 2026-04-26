@@ -77,12 +77,12 @@ internal sealed class Il2CppToMonoDelegateReference : Object, IIl2CppType<Il2Cpp
 
     static Il2CppToMonoDelegateReference? IIl2CppType<Il2CppToMonoDelegateReference>.ReadFromSpan(ReadOnlySpan<byte> span)
     {
-        return Il2CppTypeHelper.ReadReference<Il2CppToMonoDelegateReference>(span);
+        return Il2CppType.ReadReference<Il2CppToMonoDelegateReference>(span);
     }
 
     static void IIl2CppType<Il2CppToMonoDelegateReference>.WriteToSpan(Il2CppToMonoDelegateReference? value, Span<byte> span)
     {
-        Il2CppTypeHelper.WriteReference(value, span);
+        Il2CppType.WriteReference(value, span);
     }
 
     static string IIl2CppType<Il2CppToMonoDelegateReference>.AssemblyName => "Assembly-CSharp";

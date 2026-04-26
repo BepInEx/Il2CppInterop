@@ -54,7 +54,7 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(FieldAccess),
             typeof(IIl2CppException),
             typeof(RuntimeInvoke),
-            typeof(Il2CppTypeHelper),
+            typeof(Il2CppType),
             typeof(GenerationInternals),
         ];
         InjectTypes(appContext, typeof(Il2CppArrayBase).Assembly, il2CppInteropRuntimeTypes);

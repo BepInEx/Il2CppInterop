@@ -41,13 +41,13 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
     public readonly T? GetValue()
     {
         ThrowIfNull();
-        return Il2CppTypeHelper.ReadFromPointer<T>(_pointer);
+        return Il2CppType.ReadFromPointer<T>(_pointer);
     }
 
     public readonly void SetValue(T? value)
     {
         ThrowIfNull();
-        Il2CppTypeHelper.WriteToPointer(value, _pointer);
+        Il2CppType.WriteToPointer(value, _pointer);
     }
 
     public readonly void Clear()
@@ -98,6 +98,6 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
         }
     }
 
-    static void IIl2CppType<ByReference<T>>.WriteToSpan(ByReference<T> value, Span<byte> span) => Il2CppTypeHelper.WritePointer((IntPtr)value._pointer, span);
-    static ByReference<T> IIl2CppType<ByReference<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => (ByReference<T>)(void*)Il2CppTypeHelper.ReadPointer(span);
+    static void IIl2CppType<ByReference<T>>.WriteToSpan(ByReference<T> value, Span<byte> span) => Il2CppType.WritePointer((IntPtr)value._pointer, span);
+    static ByReference<T> IIl2CppType<ByReference<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => (ByReference<T>)(void*)Il2CppType.ReadPointer(span);
 }

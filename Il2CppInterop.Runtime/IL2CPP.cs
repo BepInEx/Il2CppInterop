@@ -272,7 +272,7 @@ public static unsafe partial class IL2CPP
             invoke.ReturnType, invoke.GetParameters().Select(it => it.ParameterType).ToArray(), typeof(IL2CPP), true);
         var bodyBuilder = trampoline.GetILGenerator();
 
-        var sizeOfMethod = typeof(Il2CppTypeHelper).GetMethod(nameof(Il2CppTypeHelper.SizeOf))!;
+        var sizeOfMethod = typeof(Il2CppType).GetMethod(nameof(Il2CppType.SizeOf))!;
         var parameters = invoke.GetParameters();
         var parameterTypes = new Type[parameters.Length];
         var locals = new LocalBuilder[parameters.Length];
@@ -318,7 +318,7 @@ public static unsafe partial class IL2CPP
             bodyBuilder.Emit(OpCodes.Stloc, returnLocal);
 
             bodyBuilder.Emit(OpCodes.Ldloca, returnLocal);
-            bodyBuilder.Emit(OpCodes.Call, typeof(Il2CppTypeHelper).GetMethod(nameof(Il2CppTypeHelper.ReadFromPointer))!.MakeGenericMethod(returnType));
+            bodyBuilder.Emit(OpCodes.Call, typeof(Il2CppType).GetMethod(nameof(Il2CppType.ReadFromPointer))!.MakeGenericMethod(returnType));
         }
         bodyBuilder.Emit(OpCodes.Ret);
 

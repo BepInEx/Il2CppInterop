@@ -29,14 +29,14 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
         var il2CppClassPointerStore = appContext.ResolveTypeOrThrow(typeof(Il2CppClassPointerStore<>));
         var il2CppClassPointerStore_NativeClassPointer = il2CppClassPointerStore.GetFieldByName(nameof(Il2CppClassPointerStore<>.NativeClassPointer));
 
-        var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeHelper));
-        var il2CppTypeHelper_ReadReference = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.ReadReference));
-        var il2CppTypeHelper_WriteReference = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.WriteReference));
-        var il2CppTypeHelper_ReadFromSpanAtOffset = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.ReadFromSpanAtOffset));
-        var il2CppTypeHelper_WriteToSpanAtOffset = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.WriteToSpanAtOffset));
-        var il2CppTypeHelper_ReadFromSpanBlittable = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.ReadFromSpanBlittable));
-        var il2CppTypeHelper_WriteToSpanBlittable = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.WriteToSpanBlittable));
-        var il2CppTypeHelper_WriteToSpan = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.WriteToSpan));
+        var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppType));
+        var il2CppTypeHelper_ReadReference = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.ReadReference));
+        var il2CppTypeHelper_WriteReference = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.WriteReference));
+        var il2CppTypeHelper_ReadFromSpanAtOffset = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.ReadFromSpanAtOffset));
+        var il2CppTypeHelper_WriteToSpanAtOffset = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.WriteToSpanAtOffset));
+        var il2CppTypeHelper_ReadFromSpanBlittable = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.ReadFromSpanBlittable));
+        var il2CppTypeHelper_WriteToSpanBlittable = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.WriteToSpanBlittable));
+        var il2CppTypeHelper_WriteToSpan = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.WriteToSpan));
 
         var intPtr_get_Size = appContext.SystemTypes.SystemIntPtrType.GetMethodByName($"get_{nameof(IntPtr.Size)}");
 

@@ -59,7 +59,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var byReference_CopyTo = byReference.GetMethodByName(nameof(ByReference<>.CopyTo));
         var byReference_Constructor = byReference.GetMethodByName(".ctor");
 
-        var il2CppTypeHelper_SizeOf = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeHelper)).GetMethodByName(nameof(Il2CppTypeHelper.SizeOf));
+        var il2CppTypeHelper_SizeOf = appContext.ResolveTypeOrThrow(typeof(Il2CppType)).GetMethodByName(nameof(Il2CppType.SizeOf));
 
         var il2CppObjectPool = appContext.ResolveTypeOrThrow(typeof(Il2CppObjectPool));
         var il2CppObjectPool_RegisterInitializer = il2CppObjectPool.GetMethodByName(nameof(Il2CppObjectPool.RegisterInitializer));

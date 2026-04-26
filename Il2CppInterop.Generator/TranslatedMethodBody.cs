@@ -40,8 +40,8 @@ public class TranslatedMethodBody : MethodBodyBase
         var byReferenceStatic_SetValue1 = byReferenceStatic.GetMethodByName(nameof(ByReference.SetValue1));
         var byReferenceStatic_SetValue2 = byReferenceStatic.GetMethodByName(nameof(ByReference.SetValue2));
 
-        var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeHelper));
-        var il2CppTypeHelper_SizeOf = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.SizeOf));
+        var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppType));
+        var il2CppTypeHelper_SizeOf = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.SizeOf));
 
         Debug.Assert(methodContext.UnsafeImplementationMethod is not null);
         var implementationMethod = methodContext.UnsafeImplementationMethod!;
@@ -525,27 +525,27 @@ public class TranslatedMethodBody : MethodBodyBase
                         {
                             // References on the stack are always void*.
                             translatedInstruction.Code = CilOpCodes.Call;
-                            translatedInstruction.Operand = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.InitializeObject)).MakeGenericInstanceMethod(translatedType);
+                            translatedInstruction.Operand = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.InitializeObject)).MakeGenericInstanceMethod(translatedType);
                         }
                         break;
                     case CilCode.Cpobj:
                         {
                             // References on the stack are always void*.
                             translatedInstruction.Code = CilOpCodes.Call;
-                            translatedInstruction.Operand = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.CopyObject)).MakeGenericInstanceMethod(translatedType);
+                            translatedInstruction.Operand = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.CopyObject)).MakeGenericInstanceMethod(translatedType);
                         }
                         break;
                     case CilCode.Ldobj:
                         {
                             // References on the stack are always void*.
                             translatedInstruction.Code = CilOpCodes.Call;
-                            translatedInstruction.Operand = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.ReadFromPointer)).MakeGenericInstanceMethod(translatedType);
+                            translatedInstruction.Operand = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.ReadFromPointer)).MakeGenericInstanceMethod(translatedType);
                             MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedType);
                         }
                         break;
                     case CilCode.Stobj:
                         {
-                            var storeMethod = il2CppTypeHelper.GetMethodByName(nameof(Il2CppTypeHelper.StoreObject)).MakeGenericInstanceMethod(translatedType);
+                            var storeMethod = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.StoreObject)).MakeGenericInstanceMethod(translatedType);
                             if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, translatedType))
                             {
                                 translatedInstruction.Code = CilOpCodes.Nop;

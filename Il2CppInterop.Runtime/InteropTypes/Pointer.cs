@@ -16,13 +16,13 @@ public unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>>
         {
             ThrowIfNull();
             void* start = (byte*)_pointer + T.Size * index;
-            return Il2CppTypeHelper.ReadFromPointer<T>(start);
+            return Il2CppType.ReadFromPointer<T>(start);
         }
         set
         {
             ThrowIfNull();
             void* start = (byte*)_pointer + T.Size * index;
-            Il2CppTypeHelper.WriteToPointer(value, start);
+            Il2CppType.WriteToPointer(value, start);
         }
     }
 
@@ -40,8 +40,8 @@ public unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>>
 
     readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Pointer<T>>.NativeClassPointer;
 
-    static Pointer<T> IIl2CppType<Pointer<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => (Pointer<T>)(void*)Il2CppTypeHelper.ReadPointer(span);
-    static void IIl2CppType<Pointer<T>>.WriteToSpan(Pointer<T> value, Span<byte> span) => Il2CppTypeHelper.WritePointer((IntPtr)value._pointer, span);
+    static Pointer<T> IIl2CppType<Pointer<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => (Pointer<T>)(void*)Il2CppType.ReadPointer(span);
+    static void IIl2CppType<Pointer<T>>.WriteToSpan(Pointer<T> value, Span<byte> span) => Il2CppType.WritePointer((IntPtr)value._pointer, span);
 
     public static explicit operator Pointer<T>(void* value) => new(value);
     public static explicit operator void*(Pointer<T> pointer) => pointer._pointer;
