@@ -1,7 +1,12 @@
-﻿namespace Il2CppSystem;
+﻿using Il2CppInterop.Common;
 
-public abstract class String : Object
+namespace Il2CppSystem;
+
+public sealed class String : Object
 {
+    public String(ObjectPointer pointer) : base(pointer)
+    {
+    }
     public static implicit operator String(string str)
     {
         throw null;

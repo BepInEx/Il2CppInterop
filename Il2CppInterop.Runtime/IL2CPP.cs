@@ -183,8 +183,9 @@ public static unsafe partial class IL2CPP
         {
             types[i] = Il2CppSystem.Type.internal_from_handle(il2cpp_class_get_type(genericMethodArguments[i]));
         }
-        var methodInfo = (Il2CppSystem.Reflection.MethodInfo)Il2CppObjectPool.Get(il2cpp_method_get_object(methodInfoPointer, declaringTypeClassPointer))!;
-        return il2cpp_method_get_from_reflection(Il2CppObjectToPtrNotNull(methodInfo.MakeGenericMethod(types)));
+        var methodInfoObject = (Il2CppSystem.Reflection.MethodInfo)Il2CppObjectPool.Get(il2cpp_method_get_object(methodInfoPointer, declaringTypeClassPointer))!;
+        var methodInfoGeneric = methodInfoObject.MakeGenericMethod(types);
+        return il2cpp_method_get_from_reflection(methodInfoGeneric?.Pointer ?? throw new NullReferenceException());
     }
 
     public static nint GetIl2CppGenericInstanceType(nint typeClassPointer, params nint[] genericTypeArguments)
@@ -217,36 +218,6 @@ public static unsafe partial class IL2CPP
     {
         var obj = il2cpp_gchandle_get_target(gchandle);
         return obj == nint.Zero;
-    }
-
-    public static string? Il2CppStringToManaged(nint il2CppString)
-    {
-        if (il2CppString == nint.Zero) return null;
-
-        var length = il2cpp_string_length(il2CppString);
-        var chars = il2cpp_string_chars(il2CppString);
-
-        return new string(chars, 0, length);
-    }
-
-    public static nint ManagedStringToIl2Cpp(string? str)
-    {
-        if (str == null) return nint.Zero;
-
-        fixed (char* chars = str)
-        {
-            return il2cpp_string_new_utf16(chars, str.Length);
-        }
-    }
-
-    public static nint Il2CppObjectToPtr(Object? obj)
-    {
-        return obj?.Pointer ?? nint.Zero;
-    }
-
-    public static nint Il2CppObjectToPtrNotNull(Object obj)
-    {
-        return obj?.Pointer ?? throw new NullReferenceException();
     }
 
     public static nint GetIl2CppNestedType(nint enclosingType, string nestedTypeName)

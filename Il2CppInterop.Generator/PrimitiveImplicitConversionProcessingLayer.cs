@@ -25,10 +25,9 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
             var objectPointerType = appContext.ResolveTypeOrThrow(typeof(ObjectPointer));
             var objectPointerConversionFromIntPtr = objectPointerType.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);
 
-            var il2CppStaticType = appContext.ResolveTypeOrThrow(typeof(IL2CPP));
-            var managedStringToIl2Cpp = il2CppStaticType.Methods.First(m => m.Name == nameof(IL2CPP.ManagedStringToIl2Cpp));
-            var il2CppObjectBaseToPointer = il2CppStaticType.Methods.First(m => m.Name == nameof(IL2CPP.Il2CppObjectToPtr));
-            var il2CppStringToManaged = il2CppStaticType.Methods.First(m => m.Name == nameof(IL2CPP.Il2CppStringToManaged));
+            var generationInteralsType = appContext.ResolveTypeOrThrow(typeof(GenerationInternals));
+            var managedStringToIl2Cpp = generationInteralsType.Methods.First(m => m.Name == nameof(GenerationInternals.ManagedStringToIl2Cpp));
+            var il2CppStringToManaged = generationInteralsType.Methods.First(m => m.Name == nameof(GenerationInternals.Il2CppStringToManaged));
 
             // Il2Cpp -> Mono
             {
@@ -45,8 +44,7 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
                 {
                     Instructions = [
                         new Instruction(CilOpCodes.Ldarg_0),
-                        new Instruction(CilOpCodes.Call, il2CppObjectBaseToPointer), // Returns null if the object is null
-                        new Instruction(CilOpCodes.Call, il2CppStringToManaged), // Returns null if the pointer is null
+                        new Instruction(CilOpCodes.Call, il2CppStringToManaged), // Returns null if the input is null
                         new Instruction(CilOpCodes.Ret),
                     ]
                 });
@@ -63,21 +61,11 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
                 implicitConversion.IsInjected = true;
                 il2CppType.Methods.Add(implicitConversion);
 
-                var createIl2CppStringNop = new Instruction(CilOpCodes.Nop);
-
                 implicitConversion.PutExtraData(new TranslatedMethodBody()
                 {
                     Instructions = [
                         new Instruction(CilOpCodes.Ldarg_0),
-                        new Instruction(CilOpCodes.Dup),
-                        new Instruction(CilOpCodes.Brtrue, createIl2CppStringNop),
-                        new Instruction(CilOpCodes.Pop),
-                        new Instruction(CilOpCodes.Ldnull),
-                        new Instruction(CilOpCodes.Ret),
-                        createIl2CppStringNop,
-                        new Instruction(CilOpCodes.Call, managedStringToIl2Cpp),
-                        new Instruction(CilOpCodes.Call, objectPointerConversionFromIntPtr),
-                        new Instruction(CilOpCodes.Newobj, il2CppType.PointerConstructor!),
+                        new Instruction(CilOpCodes.Call, managedStringToIl2Cpp), // Returns null if the input is null
                         new Instruction(CilOpCodes.Ret),
                     ]
                 });
