@@ -7,12 +7,6 @@ using Il2CppInterop.Runtime.XrefScans;
 
 namespace Il2CppInterop.Runtime.Startup;
 
-public record RuntimeConfiguration
-{
-    public Version UnityVersion { get; init; }
-    public IDetourProvider DetourProvider { get; init; }
-}
-
 public sealed class Il2CppInteropRuntime : BaseHost
 {
     private Il2CppInteropRuntime()
