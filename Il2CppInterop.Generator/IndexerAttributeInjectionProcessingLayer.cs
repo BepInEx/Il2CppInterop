@@ -13,21 +13,31 @@ public class IndexerAttributeInjectionProcessingLayer : Cpp2IlProcessingLayer
         var defaultMemberAttribute = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.Reflection.DefaultMemberAttribute");
         var defaultMemberAttributeConstructor = defaultMemberAttribute.Methods.First(m => m.IsInstanceConstructor && m.Parameters.Count == 1 && m.Parameters[0].ParameterType == appContext.SystemTypes.SystemStringType);
 
+        HashSet<string> indexerNames = [];
         foreach (var type in appContext.AllTypes)
         {
-            if (!type.Properties.Any(IsIndexerProperty))
+            indexerNames.Clear();
+            indexerNames.AddRange(type.Properties.Where(IsIndexerProperty).Select(p => p.Name));
+            if (indexerNames.Count != 1)
                 continue;
 
-            type.CustomAttributes ??= new();
+            type.CustomAttributes ??= new(1);
 
             var customAttribute = new AnalyzedCustomAttribute(defaultMemberAttributeConstructor);
-            customAttribute.ConstructorParameters.Add(new CustomAttributePrimitiveParameter("Item", customAttribute, CustomAttributeParameterKind.ConstructorParam, 0));
+            customAttribute.ConstructorParameters.Add(new CustomAttributePrimitiveParameter(indexerNames.First(), customAttribute, CustomAttributeParameterKind.ConstructorParam, 0));
             type.CustomAttributes.Add(customAttribute);
         }
     }
 
     private static bool IsIndexerProperty(PropertyAnalysisContext property)
     {
-        return property.Name == "Item" && property is { Getter.Parameters.Count: > 0 } or { Setter.Parameters.Count: > 1 };
+        if (property is { Getter.Parameters.Count: > 0, Getter.Overrides.Count: 0 })
+        {
+            return property.Setter is null || property.Setter.Parameters.Count == property.Getter.Parameters.Count + 1;
+        }
+        else
+        {
+            return property is { Setter.Parameters.Count: > 1, Setter.Overrides.Count: 0 };
+        }
     }
 }
