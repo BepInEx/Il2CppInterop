@@ -86,6 +86,7 @@ public static unsafe class TypeInjector
 
         classPointer.ThisArg.Type = classPointer.ByValArg.Type = type.IsValueType ? Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE : Il2CppTypeEnum.IL2CPP_TYPE_CLASS;
         classPointer.ThisArg.Data = classPointer.ByValArg.Data = (nint)InjectorHelpers.CreateClassToken(classPointer.Pointer);
+        classPointer.ThisArg.ValueType = classPointer.ByValArg.ValueType = type.IsValueType;
         classPointer.ThisArg.ByRef = true;
 
         classPointer.Flags = TypeAttributesToClassAttributes(type.Attributes);
