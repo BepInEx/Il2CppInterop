@@ -5,6 +5,7 @@ using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Generator.StackTypes;
 using Il2CppInterop.Generator.Visitors;
 using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.Exceptions;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 

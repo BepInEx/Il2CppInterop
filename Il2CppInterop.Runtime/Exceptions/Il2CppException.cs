@@ -4,12 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Il2CppInterop.Runtime.Runtime;
 
-namespace Il2CppInterop.Runtime;
+namespace Il2CppInterop.Runtime.Exceptions;
 
-public interface IIl2CppException
-{
-    Il2CppException CreateSystemException();
-}
 public class Il2CppException : Exception
 {
     [ThreadStatic]

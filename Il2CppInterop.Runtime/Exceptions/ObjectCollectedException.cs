@@ -1,6 +1,6 @@
 using System;
 
-namespace Il2CppInterop.Runtime;
+namespace Il2CppInterop.Runtime.Exceptions;
 
 public class ObjectCollectedException : Exception
 {

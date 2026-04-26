@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime;
+using Il2CppException = Il2CppInterop.Runtime.Exceptions.Il2CppException;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 

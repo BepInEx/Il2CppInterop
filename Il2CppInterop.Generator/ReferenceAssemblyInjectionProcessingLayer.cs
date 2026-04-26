@@ -4,6 +4,7 @@ using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Common;
 using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.Exceptions;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
@@ -41,7 +42,7 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(Il2CppArrayRank2<>),
             typeof(Il2CppArrayRank3<>),
 
-            typeof(Il2CppInterop.Runtime.Il2CppException),
+            typeof(Runtime.Exceptions.Il2CppException),
             typeof(IL2CPP),
             typeof(Il2CppClassPointerStore<>),
             typeof(Il2CppObjectPool),

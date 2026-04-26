@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using Il2CppInterop.Common;
+using Il2CppInterop.Runtime.Exceptions;
 
 namespace Il2CppInterop.Runtime;
 
