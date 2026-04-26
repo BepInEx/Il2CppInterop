@@ -99,7 +99,7 @@ public class ExceptionHierarchyProcessingLayer : Cpp2IlProcessingLayer
                 var interfaceMethod = new InjectedMethodAnalysisContext(
                     exceptionType,
                     il2CppExceptionInterfaceMethodName,
-                    il2CppSystemExceptionType,
+                    il2CppExceptionInterfaceMethod.ReturnType,
                     MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.Final | MethodAttributes.NewSlot,
                     [])
                 {
