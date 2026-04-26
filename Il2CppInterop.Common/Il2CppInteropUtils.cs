@@ -5,59 +5,57 @@ namespace Il2CppInterop.Common;
 
 public static class Il2CppInteropUtils
 {
-    private static FieldInfo? GetFieldInfoFromMethod(MethodBase method, string prefix)
+    private static FieldInfo? GetFieldInfo(Type declaringType, string prefix, int index)
     {
-        var declaringType = method.DeclaringType;
-        if (declaringType == null)
+        if (index < 0)
             return null;
-
-        Type? ResolveInternals(Type dt)
-        {
-            var attr = dt.GetCustomAttribute<Il2CppTypeAttribute>();
-            if (attr == null)
-                return null;
-
-            var internals = attr.Internals;
-
-            if (internals.IsGenericTypeDefinition && dt.IsConstructedGenericType)
-            {
-                internals = internals.MakeGenericType(dt.GetGenericArguments());
-            }
-
-            return internals;
-        }
 
         var internalsType = ResolveInternals(declaringType);
         if (internalsType == null)
             return null;
 
-        int index = method.GetCustomAttribute<Il2CppMethodAttribute>()?.Index ?? -1;
+        return internalsType.GetField($"{prefix}{index}", BindingFlags.Static | BindingFlags.NonPublic);
 
-        if (index < 0)
+        static Type? ResolveInternals(Type declaringType)
         {
-            var prop = declaringType
-                .GetProperties(BindingFlags.Instance | BindingFlags.Static |
-                               BindingFlags.Public | BindingFlags.NonPublic)
-                .FirstOrDefault(p => p.GetMethod == method || p.SetMethod == method);
+            var attr = declaringType.GetCustomAttribute<Il2CppTypeAttribute>();
+            if (attr == null)
+                return null;
 
-            if (prop != null)
-                index = prop.GetCustomAttribute<Il2CppFieldAttribute>()?.Index ?? -1;
+            var internals = attr.Internals;
+
+            if (internals.IsGenericTypeDefinition && declaringType.IsConstructedGenericType)
+            {
+                internals = internals.MakeGenericType(declaringType.GetGenericArguments());
+            }
+
+            return internals;
         }
-
-        if (index < 0)
-            return null;
-
-        return internalsType.GetField(prefix + index,
-            BindingFlags.Static | BindingFlags.NonPublic);
     }
 
     public static FieldInfo? GetIl2CppMethodInfoPointerFieldForGeneratedMethod(MethodBase method)
     {
-        return GetFieldInfoFromMethod(method, "MethodInfoPtr_");
+        var declaringType = method.DeclaringType;
+        if (declaringType == null)
+            return null;
+
+        var index = method.GetCustomAttribute<Il2CppMethodAttribute>()?.Index ?? -1;
+
+        return GetFieldInfo(declaringType, "MethodInfoPtr_", index);
     }
 
     public static FieldInfo? GetIl2CppFieldInfoPointerFieldForGeneratedFieldAccessor(MethodBase method)
     {
-        return GetFieldInfoFromMethod(method, "FieldInfoPtr_");
+        var declaringType = method.DeclaringType;
+        if (declaringType == null)
+            return null;
+
+        var prop = declaringType
+            .GetProperties(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+            .FirstOrDefault(p => p.GetMethod == method || p.SetMethod == method);
+
+        var index = prop?.GetCustomAttribute<Il2CppFieldAttribute>()?.Index ?? -1;
+
+        return GetFieldInfo(declaringType, "FieldInfoPtr_", index);
     }
 }
