@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using Il2CppInterop.Common;
 
@@ -31,6 +32,23 @@ public static class GenerationInternals
         {
             return new Il2CppSystem.String((ObjectPointer)IL2CPP.il2cpp_string_new_utf16(chars, str.Length));
         }
+    }
+
+    public static Il2CppSystem.Type ManagedTypeToIl2CppType(Type type)
+    {
+        var classPointer = Il2CppClassPointerStore.GetNativeClassPointer(type);
+        if (classPointer == IntPtr.Zero)
+        {
+            throw new ArgumentException($"{type} does not have a corresponding IL2CPP class pointer");
+        }
+
+        var il2CppType = IL2CPP.il2cpp_class_get_type(classPointer);
+        if (il2CppType == IntPtr.Zero)
+        {
+            throw new ArgumentException($"{type} does not have a corresponding IL2CPP type pointer");
+        }
+
+        return Il2CppSystem.Type.internal_from_handle(il2CppType);
     }
 
     public static nint Il2CppGCHandleGetTargetOrThrow(nint gchandle)

@@ -870,9 +870,25 @@ public static unsafe class TypeInjector
         il2cppEnum.FieldCount = (ushort)newFieldCount;
         il2cppEnum.Fields = newFields;
 
-        if (Il2CppType.TypeFromPointer(enumPtr) is Il2CppSystem.RuntimeType runtimeEnumType)
+        if (TypeFromClassPointer(enumPtr, type.FullName) is Il2CppSystem.RuntimeType runtimeEnumType)
             // The mono runtime caches the enum names and values the first time they are requested, so we reset this cache
             runtimeEnumType.GenericCache = null;
+
+        static Il2CppSystem.Type TypeFromClassPointer(nint classPointer, string? typeName)
+        {
+            if (classPointer == IntPtr.Zero)
+            {
+                throw new ArgumentException($"{typeName} does not have a corresponding IL2CPP class pointer");
+            }
+
+            var il2CppType = IL2CPP.il2cpp_class_get_type(classPointer);
+            if (il2CppType == IntPtr.Zero)
+            {
+                throw new ArgumentException($"{typeName} does not have a corresponding IL2CPP type pointer");
+            }
+
+            return Il2CppSystem.Type.internal_from_handle(il2CppType);
+        }
     }
 
     private static void RegisterEnumInIl2Cpp(Type type)

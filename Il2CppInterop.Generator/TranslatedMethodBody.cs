@@ -597,11 +597,11 @@ public class TranslatedMethodBody : MethodBodyBase
 
                             translatedInstructions.Add(new Instruction(CilOpCodes.Call, methodContext.AppContext.SystemTypes.SystemTypeType.GetMethodByName(nameof(Type.GetTypeFromHandle))));
 
-                            var systemTypeToIl2CppTypeMethod = methodContext.AppContext
-                                .ResolveTypeOrThrow(typeof(Il2CppType))
-                                .Methods.First(m => m.Name == nameof(Il2CppType.From) && m.Parameters.Count == 1);
+                            var managedTypeToIl2CppTypeMethod = methodContext.AppContext
+                                .ResolveTypeOrThrow(typeof(GenerationInternals))
+                                .Methods.First(m => m.Name == nameof(GenerationInternals.ManagedTypeToIl2CppType) && m.Parameters.Count == 1);
 
-                            translatedInstructions.Add(new Instruction(CilOpCodes.Call, systemTypeToIl2CppTypeMethod));
+                            translatedInstructions.Add(new Instruction(CilOpCodes.Call, managedTypeToIl2CppTypeMethod));
 
                             var getTypeHandleMethod = methodContext.AppContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Type").GetMethodByName("get_TypeHandle");
 
