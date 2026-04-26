@@ -2,7 +2,7 @@
 using System.Linq;
 using Il2CppInterop.Common.XrefScans;
 
-namespace Il2CppInterop.Runtime;
+namespace Il2CppInterop.Runtime.Injection;
 
 internal class MemoryUtils
 {
