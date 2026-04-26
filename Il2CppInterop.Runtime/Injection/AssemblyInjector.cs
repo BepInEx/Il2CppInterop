@@ -30,19 +30,7 @@ internal static unsafe class AssemblyInjector
                     for (var i = 0; i < assembliesCount; i++)
                     {
                         var image = UnityVersionHandler.Wrap((Il2CppImage*)IL2CPP.il2cpp_assembly_get_image(assemblies[i]));
-                        string imageName;
-                        if (image.HasNameNoExt)
-                        {
-                            imageName = Marshal.PtrToStringUTF8(image.NameNoExt)!;
-                        }
-                        else
-                        {
-                            imageName = Marshal.PtrToStringUTF8(image.Name)!;
-
-                            if (imageName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-                                imageName = imageName.Substring(0, imageName.Length - 4);
-                        }
-
+                        var imageName = Marshal.PtrToStringUTF8(image.Name)!;
                         images[imageName] = image;
                     }
                 }
@@ -56,7 +44,16 @@ internal static unsafe class AssemblyInjector
                 result.Dynamic = 1;
                 result.Name = assembly.Name.Name;
                 if (result.HasNameNoExt)
-                    result.NameNoExt = assembly.Name.Name;
+                {
+                    if (name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.NameNoExt = Marshal.StringToCoTaskMemUTF8(name.Substring(0, name.Length - 4));
+                    }
+                    else
+                    {
+                        result.NameNoExt = assembly.Name.Name;
+                    }
+                }
                 images[name] = result;
             }
             return result;
