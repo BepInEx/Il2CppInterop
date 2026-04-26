@@ -4,6 +4,7 @@ using Il2CppInterop.Common;
 using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime;
@@ -94,5 +95,6 @@ internal sealed class Il2CppToMonoDelegateReference : Object, IIl2CppType<Il2Cpp
         TypeInjector.RegisterTypeInIl2Cpp<Il2CppToMonoDelegateReference>();
         MethodInfoFieldOffset = (int)IL2CPP.il2cpp_field_get_offset(IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPointer, nameof(MethodInfo)));
         DelegateHandleFieldOffset = (int)IL2CPP.il2cpp_field_get_offset(IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPointer, nameof(DelegateHandleValue)));
+        Il2CppObjectPool.RegisterInitializer(Il2CppClassPointerStore<Il2CppToMonoDelegateReference>.NativeClassPointer, ptr => new Il2CppToMonoDelegateReference(ptr));
     }
 }
