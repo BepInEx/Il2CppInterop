@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -187,7 +187,7 @@ namespace Il2CppInterop.Runtime.Injection
             }
             nint pClassInit = s_ClassInitSignatures
                 .Select(s => MemoryUtils.FindSignatureInModule(Il2CppModule, s))
-                .FirstOrDefault(p => p != 0);
+                .FirstOrDefault(p => p != 0 && (long)p >= (long)Il2CppModule.BaseAddress && (long)p < (long)Il2CppModule.BaseAddress + Il2CppModule.ModuleMemorySize);
 
             if (pClassInit == 0)
             {
