@@ -42,7 +42,6 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 mask = "xxxxxxxxxxxxxx?xxxxxxxxxxxxx",
                 xref = false
             },
-
             // V Rising - Unity 2022.3.23 (x64)
             new MemoryUtils.SignatureDefinition
             {
@@ -51,10 +50,12 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 xref = false
             },
             // GTFO - Unity 2019.4.21 (x64)
+            // DigitalCraft Dolce 3.1.2 - Unity 2022.3.55 (x64)
             new MemoryUtils.SignatureDefinition
             {
                 pattern = "\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\x41\x10\x48\x8B\xD9\x48\x8B",
-                mask = "xxxxxxxxxxxxxxxxxxx",
+                // mask the stack allocation length
+                mask = "xxxxxxxxx?xxxxxxxxx",
                 xref = false
             },
             // Idle Slayer - Unity 2021.3.17 (x64)
