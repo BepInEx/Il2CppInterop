@@ -12,11 +12,9 @@ using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
 using Il2CppInterop.Runtime.Startup;
 using Microsoft.Extensions.Logging;
 using MonoMod.Cil;
-using MonoMod.RuntimeDetour;
 using MonoMod.Utils;
-using Detour = MonoMod.RuntimeDetour.Detour;
-using IDetour = Il2CppInterop.Runtime.Injection.IDetour;
 using ValueType = Il2CppSystem.ValueType;
+using Void = Il2CppSystem.Void;
 
 namespace Il2CppInterop.HarmonySupport;
 
@@ -59,8 +57,6 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
     };
 
     private static readonly List<object> DelegateCache = new();
-    private static readonly List<object> DetourCache = new();
-
     private INativeMethodInfoStruct modifiedNativeMethodInfo;
 
     private IDetour nativeDetour;
@@ -151,10 +147,8 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         nativeDetour.Apply();
         modifiedNativeMethodInfo.MethodPointer = nativeDetour.OriginalTrampoline;
 
-        var detour = new Detour(Original, managedHookedMethod);
-        detour.Apply();
-        DetourCache.Add(detour);
-
+        // TODO: Add an ILHook for the original unhollowed method to go directly to managedHookedMethod
+        // Right now it goes through three times as much interop conversion as it needs to, when being called from managed side
         return managedHookedMethod;
     }
 
