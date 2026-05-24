@@ -188,7 +188,7 @@ public class AssemblyRewriteContext
             // Not a source assembly — try name-based lookup to find reference (existing interop) assembly.
             // The resolved TypeDefinition lives in the raw dependency DLL (e.g., mscorlib),
             // but the registered context is for the interop DLL (e.g., Il2Cppmscorlib).
-            var asmName = originalTypeDef.DeclaringModule?.Assembly?.Name;
+            var asmName = originalTypeDef.DeclaringModule?.Assembly?.Name?.Value;
             if (asmName != null)
                 targetAssembly = GlobalContext.TryGetAssemblyByName(asmName);
         }
