@@ -330,8 +330,11 @@ public static class DelegateSupport
             if (IL2CPP.il2cpp_method_get_name_(method) != ".ctor")
                 continue;
 
-            var wrapped = UnityVersionHandler.Wrap((Il2CppMethodInfo*)method);
-            return wrapped.MethodPointer != IntPtr.Zero;
+            var hybridInfo = UnityVersionHandler.WrapHybridCLR((Il2CppMethodInfo*)method);
+            if (hybridInfo != null && hybridInfo.IsInterpterImpl)
+                return false;
+
+            return true;
         }
 
         return false;
