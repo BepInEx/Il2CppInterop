@@ -59,7 +59,8 @@ internal class InteropAssemblyGeneratorRunner : IRunner
 
         using (new TimingCookie("Reading assemblies"))
         {
-            gameAssemblies = new AssemblyMetadataAccess(sourceAssemblies);
+            gameAssemblies = new AssemblyMetadataAccess(sourceAssemblies,
+                isHybridCLREnvironment: !string.IsNullOrEmpty(options.ExistingInteropDir));
         }
 
         // Load reference assemblies: UnityBaseLibsDir or ExistingInteropDir
