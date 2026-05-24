@@ -57,6 +57,16 @@ public class AssemblyMetadataAccess : IIl2CppMetadataAccess
         return null;
     }
 
+    /// <summary>
+    /// Adds external assemblies to the internal resolver cache so that type references
+    /// in source assemblies can resolve against them (e.g., reference interop assemblies).
+    /// </summary>
+    public void AddReferenceAssemblies(IEnumerable<AssemblyDefinition> assemblies)
+    {
+        foreach (var assembly in assemblies)
+            myAssemblyResolver.AddToCache(assembly);
+    }
+
     private void Load(IEnumerable<AssemblyDefinition> assemblies)
     {
         foreach (var sourceAssembly in assemblies)

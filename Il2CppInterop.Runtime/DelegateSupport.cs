@@ -291,7 +291,7 @@ public static class DelegateSupport
         var delegateReference = new Il2CppToMonoDelegateReference(@delegate, methodInfo.Pointer);
 
         Il2CppSystem.Delegate converted;
-        if (UnityVersionHandler.MustUseDelegateConstructor)
+        if (UnityVersionHandler.MustUseDelegateConstructor && HasNativeConstructor(classTypePtr))
         {
             converted = ((TIl2Cpp)Activator.CreateInstance(typeof(TIl2Cpp), delegateReference.Cast<Object>(),
                 methodInfo.Pointer)).Cast<Il2CppSystem.Delegate>();
@@ -315,6 +315,26 @@ public static class DelegateSupport
         }
 
         return converted.Cast<TIl2Cpp>();
+    }
+
+    /// <summary>
+    /// Checks whether the delegate type's .ctor has a native method body.
+    /// In HybridCLR, hotfix delegate constructors are interpreter methods with no native pointer.
+    /// </summary>
+    private static unsafe bool HasNativeConstructor(IntPtr classTypePtr)
+    {
+        var iter = IntPtr.Zero;
+        IntPtr method;
+        while ((method = IL2CPP.il2cpp_class_get_methods(classTypePtr, ref iter)) != IntPtr.Zero)
+        {
+            if (IL2CPP.il2cpp_method_get_name_(method) != ".ctor")
+                continue;
+
+            var wrapped = UnityVersionHandler.Wrap((Il2CppMethodInfo*)method);
+            return wrapped.MethodPointer != IntPtr.Zero;
+        }
+
+        return false;
     }
 
     internal class MethodSignature : IEquatable<MethodSignature>

@@ -77,6 +77,10 @@ internal class InteropAssemblyGeneratorRunner : IRunner
         else
             unityAssemblies = NullMetadataAccess.Instance;
 
+        // In HybridCLR mode, source assemblies need to resolve types from reference assemblies
+        if (!string.IsNullOrEmpty(options.ExistingInteropDir) && unityAssemblies is AssemblyMetadataAccess refAccess)
+            ((AssemblyMetadataAccess)gameAssemblies).AddReferenceAssemblies(refAccess.Assemblies);
+
         using (new TimingCookie("Creating rewrite assemblies"))
         {
             rewriteContext = new RewriteGlobalContext(options, gameAssemblies, unityAssemblies);
