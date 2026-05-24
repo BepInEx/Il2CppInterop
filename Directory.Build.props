@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <VersionPrefix>1.5.1</VersionPrefix>
+    <VersionPrefix>1.5.2</VersionPrefix>
     <Authors>BepInEx</Authors>
     <PackageOutputPath>../bin/NuGet</PackageOutputPath>
     <OutputPath Condition="'$(Configuration)' == 'Release'">../bin/$(MSBuildProjectName)</OutputPath>
