@@ -168,6 +168,20 @@ internal sealed class HybridCLRMetadataResolver : IMetadataResolver
                 return type;
         }
 
+        // If not found and the assembly is an Il2Cpp-prefixed interop assembly,
+        // try with Il2Cpp-prefixed namespace (e.g., "System" -> "Il2CppSystem")
+        if (ns is not null && assembly.Name is not null && assembly.Name.Value.StartsWith("Il2Cpp"))
+        {
+            var prefixedNs = new Utf8String("Il2Cpp" + ns.Value);
+            for (int i = 0; i < assembly.Modules.Count; i++)
+            {
+                var module = assembly.Modules[i];
+                var type = FindTypeInModule(module, prefixedNs, name);
+                if (type is not null)
+                    return type;
+            }
+        }
+
         return null;
     }
 

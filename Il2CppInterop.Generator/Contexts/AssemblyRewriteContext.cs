@@ -51,6 +51,11 @@ public class AssemblyRewriteContext
         return myNewTypeMap[type];
     }
 
+    public TypeRewriteContext? TryGetContextForNewType(TypeDefinition type)
+    {
+        return myNewTypeMap.TryGetValue(type, out var result) ? result : null;
+    }
+
     public void RegisterTypeRewrite(TypeRewriteContext context)
     {
         if (context.OriginalType != null)
@@ -180,6 +185,11 @@ public class AssemblyRewriteContext
         var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.DeclaringModule?.Assembly);
         if (targetAssembly == null)
         {
+            // Not a source assembly — check if it's a reference (existing interop) assembly
+            targetAssembly = GlobalContext.GetContextForNewAssembly(originalTypeDef.DeclaringModule?.Assembly);
+        }
+        if (targetAssembly == null)
+        {
             // Assembly not found - return Object as fallback
             var mscorlib = GlobalContext.TryGetAssemblyByName("mscorlib");
             if (mscorlib != null)
@@ -188,6 +198,11 @@ public class AssemblyRewriteContext
         }
 
         var typeContext = targetAssembly.TryGetContextForOriginalType(originalTypeDef);
+        if (typeContext == null)
+        {
+            // For reference assemblies, the type IS the new type (no original/new distinction)
+            typeContext = targetAssembly.TryGetContextForNewType(originalTypeDef);
+        }
         if (typeContext == null)
         {
             // Type context not found - return Object as fallback

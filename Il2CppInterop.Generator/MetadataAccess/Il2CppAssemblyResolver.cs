@@ -28,6 +28,14 @@ internal sealed class Il2CppAssemblyResolver : AssemblyResolverBase
         if (!string.IsNullOrEmpty(assembly.Name))
         {
             _assemblyCache.TryAdd(assembly.Name!, assembly);
+
+            // For Il2Cpp-prefixed assemblies, also register under the original name
+            // so hotfix DLLs referencing "mscorlib" can resolve to "Il2Cppmscorlib"
+            if (assembly.Name!.Value.StartsWith("Il2Cpp"))
+            {
+                var originalName = assembly.Name.Value.Substring(6);
+                _assemblyCache.TryAdd(originalName, assembly);
+            }
         }
     }
 
