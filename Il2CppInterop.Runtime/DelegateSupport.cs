@@ -323,6 +323,9 @@ public static class DelegateSupport
     /// </summary>
     private static unsafe bool HasNativeConstructor(IntPtr classTypePtr)
     {
+        if (!HybridCLRCompat.IsHybridCLRRuntime())
+            return true;
+
         var iter = IntPtr.Zero;
         IntPtr method;
         while ((method = IL2CPP.il2cpp_class_get_methods(classTypePtr, ref iter)) != IntPtr.Zero)
