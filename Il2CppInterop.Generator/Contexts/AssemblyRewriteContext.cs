@@ -185,8 +185,12 @@ public class AssemblyRewriteContext
         var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.DeclaringModule?.Assembly);
         if (targetAssembly == null)
         {
-            // Not a source assembly — check if it's a reference (existing interop) assembly
-            targetAssembly = GlobalContext.GetContextForNewAssembly(originalTypeDef.DeclaringModule?.Assembly);
+            // Not a source assembly — try name-based lookup to find reference (existing interop) assembly.
+            // The resolved TypeDefinition lives in the raw dependency DLL (e.g., mscorlib),
+            // but the registered context is for the interop DLL (e.g., Il2Cppmscorlib).
+            var asmName = originalTypeDef.DeclaringModule?.Assembly?.Name;
+            if (asmName != null)
+                targetAssembly = GlobalContext.TryGetAssemblyByName(asmName);
         }
         if (targetAssembly == null)
         {
@@ -200,8 +204,11 @@ public class AssemblyRewriteContext
         var typeContext = targetAssembly.TryGetContextForOriginalType(originalTypeDef);
         if (typeContext == null)
         {
-            // For reference assemblies, the type IS the new type (no original/new distinction)
-            typeContext = targetAssembly.TryGetContextForNewType(originalTypeDef);
+            // For reference assemblies, the type IS the new type (no original/new distinction).
+            // Object-identity lookup won't work because originalTypeDef is from the raw dependency DLL,
+            // not from the interop DLL. Use name-based lookup instead.
+            var typeName = originalTypeDef.FullName;
+            typeContext = targetAssembly.TryGetTypeByName(typeName);
         }
         if (typeContext == null)
         {
