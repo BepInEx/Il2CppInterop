@@ -9,6 +9,7 @@ using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Runtime;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
 using Microsoft.Extensions.Logging;
 using Object = Il2CppSystem.Object;
 using ValueType = Il2CppSystem.ValueType;
@@ -282,11 +283,10 @@ public static class DelegateSupport
         var managedTrampoline =
             GetOrCreateNativeToManagedTrampoline(signature, nativeDelegateInvokeMethod, managedInvokeMethod);
 
-        var methodInfo = UnityVersionHandler.NewMethod();
-        methodInfo.MethodPointer = Marshal.GetFunctionPointerForDelegate(managedTrampoline);
-        methodInfo.ParametersCount = (byte)parameterInfos.Length;
-        methodInfo.Slot = ushort.MaxValue;
-        methodInfo.IsMarshalledFromNative = true;
+        var methodInfo = CreateSyntheticMethodInfo(
+            Marshal.GetFunctionPointerForDelegate(managedTrampoline),
+            classTypePtr,
+            (byte)parameterInfos.Length);
 
         var delegateReference = new Il2CppToMonoDelegateReference(@delegate, methodInfo.Pointer);
 
@@ -341,6 +341,42 @@ public static class DelegateSupport
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Creates a synthetic Il2CppMethodInfo with enough space for HybridCLR extension fields.
+    /// In HybridCLR, the interpreter reads methodPointerCallByInterp past the standard struct.
+    /// </summary>
+    private static unsafe INativeMethodInfoStruct CreateSyntheticMethodInfo(
+        IntPtr methodPointer, IntPtr classTypePtr, byte parametersCount)
+    {
+        var baseSize = UnityVersionHandler.MethodSize();
+        INativeMethodInfoStruct methodInfo;
+
+        if (HybridCLRCompat.IsHybridCLRRuntime())
+        {
+            var extendedSize = baseSize + IntPtr.Size * 3 + 2;
+            var ptr = Marshal.AllocHGlobal(extendedSize);
+            new Span<byte>((void*)ptr, extendedSize).Clear();
+            methodInfo = UnityVersionHandler.Wrap((Il2CppMethodInfo*)ptr);
+
+            var hybridInfo = UnityVersionHandler.WrapHybridCLR(methodInfo);
+            hybridInfo.MethodPointerCallByInterp = methodPointer;
+            hybridInfo.VirtualMethodPointerCallByInterp = methodPointer;
+            hybridInfo.InitInterpCallMethodPointer = true;
+        }
+        else
+        {
+            methodInfo = UnityVersionHandler.NewMethod();
+        }
+
+        methodInfo.MethodPointer = methodPointer;
+        methodInfo.Class = (Il2CppClass*)classTypePtr;
+        methodInfo.ParametersCount = parametersCount;
+        methodInfo.Slot = ushort.MaxValue;
+        methodInfo.IsMarshalledFromNative = true;
+
+        return methodInfo;
     }
 
     internal class MethodSignature : IEquatable<MethodSignature>
