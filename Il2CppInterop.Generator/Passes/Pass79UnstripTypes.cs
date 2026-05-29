@@ -1,3 +1,4 @@
+using AsmResolver;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
@@ -52,7 +53,7 @@ public static class Pass79UnstripTypes
 
         // If the parent type does not exist in the rewritten assembly, this nested type cannot be emitted safely.
         // Promoting it to a top-level type creates orphan compiler-generated types such as __O/__c.
-        if (unityType.DeclaringType != null && enclosingNewType == null && processedType == null)
+        if ((unityType.DeclaringType is null) != (enclosingNewType is null))
             return;
 
         if (unityType.IsEnum)
@@ -106,7 +107,7 @@ public static class Pass79UnstripTypes
             ProcessType(processedAssembly, nestedUnityType, processedType, imports, ref typesUnstripped);
     }
 
-    private static TypeDefinition CloneEnum(TypeDefinition sourceEnum, string convertedTypeName, RuntimeAssemblyReferences imports)
+    private static TypeDefinition CloneEnum(TypeDefinition sourceEnum, Utf8String convertedTypeName, RuntimeAssemblyReferences imports)
     {
         var newType = new TypeDefinition(sourceEnum.Namespace, convertedTypeName, ForcePublic(sourceEnum.Attributes),
             imports.Module.Enum().ToTypeDefOrRef());
@@ -147,10 +148,10 @@ public static class Pass79UnstripTypes
         return false;
     }
 
-    private static string GetConvertedUnityTypeName(RewriteGlobalContext context, TypeDefinition unityType)
+    private static Utf8String GetConvertedUnityTypeName(RewriteGlobalContext context, TypeDefinition unityType)
     {
         if (context.Options.PassthroughNames)
-            return unityType.Name;
+            return unityType.Name ?? Utf8String.Empty;
 
         return unityType.Name.MakeValidInSource();
     }
