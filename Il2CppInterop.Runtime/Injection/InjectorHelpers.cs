@@ -29,7 +29,15 @@ namespace Il2CppInterop.Runtime.Injection
         internal static INativeImageStruct InjectedImage;
         internal static ProcessModule Il2CppModule = Process.GetCurrentProcess()
             .Modules.OfType<ProcessModule>()
-            .Single((x) => x.ModuleName is "GameAssembly.dll" or "GameAssembly.so" or "UserAssembly.dll");
+            .FirstOrDefault(x =>
+                string.Equals(x.ModuleName, "GameAssembly.dll", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.ModuleName, "GameAssembly.so", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.ModuleName, "GameAssembly.dylib", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.ModuleName, "UserAssembly.dll", StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException(
+                "Could not locate the IL2CPP game assembly module (expected GameAssembly.dll/.so/.dylib or " +
+                "UserAssembly.dll). Loaded modules: " + string.Join(", ", Process.GetCurrentProcess()
+                    .Modules.OfType<ProcessModule>().Select(m => m.ModuleName)));
 
         internal static IntPtr Il2CppHandle = NativeLibrary.Load("GameAssembly", typeof(InjectorHelpers).Assembly, null);
 
