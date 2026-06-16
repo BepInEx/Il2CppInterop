@@ -318,10 +318,10 @@ namespace Il2CppInterop.Runtime.Injection
                 // Copy the original bridge code
                 Buffer.MemoryCopy((void*)originalMethodPointer, (void*)newCode, methodLength, methodLength);
 
-                // Fix relative call/jmp instructions in the copied code.
-                // The bridge contains rel32 calls (e.g. to Interpreter::Execute) that are
+                // Fix relative instructions in the copied code.
+                // The bridge contains rel32 branches and RIP-relative memory operands
                 // encoded as offsets from the instruction address. After copying to a new
-                // location, these offsets point to wrong addresses and must be adjusted.
+                // location, those offsets point to wrong addresses and must be adjusted.
                 RelocateRelativeBranches(newCode, originalMethodPointer, methodLength);
 
                 // Update standard method pointers to point to the new (copied) bridge code
@@ -437,9 +437,10 @@ namespace Il2CppInterop.Runtime.Injection
         }
 
         /// <summary>
-        /// Fixes relative call/jmp instructions in copied bridge code.
-        /// After memcpy, rel32 offsets still point relative to the original location.
-        /// This method recalculates them to point to the correct absolute targets.
+        /// Fixes relative instructions in copied bridge code.
+        /// After memcpy, rel32 branch and RIP-relative memory offsets still point relative
+        /// to the original location. This method recalculates them to point to the correct
+        /// absolute targets.
         /// </summary>
         private static unsafe void RelocateRelativeBranches(IntPtr newCode, IntPtr originalCode, int length)
         {
@@ -451,7 +452,8 @@ namespace Il2CppInterop.Runtime.Injection
                 decoder.IP = (ulong)newCode;
 
                 long delta = (long)originalCode - (long)newCode;
-                int patchCount = 0;
+                int branchPatchCount = 0;
+                int ipRelativePatchCount = 0;
 
                 while (decoder.IP < (ulong)newCode + (ulong)length)
                 {
@@ -459,6 +461,7 @@ namespace Il2CppInterop.Runtime.Injection
                     decoder.Decode(out var instr);
                     if (decoder.LastError != DecoderError.None)
                         break;
+                    var constantOffsets = decoder.GetConstantOffsets(ref instr);
 
                     if (instr.FlowControl == FlowControl.Call ||
                         instr.FlowControl == FlowControl.UnconditionalBranch ||
@@ -477,18 +480,47 @@ namespace Il2CppInterop.Runtime.Injection
 
                         byte* patchAddr = (byte*)newCode + rel32Pos;
                         *(int*)patchAddr = newRel32;
-                        patchCount++;
+                        branchPatchCount++;
 
                         Logger.Instance.LogTrace(
                             "RelocateRelativeBranches: patched {Mnemonic} at +0x{Offset:X}: 0x{OldTarget:X} -> 0x{NewTarget:X}",
                             instr.Mnemonic, instrOffset, target, originalTarget);
                     }
+
+                    if (instr.IsIPRelativeMemoryOperand &&
+                        constantOffsets.HasDisplacement &&
+                        constantOffsets.DisplacementSize == 4)
+                    {
+                        ulong copiedTarget = instr.IPRelativeMemoryAddress;
+                        bool isInsideBlock = copiedTarget >= (ulong)newCode && copiedTarget < (ulong)newCode + (ulong)length;
+                        if (isInsideBlock)
+                            continue;
+
+                        ulong originalTarget = (ulong)((long)copiedTarget + delta);
+                        long newDisplacement = (long)originalTarget - ((long)newCode + instrOffset + instr.Length);
+                        if (newDisplacement < int.MinValue || newDisplacement > int.MaxValue)
+                        {
+                            Logger.Instance.LogWarning(
+                                "RelocateRelativeBranches: cannot patch RIP-relative {Mnemonic} at +0x{Offset:X}: target 0x{Target:X} out of rel32 range",
+                                instr.Mnemonic, instrOffset, originalTarget);
+                            continue;
+                        }
+
+                        byte* patchAddr = (byte*)newCode + instrOffset + constantOffsets.DisplacementOffset;
+                        *(int*)patchAddr = (int)newDisplacement;
+                        ipRelativePatchCount++;
+
+                        Logger.Instance.LogTrace(
+                            "RelocateRelativeBranches: patched RIP-relative {Mnemonic} at +0x{Offset:X}: 0x{OldTarget:X} -> 0x{NewTarget:X}",
+                            instr.Mnemonic, instrOffset, copiedTarget, originalTarget);
+                    }
                 }
 
+                int patchCount = branchPatchCount + ipRelativePatchCount;
                 if (patchCount > 0)
                     Logger.Instance.LogInformation(
-                        "RelocateRelativeBranches: fixed {Count} relative branch(es) in {Length} bytes",
-                        patchCount, length);
+                        "RelocateRelativeBranches: fixed {BranchCount} branch(es) and {IpRelativeCount} RIP-relative operand(s) in {Length} bytes",
+                        branchPatchCount, ipRelativePatchCount, length);
             }
             catch (Exception ex)
             {
