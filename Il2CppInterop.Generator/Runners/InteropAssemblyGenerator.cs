@@ -60,24 +60,28 @@ internal class InteropAssemblyGeneratorRunner : IRunner
         using (new TimingCookie("Reading assemblies"))
         {
             gameAssemblies = new AssemblyMetadataAccess(sourceAssemblies,
-                isHybridCLREnvironment: !string.IsNullOrEmpty(options.ExistingInteropDir));
+                isHybridCLREnvironment: options.IsHybridCLREnvironment);
         }
 
         // Load reference assemblies: UnityBaseLibsDir or ExistingInteropDir
         if (!string.IsNullOrEmpty(options.UnityBaseLibsDir))
             using (new TimingCookie("Reading unity assemblies"))
             {
-                unityAssemblies = new AssemblyMetadataAccess(Directory.EnumerateFiles(options.UnityBaseLibsDir, "*.dll"));
+                unityAssemblies = new AssemblyMetadataAccess(
+                    Directory.EnumerateFiles(options.UnityBaseLibsDir, "*.dll"),
+                    isHybridCLREnvironment: options.IsHybridCLREnvironment);
             }
         else if (!string.IsNullOrEmpty(options.ExistingInteropDir))
             using (new TimingCookie("Reading existing interop assemblies"))
             {
-                unityAssemblies = new AssemblyMetadataAccess(Directory.EnumerateFiles(options.ExistingInteropDir, "*.dll"));
+                unityAssemblies = new AssemblyMetadataAccess(
+                    Directory.EnumerateFiles(options.ExistingInteropDir, "*.dll"),
+                    isHybridCLREnvironment: options.IsHybridCLREnvironment);
             }
         else
             unityAssemblies = NullMetadataAccess.Instance;
 
-        // In HybridCLR mode, source assemblies need to resolve types from reference assemblies
+        // Incremental/reference mode lets source assemblies resolve types from existing interop assemblies.
         if (!string.IsNullOrEmpty(options.ExistingInteropDir) && unityAssemblies is AssemblyMetadataAccess refAccess)
             ((AssemblyMetadataAccess)gameAssemblies).AddReferenceAssemblies(refAccess.Assemblies);
 

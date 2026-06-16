@@ -59,11 +59,6 @@ public static unsafe class IL2CPP
         }
     }
 
-    /// <summary>
-    /// Alias for RefreshImageCache - updates the image map with newly loaded HybridCLR hotfix assemblies.
-    /// </summary>
-    public static void UpdateHotfixIl2CppImage() => RefreshImageCache();
-
     internal static IntPtr GetIl2CppImage(string name)
     {
         if (ourImagesMap.ContainsKey(name)) return ourImagesMap[name];

@@ -51,11 +51,6 @@ public class AssemblyRewriteContext
         return myNewTypeMap[type];
     }
 
-    public TypeRewriteContext? TryGetContextForNewType(TypeDefinition type)
-    {
-        return myNewTypeMap.TryGetValue(type, out var result) ? result : null;
-    }
-
     public void RegisterTypeRewrite(TypeRewriteContext context)
     {
         if (context.OriginalType != null)
@@ -79,19 +74,49 @@ public class AssemblyRewriteContext
 
     public IMethodDefOrRef? RewriteMethodRef(IMethodDefOrRef? methodRef)
     {
-        if (methodRef?.DeclaringType == null) return null;
+        if (methodRef?.DeclaringType == null)
+        {
+            if (GlobalContext.Options.IsHybridCLREnvironment)
+                return null;
+
+            throw new ArgumentNullException(nameof(methodRef));
+        }
 
         var declaringType = methodRef.DeclaringType.Resolve();
-        if (declaringType == null) return null;
+        if (declaringType == null)
+        {
+            if (GlobalContext.Options.IsHybridCLREnvironment)
+                return null;
+
+            throw new($"Could not resolve declaring type {methodRef.DeclaringType.FullName} for method {methodRef.Name}");
+        }
 
         var newType = GlobalContext.GetNewTypeForOriginal(declaringType);
-        if (newType == null) return null;
+        if (newType == null)
+        {
+            if (GlobalContext.Options.IsHybridCLREnvironment)
+                return null;
+
+            throw new($"Could not find rewrite context for declaring type {declaringType.FullName}");
+        }
 
         var resolvedMethod = methodRef.Resolve();
-        if (resolvedMethod == null) return null;
+        if (resolvedMethod == null)
+        {
+            if (GlobalContext.Options.IsHybridCLREnvironment)
+                return null;
+
+            throw new($"Could not resolve method {methodRef.FullName}");
+        }
 
         var methodContext = newType.TryGetMethodByOldMethod(resolvedMethod);
-        if (methodContext == null) return null;
+        if (methodContext == null)
+        {
+            if (GlobalContext.Options.IsHybridCLREnvironment)
+                return null;
+
+            throw new($"Could not find rewrite context for method {resolvedMethod.FullName}");
+        }
 
         return NewAssembly.ManifestModule!.DefaultImporter.ImportMethod(methodContext.NewMethod);
     }
@@ -161,6 +186,8 @@ public class AssemblyRewriteContext
             var mscorlib = GlobalContext.TryGetAssemblyByName("mscorlib");
             if (mscorlib != null)
                 return sourceModule.DefaultImporter.ImportType(mscorlib.GetTypeByName("System.Object").NewType).ToTypeSignature();
+            if (!GlobalContext.Options.IsHybridCLREnvironment)
+                throw new KeyNotFoundException("Required corlib type 'System.Object' was not found.");
             return sourceModule.CorLibTypeFactory.Object;
         }
 
@@ -169,13 +196,17 @@ public class AssemblyRewriteContext
             var mscorlib = GlobalContext.TryGetAssemblyByName("mscorlib");
             if (mscorlib != null)
                 return sourceModule.DefaultImporter.ImportType(mscorlib.GetTypeByName("System.Attribute").NewType).ToTypeSignature();
+            if (!GlobalContext.Options.IsHybridCLREnvironment)
+                throw new KeyNotFoundException("Required corlib type 'System.Attribute' was not found.");
             return sourceModule.ImportCorlibReference("System.Attribute");
         }
 
         var originalTypeDef = typeRef.Resolve();
         if (originalTypeDef == null)
         {
-            // Cannot resolve type - return Object as fallback
+            if (!GlobalContext.Options.IsHybridCLREnvironment)
+                throw new($"Could not resolve type {typeRef.FullName}");
+
             var mscorlib = GlobalContext.TryGetAssemblyByName("mscorlib");
             if (mscorlib != null)
                 return sourceModule.DefaultImporter.ImportType(mscorlib.GetTypeByName("System.Object").NewType).ToTypeSignature();
@@ -194,7 +225,10 @@ public class AssemblyRewriteContext
         }
         if (targetAssembly == null)
         {
-            // Assembly not found - return Object as fallback
+            if (!GlobalContext.Options.IsHybridCLREnvironment)
+                throw new KeyNotFoundException(
+                    $"Could not find target assembly for type {originalTypeDef.FullName} from assembly {originalTypeDef.DeclaringModule?.Assembly?.Name}");
+
             var mscorlib = GlobalContext.TryGetAssemblyByName("mscorlib");
             if (mscorlib != null)
                 return sourceModule.DefaultImporter.ImportType(mscorlib.GetTypeByName("System.Object").NewType).ToTypeSignature();
@@ -212,7 +246,10 @@ public class AssemblyRewriteContext
         }
         if (typeContext == null)
         {
-            // Type context not found - return Object as fallback
+            if (!GlobalContext.Options.IsHybridCLREnvironment)
+                throw new KeyNotFoundException(
+                    $"Could not find rewrite context for type {originalTypeDef.FullName} in assembly {targetAssembly.NewAssembly.Name}");
+
             var mscorlib = GlobalContext.TryGetAssemblyByName("mscorlib");
             if (mscorlib != null)
                 return sourceModule.DefaultImporter.ImportType(mscorlib.GetTypeByName("System.Object").NewType).ToTypeSignature();

@@ -196,30 +196,6 @@ namespace Il2CppInterop.Runtime.Injection
         }
 
         /// <summary>
-        /// Checks if a method is implemented by the HybridCLR interpreter.
-        /// Also triggers layout auto-detection on first interpreter method found.
-        /// </summary>
-        public static unsafe bool IsInterpreterMethod(IntPtr methodInfoPtr)
-        {
-            if (!IsHybridCLRRuntime() || methodInfoPtr == IntPtr.Zero)
-                return false;
-
-            try
-            {
-                // Try to auto-detect layout if not yet detected
-                if (!s_LayoutDetected)
-                    DetectLayoutFromMethod(methodInfoPtr);
-
-                var methodInfo = WrapMethodInfo(methodInfoPtr);
-                return methodInfo?.IsInterpterImpl ?? false;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
         /// Prepares a HybridCLR interpreter method for detouring by copying its bridge code
         /// to a new memory location.
         ///

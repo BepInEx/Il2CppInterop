@@ -42,7 +42,9 @@ public static class Pass11ComputeTypeSpecifics
             var resolvedFieldType = fieldType.Resolve();
             if (resolvedFieldType == null)
             {
-                // Cannot resolve field type - treat as non-blittable
+                if (!typeContext.AssemblyContext.GlobalContext.Options.IsHybridCLREnvironment)
+                    throw new($"Could not resolve {fieldType.FullName}");
+
                 typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
                 return;
             }
@@ -50,7 +52,9 @@ public static class Pass11ComputeTypeSpecifics
             var fieldTypeContext = typeContext.AssemblyContext.GlobalContext.GetNewTypeForOriginal(resolvedFieldType);
             if (fieldTypeContext == null)
             {
-                // Type not found in rewrite context - treat as non-blittable
+                if (!typeContext.AssemblyContext.GlobalContext.Options.IsHybridCLREnvironment)
+                    throw new($"Could not find rewrite context for {resolvedFieldType.FullName}");
+
                 typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
                 return;
             }

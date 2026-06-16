@@ -53,8 +53,9 @@ public class RewriteGlobalContext : IDisposable
             var newModule = new ModuleDefinition(sourceAssembly.ManifestModule?.Name.UnSystemify(options), CorlibReferences.TargetCorlib);
             newAssembly.Modules.Add(newModule);
 
-            // Use HybridCLR-aware metadata resolver that handles type relocation
-            newModule.MetadataResolver = new HybridCLRMetadataResolver(assemblyResolver);
+            newModule.MetadataResolver = options.IsHybridCLREnvironment
+                ? new HybridCLRMetadataResolver(assemblyResolver)
+                : new DefaultMetadataResolver(assemblyResolver);
             assemblyResolver.AddToCache(newAssembly);
 
             var assemblyRewriteContext = new AssemblyRewriteContext(this, sourceAssembly, newAssembly);
@@ -210,11 +211,21 @@ public class RewriteGlobalContext : IDisposable
 
         var resolved = typeRef.Resolve();
         if (resolved == null)
-            return TypeRewriteContext.TypeSpecifics.ReferenceType; // Fallback for unresolvable types
+        {
+            if (Options.IsHybridCLREnvironment)
+                return TypeRewriteContext.TypeSpecifics.ReferenceType;
+
+            throw new($"Could not resolve {typeRef.FullName}");
+        }
 
         var fieldTypeContext = GetNewTypeForOriginal(resolved);
         if (fieldTypeContext == null)
-            return TypeRewriteContext.TypeSpecifics.ReferenceType; // Fallback for missing types
+        {
+            if (Options.IsHybridCLREnvironment)
+                return TypeRewriteContext.TypeSpecifics.ReferenceType;
+
+            throw new($"Could not find rewrite context for {resolved.FullName}");
+        }
 
         return fieldTypeContext.ComputedTypeSpecifics;
     }
