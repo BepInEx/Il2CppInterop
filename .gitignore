@@ -354,3 +354,5 @@ MigrationBackup/
 .ionide/
 
 launchsettings.json
+
+.DS_Store
