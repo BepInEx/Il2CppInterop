@@ -433,88 +433,81 @@ namespace Il2CppInterop.Runtime.Injection
         /// </summary>
         private static unsafe void RelocateRelativeBranches(IntPtr newCode, IntPtr originalCode, int length)
         {
-            try
+            var stream = new UnmanagedMemoryStream((byte*)newCode, length, length, FileAccess.Read);
+            var codeReader = new StreamCodeReader(stream);
+            var decoder = Decoder.Create(64, codeReader);
+            decoder.IP = (ulong)newCode;
+
+            long delta = (long)originalCode - (long)newCode;
+            int branchPatchCount = 0;
+            int ipRelativePatchCount = 0;
+
+            while (decoder.IP < (ulong)newCode + (ulong)length)
             {
-                var stream = new UnmanagedMemoryStream((byte*)newCode, length, length, FileAccess.Read);
-                var codeReader = new StreamCodeReader(stream);
-                var decoder = Decoder.Create(64, codeReader);
-                decoder.IP = (ulong)newCode;
+                int instrOffset = (int)(decoder.IP - (ulong)newCode);
+                decoder.Decode(out var instr);
+                if (decoder.LastError != DecoderError.None)
+                    break;
+                var constantOffsets = decoder.GetConstantOffsets(ref instr);
 
-                long delta = (long)originalCode - (long)newCode;
-                int branchPatchCount = 0;
-                int ipRelativePatchCount = 0;
-
-                while (decoder.IP < (ulong)newCode + (ulong)length)
+                if (instr.FlowControl == FlowControl.Call ||
+                    instr.FlowControl == FlowControl.UnconditionalBranch ||
+                    instr.FlowControl == FlowControl.ConditionalBranch)
                 {
-                    int instrOffset = (int)(decoder.IP - (ulong)newCode);
-                    decoder.Decode(out var instr);
-                    if (decoder.LastError != DecoderError.None)
-                        break;
-                    var constantOffsets = decoder.GetConstantOffsets(ref instr);
+                    ulong target = instr.NearBranchTarget;
+                    if (target == 0) continue;
 
-                    if (instr.FlowControl == FlowControl.Call ||
-                        instr.FlowControl == FlowControl.UnconditionalBranch ||
-                        instr.FlowControl == FlowControl.ConditionalBranch)
-                    {
-                        ulong target = instr.NearBranchTarget;
-                        if (target == 0) continue;
+                    bool isInsideBlock = target >= (ulong)newCode && target < (ulong)newCode + (ulong)length;
+                    if (isInsideBlock) continue;
 
-                        bool isInsideBlock = target >= (ulong)newCode && target < (ulong)newCode + (ulong)length;
-                        if (isInsideBlock) continue;
+                    ulong originalTarget = (ulong)((long)target + delta);
+                    int instrEnd = instrOffset + instr.Length;
+                    int newRel32 = (int)((long)originalTarget - ((long)newCode + instrEnd));
+                    int rel32Pos = instrOffset + instr.Length - 4;
 
-                        ulong originalTarget = (ulong)((long)target + delta);
-                        int instrEnd = instrOffset + instr.Length;
-                        int newRel32 = (int)((long)originalTarget - ((long)newCode + instrEnd));
-                        int rel32Pos = instrOffset + instr.Length - 4;
+                    byte* patchAddr = (byte*)newCode + rel32Pos;
+                    *(int*)patchAddr = newRel32;
+                    branchPatchCount++;
 
-                        byte* patchAddr = (byte*)newCode + rel32Pos;
-                        *(int*)patchAddr = newRel32;
-                        branchPatchCount++;
-
-                        Logger.Instance.LogTrace(
-                            "RelocateRelativeBranches: patched {Mnemonic} at +0x{Offset:X}: 0x{OldTarget:X} -> 0x{NewTarget:X}",
-                            instr.Mnemonic, instrOffset, target, originalTarget);
-                    }
-
-                    if (instr.IsIPRelativeMemoryOperand &&
-                        constantOffsets.HasDisplacement &&
-                        constantOffsets.DisplacementSize == 4)
-                    {
-                        ulong copiedTarget = instr.IPRelativeMemoryAddress;
-                        bool isInsideBlock = copiedTarget >= (ulong)newCode && copiedTarget < (ulong)newCode + (ulong)length;
-                        if (isInsideBlock)
-                            continue;
-
-                        ulong originalTarget = (ulong)((long)copiedTarget + delta);
-                        long newDisplacement = (long)originalTarget - ((long)newCode + instrOffset + instr.Length);
-                        if (newDisplacement < int.MinValue || newDisplacement > int.MaxValue)
-                        {
-                            Logger.Instance.LogWarning(
-                                "RelocateRelativeBranches: cannot patch RIP-relative {Mnemonic} at +0x{Offset:X}: target 0x{Target:X} out of rel32 range",
-                                instr.Mnemonic, instrOffset, originalTarget);
-                            continue;
-                        }
-
-                        byte* patchAddr = (byte*)newCode + instrOffset + constantOffsets.DisplacementOffset;
-                        *(int*)patchAddr = (int)newDisplacement;
-                        ipRelativePatchCount++;
-
-                        Logger.Instance.LogTrace(
-                            "RelocateRelativeBranches: patched RIP-relative {Mnemonic} at +0x{Offset:X}: 0x{OldTarget:X} -> 0x{NewTarget:X}",
-                            instr.Mnemonic, instrOffset, copiedTarget, originalTarget);
-                    }
+                    Logger.Instance.LogTrace(
+                        "RelocateRelativeBranches: patched {Mnemonic} at +0x{Offset:X}: 0x{OldTarget:X} -> 0x{NewTarget:X}",
+                        instr.Mnemonic, instrOffset, target, originalTarget);
                 }
 
-                int patchCount = branchPatchCount + ipRelativePatchCount;
-                if (patchCount > 0)
-                    Logger.Instance.LogInformation(
-                        "RelocateRelativeBranches: fixed {BranchCount} branch(es) and {IpRelativeCount} RIP-relative operand(s) in {Length} bytes",
-                        branchPatchCount, ipRelativePatchCount, length);
+                if (instr.IsIPRelativeMemoryOperand &&
+                    constantOffsets.HasDisplacement &&
+                    constantOffsets.DisplacementSize == 4)
+                {
+                    ulong copiedTarget = instr.IPRelativeMemoryAddress;
+                    bool isInsideBlock = copiedTarget >= (ulong)newCode && copiedTarget < (ulong)newCode + (ulong)length;
+                    if (isInsideBlock)
+                        continue;
+
+                    ulong originalTarget = (ulong)((long)copiedTarget + delta);
+                    long newDisplacement = (long)originalTarget - ((long)newCode + instrOffset + instr.Length);
+                    if (newDisplacement < int.MinValue || newDisplacement > int.MaxValue)
+                    {
+                        // We fail there to prevent the illegal instruction from being executed, which would crash the process.
+                        throw new InvalidOperationException(
+                            "Cannot patch RIP-relative {Mnemonic} at +0x{Offset:X}: target 0x{Target:X} out of rel32 range",
+                            instr.Mnemonic, instrOffset, originalTarget);
+                    }
+
+                    byte* patchAddr = (byte*)newCode + instrOffset + constantOffsets.DisplacementOffset;
+                    *(int*)patchAddr = (int)newDisplacement;
+                    ipRelativePatchCount++;
+
+                    Logger.Instance.LogTrace(
+                        "RelocateRelativeBranches: patched RIP-relative {Mnemonic} at +0x{Offset:X}: 0x{OldTarget:X} -> 0x{NewTarget:X}",
+                        instr.Mnemonic, instrOffset, copiedTarget, originalTarget);
+                }
             }
-            catch (Exception ex)
-            {
-                Logger.Instance.LogWarning("RelocateRelativeBranches failed: {Error}", ex.Message);
-            }
+
+            int patchCount = branchPatchCount + ipRelativePatchCount;
+            if (patchCount > 0)
+                Logger.Instance.LogInformation(
+                    "RelocateRelativeBranches: fixed {BranchCount} branch(es) and {IpRelativeCount} RIP-relative operand(s) in {Length} bytes",
+                    branchPatchCount, ipRelativePatchCount, length);
         }
 
         /// <summary>
