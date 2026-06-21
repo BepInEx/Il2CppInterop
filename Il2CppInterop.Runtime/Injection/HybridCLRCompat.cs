@@ -14,7 +14,7 @@ namespace Il2CppInterop.Runtime.Injection
     /// Compatibility layer for HybridCLR-modified IL2CPP runtimes.
     /// Provides APIs for detecting HybridCLR runtime and preparing interpreter methods for detouring.
     /// </summary>
-    public static class HybridCLRCompat
+    public static partial class HybridCLRCompat
     {
         /// <summary>
         /// Standard subdirectory name for hotfix interop assemblies.
@@ -645,11 +645,11 @@ namespace Il2CppInterop.Runtime.Injection
         private const int PROT_WRITE = 0x2;
         private const int PROT_EXEC = 0x4;
         private const int MAP_PRIVATE = 0x02;
-        private const int MAP_ANONYMOUS = 0x20; // Linux value; macOS uses 0x1000 but libc handles this
+        private const int MAP_ANONYMOUS = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? 0x20 : (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x1000 : 0); // It should be 0 on Windows, but this code is only for Unix platforms. MAP_ANON is macOS equivalent of MAP_ANONYMOUS.
         private static readonly IntPtr MAP_FAILED = new(-1);
 
-        [DllImport("libc", SetLastError = true)]
-        private static extern IntPtr mmap(IntPtr addr, UIntPtr length, int prot, int flags, int fd, long offset);
+        [LibraryImport("libc", SetLastError = true)]
+        private static partial IntPtr mmap(IntPtr addr, UIntPtr length, int prot, int flags, int fd, long offset);
 
         #endregion
     }
