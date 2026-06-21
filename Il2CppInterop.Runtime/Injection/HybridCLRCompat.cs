@@ -196,6 +196,19 @@ namespace Il2CppInterop.Runtime.Injection
         }
 
         /// <summary>
+        /// Check if a method is implemented by the HybridCLR interpreter using native pointer.
+        /// </summary>
+        public static bool IsInterpreterMethod(IntPtr methodInfoPtr)
+        {
+            if (!IsHybridCLRRuntime() || methodInfoPtr == IntPtr.Zero)
+                return false;
+
+            DetectLayoutFromMethod(methodInfoPtr);
+            var methodInfo = WrapMethodInfo(methodInfoPtr);
+            return methodInfo?.IsInterpterImpl ?? false;
+        }
+
+        /// <summary>
         /// Prepares a HybridCLR interpreter method for detouring by copying its bridge code
         /// to a new memory location.
         ///
