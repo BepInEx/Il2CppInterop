@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -27,11 +28,10 @@ namespace Il2CppInterop.Runtime.Injection
         internal static Assembly Il2CppMscorlib = typeof(Il2CppSystem.Type).Assembly;
         internal static INativeAssemblyStruct InjectedAssembly;
         internal static INativeImageStruct InjectedImage;
-        internal static ProcessModule Il2CppModule = Process.GetCurrentProcess()
-            .Modules.OfType<ProcessModule>()
-            .Single((x) => x.ModuleName is "GameAssembly.dll" or "GameAssembly.dylib" or "GameAssembly.so" or "UserAssembly.dll" || string.Equals(x.ModuleName, "GameAssembly.dll", StringComparison.OrdinalIgnoreCase));
 
-        internal static IntPtr Il2CppHandle = NativeLibrary.Load("GameAssembly", typeof(InjectorHelpers).Assembly, null);
+        internal static ProcessModule Il2CppModule => GetIl2CppModule();
+
+        internal static IntPtr Il2CppHandle => GetIl2CppHandle();
 
         internal static readonly Dictionary<Type, OpCode> StIndOpcodes = new()
         {
@@ -48,6 +48,33 @@ namespace Il2CppInterop.Runtime.Injection
             [typeof(double)] = OpCodes.Stind_R8
         };
 
+        private static int CalculateMachOSize(IntPtr headerPtr)
+        {
+            var header = Marshal.PtrToStructure<MachHeader64>(headerPtr);
+
+            if (header.magic != 0xfeedfacf)
+                return 0;
+
+            long totalSize = 0;
+            var currentCmdPtr = headerPtr + Marshal.SizeOf<MachHeader64>();
+
+            for (var i = 0; i < header.ncmds; i++)
+            {
+                var lc = Marshal.PtrToStructure<LoadCommand>(currentCmdPtr);
+
+                if (lc.cmd == 0x19)
+                {
+                    var seg = Marshal.PtrToStructure<SegmentCommand64>(currentCmdPtr);
+
+                    totalSize += (long)seg.vmsize;
+                }
+
+                currentCmdPtr += (int)lc.cmdsize;
+            }
+
+            return (int)totalSize;
+        }
+
         private static void CreateInjectedAssembly()
         {
             InjectedAssembly = UnityVersionHandler.NewAssembly();
@@ -60,6 +87,115 @@ namespace Il2CppInterop.Runtime.Injection
             InjectedImage.Name = InjectedAssembly.Name.Name;
             if (InjectedImage.HasNameNoExt)
                 InjectedImage.NameNoExt = InjectedAssembly.Name.Name;
+        }
+
+        private static IntPtr GetIl2CppHandle()
+        {
+            var libraryName = "GameAssembly";
+
+            if (OperatingSystem.IsMacOS())
+            {
+                var currentProcessPath = Process.GetCurrentProcess().MainModule?.FileName;
+
+                if (!string.IsNullOrEmpty(currentProcessPath))
+                {
+                    var appContentsPath = Path.GetDirectoryName(Path.GetDirectoryName(currentProcessPath));
+
+                    if (!string.IsNullOrEmpty(appContentsPath) && Path.GetFileName(appContentsPath) == "Contents")
+                    {
+                        var gameAssemblyPath = Path.Combine(appContentsPath, "Frameworks", "GameAssembly.dylib");
+
+                        if (File.Exists(gameAssemblyPath))
+                        {
+                            libraryName = gameAssemblyPath;
+                        }
+                    }
+                }
+            }
+
+            return NativeLibrary.Load(libraryName, typeof(InjectorHelpers).Assembly, null);
+        }
+
+        private static ProcessModule GetIl2CppModule()
+        {
+            if (OperatingSystem.IsMacOS())
+            {
+                IntPtr errorPtr;
+                var libHandle = dlopen("GameAssembly.dylib", 2);
+
+                if (libHandle == IntPtr.Zero)
+                {
+                    var currentProcessPath = Process.GetCurrentProcess().MainModule?.FileName;
+
+                    if (!string.IsNullOrEmpty(currentProcessPath))
+                    {
+                        var appContentsPath = Path.GetDirectoryName(Path.GetDirectoryName(currentProcessPath));
+
+                        if (!string.IsNullOrEmpty(appContentsPath) && Path.GetFileName(appContentsPath) == "Contents")
+                        {
+                            var gameAssemblyPath = Path.Combine(appContentsPath, "Frameworks", "GameAssembly.dylib");
+
+                            if (File.Exists(gameAssemblyPath))
+                            {
+                                libHandle = dlopen(gameAssemblyPath, 2);
+                            }
+                        }
+                    }
+                }
+
+                if (libHandle == IntPtr.Zero)
+                {
+                    errorPtr = dlerror();
+
+                    var errorMessage = errorPtr != IntPtr.Zero
+                        ? Marshal.PtrToStringAnsi(errorPtr)
+                        : "Unknown dlopen failure";
+
+                    throw new DllNotFoundException(
+                        $"Failed to load \"GameAssembly.dylib\" with error message: {errorMessage}");
+                }
+
+                // Clear any previous error state.
+                dlerror();
+
+                var symbolAddress = dlsym(libHandle, nameof(IL2CPP.il2cpp_init));
+                errorPtr = dlerror();
+
+                if (errorPtr != IntPtr.Zero)
+                {
+                    var errorMessage = Marshal.PtrToStringAnsi(errorPtr);
+
+                    throw new EntryPointNotFoundException(
+                        $"Failed to find symbol \"{nameof(IL2CPP.il2cpp_init)}\" with error message: {errorMessage}");
+                }
+
+                if (dladdr(symbolAddress, out var info) == 0)
+                {
+                    throw new InvalidOperationException();
+                }
+
+                var baseAddress = info.dli_fbase;
+                var moduleMemorySize = CalculateMachOSize(baseAddress);
+                var mainModule = Process.GetCurrentProcess().MainModule ?? throw new InvalidOperationException();
+
+                var baseAddressField = typeof(ProcessModule).GetField(
+                    $"<{nameof(ProcessModule.BaseAddress)}>k__BackingField",
+                    BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+
+                baseAddressField?.SetValue(mainModule, baseAddress);
+
+                var moduleMemorySizeField = typeof(ProcessModule).GetField(
+                    $"<{nameof(ProcessModule.ModuleMemorySize)}>k__BackingField",
+                    BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+
+                moduleMemorySizeField?.SetValue(mainModule, moduleMemorySize);
+
+                return mainModule;
+            }
+
+            return Process.GetCurrentProcess()
+                .Modules.OfType<ProcessModule>()
+                .Single(x => x.ModuleName is "GameAssembly.dll" or "GameAssembly.so" or "UserAssembly.dll" || string.Equals(x.ModuleName, "GameAssembly.dll", StringComparison.OrdinalIgnoreCase));
         }
 
         private static readonly GenericMethod_GetMethod_Hook GenericMethodGetMethodHook = new();
@@ -142,6 +278,7 @@ namespace Il2CppInterop.Runtime.Injection
         internal static readonly Dictionary<(string _namespace, string _class, IntPtr imagePtr), IntPtr> s_ClassNameLookup = new();
 
         #region Class::Init
+
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate void d_ClassInit(Il2CppClass* klass);
         internal static d_ClassInit ClassInit;
@@ -199,6 +336,71 @@ namespace Il2CppInterop.Runtime.Injection
 
             return Marshal.GetDelegateForFunctionPointer<d_ClassInit>(pClassInit);
         }
+
         #endregion
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct DlInfo
+        {
+            public IntPtr dli_fname;
+            public IntPtr dli_fbase;
+            public IntPtr dli_sname;
+            public IntPtr dli_saddr;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MachHeader64
+        {
+            public uint magic;
+            public int cputype;
+            public int cpusubtype;
+            public uint filetype;
+            public uint ncmds;
+            public uint sizeofcmds;
+            public uint flags;
+            public uint reserved;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct LoadCommand
+        {
+            public uint cmd;
+            public uint cmdsize;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SegmentCommand64
+        {
+            public uint cmd;
+            public uint cmdsize;
+
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]
+            public string segname;
+
+            public ulong vmaddr;
+            public ulong vmsize;
+            public ulong fileoff;
+            public ulong filesize;
+            public int maxprot;
+            public int initprot;
+            public uint nsects;
+            public uint flags;
+        }
+
+        [DllImport("libSystem.dylib", EntryPoint = "dlopen",
+            CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        private static extern IntPtr dlopen(string filename, int flags);
+
+        [DllImport("libSystem.dylib", EntryPoint = "dlerror",
+            CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr dlerror();
+
+        [DllImport("libSystem.dylib", EntryPoint = "dlsym",
+            CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        private static extern IntPtr dlsym(IntPtr handle, string symbol);
+
+        [DllImport("libSystem.dylib", EntryPoint = "dladdr",
+            CallingConvention = CallingConvention.Cdecl)]
+        private static extern int dladdr(IntPtr addr, out DlInfo info);
     }
 }
