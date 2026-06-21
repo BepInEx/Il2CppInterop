@@ -489,8 +489,7 @@ namespace Il2CppInterop.Runtime.Injection
                     {
                         // We fail there to prevent the illegal instruction from being executed, which would crash the process.
                         throw new InvalidOperationException(
-                            "Cannot patch RIP-relative {Mnemonic} at +0x{Offset:X}: target 0x{Target:X} out of rel32 range",
-                            instr.Mnemonic, instrOffset, originalTarget);
+                            $"Cannot patch RIP-relative {instr.Mnemonic} at +0x{instrOffset:X}: target 0x{originalTarget:X} out of rel32 range");
                     }
 
                     byte* patchAddr = (byte*)newCode + instrOffset + constantOffsets.DisplacementOffset;
