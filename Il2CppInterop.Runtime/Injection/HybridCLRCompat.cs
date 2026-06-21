@@ -645,11 +645,13 @@ namespace Il2CppInterop.Runtime.Injection
         private const int PROT_WRITE = 0x2;
         private const int PROT_EXEC = 0x4;
         private const int MAP_PRIVATE = 0x02;
-        private const int MAP_ANONYMOUS = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? 0x20 : (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x1000 : 0); // It should be 0 on Windows, but this code is only for Unix platforms. MAP_ANON is macOS equivalent of MAP_ANONYMOUS.
+        private const int MAP_ANONYMOUS_LINUX = 0x20;
+        private const int MAP_ANONYMOUS_OSX = 0x1000;
+        private static int MAP_ANONYMOUS => RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? MAP_ANONYMOUS_OSX : MAP_ANONYMOUS_LINUX;
         private static readonly IntPtr MAP_FAILED = new(-1);
 
-        [LibraryImport("libc", SetLastError = true)]
-        private static partial IntPtr mmap(IntPtr addr, UIntPtr length, int prot, int flags, int fd, long offset);
+        [DllImport("libc", SetLastError = true)]
+        private static extern IntPtr mmap(IntPtr addr, UIntPtr length, int prot, int flags, int fd, long offset);
 
         #endregion
     }
