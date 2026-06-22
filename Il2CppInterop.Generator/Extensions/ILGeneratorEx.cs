@@ -172,7 +172,9 @@ public static class ILGeneratorEx
                 body.AddLoadArgument(argumentIndex);
                 body.Add(OpCodes.Ldind_Ref);
                 body.Add(OpCodes.Call, imports.IL2CPP_Il2CppObjectBaseToPtrNotNull.Value);
-                body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_object_unbox.Value);
+
+                if (unboxNonBlittableType)
+                    body.Add(OpCodes.Call, imports.IL2CPP_il2cpp_object_unbox.Value);
             }
             else
             {
