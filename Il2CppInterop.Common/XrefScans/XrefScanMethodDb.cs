@@ -22,26 +22,19 @@ public static class XrefScanMethodDb
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            IntPtr errorPtr;
+            var errorPtr = IntPtr.Zero;
             var libHandle = dlopen("GameAssembly.dylib", 2);
 
-            if (libHandle == IntPtr.Zero)
+            if (libHandle == IntPtr.Zero
+                && Process.GetCurrentProcess().MainModule?.FileName is { } procPath
+                && Directory.GetParent(procPath)?.Parent?.FullName is { } appContentsPath
+                && Path.GetFileName(appContentsPath) == "Contents")
             {
-                var currentProcessPath = Process.GetCurrentProcess().MainModule?.FileName;
+                var gameAssemblyPath = Path.Combine(appContentsPath, "Frameworks", "GameAssembly.dylib");
 
-                if (!string.IsNullOrEmpty(currentProcessPath))
+                if (File.Exists(gameAssemblyPath))
                 {
-                    var appContentsPath = Path.GetDirectoryName(Path.GetDirectoryName(currentProcessPath));
-
-                    if (!string.IsNullOrEmpty(appContentsPath) && Path.GetFileName(appContentsPath) == "Contents")
-                    {
-                        var gameAssemblyPath = Path.Combine(appContentsPath, "Frameworks", "GameAssembly.dylib");
-
-                        if (File.Exists(gameAssemblyPath))
-                        {
-                            libHandle = dlopen(gameAssemblyPath, 2);
-                        }
-                    }
+                    libHandle = dlopen(gameAssemblyPath, 2);
                 }
             }
 
@@ -54,7 +47,7 @@ public static class XrefScanMethodDb
                     : "Unknown dlopen failure";
 
                 throw new DllNotFoundException(
-                    $"Failed to load GameAssembly.dylib with error message: {errorMessage}");
+                    $"Failed to load \"GameAssembly.dylib\" with error message: {errorMessage}");
             }
 
             // Clear any previous error state.
@@ -134,19 +127,17 @@ public static class XrefScanMethodDb
         public IntPtr dli_saddr;
     }
 
-    [DllImport("libSystem.dylib", EntryPoint = "dlopen",
-        CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("libSystem.dylib", EntryPoint = "dlopen", CallingConvention = CallingConvention.Cdecl,
+        CharSet = CharSet.Ansi)]
     private static extern IntPtr dlopen(string filename, int flags);
 
-    [DllImport("libSystem.dylib", EntryPoint = "dlerror",
-        CallingConvention = CallingConvention.Cdecl)]
+    [DllImport("libSystem.dylib", EntryPoint = "dlerror", CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr dlerror();
 
-    [DllImport("libSystem.dylib", EntryPoint = "dlsym",
-        CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("libSystem.dylib", EntryPoint = "dlsym", CallingConvention = CallingConvention.Cdecl,
+        CharSet = CharSet.Ansi)]
     private static extern IntPtr dlsym(IntPtr handle, string symbol);
 
-    [DllImport("libSystem.dylib", EntryPoint = "dladdr",
-        CallingConvention = CallingConvention.Cdecl)]
+    [DllImport("libSystem.dylib", EntryPoint = "dladdr", CallingConvention = CallingConvention.Cdecl)]
     private static extern int dladdr(IntPtr addr, out DlInfo info);
 }
