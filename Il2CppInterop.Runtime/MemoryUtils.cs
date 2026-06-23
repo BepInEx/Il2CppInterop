@@ -1,4 +1,3 @@
-﻿using System.Diagnostics;
 using System.Linq;
 using Il2CppInterop.Common.XrefScans;
 
@@ -6,17 +5,15 @@ namespace Il2CppInterop.Runtime;
 
 internal class MemoryUtils
 {
-    public static nint FindSignatureInModule(ProcessModule module, SignatureDefinition sigDef)
+    public static nint FindSignatureInBlock(nint block, long blockSize, SignatureDefinition sigDef)
     {
-        var ptr = FindSignatureInBlock(
-            module.BaseAddress,
-            module.ModuleMemorySize,
-            sigDef.pattern,
-            sigDef.mask,
-            sigDef.offset
-        );
+        var ptr = FindSignatureInBlock(block, blockSize, sigDef.pattern, sigDef.mask, sigDef.offset);
+
         if (ptr != 0 && sigDef.xref)
+        {
             ptr = XrefScannerLowLevel.JumpTargets(ptr).FirstOrDefault();
+        }
+
         return ptr;
     }
 
