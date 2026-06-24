@@ -23,8 +23,8 @@ namespace Il2CppInterop.Runtime.Injection
         internal static Assembly Il2CppMscorlib = typeof(Il2CppSystem.Type).Assembly;
         internal static INativeAssemblyStruct InjectedAssembly;
         internal static INativeImageStruct InjectedImage;
-        internal static IntPtr GameAssemblyBaseAddress => GetGameAssemblyBaseAddress();
-        internal static int GameAssemblyMemorySize => GetGameAssemblyMemorySize();
+        internal static IntPtr Il2CppModuleBaseAddress => GetIl2CppModuleBaseAddress();
+        internal static int Il2CppModuleMemorySize => GetIl2CppModuleMemorySize();
         internal static IntPtr Il2CppHandle => GetIl2CppHandle();
 
         internal static readonly Dictionary<Type, OpCode> StIndOpcodes = new()
@@ -98,48 +98,11 @@ namespace Il2CppInterop.Runtime.Injection
                 InjectedImage.NameNoExt = InjectedAssembly.Name.Name;
         }
 
-        private static IntPtr GetGameAssemblyBaseAddress()
+        private static IntPtr GetIl2CppModuleBaseAddress()
         {
             if (OperatingSystem.IsMacOS())
             {
-                var errorPtr = IntPtr.Zero;
-                var libHandle = dlopen("GameAssembly.dylib", 2);
-
-                if (libHandle == IntPtr.Zero)
-                {
-                    var gameAssemblyPath = MacGameAssemblyPath();
-
-                    if (!string.IsNullOrEmpty(gameAssemblyPath))
-                    {
-                        libHandle = dlopen(gameAssemblyPath, 2);
-                    }
-                }
-
-                if (libHandle == IntPtr.Zero)
-                {
-                    errorPtr = dlerror();
-
-                    var errorMessage = errorPtr != IntPtr.Zero
-                        ? Marshal.PtrToStringAnsi(errorPtr)
-                        : "Unknown dlopen failure";
-
-                    throw new DllNotFoundException(
-                        $"Failed to load \"GameAssembly.dylib\" with error message: {errorMessage}");
-                }
-
-                // Clear any previous error state.
-                dlerror();
-
-                var symbolAddress = dlsym(libHandle, nameof(IL2CPP.il2cpp_init));
-                errorPtr = dlerror();
-
-                if (errorPtr != IntPtr.Zero)
-                {
-                    var errorMessage = Marshal.PtrToStringAnsi(errorPtr);
-
-                    throw new EntryPointNotFoundException(
-                        $"Failed to find symbol \"{nameof(IL2CPP.il2cpp_init)}\" with error message: {errorMessage}");
-                }
+                var symbolAddress = GetIl2CppExport(nameof(IL2CPP.il2cpp_init));
 
                 if (dladdr(symbolAddress, out var info) == 0)
                 {
@@ -156,13 +119,13 @@ namespace Il2CppInterop.Runtime.Injection
                 .BaseAddress;
         }
 
-        private static int GetGameAssemblyMemorySize()
+        private static int GetIl2CppModuleMemorySize()
         {
             var memorySize = 0;
 
             if (OperatingSystem.IsMacOS())
             {
-                memorySize = CalculateMachOSize(GameAssemblyBaseAddress);
+                memorySize = CalculateMachOSize(Il2CppModuleBaseAddress);
             }
             else
             {
@@ -181,34 +144,20 @@ namespace Il2CppInterop.Runtime.Injection
 
             if (OperatingSystem.IsMacOS())
             {
-                var gameAssemblyPath = MacGameAssemblyPath();
+                var procPath = Environment.ProcessPath!;
+                var appContentsPath = Directory.GetParent(procPath)!.Parent!.FullName;
+                var gameAssemblyPath = Path.Combine(appContentsPath, "Frameworks", "GameAssembly.dylib");
 
-                if (!string.IsNullOrEmpty(gameAssemblyPath))
+                if (!File.Exists(gameAssemblyPath))
                 {
-                    libraryName = gameAssemblyPath;
+                    throw new DllNotFoundException(
+                        $"Failed to load \"GameAssembly.dylib\" from path {gameAssemblyPath}");
                 }
+
+                libraryName = gameAssemblyPath;
             }
 
             return NativeLibrary.Load(libraryName, typeof(InjectorHelpers).Assembly, null);
-        }
-
-        private static string MacGameAssemblyPath()
-        {
-            var gameAssemblyPath = string.Empty;
-
-            if (Process.GetCurrentProcess().MainModule?.FileName is { } procPath
-                && Directory.GetParent(procPath)?.Parent?.FullName is { } appContentsPath
-                && Path.GetFileName(appContentsPath) == "Contents")
-            {
-                gameAssemblyPath = Path.Combine(appContentsPath, "Frameworks", "GameAssembly.dylib");
-
-                if (File.Exists(gameAssemblyPath))
-                {
-                    return gameAssemblyPath;
-                }
-            }
-
-            return gameAssemblyPath;
         }
 
         private static readonly GenericMethod_GetMethod_Hook GenericMethodGetMethodHook = new();
@@ -341,12 +290,15 @@ namespace Il2CppInterop.Runtime.Injection
                     return classInit;
                 }
 
-                Logger.Instance.LogTrace("GameAssembly: 0x{GameAssemblyAddress}", GameAssemblyBaseAddress.ToInt64().ToString("X2"));
-                throw new NotSupportedException("Failed to use signature for Class::Init and a substitute cannot be found, please create an issue and report your unity version & game");
+                Logger.Instance.LogTrace("GameAssembly: 0x{ModuleAddress}", Il2CppModuleBaseAddress.ToInt64().ToString("X2"));
+
+                throw new NotSupportedException(
+                    "Failed to use signature for Class::Init and a substitute cannot be found, please create an " +
+                    "issue and report your unity version & game");
             }
 
             var pClassInit = s_ClassInitSignatures
-                .Select(s => MemoryUtils.FindSignatureInBlock(GameAssemblyBaseAddress, GameAssemblyMemorySize, s))
+                .Select(s => MemoryUtils.FindSignatureInBlock(Il2CppModuleBaseAddress, Il2CppModuleMemorySize, s))
                 .FirstOrDefault(p => p != 0);
 
             if (pClassInit == 0)
@@ -409,17 +361,6 @@ namespace Il2CppInterop.Runtime.Injection
             public uint nsects;
             public uint flags;
         }
-
-        [DllImport("libSystem.dylib", EntryPoint = "dlopen", CallingConvention = CallingConvention.Cdecl,
-            CharSet = CharSet.Ansi)]
-        private static extern IntPtr dlopen(string filename, int flags);
-
-        [DllImport("libSystem.dylib", EntryPoint = "dlerror", CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr dlerror();
-
-        [DllImport("libSystem.dylib", EntryPoint = "dlsym", CallingConvention = CallingConvention.Cdecl,
-            CharSet = CharSet.Ansi)]
-        private static extern IntPtr dlsym(IntPtr handle, string symbol);
 
         [DllImport("libSystem.dylib", EntryPoint = "dladdr", CallingConvention = CallingConvention.Cdecl)]
         private static extern int dladdr(IntPtr addr, out DlInfo info);

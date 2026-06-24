@@ -25,11 +25,10 @@ public static class XrefScanMethodDb
             var errorPtr = IntPtr.Zero;
             var libHandle = dlopen("GameAssembly.dylib", 2);
 
-            if (libHandle == IntPtr.Zero
-                && Process.GetCurrentProcess().MainModule?.FileName is { } procPath
-                && Directory.GetParent(procPath)?.Parent?.FullName is { } appContentsPath
-                && Path.GetFileName(appContentsPath) == "Contents")
+            if (libHandle == IntPtr.Zero)
             {
+                var procPath = Process.GetCurrentProcess().MainModule.FileName;
+                var appContentsPath = Directory.GetParent(procPath).Parent.FullName;
                 var gameAssemblyPath = Path.Combine(appContentsPath, "Frameworks", "GameAssembly.dylib");
 
                 if (File.Exists(gameAssemblyPath))

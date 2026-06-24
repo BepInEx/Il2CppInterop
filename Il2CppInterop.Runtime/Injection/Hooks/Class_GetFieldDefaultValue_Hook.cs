@@ -141,7 +141,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             // inlined but we'll treat it the same even though it doesn't receive the type parameter the RDX register
             // doesn't get cleared so we still get the same parameters
             var classGetDefaultFieldValue = s_Signatures
-                .Select(s => MemoryUtils.FindSignatureInBlock(InjectorHelpers.GameAssemblyBaseAddress, InjectorHelpers.GameAssemblyMemorySize, s))
+                .Select(s => MemoryUtils.FindSignatureInBlock(InjectorHelpers.Il2CppModuleBaseAddress, InjectorHelpers.Il2CppModuleMemorySize, s))
                 .FirstOrDefault(p => p != 0);
 
             if (classGetDefaultFieldValue == 0)
