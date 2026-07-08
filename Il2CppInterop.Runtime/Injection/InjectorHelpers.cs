@@ -75,11 +75,24 @@ namespace Il2CppInterop.Runtime.Injection
                 GenericMethodGetMethodHook_Unity6.ApplyHook();
             else
                 GenericMethodGetMethodHook.ApplyHook();
-            GetTypeInfoFromTypeDefinitionIndexHook.ApplyHook();
+            if (IsHybridClrPresent())
+            {
+                Logger.Instance.LogTrace("HybridCLR detected in game; MetadataCache::GetTypeInfoFromTypeDefinitionIndex will not be hooked.");
+            }
+            else
+            {
+                Logger.Instance.LogTrace("HybridCLR not detected; MetadataCache::GetTypeInfoFromTypeDefinitionIndex will be hooked.");
+                GetTypeInfoFromTypeDefinitionIndexHook.ApplyHook();
+            }
             GetFieldDefaultValueHook.ApplyHook();
             ClassInit ??= FindClassInit();
             FromIl2CppTypeHook.ApplyHook();
             FromNameHook.ApplyHook();
+        }
+
+        internal static bool IsHybridClrPresent()
+        {
+            return Il2CppSystem.Type.GetType("HybridCLR.RuntimeApi") != null;
         }
 
         internal static long CreateClassToken(IntPtr classPointer)
