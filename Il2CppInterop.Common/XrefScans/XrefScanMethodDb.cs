@@ -20,12 +20,64 @@ public static class XrefScanMethodDb
             GeneratedDatabasesUtil.GetDatabasePath(MethodAddressToTokenMap.FileName));
         XrefScanCache = new MethodXrefScanCache(GeneratedDatabasesUtil.GetDatabasePath(MethodXrefScanCache.FileName));
 
-        foreach (ProcessModule module in Process.GetCurrentProcess().Modules)
-            if (module.ModuleName == "GameAssembly.dll")
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            var errorPtr = IntPtr.Zero;
+            var libHandle = dlopen("GameAssembly.dylib", 2);
+
+            if (libHandle == IntPtr.Zero)
             {
-                GameAssemblyBase = (long)module.BaseAddress;
-                break;
+                var procPath = Process.GetCurrentProcess().MainModule.FileName;
+                var appContentsPath = Directory.GetParent(procPath).Parent.FullName;
+                var gameAssemblyPath = Path.Combine(appContentsPath, "Frameworks", "GameAssembly.dylib");
+
+                if (File.Exists(gameAssemblyPath))
+                {
+                    libHandle = dlopen(gameAssemblyPath, 2);
+                }
             }
+
+            if (libHandle == IntPtr.Zero)
+            {
+                errorPtr = dlerror();
+
+                var errorMessage = errorPtr != IntPtr.Zero
+                    ? Marshal.PtrToStringAnsi(errorPtr)
+                    : "Unknown dlopen failure";
+
+                throw new DllNotFoundException(
+                    $"Failed to load \"GameAssembly.dylib\" with error message: {errorMessage}");
+            }
+
+            // Clear any previous error state.
+            dlerror();
+
+            var symbolAddress = dlsym(libHandle, "il2cpp_init");
+            errorPtr = dlerror();
+
+            if (errorPtr != IntPtr.Zero)
+            {
+                var errorMessage = Marshal.PtrToStringAnsi(errorPtr);
+
+                throw new EntryPointNotFoundException(
+                    $"Failed to find symbol \"il2cpp_init\" with error message: {errorMessage}");
+            }
+
+            if (dladdr(symbolAddress, out var info) == 0)
+            {
+                throw new InvalidOperationException();
+            }
+
+            var baseAddress = info.dli_fbase;
+            GameAssemblyBase = (long)baseAddress;
+        }
+        else
+        {
+            GameAssemblyBase = (long)Process.GetCurrentProcess()
+                .Modules.OfType<ProcessModule>()
+                .Single(x => x.ModuleName is "GameAssembly.dll" or "GameAssembly.so" or "UserAssembly.dll" || string.Equals(x.ModuleName, "GameAssembly.dll", StringComparison.OrdinalIgnoreCase))
+                .BaseAddress;
+        }
     }
 
     public static MethodBase TryResolvePointer(IntPtr methodStart)
@@ -64,4 +116,27 @@ public static class XrefScanMethodDb
 
         Marshal.WriteByte((IntPtr)(GameAssemblyBase + attribute.MetadataInitFlagRva), 1);
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DlInfo
+    {
+        public IntPtr dli_fname;
+        public IntPtr dli_fbase;
+        public IntPtr dli_sname;
+        public IntPtr dli_saddr;
+    }
+
+    [DllImport("libSystem.dylib", EntryPoint = "dlopen", CallingConvention = CallingConvention.Cdecl,
+        CharSet = CharSet.Ansi)]
+    private static extern IntPtr dlopen(string filename, int flags);
+
+    [DllImport("libSystem.dylib", EntryPoint = "dlerror", CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr dlerror();
+
+    [DllImport("libSystem.dylib", EntryPoint = "dlsym", CallingConvention = CallingConvention.Cdecl,
+        CharSet = CharSet.Ansi)]
+    private static extern IntPtr dlsym(IntPtr handle, string symbol);
+
+    [DllImport("libSystem.dylib", EntryPoint = "dladdr", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int dladdr(IntPtr addr, out DlInfo info);
 }
