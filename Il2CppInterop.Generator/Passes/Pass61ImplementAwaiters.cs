@@ -15,6 +15,11 @@ public static class Pass61ImplementAwaiters
     public static void DoPass(RewriteGlobalContext context)
     {
         var corlib = context.CorLib;
+        if (corlib is null)
+        {
+            // mscorlib not available (e.g., HybridCLR hotfix-only generation)
+            return;
+        }
 
         var actionUntyped = corlib.GetTypeByName("System.Action");
 

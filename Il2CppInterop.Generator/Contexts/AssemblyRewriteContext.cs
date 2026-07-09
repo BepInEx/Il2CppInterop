@@ -18,9 +18,12 @@ public class AssemblyRewriteContext
     private readonly Dictionary<TypeDefinition, TypeRewriteContext> myOldTypeMap = new();
     public readonly AssemblyDefinition NewAssembly;
 
+#nullable disable
+    // OriginalAssembly is null for reference-only contexts (loaded from ExistingInteropDir)
     public readonly AssemblyDefinition OriginalAssembly;
+#nullable enable
 
-    public AssemblyRewriteContext(RewriteGlobalContext globalContext, AssemblyDefinition originalAssembly,
+    public AssemblyRewriteContext(RewriteGlobalContext globalContext, AssemblyDefinition? originalAssembly,
         AssemblyDefinition newAssembly)
     {
         OriginalAssembly = originalAssembly;
@@ -56,11 +59,66 @@ public class AssemblyRewriteContext
         myNameTypeMap[(context.OriginalType ?? context.NewType).FullName] = context;
     }
 
-    public IMethodDefOrRef RewriteMethodRef(IMethodDefOrRef methodRef)
+    /// <summary>
+    /// Registers a type under an alternative name for lookup purposes.
+    /// Used for reference-only assemblies where Il2Cpp-prefixed types need to be
+    /// findable by their original names (e.g., "System.Type" for "Il2CppSystem.Type").
+    /// </summary>
+    public void RegisterTypeByAlternativeName(string alternativeName, TypeRewriteContext context)
     {
-        var newType = GlobalContext.GetNewTypeForOriginal(methodRef.DeclaringType!.Resolve()!);
-        var newMethod = newType.GetMethodByOldMethod(methodRef.Resolve()!).NewMethod;
-        return NewAssembly.ManifestModule!.DefaultImporter.ImportMethod(newMethod);
+        if (!myNameTypeMap.ContainsKey(alternativeName))
+        {
+            myNameTypeMap[alternativeName] = context;
+        }
+    }
+
+    public IMethodDefOrRef? RewriteMethodRef(IMethodDefOrRef? methodRef)
+    {
+        if (methodRef?.DeclaringType == null)
+        {
+            if (GlobalContext.Options.IsHybridCLREnvironment)
+                return null;
+
+            throw new ArgumentNullException(nameof(methodRef));
+        }
+
+        var declaringType = methodRef.DeclaringType.Resolve();
+        if (declaringType == null)
+        {
+            if (GlobalContext.Options.IsHybridCLREnvironment)
+                return null;
+
+            throw new($"Could not resolve declaring type {methodRef.DeclaringType.FullName} for method {methodRef.Name}");
+        }
+
+        var newType = GlobalContext.GetNewTypeForOriginal(declaringType);
+        if (newType == null)
+        {
+            if (GlobalContext.Options.IsHybridCLREnvironment)
+                return null;
+
+            throw new($"Could not find rewrite context for declaring type {declaringType.FullName}");
+        }
+
+        var resolvedMethod = methodRef.Resolve();
+        if (resolvedMethod == null)
+        {
+            if (GlobalContext.Options.IsHybridCLREnvironment)
+                return null;
+
+            throw new($"Could not resolve method {methodRef.FullName}");
+        }
+
+        var methodContext = newType.TryGetMethodByOldMethod(resolvedMethod);
+        if (methodContext == null)
+        {
+            if (GlobalContext.Options.IsHybridCLREnvironment)
+                return null;
+
+            throw new($"Could not find rewrite context for method {resolvedMethod.FullName}");
+        }
+
+        return NewAssembly.ManifestModule!.DefaultImporter.ImportMethod(methodContext.NewMethod);
     }
 
     public ITypeDefOrRef RewriteTypeRef(ITypeDescriptor typeRef)
@@ -124,18 +182,81 @@ public class AssemblyRewriteContext
             return Imports.Module.String();
 
         if (typeRef.FullName == "System.Object")
-            return sourceModule.DefaultImporter.ImportType(GlobalContext.GetAssemblyByName("mscorlib")
-                .GetTypeByName("System.Object").NewType).ToTypeSignature();
+        {
+            var mscorlib = GlobalContext.TryGetAssemblyByName("mscorlib");
+            if (mscorlib != null)
+                return sourceModule.DefaultImporter.ImportType(mscorlib.GetTypeByName("System.Object").NewType).ToTypeSignature();
+            if (!GlobalContext.Options.IsHybridCLREnvironment)
+                throw new KeyNotFoundException("Required corlib type 'System.Object' was not found.");
+            return sourceModule.CorLibTypeFactory.Object;
+        }
 
         if (typeRef.FullName == "System.Attribute")
-            return sourceModule.DefaultImporter.ImportType(GlobalContext.GetAssemblyByName("mscorlib")
-                .GetTypeByName("System.Attribute").NewType).ToTypeSignature();
+        {
+            var mscorlib = GlobalContext.TryGetAssemblyByName("mscorlib");
+            if (mscorlib != null)
+                return sourceModule.DefaultImporter.ImportType(mscorlib.GetTypeByName("System.Attribute").NewType).ToTypeSignature();
+            if (!GlobalContext.Options.IsHybridCLREnvironment)
+                throw new KeyNotFoundException("Required corlib type 'System.Attribute' was not found.");
+            return sourceModule.ImportCorlibReference("System.Attribute");
+        }
 
-        var originalTypeDef = typeRef.Resolve()!;
-        var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.DeclaringModule!.Assembly!);
-        var target = targetAssembly.GetContextForOriginalType(originalTypeDef).NewType;
+        var originalTypeDef = typeRef.Resolve();
+        if (originalTypeDef == null)
+        {
+            if (!GlobalContext.Options.IsHybridCLREnvironment)
+                throw new($"Could not resolve type {typeRef.FullName}");
 
-        return sourceModule.DefaultImporter.ImportType(target).ToTypeSignature();
+            var mscorlib = GlobalContext.TryGetAssemblyByName("mscorlib");
+            if (mscorlib != null)
+                return sourceModule.DefaultImporter.ImportType(mscorlib.GetTypeByName("System.Object").NewType).ToTypeSignature();
+            return sourceModule.CorLibTypeFactory.Object;
+        }
+
+        var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.DeclaringModule?.Assembly);
+        if (targetAssembly == null)
+        {
+            // Not a source assembly — try name-based lookup to find reference (existing interop) assembly.
+            // The resolved TypeDefinition lives in the raw dependency DLL (e.g., mscorlib),
+            // but the registered context is for the interop DLL (e.g., Il2Cppmscorlib).
+            var asmName = originalTypeDef.DeclaringModule?.Assembly?.Name?.Value;
+            if (asmName != null)
+                targetAssembly = GlobalContext.TryGetAssemblyByName(asmName);
+        }
+        if (targetAssembly == null)
+        {
+            if (!GlobalContext.Options.IsHybridCLREnvironment)
+                throw new KeyNotFoundException(
+                    $"Could not find target assembly for type {originalTypeDef.FullName} from assembly {originalTypeDef.DeclaringModule?.Assembly?.Name}");
+
+            var mscorlib = GlobalContext.TryGetAssemblyByName("mscorlib");
+            if (mscorlib != null)
+                return sourceModule.DefaultImporter.ImportType(mscorlib.GetTypeByName("System.Object").NewType).ToTypeSignature();
+            return sourceModule.CorLibTypeFactory.Object;
+        }
+
+        var typeContext = targetAssembly.TryGetContextForOriginalType(originalTypeDef);
+        if (typeContext == null)
+        {
+            // For reference assemblies, the type IS the new type (no original/new distinction).
+            // Object-identity lookup won't work because originalTypeDef is from the raw dependency DLL,
+            // not from the interop DLL. Use name-based lookup instead.
+            var typeName = originalTypeDef.FullName;
+            typeContext = targetAssembly.TryGetTypeByName(typeName);
+        }
+        if (typeContext == null)
+        {
+            if (!GlobalContext.Options.IsHybridCLREnvironment)
+                throw new KeyNotFoundException(
+                    $"Could not find rewrite context for type {originalTypeDef.FullName} in assembly {targetAssembly.NewAssembly.Name}");
+
+            var mscorlib = GlobalContext.TryGetAssemblyByName("mscorlib");
+            if (mscorlib != null)
+                return sourceModule.DefaultImporter.ImportType(mscorlib.GetTypeByName("System.Object").NewType).ToTypeSignature();
+            return sourceModule.CorLibTypeFactory.Object;
+        }
+
+        return sourceModule.DefaultImporter.ImportType(typeContext.NewType).ToTypeSignature();
     }
 
     public TypeRewriteContext GetTypeByName(string name)

@@ -9,6 +9,7 @@ using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Runtime;
+using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
 using Microsoft.Extensions.Logging;
 using Object = Il2CppSystem.Object;
 using ValueType = Il2CppSystem.ValueType;
@@ -282,16 +283,15 @@ public static class DelegateSupport
         var managedTrampoline =
             GetOrCreateNativeToManagedTrampoline(signature, nativeDelegateInvokeMethod, managedInvokeMethod);
 
-        var methodInfo = UnityVersionHandler.NewMethod();
-        methodInfo.MethodPointer = Marshal.GetFunctionPointerForDelegate(managedTrampoline);
-        methodInfo.ParametersCount = (byte)parameterInfos.Length;
-        methodInfo.Slot = ushort.MaxValue;
-        methodInfo.IsMarshalledFromNative = true;
+        var methodInfo = CreateSyntheticMethodInfo(
+            Marshal.GetFunctionPointerForDelegate(managedTrampoline),
+            classTypePtr,
+            (byte)parameterInfos.Length);
 
         var delegateReference = new Il2CppToMonoDelegateReference(@delegate, methodInfo.Pointer);
 
         Il2CppSystem.Delegate converted;
-        if (UnityVersionHandler.MustUseDelegateConstructor)
+        if (UnityVersionHandler.MustUseDelegateConstructor && HasNativeConstructor(classTypePtr))
         {
             converted = ((TIl2Cpp)Activator.CreateInstance(typeof(TIl2Cpp), delegateReference.Cast<Object>(),
                 methodInfo.Pointer)).Cast<Il2CppSystem.Delegate>();
@@ -315,6 +315,68 @@ public static class DelegateSupport
         }
 
         return converted.Cast<TIl2Cpp>();
+    }
+
+    /// <summary>
+    /// Checks whether the delegate type's .ctor has a native method body.
+    /// In HybridCLR, hotfix delegate constructors are interpreter methods with no native pointer.
+    /// </summary>
+    private static unsafe bool HasNativeConstructor(IntPtr classTypePtr)
+    {
+        if (!HybridCLRCompat.IsHybridCLRRuntime())
+            return true;
+
+        var iter = IntPtr.Zero;
+        IntPtr method;
+        while ((method = IL2CPP.il2cpp_class_get_methods(classTypePtr, ref iter)) != IntPtr.Zero)
+        {
+            if (IL2CPP.il2cpp_method_get_name_(method) != ".ctor")
+                continue;
+
+            var hybridInfo = UnityVersionHandler.WrapHybridCLR((Il2CppMethodInfo*)method);
+            if (hybridInfo != null && hybridInfo.IsInterpterImpl)
+                return false;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Creates a synthetic Il2CppMethodInfo with enough space for HybridCLR extension fields.
+    /// In HybridCLR, the interpreter reads methodPointerCallByInterp past the standard struct.
+    /// </summary>
+    private static unsafe INativeMethodInfoStruct CreateSyntheticMethodInfo(
+        IntPtr methodPointer, IntPtr classTypePtr, byte parametersCount)
+    {
+        var baseSize = UnityVersionHandler.MethodSize();
+        INativeMethodInfoStruct methodInfo;
+
+        if (HybridCLRCompat.IsHybridCLRRuntime())
+        {
+            var extendedSize = baseSize + IntPtr.Size * 3 + 2;
+            var ptr = Marshal.AllocHGlobal(extendedSize);
+            new Span<byte>((void*)ptr, extendedSize).Clear();
+            methodInfo = UnityVersionHandler.Wrap((Il2CppMethodInfo*)ptr);
+
+            var hybridInfo = UnityVersionHandler.WrapHybridCLR(methodInfo);
+            hybridInfo.MethodPointerCallByInterp = methodPointer;
+            hybridInfo.VirtualMethodPointerCallByInterp = methodPointer;
+            hybridInfo.InitInterpCallMethodPointer = true;
+        }
+        else
+        {
+            methodInfo = UnityVersionHandler.NewMethod();
+        }
+
+        methodInfo.MethodPointer = methodPointer;
+        methodInfo.Class = (Il2CppClass*)classTypePtr;
+        methodInfo.ParametersCount = parametersCount;
+        methodInfo.Slot = ushort.MaxValue;
+        methodInfo.IsMarshalledFromNative = true;
+
+        return methodInfo;
     }
 
     internal class MethodSignature : IEquatable<MethodSignature>

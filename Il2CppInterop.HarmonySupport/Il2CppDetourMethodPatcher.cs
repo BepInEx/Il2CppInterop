@@ -63,6 +63,9 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
 
     private INativeMethodInfoStruct originalNativeMethodInfo;
 
+    // HybridCLR hotfix method support
+    private bool _isHotfixMethod;
+
     /// <summary>
     ///     Constructs a new instance of <see cref="MonoMod.RuntimeDetour.NativeDetour" /> method patcher.
     /// </summary>
@@ -95,6 +98,25 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
             // Get the native MethodInfo struct for the target method
             originalNativeMethodInfo =
                 UnityVersionHandler.Wrap((Il2CppMethodInfo*)(IntPtr)methodField.GetValue(null));
+
+            // HybridCLR hotfix method handling
+            if (HybridCLRCompat.IsHybridCLRRuntime())
+            {
+                var hybridInfo = HybridCLRCompat.WrapMethodInfo(originalNativeMethodInfo.Pointer);
+                _isHotfixMethod = hybridInfo?.IsInterpterImpl ?? false;
+
+                if (_isHotfixMethod)
+                {
+                    if ((hybridInfo?.InterpData ?? IntPtr.Zero) == IntPtr.Zero)
+                    {
+                        Logger.Instance.LogError(
+                            "HybridCLR method {Method} has no interpData - it may have been transformed to native code",
+                            Original.FullDescription());
+                    }
+
+                    // Note: PrepareMethodForDetour is called in DetourTo().
+                }
+            }
 
             // Create a modified native MethodInfo struct, that will point towards the trampoline
             modifiedNativeMethodInfo = UnityVersionHandler.NewMethod();
@@ -142,10 +164,25 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         var unmanagedDelegate = unmanagedTrampolineMethod.CreateDelegate(unmanagedDelegateType);
         DelegateCache.Add(unmanagedDelegate);
 
+        // HybridCLR: Prepare method for detouring before applying native detour
+        if (_isHotfixMethod)
+        {
+            // PrepareMethodForDetour copies the bridge so we can hook this method independently
+            HybridCLRCompat.PrepareMethodForDetour(originalNativeMethodInfo.Pointer);
+        }
+
         nativeDetour =
             Il2CppInteropRuntime.Instance.DetourProvider.Create(originalNativeMethodInfo.MethodPointer, unmanagedDelegate);
         nativeDetour.Apply();
         modifiedNativeMethodInfo.MethodPointer = nativeDetour.OriginalTrampoline;
+
+        // HybridCLR: After detour is applied, restore invoker_method
+        if (_isHotfixMethod)
+        {
+            // Restore invoker_method to original IL interpreter invoker
+            // This is CRITICAL - without this, calling the original method will fail
+            HybridCLRCompat.RestoreInvokerMethod(originalNativeMethodInfo.Pointer);
+        }
 
         // TODO: Add an ILHook for the original unhollowed method to go directly to managedHookedMethod
         // Right now it goes through three times as much interop conversion as it needs to, when being called from managed side

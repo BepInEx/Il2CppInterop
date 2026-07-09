@@ -35,6 +35,9 @@ var generateCommand = new Command("generate")
     new Option<bool>("--passthrough-names",
         "If specified, names will be copied from input assemblies as-is without renaming or deobfuscation."),
     new Option<bool>("--no-parallel", "Disable parallel processing when writing assemblies. Use if you encounter stability issues when generating assemblies."),
+    new Option<bool>("--hybridclr", "Enable HybridCLR-specific metadata compatibility handling."),
+    new Option<DirectoryInfo>("--existing-interop", "Directory with existing interop assemblies to reference for incremental generation.").ExistingOnly(),
+    new Option<bool>("--no-skip-existing", "Generate assemblies even when they already exist in --existing-interop."),
 };
 generateCommand.Description = "Generate wrapper assemblies that can be used to interop with Il2Cpp";
 generateCommand.Handler = CommandHandler.Create((GenerateCommandOptions opts) =>
@@ -169,7 +172,10 @@ internal record GenerateCommandOptions(
     string[]? BlacklistAssembly,
     Regex? ObfRegex,
     bool PassthroughNames,
-    bool NoParallel
+    bool NoParallel,
+    bool HybridCLR,
+    DirectoryInfo? ExistingInterop,
+    bool NoSkipExisting
 ) : BaseCmdOptions(Verbose)
 {
     public override CmdOptionsResult Build()
@@ -188,6 +194,9 @@ internal record GenerateCommandOptions(
         opts.ObfuscatedNamesRegex = ObfRegex;
         opts.PassthroughNames = PassthroughNames;
         opts.Parallel = !NoParallel;
+        opts.IsHybridCLREnvironment = HybridCLR;
+        opts.ExistingInteropDir = ExistingInterop?.FullName;
+        opts.SkipExistingAssemblies = !NoSkipExisting;
 
         if (AddPrefixTo is not null && AddPrefixTo.Length > 0)
         {

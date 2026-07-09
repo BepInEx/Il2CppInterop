@@ -193,8 +193,10 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
         while (true)
         {
             if (currentBase == null) break;
+            var resolvedBase = currentBase.Resolve();
+            if (resolvedBase == null) break;
             var currentBaseContext =
-                obfType.AssemblyContext.GlobalContext.TryGetNewTypeForOriginal(currentBase.Resolve()!);
+                obfType.AssemblyContext.GlobalContext.TryGetNewTypeForOriginal(resolvedBase);
             if (currentBaseContext == null || !currentBaseContext.OriginalNameWasObfuscated) break;
 
             inheritanceDepthOfOriginal++;
@@ -206,11 +208,14 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
 
         var source =
             enclosingCleanType?.OriginalType.NestedTypes.Select(it =>
-                cleanAssembly.GlobalContext.GetNewTypeForOriginal(it)) ??
+                cleanAssembly.GlobalContext.GetNewTypeForOriginal(it)).Where(it => it != null) ??
             cleanAssembly.Types.Where(it => it.NewType.DeclaringType == null);
 
         foreach (var candidateCleanType in source)
         {
+            if (candidateCleanType == null)
+                continue;
+
             if (obfType.OriginalType.HasMethods() != candidateCleanType.OriginalType.HasMethods())
                 continue;
 

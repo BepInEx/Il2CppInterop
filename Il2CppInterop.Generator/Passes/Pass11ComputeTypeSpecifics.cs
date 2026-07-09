@@ -39,7 +39,25 @@ public static class Pass11ComputeTypeSpecifics
                 return;
             }
 
-            var fieldTypeContext = typeContext.AssemblyContext.GlobalContext.GetNewTypeForOriginal(fieldType.Resolve()!);
+            var resolvedFieldType = fieldType.Resolve();
+            if (resolvedFieldType == null)
+            {
+                if (!typeContext.AssemblyContext.GlobalContext.Options.IsHybridCLREnvironment)
+                    throw new($"Could not resolve {fieldType.FullName}");
+
+                typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
+                return;
+            }
+
+            var fieldTypeContext = typeContext.AssemblyContext.GlobalContext.GetNewTypeForOriginal(resolvedFieldType);
+            if (fieldTypeContext == null)
+            {
+                if (!typeContext.AssemblyContext.GlobalContext.Options.IsHybridCLREnvironment)
+                    throw new($"Could not find rewrite context for {resolvedFieldType.FullName}");
+
+                typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
+                return;
+            }
             ComputeSpecifics(fieldTypeContext);
             if (fieldTypeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.BlittableStruct)
             {

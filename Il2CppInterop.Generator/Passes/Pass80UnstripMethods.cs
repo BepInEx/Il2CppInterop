@@ -258,7 +258,9 @@ public static class Pass80UnstripMethods
         {
             var enclosingResolvedType = ResolveTypeInNewAssembliesRaw(context, unityType.DeclaringType.ToTypeSignature(), imports);
             if (enclosingResolvedType == null) return null;
-            var resolvedNestedType = enclosingResolvedType.Resolve()!.NestedTypes
+            var enclosingResolved = enclosingResolvedType.Resolve();
+            if (enclosingResolved == null) return null;
+            var resolvedNestedType = enclosingResolved.NestedTypes
                 .FirstOrDefault(it => it.Name == unityType.Name);
 
             return resolvedNestedType?.ToTypeSignature();

@@ -253,6 +253,27 @@ public static class UnityVersionHandler
         return methodInfoStructHandler.Wrap(methodPointer);
     }
 
+    /// <summary>
+    /// Wraps a MethodInfo pointer with HybridCLR extension support.
+    /// Returns an IHybridCLRMethodInfoStruct that provides access to HybridCLR-specific fields.
+    /// </summary>
+    public static unsafe IHybridCLRMethodInfoStruct WrapHybridCLR(Il2CppMethodInfo* methodPointer)
+    {
+        var inner = methodInfoStructHandler.Wrap(methodPointer);
+        if (inner == null) return null;
+        return new HybridCLRMethodInfoWrapper(inner, methodInfoStructHandler.Size());
+    }
+
+    /// <summary>
+    /// Wraps an existing INativeMethodInfoStruct with HybridCLR extension support.
+    /// </summary>
+    public static IHybridCLRMethodInfoStruct WrapHybridCLR(INativeMethodInfoStruct methodInfo)
+    {
+        if (methodInfo == null) return null;
+        if (methodInfo is IHybridCLRMethodInfoStruct hybridCLR) return hybridCLR;
+        return new HybridCLRMethodInfoWrapper(methodInfo, methodInfoStructHandler.Size());
+    }
+
     public static int MethodSize()
     {
         return methodInfoStructHandler.Size();
