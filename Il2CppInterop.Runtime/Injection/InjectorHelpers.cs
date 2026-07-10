@@ -92,9 +92,9 @@ namespace Il2CppInterop.Runtime.Injection
         internal static void AddTypeToLookup<T>(IntPtr typePointer) where T : class => AddTypeToLookup(typeof(T), typePointer);
         internal static void AddTypeToLookup(Type type, IntPtr typePointer)
         {
-            string klass = type.Name;
-            if (klass == null) return;
-            string namespaze = type.Namespace ?? string.Empty;
+            string klass = ClassInjector.GetTypeName(type, ClassInjector.Il2CppTypeNameOptions.Name);
+            if (klass.Length == 0) return;
+            string namespaze = ClassInjector.GetTypeName(type, ClassInjector.Il2CppTypeNameOptions.Namespace);
             var attribute = Attribute.GetCustomAttribute(type, typeof(Il2CppInterop.Runtime.Attributes.ClassInjectionAssemblyTargetAttribute)) as Il2CppInterop.Runtime.Attributes.ClassInjectionAssemblyTargetAttribute;
 
             foreach (IntPtr image in (attribute is null) ? IL2CPP.GetIl2CppImages() : attribute.GetImagePointers())
