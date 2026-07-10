@@ -210,6 +210,13 @@ internal static class CorlibReferences
         return new MemberReference(type.ToTypeDefOrRef(), nameof(System.Type.GetTypeFromHandle), signature);
     }
 
+    public static MemberReference TypeGetIsAssignableFrom(this ModuleDefinition module)
+    {
+        var type = module.Type();
+        MethodSignature signature = MethodSignature.CreateInstance(module.Bool(), module.Type());
+        return new MemberReference(type.ToTypeDefOrRef(), nameof(System.Type.IsAssignableFrom), signature);
+    }
+
     public static MemberReference TypeGetIsValueType(this ModuleDefinition module)
     {
         var type = module.Type();

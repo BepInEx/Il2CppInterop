@@ -89,6 +89,7 @@ public class RuntimeAssemblyReferences
     public TypeSignature RuntimeReflectionHelper { get; private set; }
     public TypeSignature DelegateSupport { get; private set; }
     public TypeSignature Il2CppException { get; private set; }
+    public TypeSignature Il2CppSystemValueType { get; private set; }
 #nullable enable
     private TypeSignature ResolveType(string typeName)
     {
@@ -111,7 +112,9 @@ public class RuntimeAssemblyReferences
         allTypes["System.Int64"] = Module.DefaultImporter.ImportTypeSignature(typeof(long));
 
         var assemblyRef = new AssemblyReference("Il2CppInterop.Runtime", new Version(0, 0, 0, 0));
+        var il2CppmscorlibRef = new AssemblyReference("Il2Cppmscorlib", new Version(0, 0, 0, 0));
         Module.AssemblyReferences.Add(assemblyRef);
+        Module.AssemblyReferences.Add(il2CppmscorlibRef);
 
         Il2CppObjectBase =
             new TypeReference(Module, assemblyRef, "Il2CppInterop.Runtime.InteropTypes", "Il2CppObjectBase").ToTypeSignature();
@@ -141,6 +144,8 @@ public class RuntimeAssemblyReferences
 
         Il2CppException = new TypeReference(Module, assemblyRef, "Il2CppInterop.Runtime", "Il2CppException").ToTypeSignature();
 
+        Il2CppSystemValueType = new TypeReference(Module, il2CppmscorlibRef, "Il2CppSystem", "ValueType").ToTypeSignature();
+
         allTypes["Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase"] = Il2CppObjectBase;
         allTypes["Il2CppInterop.Runtime.Runtime.Il2CppObjectPool"] = Il2CppObjectPool;
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppArrayBase"] = nonGenericIl2CppArrayBase;
@@ -150,6 +155,7 @@ public class RuntimeAssemblyReferences
         allTypes["Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<T>"] = Il2CppStructArray;
         allTypes["Il2CppInterop.Runtime.Il2CppException"] = Il2CppException;
         allTypes["Il2CppInterop.Runtime.IL2CPP"] = Il2Cpp;
+        allTypes["Il2CppSystem.ValueType"] = Il2CppSystemValueType;
     }
 
     private void InitMethodRefs()
