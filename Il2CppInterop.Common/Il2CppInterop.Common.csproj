@@ -1,16 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <Authors>BepInEx, knah et al.</Authors>
+    <PackageId>Il2CppInterop.Common</PackageId>
+    <TargetFramework>net10.0</TargetFramework>
     <Description>Common API for Il2CppInterop packages</Description>
-    <RootNamespace>Il2CppInterop.Common</RootNamespace>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Iced" Version="1.17.0"/>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1"/>
-    <PackageReference Include="System.Net.Http" Version="4.3.4"/>
+    <PackageReference Include="Iced" Version="1.21.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
   </ItemGroup>
 
 </Project>

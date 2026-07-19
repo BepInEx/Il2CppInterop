@@ -1,14 +1,13 @@
-﻿using System.Text;
+﻿using System.CodeDom.Compiler;
 using Il2CppInterop.StructGenerator.CodeGen;
-using Il2CppInterop.StructGenerator.CodeGen.Enums;
 
 namespace Il2CppInterop.StructGenerator;
 
 internal class StructHandlerGenerator
 {
     public StructHandlerGenerator(string name, string handlerInterface, string nativeInterface, string nativeStub,
-        NativeStructGenerator nativeStructGen, List<CodeGenParameter>? parameterOverride = null,
-        Action<StringBuilder>? extraBodyProvider = null)
+        NativeStructGenerator nativeStructGen, IEnumerable<CodeGenParameter>? parameterOverride = null,
+        Action<IndentedTextWriter>? extraBodyProvider = null)
     {
         NativeGenerator = nativeStructGen;
         HandlerClass = new CodeGenClass(ElementProtection.Public, name)
@@ -16,23 +15,31 @@ internal class StructHandlerGenerator
             IsUnsafe = true,
             InterfaceNames = { handlerInterface }
         };
-        HandlerClass.Methods.Add(new CodeGenMethod("int", ElementProtection.Public, "Size")
+        HandlerClass.Properties.Add(new CodeGenProperty(name, ElementProtection.Public, "Instance")
         {
-            ImmediateReturn = $"sizeof({nativeStructGen.NativeStruct.Name})"
+            EmptyGet = true,
+            IsStatic = true,
+            Initializer = "new()"
         });
+        HandlerClass.Properties.Add(new CodeGenProperty("int", ElementProtection.Public, "Size")
+        {
+            ImmediateGet = $"sizeof({nativeStructGen.NativeStruct.Name})"
+        });
+        HandlerClass.Methods.Add(new CodeGenConstructor(name, ElementProtection.Private));
         CodeGenMethod createNewMethod = new(nativeInterface, ElementProtection.Public, "CreateNewStruct")
         {
-            MethodBodyBuilder = builder =>
+            MethodBodyBuilder = writer =>
             {
-                builder.Append("IntPtr ptr = Marshal.AllocHGlobal(");
-                if (SizeProviderOverride != null) builder.AppendLine($"{SizeProviderOverride});");
-                else builder.AppendLine("Size());");
-                builder.AppendLine(
+                writer.Write("nint ptr = Marshal.AllocHGlobal(");
+                if (SizeProviderOverride != null)
+                    writer.WriteLine($"{SizeProviderOverride});");
+                else
+                    writer.WriteLine("Size);");
+                writer.WriteLine(
                     $"{nativeStructGen.NativeStruct.Name}* _ = ({nativeStructGen.NativeStruct.Name}*)ptr;");
-                builder.AppendLine("*_ = default;");
-                if (extraBodyProvider != null)
-                    extraBodyProvider(builder);
-                builder.Append("return new NativeStructWrapper(ptr);");
+                writer.WriteLine("*_ = default;");
+                extraBodyProvider?.Invoke(writer);
+                writer.WriteLine("return new NativeStructWrapper(ptr);");
             }
         };
         if (parameterOverride != null)
@@ -41,10 +48,10 @@ internal class StructHandlerGenerator
         HandlerClass.Methods.Add(new CodeGenMethod(nativeInterface, ElementProtection.Public, "Wrap")
         {
             Parameters = { new CodeGenParameter($"{nativeStub}*", "ptr") },
-            MethodBodyBuilder = builder =>
+            MethodBodyBuilder = writer =>
             {
-                builder.AppendLine("if (ptr == null) return null;");
-                builder.Append("return new NativeStructWrapper((IntPtr)ptr);");
+                writer.WriteLine("if (ptr == null) return null;");
+                writer.WriteLine("return new NativeStructWrapper((nint)ptr);");
             }
         });
     }

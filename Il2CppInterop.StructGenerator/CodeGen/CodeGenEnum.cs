@@ -1,67 +1,15 @@
-﻿using System.Text;
-using Il2CppInterop.StructGenerator.CodeGen.Enums;
+﻿using System.CodeDom.Compiler;
 
 namespace Il2CppInterop.StructGenerator.CodeGen;
 
-internal class CodeGenEnumElement
-{
-    public CodeGenEnumElement(string name, string? value = null)
-    {
-        Name = name;
-        Value = value;
-    }
-
-    public string Name { get; }
-    public string? Value { get; }
-
-    public string BuildFrom(CodeGenEnum origin)
-    {
-        StringBuilder builder = new($"{origin.IndentInner}{Name}");
-        if (Value != null) builder.Append($" = {Value}");
-        builder.Append(',');
-        return builder.ToString();
-    }
-
-    public static bool operator !=(CodeGenEnumElement lhs, CodeGenEnumElement rhs)
-    {
-        return !(lhs == rhs);
-    }
-
-    public static bool operator ==(CodeGenEnumElement lhs, CodeGenEnumElement rhs)
-    {
-        if (lhs.Name != rhs.Name) return false;
-        return lhs.Value == rhs.Value;
-    }
-
-    public override bool Equals(object obj)
-    {
-        return obj is CodeGenEnumElement element && this == element;
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Name, Value);
-    }
-}
-
-internal enum EnumUnderlyingType
-{
-    Byte = 0,
-    UShort,
-    Int,
-    UInt,
-    ULong
-}
-
 internal class CodeGenEnum : CodeGenElement
 {
-    public CodeGenEnum(EnumUnderlyingType underlyingType, ElementProtection protection, string name) : base(protection,
+    public CodeGenEnum(EnumUnderlyingType underlyingType, ElementProtection? protection, string name) : base(protection,
         name)
     {
         UnderlyingType = underlyingType;
     }
 
-    public override byte IndentAmount { get; set; } = 1;
     public override string Type => "enum";
     public EnumUnderlyingType UnderlyingType { get; set; }
 
@@ -75,18 +23,19 @@ internal class CodeGenEnum : CodeGenElement
         _ => throw new Exception("exhausted enum")
     };
 
-    public List<CodeGenEnumElement> Elements { get; } = new();
+    public List<CodeGenEnumElement> Elements { get; } = [];
 
-    public override string Build()
+    public override void Build(IndentedTextWriter writer)
     {
-        StringBuilder builder = new(base.Build());
-        if (UnderlyingType != EnumUnderlyingType.Int) builder.Append($" : {UnderlyingType.ToString().ToLower()}");
-        builder.AppendLine();
-        builder.AppendLine($"{Indent}{{");
-        foreach (var element in Elements)
-            builder.AppendLine(element.BuildFrom(this));
-        builder.AppendLine($"{Indent}}}");
-        return builder.ToString();
+        base.Build(writer);
+        if (UnderlyingType != EnumUnderlyingType.Int)
+            writer.Write($" : {UnderlyingType.ToCSharpString()}");
+        writer.WriteLine();
+        using (new CurlyBrackets(writer))
+        {
+            foreach (var element in Elements)
+                element.Build(writer);
+        }
     }
 
     public static bool operator !=(CodeGenEnum lhs, CodeGenEnum rhs)
@@ -105,7 +54,7 @@ internal class CodeGenEnum : CodeGenElement
         return true;
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is CodeGenEnum @enum && this == @enum;
     }

@@ -1,23 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <PackageId>Il2CppInterop.Generator</PackageId>
-    <Authors>knah, BepInEx et al.</Authors>
     <Description>Library for generating assemblies and metadata for calling Il2Cpp functions from .NET</Description>
-    <TargetFrameworks>netstandard2.1;net472</TargetFrameworks>
-    <RootNamespace>Il2CppInterop.Generator</RootNamespace>
-    <Configurations>Debug;Release</Configurations>
-    <Platforms>AnyCPU</Platforms>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
+    <TargetFramework>net10.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AsmResolver.DotNet" Version="6.0.0-beta.5" />
-    <PackageReference Include="MonoMod.Backports" Version="1.1.2">
-      <Aliases>MonoModBackports</Aliases><!-- Transitive dependency from AsmResolver. Extern alias prevents it from affecting us. -->
-    </PackageReference>
-    <PackageReference Include="PolySharp" Version="1.14.1">
+    <PackageReference Include="AssetRipper.Cpp2IL.Core" Version="1.0.8" />
+    <PackageReference Include="Basic.Reference.Assemblies.Net100" Version="1.8.9" />
+    <PackageReference Include="PolySharp" Version="1.16.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -25,5 +18,20 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj" />
+    <ProjectReference Include="..\Il2CppInterop.Runtime\Il2CppInterop.Runtime.csproj" />
+    <ProjectReference Include="..\Il2Cppmscorlib\Il2Cppmscorlib.csproj" PrivateAssets="All" />
   </ItemGroup>
+
+  <!-- Include the stub Il2Cppmscorlib in the NuGet package for consumers -->
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <None Include="$(OutputPath)\..\..\Il2Cppmscorlib\$(TargetFramework)\Il2Cppmscorlib.dll" Pack="true" PackagePath="lib\$(TargetFramework)\" Visible="false" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Release'">
+    <None Include="..\Il2Cppmscorlib\bin\$(Configuration)\$(TargetFramework)\Il2Cppmscorlib.dll" Pack="true" PackagePath="lib\$(TargetFramework)\" Visible="false" />
+  </ItemGroup>
+
+  <!-- Ensure the stub Il2Cppmscorlib is built before packing -->
+  <Target Name="EnsureIl2CppmscorlibBuilt" BeforeTargets="GenerateNuspec">
+    <MSBuild Projects="..\Il2Cppmscorlib\Il2Cppmscorlib.csproj" Targets="Build" Properties="Configuration=$(Configuration)" />
+  </Target>
 </Project>

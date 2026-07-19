@@ -1,46 +1,41 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <PackageId>Il2CppInterop.Runtime</PackageId>
-    <Authors>knah, BepInEx et al.</Authors>
     <Description>Runtime tools for bridging .NET and Il2Cpp together</Description>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <RootNamespace>Il2CppInterop.Runtime</RootNamespace>
-    <Configurations>Debug;Release</Configurations>
-    <Platforms>AnyCPU</Platforms>
     <ImplicitUsings>false</ImplicitUsings>
-    <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Suppress "Field is never assigned to, and will always have its default value" warning -->
+    <NoWarn>$(NoWarn);0649</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Il2CppInterop.HarmonySupport</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="Il2Cppmscorlib">
-      <Private>false</Private>
-      <HintPath>Libs\Il2Cppmscorlib.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Libs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Iced" Version="1.17.0" />
-    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.22621.2" />
-    <PackageReference Include="PolySharp" Version="1.14.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="AssetRipper.Primitives" Version="3.2.0" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.10" />
+    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.26100.6" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj" />
+    <ProjectReference Include="..\Il2CppInterop.SourceGenerator\Il2CppInterop.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Il2Cppmscorlib\Il2Cppmscorlib.csproj" PrivateAssets="All" />
   </ItemGroup>
+
+  <!-- Include the source generator in the NuGet package for consumers -->
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <None Include="$(OutputPath)\..\..\Il2CppInterop.SourceGenerator\netstandard2.0\Il2CppInterop.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Release'">
+    <None Include="..\Il2CppInterop.SourceGenerator\bin\$(Configuration)\netstandard2.0\Il2CppInterop.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
+  <!-- Ensure source generator is built before packing -->
+  <Target Name="EnsureGeneratorBuilt" BeforeTargets="GenerateNuspec">
+    <MSBuild Projects="..\Il2CppInterop.SourceGenerator\Il2CppInterop.SourceGenerator.csproj" Targets="Build" Properties="Configuration=$(Configuration)" />
+  </Target>
 </Project>

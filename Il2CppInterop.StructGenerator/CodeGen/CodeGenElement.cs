@@ -1,41 +1,45 @@
-﻿using Il2CppInterop.StructGenerator.CodeGen.Enums;
+﻿using System.CodeDom.Compiler;
 
 namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal abstract class CodeGenElement
 {
-    public CodeGenElement(ElementProtection protection, string name)
+    public CodeGenElement(ElementProtection? protection, string name)
     {
+        ArgumentException.ThrowIfNullOrEmpty(name);
         Protection = protection;
         Name = name;
     }
 
-    public abstract byte IndentAmount { get; set; }
     public abstract string Type { get; }
 
     public bool IsStatic { get; set; }
     public bool IsUnsafe { get; set; }
+    public bool IsPartial { get; set; }
     public string Name { get; }
-    public ElementProtection Protection { get; }
-    public string Indent => new(' ', (IndentAmount - 1) * 4);
-    public string IndentInner => new(' ', IndentAmount * 4);
+    public ElementProtection? Protection { get; }
 
-    private List<string> KeywordList
+    public string Keywords
     {
         get
         {
-            var list = new List<string>();
-            if (IsStatic) list.Add("static");
-            if (IsUnsafe) list.Add("unsafe");
-            return list;
+            var staticKeyword = IsStatic ? "static " : string.Empty;
+            var unsafeKeyword = IsUnsafe ? "unsafe " : string.Empty;
+            var partialKeyword = IsPartial ? "partial " : string.Empty;
+            return string.Concat(staticKeyword, unsafeKeyword, partialKeyword);
         }
     }
 
-    public string Keywords => KeywordList.Count > 0 ? $"{string.Join(' ', KeywordList)} " : string.Empty;
-    public virtual string Declaration => $"{Protection.ToString().ToLower()} {Keywords}{Type} {Name}";
-
-    public virtual string Build()
+    public virtual string Declaration
     {
-        return $"{Declaration}";
+        get
+        {
+            return Protection is null ? $"{Keywords}{Type} {Name}" : $"{Protection.Value.ToCSharpString()} {Keywords}{Type} {Name}";
+        }
+    }
+
+    public virtual void Build(IndentedTextWriter writer)
+    {
+        writer.Write(Declaration);
     }
 }

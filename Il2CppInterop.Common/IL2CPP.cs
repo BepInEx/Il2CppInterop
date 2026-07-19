@@ -1,0 +1,871 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
+
+namespace Il2CppInterop.Common;
+
+/// <summary>
+/// IL2CPP Functions
+/// </summary>
+public static unsafe partial class IL2CPP
+{
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_init(nint domain_name);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_init_utf16(nint domain_name);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_shutdown();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_set_config_dir(nint config_path);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_set_data_dir(nint data_path);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_set_temp_dir(nint temp_path);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_set_commandline_arguments(int argc, nint argv, nint basedir);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_set_commandline_arguments_utf16(int argc, nint argv, nint basedir);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_set_config_utf16(nint executablePath);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_set_config(nint executablePath);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_set_memory_callbacks(nint callbacks);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_get_corlib();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_add_internal_call(nint name, nint method);
+
+    [LibraryImport("GameAssembly", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(System.Runtime.InteropServices.Marshalling.AnsiStringMarshaller))]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_resolve_icall([MarshalAs(UnmanagedType.LPStr)] string name);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_alloc(uint size);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_free(nint ptr);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_array_class_get(nint element_class, uint rank);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_array_length(nint array);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_array_get_byte_length(nint array);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_array_new(nint elementTypeInfo, ulong length);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_array_new_specific(nint arrayTypeInfo, ulong length);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_array_new_full(nint array_class, ulong* lengths, ulong* lower_bounds);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_bounded_array_class_get(nint element_class, uint rank, [MarshalAs(UnmanagedType.I1)] bool bounded);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int il2cpp_array_element_size(nint array_class);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_assembly_get_image(nint assembly);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_enum_basetype(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_class_is_generic(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_class_is_inflated(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_class_is_assignable_from(nint klass, nint oklass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_class_is_subclass_of(nint klass, nint klassc, [MarshalAs(UnmanagedType.I1)] bool check_interfaces);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_class_has_parent(nint klass, nint klassc);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_from_il2cpp_type(nint type);
+
+    [LibraryImport("GameAssembly", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(System.Runtime.InteropServices.Marshalling.AnsiStringMarshaller))]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_from_name(nint image, [MarshalAs(UnmanagedType.LPUTF8Str)] string namespaze, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_from_system_type(nint type);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_element_class(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_events(nint klass, ref nint iter);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_fields(nint klass, ref nint iter);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_nested_types(nint klass, ref nint iter);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_interfaces(nint klass, ref nint iter);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_properties(nint klass, ref nint iter);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_property_from_name(nint klass, nint name);
+
+    [LibraryImport("GameAssembly", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(System.Runtime.InteropServices.Marshalling.AnsiStringMarshaller))]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_field_from_name(nint klass, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_methods(nint klass, ref nint iter);
+
+    [LibraryImport("GameAssembly", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(System.Runtime.InteropServices.Marshalling.AnsiStringMarshaller))]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_method_from_name(nint klass, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, int argsCount);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
+    public static partial string il2cpp_class_get_name(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
+    public static partial string il2cpp_class_get_namespace(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_parent(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_declaring_type(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int il2cpp_class_instance_size(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_class_num_fields(nint enumKlass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_class_is_valuetype(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int il2cpp_class_value_size(nint klass, out uint align);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_class_is_blittable(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int il2cpp_class_get_flags(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_class_is_abstract(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_class_is_interface(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int il2cpp_class_array_element_size(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_from_type(nint type);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_type(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_class_get_type_token(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_class_has_attribute(nint klass, nint attr_class);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_class_has_references(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_class_is_enum(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_image(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_assemblyname(nint klass);
+
+    public static string? il2cpp_class_get_assemblyname_(nint klass)
+        => Marshal.PtrToStringUTF8(il2cpp_class_get_assemblyname(klass));
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int il2cpp_class_get_rank(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_class_get_bitmap_size(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_class_get_bitmap(nint klass, ref uint bitmap);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_stats_dump_to_file(nint path);
+
+    //[LibraryImport("GameAssembly")]
+    //[UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    //public static partial ulong il2cpp_stats_get_value(IL2CPP_Stat stat);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_domain_get();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_domain_assembly_open(nint domain, nint name);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint* il2cpp_domain_get_assemblies(nint domain, out uint size);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_raise_exception(nint ex);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_exception_from_name_msg(nint image, nint name_space, nint name, nint msg);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_get_exception_argument_null(nint arg);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_format_exception(nint ex, void* message, int message_size);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_format_stack_trace(nint ex, void* output, int output_size);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_unhandled_exception(nint ex);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int il2cpp_field_get_flags(nint field);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
+    public static partial string il2cpp_field_get_name(nint field);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_field_get_parent(nint field);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_field_get_offset(nint field);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_field_get_type(nint field);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_field_get_value(nint obj, nint field, void* value);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_field_get_value_object(nint field, nint obj);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_field_has_attribute(nint field, nint attr_class);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_field_set_value(nint obj, nint field, void* value);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_field_static_get_value(nint field, void* value);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_field_static_set_value(nint field, void* value);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_field_set_value_object(nint instance, nint field, nint value);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_gc_collect(int maxGenerations);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int il2cpp_gc_collect_a_little();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_gc_disable();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_gc_enable();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_gc_is_disabled();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial long il2cpp_gc_get_used_size();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial long il2cpp_gc_get_heap_size();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_gc_wbarrier_set_field(nint obj, nint targetAddress, nint gcObj);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_gchandle_new(nint obj, [MarshalAs(UnmanagedType.I1)] bool pinned);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_gchandle_new_weakref(nint obj, [MarshalAs(UnmanagedType.I1)] bool track_resurrection);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_gchandle_get_target(nint gchandle);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_gchandle_free(nint gchandle);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_unity_liveness_calculation_begin(nint filter, int max_object_count, nint callback, nint userdata, nint onWorldStarted, nint onWorldStopped);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_unity_liveness_calculation_end(nint state);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_unity_liveness_calculation_from_root(nint root, nint state);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_unity_liveness_calculation_from_statics(nint state);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_method_get_return_type(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_method_get_declaring_type(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
+    public static partial string il2cpp_method_get_name(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_method_get_from_reflection(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_method_get_object(nint method, nint refclass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_method_is_generic(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_method_is_inflated(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_method_is_instance(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_method_get_param_count(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_method_get_param(nint method, uint index);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_method_get_class(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_method_has_attribute(nint method, nint attr_class);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_method_get_flags(nint method, ref uint iflags);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_method_get_token(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
+    public static partial string il2cpp_method_get_param_name(nint method, uint index);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_profiler_install(nint prof, nint shutdown_callback);
+
+    //[LibraryImport("GameAssembly")]
+    //[UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    //public static partial void il2cpp_profiler_set_events(IL2CPP_ProfileFlags events);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_profiler_install_enter_leave(nint enter, nint fleave);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_profiler_install_allocation(nint callback);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_profiler_install_gc(nint callback, nint heap_resize_callback);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_profiler_install_fileio(nint callback);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_profiler_install_thread(nint start, nint end);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_property_get_flags(nint prop);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_property_get_get_method(nint prop);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_property_get_set_method(nint prop);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
+    public static partial string il2cpp_property_get_name(nint prop);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_property_get_parent(nint prop);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_object_get_class(nint obj);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_object_get_size(nint obj);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_object_get_virtual_method(nint obj, nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_object_new(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_object_unbox(nint obj);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_value_box(nint klass, nint data);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_monitor_enter(nint obj);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_monitor_try_enter(nint obj, uint timeout);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_monitor_exit(nint obj);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_monitor_pulse(nint obj);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_monitor_pulse_all(nint obj);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_monitor_wait(nint obj);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_monitor_try_wait(nint obj, uint timeout);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_runtime_invoke(nint method, nint obj, void** param, ref nint exc);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    // param can be of Il2CppObject*
+    public static partial nint il2cpp_runtime_invoke_convert_args(nint method, nint obj, void** param, int paramCount, ref nint exc);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_runtime_class_init(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_runtime_object_init(nint obj);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_runtime_object_init_exception(nint obj, ref nint exc);
+
+    //[LibraryImport("GameAssembly")]
+    //[UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    //public static partial void il2cpp_runtime_unhandled_exception_policy_set(IL2CPP_RuntimeUnhandledExceptionPolicy value);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int il2cpp_string_length(nint str);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial char* il2cpp_string_chars(nint str);
+
+    [LibraryImport("GameAssembly", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(System.Runtime.InteropServices.Marshalling.AnsiStringMarshaller))]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_string_new(string str);
+
+    [LibraryImport("GameAssembly", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(System.Runtime.InteropServices.Marshalling.AnsiStringMarshaller))]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_string_new_len(string str, uint length);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_string_new_utf16(char* text, int len);
+
+    [LibraryImport("GameAssembly", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(System.Runtime.InteropServices.Marshalling.AnsiStringMarshaller))]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_string_new_wrapper(string str);
+
+    [LibraryImport("GameAssembly", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(System.Runtime.InteropServices.Marshalling.AnsiStringMarshaller))]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_string_intern(string str);
+
+    [LibraryImport("GameAssembly", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(System.Runtime.InteropServices.Marshalling.AnsiStringMarshaller))]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_string_is_interned(string str);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_thread_current();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_thread_attach(nint domain);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_thread_detach(nint thread);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void** il2cpp_thread_get_all_attached_threads(ref uint size);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_is_vm_thread(nint thread);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_current_thread_walk_frame_stack(nint func, nint user_data);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_thread_walk_frame_stack(nint thread, nint func, nint user_data);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_current_thread_get_top_frame(nint frame);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_thread_get_top_frame(nint thread, nint frame);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_current_thread_get_frame_at(int offset, nint frame);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_thread_get_frame_at(nint thread, int offset, nint frame);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int il2cpp_current_thread_get_stack_depth();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int il2cpp_thread_get_stack_depth(nint thread);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_type_get_object(nint type);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int il2cpp_type_get_type(nint type);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_type_get_class_or_element_class(nint type);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
+    public static partial string il2cpp_type_get_name(nint type);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_type_is_byref(nint type);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_type_get_attrs(nint type);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_type_equals(nint type, nint otherType);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_type_get_assembly_qualified_name(nint type);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_image_get_assembly(nint image);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
+    public static partial string il2cpp_image_get_name(nint image);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
+    public static partial string il2cpp_image_get_filename(nint image);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_image_get_entry_point(nint image);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial uint il2cpp_image_get_class_count(nint image);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_image_get_class(nint image, uint index);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_capture_memory_snapshot();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_free_captured_memory_snapshot(nint snapshot);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_set_find_plugin_callback(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_register_log_callback(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_debugger_set_agent_options(nint options);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_is_debugger_attached();
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_unity_install_unitytls_interface(void* unitytlsInterfaceStruct);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_custom_attrs_from_class(nint klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_custom_attrs_from_method(nint method);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_custom_attrs_get_attr(nint ainfo, nint attr_klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_custom_attrs_has_attr(nint ainfo, nint attr_klass);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_custom_attrs_construct(nint cinfo);
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void il2cpp_custom_attrs_free(nint ainfo);
+
+    [CustomMarshaller(typeof(string), MarshalMode.ManagedToUnmanagedOut, typeof(Il2CppStringMarshaller))]
+    private static class Il2CppStringMarshaller
+    {
+        public static string? ConvertToManaged(byte* unmanaged)
+            => Marshal.PtrToStringUTF8((nint)unmanaged);
+
+        public static void Free(byte* unmanaged)
+        {
+            // Intentionally empty, il2cpp owns this pointer
+            _ = unmanaged;
+        }
+    }
+}

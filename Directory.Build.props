@@ -5,17 +5,16 @@
     <PackageOutputPath>../bin/NuGet</PackageOutputPath>
     <OutputPath Condition="'$(Configuration)' == 'Release'">../bin/$(MSBuildProjectName)</OutputPath>
     <LangVersion>latest</LangVersion>
-    <Nullable>disable</Nullable>
+    <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <RootNamespace>Il2CppInterop</RootNamespace>
     <LangVersion>latest</LangVersion>
     <PackageIcon>logo_icon.png</PackageIcon>
     <PackageLicenseExpression>LGPL-3.0-only</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <DebugType>embedded</DebugType>
     <ImplicitUsings>enable</ImplicitUsings>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>

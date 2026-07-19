@@ -1,21 +1,13 @@
-﻿using Il2CppInterop.StructGenerator.CodeGen.Enums;
+﻿using System.CodeDom.Compiler;
 
 namespace Il2CppInterop.StructGenerator.CodeGen;
 
-internal class CodeGenParameter : CodeGenElement
+internal readonly record struct CodeGenParameter(string Type, string Name)
 {
-    private readonly string myMParameterType;
-
-    public CodeGenParameter(string parameterType, string name) : base(ElementProtection.Private, name)
+    public void Build(IndentedTextWriter writer)
     {
-        myMParameterType = parameterType;
-    }
-
-    public override byte IndentAmount { get; set; } = 1;
-    public override string Type => myMParameterType;
-
-    public override string Build()
-    {
-        return $"{myMParameterType} {Name}";
+        writer.Write(Type);
+        writer.Write(' ');
+        writer.Write(Name);
     }
 }

@@ -1,27 +1,26 @@
-﻿using System.Text;
-using Il2CppInterop.StructGenerator.CodeGen.Enums;
+﻿using System.CodeDom.Compiler;
 
 namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal class CodeGenField : CodeGenElement
 {
-    public CodeGenField(string type, ElementProtection protection, string name) : base(protection, name)
+    public CodeGenField(string type, ElementProtection? protection, string name) : base(protection, name)
     {
+        ArgumentException.ThrowIfNullOrEmpty(type);
         FieldType = type;
     }
 
-    public override byte IndentAmount { get; set; } = 1;
     public override string Type => FieldType;
 
     public string? DefaultValue { get; set; } = null;
     public string FieldType { get; set; }
 
-    public override string Build()
+    public override void Build(IndentedTextWriter writer)
     {
-        StringBuilder builder = new($"{base.Build()}");
-        if (DefaultValue != null) builder.Append($" = {DefaultValue}");
-        builder.Append(';');
-        return builder.ToString();
+        base.Build(writer);
+        if (DefaultValue != null)
+            writer.Write($" = {DefaultValue}");
+        writer.WriteLine(';');
     }
 
     public static bool operator !=(CodeGenField lhs, CodeGenField rhs)
@@ -36,7 +35,7 @@ internal class CodeGenField : CodeGenElement
         return lhs.DefaultValue == rhs.DefaultValue;
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is CodeGenField field && this == field;
     }

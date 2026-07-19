@@ -1,0 +1,17 @@
+namespace Il2CppInterop.Common;
+
+public readonly record struct ObjectPointer(IntPtr Value)
+{
+    public static explicit operator ObjectPointer(IntPtr value) => new(value);
+    public static explicit operator IntPtr(ObjectPointer value) => value.Value;
+
+    public static unsafe explicit operator ObjectPointer(void* value) => new((IntPtr)value);
+    public static unsafe explicit operator void*(ObjectPointer value) => (void*)value.Value;
+
+    public static ObjectPointer Null => new(IntPtr.Zero);
+
+    public static ObjectPointer New<T>() where T : IIl2CppType<T>
+    {
+        return (ObjectPointer)IL2CPP.il2cpp_object_new(Il2CppType.GetClassPointer<T>());
+    }
+}
