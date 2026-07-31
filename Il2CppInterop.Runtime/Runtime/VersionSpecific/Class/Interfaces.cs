@@ -31,6 +31,11 @@ public interface INativeClassStruct : INativeStruct
     bool Initialized { get; set; }
     bool InitializedAndNoError { get; set; }
     bool SizeInited { get; set; }
+    bool HasReferences
+    {
+        get => false;
+        set { }
+    }
     bool HasFinalize { get; set; }
     bool IsVtableInitialized { get; set; }
 
