@@ -1,6 +1,8 @@
 using AsmResolver.DotNet.Signatures;
+using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -39,7 +41,35 @@ public static class Pass11ComputeTypeSpecifics
                 return;
             }
 
-            var fieldTypeContext = typeContext.AssemblyContext.GlobalContext.GetNewTypeForOriginal(fieldType.Resolve()!);
+            // A field's type is not always resolvable, and even when it is, it
+            // may belong to an assembly that is not part of this rewrite (for
+            // example a type Cpp2IL referenced but did not emit). Both cases
+            // previously produced a null context that was dereferenced on the
+            // recursive call. Treat either as non-blittable, which is the safe
+            // direction: it only costs the slower marshalling path, whereas
+            // wrongly reporting blittable would corrupt memory at runtime.
+            var resolvedFieldType = fieldType.Resolve();
+            if (resolvedFieldType == null)
+            {
+                Logger.Instance.LogTrace(
+                    "Field {FieldType} {TypeName}.{FieldName} could not be resolved; treating the declaring type as non-blittable",
+                    fieldType.FullName, typeContext.OriginalType.FullName, originalField.Name?.ToString());
+
+                typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
+                return;
+            }
+
+            var fieldTypeContext = typeContext.AssemblyContext.GlobalContext.TryGetNewTypeForOriginal(resolvedFieldType);
+            if (fieldTypeContext == null)
+            {
+                Logger.Instance.LogTrace(
+                    "Field type {FieldType} of {TypeName}.{FieldName} is not part of this rewrite; treating the declaring type as non-blittable",
+                    resolvedFieldType.FullName, typeContext.OriginalType.FullName, originalField.Name?.ToString());
+
+                typeContext.ComputedTypeSpecifics = TypeRewriteContext.TypeSpecifics.NonBlittableStruct;
+                return;
+            }
+
             ComputeSpecifics(fieldTypeContext);
             if (fieldTypeContext.ComputedTypeSpecifics != TypeRewriteContext.TypeSpecifics.BlittableStruct)
             {

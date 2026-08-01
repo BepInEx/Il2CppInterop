@@ -131,11 +131,48 @@ public class AssemblyRewriteContext
             return sourceModule.DefaultImporter.ImportType(GlobalContext.GetAssemblyByName("mscorlib")
                 .GetTypeByName("System.Attribute").NewType).ToTypeSignature();
 
-        var originalTypeDef = typeRef.Resolve()!;
+        // Cpp2IL's dump can omit a type that another dumped assembly still
+        // references. Observed with the nested enum UnityEngine.Camera.GateFitMode,
+        // which Cinemachine references but which is absent from the dumped
+        // UnityEngine.CoreModule. Such a reference is genuinely unresolvable, so
+        // report it instead of dereferencing null and aborting generation with a
+        // bare NullReferenceException.
+        var originalTypeDef = typeRef.Resolve();
+        if (originalTypeDef == null)
+            throw new UnresolvedTypeReferenceException(typeRef);
+
         var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.DeclaringModule!.Assembly!);
         var target = targetAssembly.GetContextForOriginalType(originalTypeDef).NewType;
 
         return sourceModule.DefaultImporter.ImportType(target).ToTypeSignature();
+    }
+
+    /// <summary>
+    /// As <see cref="RewriteTypeRef" />, but returns null when the reference cannot
+    /// be resolved from the input assemblies rather than throwing. Callers can then
+    /// skip whatever they were generating for that reference.
+    /// </summary>
+    public TypeSignature? TryRewriteTypeRef(TypeSignature typeRef)
+    {
+        try
+        {
+            return RewriteTypeRef(typeRef);
+        }
+        catch (UnresolvedTypeReferenceException)
+        {
+            return null;
+        }
+    }
+
+    public sealed class UnresolvedTypeReferenceException : System.Exception
+    {
+        public UnresolvedTypeReferenceException(TypeSignature typeRef)
+            : base($"Could not resolve type reference '{typeRef.FullName}' from the input assemblies.")
+        {
+            TypeReference = typeRef;
+        }
+
+        public TypeSignature TypeReference { get; }
     }
 
     public TypeRewriteContext GetTypeByName(string name)
