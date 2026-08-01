@@ -1,8 +1,10 @@
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
+using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Contexts;
 using Il2CppInterop.Generator.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Generator.Passes;
 
@@ -22,7 +24,23 @@ public static class Pass40GenerateFieldAccessors
                     var field = fieldContext.OriginalField;
                     var unmangleFieldName = fieldContext.UnmangledName;
 
-                    var propertyType = assemblyContext.RewriteTypeRef(fieldContext.OriginalField.Signature!.FieldType);
+                    // Skip the accessor when the field's type cannot be resolved
+                    // from the input assemblies. Substituting a placeholder type
+                    // would risk a wrong-sized accessor reading the wrong memory,
+                    // so leaving the field inaccessible is the safe outcome.
+                    var propertyType =
+                        assemblyContext.TryRewriteTypeRef(fieldContext.OriginalField.Signature!.FieldType);
+
+                    if (propertyType == null)
+                    {
+                        Logger.Instance.LogWarning(
+                            "Skipped accessor for {TypeName}.{FieldName}: its type {FieldType} could not be resolved from the input assemblies, so the field will be inaccessible",
+                            typeContext.OriginalType.FullName, field.Name?.ToString(),
+                            fieldContext.OriginalField.Signature!.FieldType.FullName);
+
+                        continue;
+                    }
+
                     var signature = field.IsStatic
                         ? PropertySignature.CreateStatic(propertyType)
                         : PropertySignature.CreateInstance(propertyType);
