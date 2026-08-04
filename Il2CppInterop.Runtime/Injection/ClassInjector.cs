@@ -250,6 +250,7 @@ public static unsafe partial class ClassInjector
             .Where(IsFieldEligible)
             .ToArray();
         classPointer.FieldCount = (ushort)fieldsToInject.Length;
+        classPointer.HasReferences = baseClassPointer.HasReferences;
 
         var il2cppFields =
             (Il2CppFieldInfo*)Marshal.AllocHGlobal(classPointer.FieldCount * UnityVersionHandler.FieldInfoSize());
@@ -266,6 +267,9 @@ public static unsafe partial class ClassInjector
                 : fieldsToInject[i].FieldType.GenericTypeArguments[0];
             var fieldAttributes = fieldsToInject[i].Attributes;
             var fieldInfoClass = Il2CppClassPointerStore.GetNativeClassPointer(fieldType);
+            if (fieldInfoClass == IntPtr.Zero)
+                throw new Exception($"Type {fieldType} in {type}.{fieldsToInject[i].Name} doesn't exist in Il2Cpp");
+
             if (!_injectedFieldTypes.TryGetValue((fieldType, fieldAttributes), out var fieldTypePtr))
             {
                 var classType =
@@ -283,10 +287,11 @@ public static unsafe partial class ClassInjector
             }
 
             fieldInfo.Type = (Il2CppTypeStruct*)fieldTypePtr;
-            if (fieldInfoClass == IntPtr.Zero)
-                throw new Exception($"Type {fieldType} in {type}.{fieldsToInject[i].Name} doesn't exist in Il2Cpp");
+            var fieldIsValueType = IL2CPP.il2cpp_class_is_valuetype(fieldInfoClass);
+            classPointer.HasReferences |= !fieldIsValueType ||
+                                          IL2CPP.il2cpp_class_has_references(fieldInfoClass);
 
-            if (IL2CPP.il2cpp_class_is_valuetype(fieldInfoClass))
+            if (fieldIsValueType)
             {
                 uint _align = 0;
                 var fieldSize = IL2CPP.il2cpp_class_value_size(fieldInfoClass, ref _align);

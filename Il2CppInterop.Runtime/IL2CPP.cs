@@ -369,6 +369,27 @@ public static unsafe class IL2CPP
         *(IntPtr*)targetAddress = value;
     }
 
+    private static volatile bool s_fieldWriteWbarrierAvailable = true;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void FieldWriteWbarrier(IntPtr obj, IntPtr targetAddress, IntPtr value)
+    {
+        if (s_fieldWriteWbarrierAvailable)
+        {
+            try
+            {
+                il2cpp_gc_wbarrier_set_field(obj, targetAddress, value);
+                return;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                s_fieldWriteWbarrierAvailable = false;
+            }
+        }
+
+        FieldWriteWbarrierStub(obj, targetAddress, value);
+    }
+
     // IL2CPP Functions
     [DllImport("GameAssembly", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern void il2cpp_init(IntPtr domain_name);

@@ -30,7 +30,9 @@ public unsafe class Il2CppStringField
 
     public void Set(string value)
     {
-        *GetPointerToData() = IL2CPP.ManagedStringToIl2Cpp(value);
+        var targetAddress = (IntPtr)GetPointerToData();
+        IL2CPP.FieldWriteWbarrier(_obj.Pointer, targetAddress,
+            IL2CPP.ManagedStringToIl2Cpp(value));
     }
 
     public static implicit operator string(Il2CppStringField _this)
