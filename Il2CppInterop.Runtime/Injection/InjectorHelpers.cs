@@ -150,6 +150,13 @@ namespace Il2CppInterop.Runtime.Injection
         {
             new MemoryUtils.SignatureDefinition
             {
+                // Unity 2022.3 x64 - call to Class::Init from il2cpp_class_has_references
+                pattern = "\xE8\x00\x00\x00\x00\xF6\x83\x36\x01\x00\x00\x01\x74\x00\x0F\xB6\x83\x35\x01\x00\x00",
+                mask = "x????xxxxxxxx?xxxxxxx",
+                xref = true
+            },
+            new MemoryUtils.SignatureDefinition
+            {
                 pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x28\x83",
                 mask = "x????xxxxx",
                 xref = true
