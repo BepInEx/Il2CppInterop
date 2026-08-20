@@ -100,6 +100,31 @@ internal class MemoryUtils
         return regions;
     }
 
+    /// <summary>
+    /// Whether <paramref name="address"/> sits in committed memory that is both writable and executable.
+    /// Compilers never emit ordinary function entries into such memory - PE code sections map read+execute -
+    /// so a hit here means the address belongs to a packer/obfuscator stub region instead. Returns false when
+    /// the answer cannot be established (non-Windows, or <c>VirtualQuery</c> failure), leaving callers on
+    /// their previous behaviour rather than skipping work on a guess.
+    /// </summary>
+    internal static unsafe bool IsWritableExecutable(nint address)
+    {
+        if (!OperatingSystem.IsWindowsVersionAtLeast(6, 1))
+            return false;
+
+        MEMORY_BASIC_INFORMATION memoryInfo = default;
+        if (Windows.VirtualQuery((void*)address, &memoryInfo, (nuint)sizeof(MEMORY_BASIC_INFORMATION)) == 0)
+            return false;
+
+        if (memoryInfo.State != MEM.MEM_COMMIT)
+            return false;
+
+        // The two protections that grant write and execute at once. PAGE_EXECUTE_WRITECOPY counts: the page
+        // becomes privately writable on first write while staying executable.
+        const uint pageWritableExecutable = PAGE.PAGE_EXECUTE_READWRITE | PAGE.PAGE_EXECUTE_WRITECOPY;
+        return (memoryInfo.Protect & pageWritableExecutable) != 0;
+    }
+
     public struct SignatureDefinition
     {
         public string pattern;

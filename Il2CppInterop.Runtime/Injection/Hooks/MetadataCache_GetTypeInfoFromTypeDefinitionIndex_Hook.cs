@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
@@ -75,8 +75,8 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 else getTypeInfoFromTypeDefinitionIndex = imageGetTypeXrefs[0];
                 if ((getTypeInfoFromTypeDefinitionIndex.ToInt64() & 0xF) != 0)
                 {
-                    Logger.Instance.LogTrace("Image::GetType xref wasn't aligned, attempting to resolve from icall");
-                    return FindGetTypeInfoFromTypeDefinitionIndex(true);
+                    Logger.Instance.LogTrace("Image::GetType xref wasn't aligned, GetTypeInfoFromTypeDefinitionIndex is likely inlined into Image::GetType");
+                    getTypeInfoFromTypeDefinitionIndex = imageGetType;
                 }
                 if (imageGetTypeXrefs.Count() > 1 && UnityVersionHandler.IsMetadataV29OrHigher)
                 {
