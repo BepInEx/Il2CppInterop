@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
@@ -16,6 +17,12 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
     {
         public override string TargetMethodName => "Class::GetDefaultFieldValue";
         public override MethodDelegate GetDetour() => Hook;
+
+        public override void TargetMethodNotFound()
+        {
+            Logger.Instance.LogWarning(
+                "Class::GetDefaultFieldValue was not a 16-byte-aligned function entry; skipping this hook. Injected enum defaults may be unavailable.");
+        }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate byte* MethodDelegate(Il2CppFieldInfo* field, out Il2CppTypeStruct* type);
@@ -104,7 +111,9 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 var fieldGetValueObjectForThread = XrefScannerLowLevel.JumpTargets(fieldGetValueObject).Last();
                 Logger.Instance.LogTrace("Field::GetValueObjectForThread: 0x{FieldGetValueObjectForThreadAddress}", fieldGetValueObjectForThread.ToInt64().ToString("X2"));
 
-                classGetDefaultFieldValue = XrefScannerLowLevel.JumpTargets(fieldGetValueObjectForThread).ElementAt(2);
+                var icallTargets = XrefScannerLowLevel.JumpTargets(fieldGetValueObjectForThread).ToArray();
+                nint icallPreferred = icallTargets.Length > 2 ? icallTargets[2] : 0;
+                classGetDefaultFieldValue = PreferFunctionEntry(icallPreferred, icallTargets);
             }
             else
             {
@@ -121,7 +130,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 // This optimization also causes Field::StaticGetValueInternal method to be located right under Field::StaticGetValue method
                 // Example: https://discord.com/channels/623153565053222947/754333645199900723/1104817647171932283
                 if (getStaticFieldValueTargets.Count > 4)
-                    return getStaticFieldValueTargets[^2];
+                    return PreferFunctionEntry(getStaticFieldValueTargets[^2], getStaticFieldValueTargets);
 
                 var getStaticFieldValueInternal = getStaticFieldValueTargets[^1];
                 Logger.Instance.LogTrace("Field::StaticGetValueInternal: 0x{GetStaticFieldValueInternalAddress}", getStaticFieldValueInternal.ToInt64().ToString("X2"));
@@ -130,9 +139,50 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
                 if (getStaticFieldValueInternalTargets.Length == 0) return FindClassGetFieldDefaultValueXref(true);
 
-                classGetDefaultFieldValue = getStaticFieldValueInternalTargets.Length == 3 ? getStaticFieldValueInternalTargets.Last() : getStaticFieldValueInternalTargets.First();
+                nint preferred = getStaticFieldValueInternalTargets.Length == 3
+                    ? getStaticFieldValueInternalTargets.Last()
+                    : getStaticFieldValueInternalTargets.First();
+                classGetDefaultFieldValue = PreferFunctionEntry(preferred, getStaticFieldValueInternalTargets);
             }
             return classGetDefaultFieldValue;
+        }
+
+        /// <summary>
+        /// Xref walks can yield a jmp into an epilogue (unaligned interior address). Same rule as
+        /// MetadataCache::GetTypeInfoFromTypeDefinitionIndex: only hook a 16-byte-aligned entry.
+        /// Follow jmp-rel32 thunks first so export stubs are not treated as the target.
+        /// </summary>
+        private static nint PreferFunctionEntry(nint preferred, IList<nint> candidates)
+        {
+            nint hit = AsFunctionEntry(preferred);
+            if (hit != 0) return hit;
+            if (candidates == null) return 0;
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                hit = AsFunctionEntry(candidates[i]);
+                if (hit != 0) return hit;
+            }
+            return 0;
+        }
+
+        private static nint AsFunctionEntry(nint ptr)
+        {
+            ptr = FollowRel32Thunks(ptr);
+            if (ptr == 0) return 0;
+            if ((ptr.ToInt64() & 0xF) != 0) return 0;
+            return ptr;
+        }
+
+        private static unsafe nint FollowRel32Thunks(nint ptr)
+        {
+            if (ptr == 0) return 0;
+            byte* fn = (byte*)ptr;
+            for (int hops = 0; hops < 8; hops++)
+            {
+                if (fn[0] != 0xE9) break;
+                fn = fn + 5 + *(int*)(fn + 1);
+            }
+            return (nint)fn;
         }
 
         public override IntPtr FindTargetMethod()
