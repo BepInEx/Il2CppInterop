@@ -169,7 +169,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
         {
             ptr = FollowRel32Thunks(ptr);
             if (ptr == 0) return 0;
-            if ((ptr.ToInt64() & 0xF) != 0) return 0;
+            if ((ptr & 0xF) != 0) return 0;
             return ptr;
         }
 
