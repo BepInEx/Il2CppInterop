@@ -148,6 +148,9 @@ public class Il2CppObjectBase
 
     public T? TryCast<T>() where T : Il2CppObjectBase
     {
+        if (WasCollected)
+            return null;
+
         var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
         if (nestedTypeClassPointer == IntPtr.Zero)
             throw new ArgumentException($"{typeof(T)} is not an Il2Cpp reference type");
