@@ -156,12 +156,7 @@ public class Il2CppObjectBase
         if (!IL2CPP.il2cpp_class_is_assignable_from(nestedTypeClassPointer, ownClass))
             return null;
 
-        if (RuntimeSpecificsStore.IsInjected(ownClass))
-        {
-            if (ClassInjectorBase.GetMonoObjectFromIl2CppPointer(Pointer) is T monoObject) return monoObject;
-        }
-
-        return InitializerStore<T>.Initializer(Pointer);
+        return Il2CppObjectPool.Get<T>(Pointer);
     }
 
     ~Il2CppObjectBase()
