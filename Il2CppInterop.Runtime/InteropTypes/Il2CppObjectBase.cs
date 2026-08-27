@@ -148,6 +148,9 @@ public class Il2CppObjectBase
 
     public T? TryCast<T>() where T : Il2CppObjectBase
     {
+        if (WasCollected)
+            return null;
+
         var nestedTypeClassPointer = Il2CppClassPointerStore<T>.NativeClassPtr;
         if (nestedTypeClassPointer == IntPtr.Zero)
             throw new ArgumentException($"{typeof(T)} is not an Il2Cpp reference type");
@@ -156,12 +159,7 @@ public class Il2CppObjectBase
         if (!IL2CPP.il2cpp_class_is_assignable_from(nestedTypeClassPointer, ownClass))
             return null;
 
-        if (RuntimeSpecificsStore.IsInjected(ownClass))
-        {
-            if (ClassInjectorBase.GetMonoObjectFromIl2CppPointer(Pointer) is T monoObject) return monoObject;
-        }
-
-        return InitializerStore<T>.Initializer(Pointer);
+        return Il2CppObjectPool.Get<T>(Pointer);
     }
 
     ~Il2CppObjectBase()
