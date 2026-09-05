@@ -191,6 +191,13 @@ namespace Il2CppInterop.Runtime.Injection
 
             if (pClassInit == 0)
             {
+                pClassInit = FindClassInitViaApiXref();
+                if (pClassInit != 0)
+                    Logger.Instance.LogInformation($"Class::Init resolved via il2cpp API xref: 0x{(long)pClassInit:X}");
+            }
+
+            if (pClassInit == 0)
+            {
                 Logger.Instance.LogWarning("Class::Init signatures have been exhausted, using a substitute!");
                 pClassInit = GetClassInitSubstitute();
             }
@@ -198,6 +205,61 @@ namespace Il2CppInterop.Runtime.Injection
             Logger.Instance.LogTrace("Class::Init: 0x{PClassInitAddress}", pClassInit.ToString("X2"));
 
             return Marshal.GetDelegateForFunctionPointer<d_ClassInit>(pClassInit);
+        }
+
+        /// <summary>
+        /// Version-independent Class::Init discovery: the il2cpp API exports il2cpp_class_instance_size,
+        /// il2cpp_class_value_size and il2cpp_class_num_fields each start with a near call (E8) to
+        /// Class::Init per the il2cpp sources (NULL_CHECK then Class::Init). Resolve the first call target
+        /// in each export and require consensus between them, so a compiler change on a new Unity version
+        /// cannot silently redirect us to the wrong function.
+        /// </summary>
+        private static nint FindClassInitViaApiXref()
+        {
+            var votes = new Dictionary<nint, int>();
+            foreach (var export in new[] { "il2cpp_class_instance_size", "il2cpp_class_value_size", "il2cpp_class_num_fields", "il2cpp_class_is_interface", "il2cpp_class_is_blittable", "il2cpp_class_has_references" })
+            {
+                if (!TryGetIl2CppExport(export, out var fn) || fn == IntPtr.Zero)
+                    continue;
+                try
+                {
+                    unsafe
+                    {
+                        var code = (byte*)fn;
+                        nint target = 0;
+                        for (var i = 0; i < 320; i++)
+                        {
+                            if (code[i] != 0xE8)
+                                continue;
+                            var rel = *(int*)(code + i + 1);
+                            var candidate = fn + i + 5 + rel;
+                            // reject implausible targets: the first E8 of an export can sit in a cold
+                            // NULL_CHECK raise path with a garbage relative displacement; a real call
+                            // target always lands inside the loaded module image.
+                            var candidateValue = (long)candidate;
+                            var moduleBase = (long)Il2CppModule.BaseAddress;
+                            if (candidateValue > moduleBase && candidateValue < moduleBase + Il2CppModule.ModuleMemorySize)
+                                target = candidate;
+                            break;
+                        }
+                        if (target == 0)
+                        {
+                            Logger.Instance.LogTrace($"Class::Init xref: no plausible call found in {export}");
+                            continue;
+                        }
+                        Logger.Instance.LogTrace($"Class::Init xref: {export} -> 0x{(long)target:X}");
+                        votes[target] = votes.GetValueOrDefault(target) + 1;
+                    }
+                }
+                catch
+                {
+                    // ignore and let the remaining exports vote
+                }
+            }
+            var best = votes.FirstOrDefault(v => v.Value >= 2);
+            if (best.Key != 0)
+                Logger.Instance.LogInformation($"Class::Init xref consensus: 0x{(long)best.Key:X} ({best.Value} votes)");
+            return best.Key;
         }
         #endregion
     }
