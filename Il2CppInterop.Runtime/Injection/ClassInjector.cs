@@ -516,7 +516,12 @@ public static unsafe partial class ClassInjector
         classPointer.TypeHierarchyDepth = (byte)TypeHierarchyDepth;
         classPointer.TypeHierarchy = (Il2CppClass**)Marshal.AllocHGlobal(TypeHierarchyDepth * IntPtr.Size);
         for (var i = 0; i < TypeHierarchyDepth; i++)
-            classPointer.TypeHierarchy[i] = baseClassPointer.TypeHierarchy[i];
+            classPointer.TypeHierarchy[i] = null;
+        // Unity 6000.5: System.Object has TypeHierarchyDepth == 1 but a NULL typeHierarchy array
+        // (it is the hierarchy root), so guard the copy and never read past the base array.
+        var baseHierarchy = baseClassPointer.TypeHierarchy;
+        for (var i = 0; baseHierarchy != null && i < TypeHierarchyDepth - 1; i++)
+            classPointer.TypeHierarchy[i] = baseHierarchy[i];
         classPointer.TypeHierarchy[TypeHierarchyDepth - 1] = classPointer.ClassPointer;
 
         classPointer.ByValArg.Data =
