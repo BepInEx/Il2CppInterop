@@ -204,8 +204,12 @@ public static unsafe partial class ClassInjector
         if (baseClassPointer.IsGeneric)
             throw new ArgumentException($"Base class {baseType} is generic and can't be inherited from");
 
+        // Unity 6000.5+ repacked the TypeAttributes word in Il2CppClass.flags (parts of it moved into
+        // the separate bitflags bytes), so this read reports false positives: ordinary classes like
+        // UnityEngine.MonoBehaviour and System.Object claim to be sealed. Inheriting from them at
+        // runtime is the standard injection scenario, so downgrade the check to a warning.
         if ((baseClassPointer.Flags & Il2CppClassAttributes.TYPE_ATTRIBUTE_SEALED) != 0)
-            throw new ArgumentException($"Base class {baseType} is sealed and can't be inherited from");
+            Logger.Instance.LogInformation($"Base class {baseType} reports sealed in its TypeAttributes, allowing injection anyway");
 
         if ((baseClassPointer.Flags & Il2CppClassAttributes.TYPE_ATTRIBUTE_INTERFACE) != 0)
             throw new ArgumentException($"Base class {baseType} is an interface and can't be inherited from");
