@@ -6,6 +6,7 @@ public static class XrefScannerLowLevel
 {
     public static IEnumerable<IntPtr> JumpTargets(IntPtr codeStart, bool ignoreRetn = false)
     {
+        XrefScanner.EnsureNativeCodeArchitectureSupported();
         return JumpTargetsImpl(XrefScanner.DecoderForAddress(codeStart), ignoreRetn);
     }
 
@@ -45,6 +46,7 @@ public static class XrefScannerLowLevel
 
     public static IEnumerable<IntPtr> CallAndIndirectTargets(IntPtr pointer)
     {
+        XrefScanner.EnsureNativeCodeArchitectureSupported();
         return CallAndIndirectTargetsImpl(XrefScanner.DecoderForAddress(pointer, 1024 * 1024));
     }
 

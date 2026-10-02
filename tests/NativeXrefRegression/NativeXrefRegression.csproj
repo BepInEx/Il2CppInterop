@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <InteropRoot Condition="'$(InteropRoot)' == ''">../..</InteropRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="class-init-fixture.cs" />
+    <ProjectReference Include="$(InteropRoot)/Il2CppInterop.Common/Il2CppInterop.Common.csproj" />
+  </ItemGroup>
+</Project>

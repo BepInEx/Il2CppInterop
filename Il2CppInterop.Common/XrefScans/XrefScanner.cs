@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Iced.Intel;
 using Il2CppInterop.Common.Attributes;
 using Microsoft.Extensions.Logging;
@@ -25,6 +26,7 @@ public static class XrefScanner
 
         if (cachedAttribute == null)
         {
+            EnsureNativeCodeArchitectureSupported();
             XrefScanUtil.CallMetadataInitForMethod(methodBase);
 
             return XrefScanImpl(DecoderForAddress(*(IntPtr*)(IntPtr)fieldValue));
@@ -46,6 +48,17 @@ public static class XrefScanner
             return Enumerable.Empty<XrefInstance>();
 
         return XrefScanMethodDb.ListUsers(cachedAttribute);
+    }
+
+    // Runtime entry points scan code from this process. The generator calls
+    // DecoderForAddress separately for an explicitly selected input image.
+    internal static void EnsureNativeCodeArchitectureSupported()
+    {
+        var architecture = RuntimeInformation.ProcessArchitecture;
+        if (architecture != Architecture.X86 && architecture != Architecture.X64)
+            throw new PlatformNotSupportedException(
+                $"Uncached native cross-reference scanning is not supported on {architecture}. " +
+                "The built-in decoder only supports x86/x64 code.");
     }
 
     internal static unsafe Decoder DecoderForAddress(IntPtr codeStart, int lengthLimit = 1000)

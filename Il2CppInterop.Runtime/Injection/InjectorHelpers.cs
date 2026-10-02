@@ -185,9 +185,11 @@ namespace Il2CppInterop.Runtime.Injection
                 Logger.Instance.LogTrace("GameAssembly.dll: 0x{Il2CppModuleAddress}", Il2CppModule.BaseAddress.ToInt64().ToString("X2"));
                 throw new NotSupportedException("Failed to use signature for Class::Init and a substitute cannot be found, please create an issue and report your unity version & game");
             }
-            nint pClassInit = s_ClassInitSignatures
-                .Select(s => MemoryUtils.FindSignatureInModule(Il2CppModule, s))
-                .FirstOrDefault(p => p != 0);
+            // These signatures describe x86 instructions. Never match them against ARM code.
+            nint pClassInit = RuntimeInformation.ProcessArchitecture is Architecture.X86 or Architecture.X64
+                ? s_ClassInitSignatures.Select(s => MemoryUtils.FindSignatureInModule(Il2CppModule, s))
+                    .FirstOrDefault(p => p != 0)
+                : 0;
 
             if (pClassInit == 0)
             {
