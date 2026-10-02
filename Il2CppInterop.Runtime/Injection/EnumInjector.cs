@@ -114,9 +114,15 @@ public static unsafe class EnumInjector
         };
     }
 
+    private static bool UsesCompressedEnumInt32 =>
+        EnumDefaultValueCodec.UsesCompressedInt32(Startup.Il2CppInteropRuntime.Instance.UnityVersion);
+
     private static IntPtr AllocateNewDefaultValueBlob(Il2CppTypeEnum type)
     {
-        var size = GetEnumElementSize(type);
+        var size = UsesCompressedEnumInt32 &&
+                   (type == Il2CppTypeEnum.IL2CPP_TYPE_I4 || type == Il2CppTypeEnum.IL2CPP_TYPE_U4)
+            ? EnumDefaultValueCodec.CompressedInt32Size
+            : GetEnumElementSize(type);
         var blob = Marshal.AllocHGlobal(size);
         Logger.Instance.LogTrace("Allocated default value blob at 0x{Blob} of {Size} for {Type}", blob.ToInt64().ToString("X2"), size, type);
         return blob;
@@ -138,6 +144,16 @@ public static unsafe class EnumInjector
 
     private static void SetFieldDefaultValue(IntPtr blob, Il2CppTypeEnum type, object value)
     {
+        if (UsesCompressedEnumInt32 &&
+            (type == Il2CppTypeEnum.IL2CPP_TYPE_I4 || type == Il2CppTypeEnum.IL2CPP_TYPE_U4))
+        {
+            if (type == Il2CppTypeEnum.IL2CPP_TYPE_I4)
+                EnumDefaultValueCodec.WriteCompressedInt32((byte*)blob, Convert.ToInt32(value));
+            else
+                EnumDefaultValueCodec.WriteCompressedUInt32((byte*)blob, Convert.ToUInt32(value));
+            return;
+        }
+
         var valueData = Convert.ToInt64(value);
         switch (type)
         {
