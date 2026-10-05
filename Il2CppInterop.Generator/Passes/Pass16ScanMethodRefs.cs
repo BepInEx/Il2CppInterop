@@ -34,8 +34,17 @@ public static class Pass16ScanMethodRefs
             gameAssemblyPtr = (nint)fileStartPtr;
         }
 
+        // Method file offsets are relative to the x86-64 image, which is a slice of the file in a universal Mach-O binary
+        var gameAssemblyLength = accessor.Capacity;
+        if (MachOUniversalBinary.TryGetSlice(gameAssemblyPtr, gameAssemblyLength, MachOUniversalBinary.CpuTypeX86_64,
+                out var sliceOffset, out var sliceSize))
+        {
+            gameAssemblyPtr += (nint)sliceOffset;
+            gameAssemblyLength = sliceSize;
+        }
+
         context.HasGcWbarrierFieldWrite =
-            FindByteSequence(gameAssemblyPtr, accessor.Capacity, "il2cpp_gc_wbarrier_set_field");
+            FindByteSequence(gameAssemblyPtr, gameAssemblyLength, "il2cpp_gc_wbarrier_set_field");
 
         if (!Pass15GenerateMemberContexts.HasObfuscatedMethods) return;
 
