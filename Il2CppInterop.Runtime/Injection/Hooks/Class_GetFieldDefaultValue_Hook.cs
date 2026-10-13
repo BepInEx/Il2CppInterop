@@ -78,6 +78,14 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 pattern = "\x40\x53\x48\x83\xEC\x20\x48\x8B\xDA\xE8\xCC\xCC\xCC\xCC\x4C",
                 mask = "xxxxxxxxxx????x",
                 xref = false
+            },
+            // Deep Dish Dungeon Demo - Unity 6000.3.20 (x64)
+            new MemoryUtils.SignatureDefinition
+            {
+                pattern = "\x48\x89\x5C\x24\x08\x57\x48\x81\xEC\x00\x00\x00\x00\x48\x8B\x41\x10\x48\x8B\xD9\x48\x8B\xFA\x48\x2B\x98",
+                // mask the stack allocation length
+                mask = "xxxxxxxxx????xxxxxxxxxxxxx",
+                xref = false
             }
         };
 
@@ -122,6 +130,16 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 // Example: https://discord.com/channels/623153565053222947/754333645199900723/1104817647171932283
                 if (getStaticFieldValueTargets.Count > 4)
                     return getStaticFieldValueTargets[^2];
+
+                // On Unity 6000.3+ Field::GetDefaultFieldValue is inlined into Field::StaticGetValue, so the code before the first
+                // 'retn' is only the literal field path: Class::GetDefaultFieldValue followed by BlobReader::GetConstantValueFromBlob.
+                // Treating the last target as Field::StaticGetValueInternal would hook the middle of the blob reader instead.
+                var unityVersion = Il2CppInteropRuntime.Instance.UnityVersion;
+                if (getStaticFieldValueTargets.Count == 2 && (unityVersion.Major > 6000 || (unityVersion.Major == 6000 && unityVersion.Minor >= 3)))
+                {
+                    Logger.Instance.LogTrace("Field::GetDefaultFieldValue is inlined into Field::StaticGetValue");
+                    return getStaticFieldValueTargets[0];
+                }
 
                 var getStaticFieldValueInternal = getStaticFieldValueTargets[^1];
                 Logger.Instance.LogTrace("Field::StaticGetValueInternal: 0x{GetStaticFieldValueInternalAddress}", getStaticFieldValueInternal.ToInt64().ToString("X2"));
