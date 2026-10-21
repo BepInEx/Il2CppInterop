@@ -3,12 +3,15 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
 {
-    // Unity 6000.5.10f1 (IL2CPP metadata v107) restructured Il2CppClass:
-    //  * an extra 8-byte field sits between rgctx_data and typeHierarchy (purpose unknown, observed null),
-    //  * a naturalAligment byte was added to the tail,
+    // Unity 6000.5 (IL2CPP metadata v107) restructured Il2CppClass:
+    //  * methods/implementedInterfaces/interfaceOffsets/static_fields/rgctx_data/typeHierarchy moved ahead of
+    //    the lazily created events/properties/nestedTypes pointers,
+    //  * genericContainerHandle moved in after cctor_thread,
     //  * stack_slot_size is still present (unlike the layout table Il2CppDumper emits for this version).
-    // Offsets verified empirically against GameAssembly.dll built with Unity 6000.5.10f1
-    // (name@16, byval_arg@32, klass@120, typeHierarchy@208, instance_size@248, flags@280, vtable@312).
+    // Offsets measured at runtime against a Unity 6000.5.3f1 GameAssembly.dll by matching the il2cpp API
+    // (il2cpp_class_get_methods/get_interfaces) against raw class memory for System.Object, System.String,
+    // IEnumerator and UnityEngine.MonoBehaviour (methods@136, implementedInterfaces@144, interfaceOffsets@152,
+    // typeHierarchy@176, unity_user_data@208, instance_size@248, flags@280, bitfields@309, vtable@312).
     [ApplicableToUnityVersionsSince("6000.5.0")]
     public unsafe class NativeClassStructHandler_6000_5 : INativeClassStructHandler
     {
@@ -42,21 +45,21 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             public void* interopData;                                   // 112
             public Il2CppClass* klass;                                  // 120
             public Il2CppFieldInfo* fields;                             // 128
-            public Il2CppEventInfo* events;                             // 136
-            public Il2CppPropertyInfo* properties;                      // 144
-            public Il2CppMethodInfo** methods;                          // 152
-            public Il2CppClass** nestedTypes;                           // 160
-            public Il2CppClass** implementedInterfaces;                 // 168
-            public Il2CppRuntimeInterfaceOffsetPair* interfaceOffsets;  // 176
-            public void* static_fields;                                 // 184
-            public void* rgctx_data;                                    // 192
-            public void* unknown_200;                                   // 200 (observed null)
-            public Il2CppClass** typeHierarchy;                         // 208
-            public void* unity_user_data;                               // 216
-            public Il2CppGCHandle initializationExceptionGCHandle;      // 224
-            public uint cctor_started;                                  // 228
-            public uint cctor_finished_or_no_cctor;                     // 232
-            public IntPtr cctor_thread;                                 // 240 (4 bytes padding at 236)
+            public Il2CppMethodInfo** methods;                          // 136
+            public Il2CppClass** implementedInterfaces;                 // 144
+            public Il2CppRuntimeInterfaceOffsetPair* interfaceOffsets;  // 152
+            public void* static_fields;                                 // 160
+            public void* rgctx_data;                                    // 168
+            public Il2CppClass** typeHierarchy;                         // 176
+            public Il2CppEventInfo* events;                             // 184 (lazily created)
+            public Il2CppPropertyInfo* properties;                      // 192 (lazily created)
+            public Il2CppClass** nestedTypes;                           // 200 (lazily created)
+            public void* unity_user_data;                               // 208
+            public Il2CppGCHandle initializationExceptionGCHandle;      // 216
+            public uint cctor_started;                                  // 224
+            public uint cctor_finished_or_no_cctor;                     // 228
+            public IntPtr cctor_thread;                                 // 232
+            public void* genericContainerHandle;                        // 240
             public uint instance_size;                                  // 248
             public uint stack_slot_size;                                // 252
             public uint actualSize;                                     // 256
@@ -79,10 +82,10 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             public byte genericRecursionDepth;                          // 305
             public byte rank;                                           // 306
             public byte minimumAlignment;                               // 307
-            public byte naturalAligment;                                // 308
-            public byte packingSize;                                    // 309
-            public byte _bitfield0;                                     // 310 (initialized group)
-            public byte _bitfield1;                                     // 311
+            public byte packingSize;                                    // 308
+            public byte _bitfield0;                                     // 309 (initialized group)
+            public byte _bitfield1;                                     // 310
+            public byte _bitfield2;                                     // 311 (is_byref_like, has_inline_array)
             internal enum Bitfield0 : byte
             {
                 BIT_initialized_and_no_error = 0,

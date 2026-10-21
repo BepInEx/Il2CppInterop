@@ -517,8 +517,8 @@ public static unsafe partial class ClassInjector
         classPointer.TypeHierarchy = (Il2CppClass**)Marshal.AllocHGlobal(TypeHierarchyDepth * IntPtr.Size);
         for (var i = 0; i < TypeHierarchyDepth; i++)
             classPointer.TypeHierarchy[i] = null;
-        // Unity 6000.5: System.Object has TypeHierarchyDepth == 1 but a NULL typeHierarchy array
-        // (it is the hierarchy root), so guard the copy and never read past the base array.
+        // Guard against a base class whose typeHierarchy array hasn't been set up yet,
+        // and never read past the base array.
         var baseHierarchy = baseClassPointer.TypeHierarchy;
         for (var i = 0; baseHierarchy != null && i < TypeHierarchyDepth - 1; i++)
             classPointer.TypeHierarchy[i] = baseHierarchy[i];
@@ -1142,7 +1142,8 @@ public static unsafe partial class ClassInjector
         fullName.Append(string.Join("+", names));
 
         var assemblyName = Marshal.PtrToStringUTF8(assembly.Name.Name);
-        if (assemblyName != "mscorlib")
+        // Unity 6000.5+ names the il2cpp corlib System.Private.CoreLib, but it is still generated as Il2Cppmscorlib
+        if (assemblyName != "mscorlib" && assemblyName != "System.Private.CoreLib")
         {
             fullName.Append(", ");
             fullName.Append(assemblyName);
