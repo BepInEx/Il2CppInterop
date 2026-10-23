@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Iced.Intel;
 using Il2CppInterop.Common;
 using Il2CppInterop.Common.Extensions;
 using Il2CppInterop.Common.XrefScans;
@@ -130,9 +131,64 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
                 if (getStaticFieldValueInternalTargets.Length == 0) return FindClassGetFieldDefaultValueXref(true);
 
+                // Clang lays the literal-field branch out as Class::GetDefaultFieldValue(field, &type) followed by
+                // BlobReader::GetConstantValueFromBlob, so the position-based choice below picks the wrong call.
+                // The call that receives the address of a stack slot (the 'type' out parameter) is the one we want.
+                if (!OperatingSystem.IsWindows())
+                {
+                    var callWithOutArgument = FindCallWithStackAddressInSecondArgument(getStaticFieldValueInternal);
+                    if (callWithOutArgument != 0)
+                        return callWithOutArgument;
+                }
+
                 classGetDefaultFieldValue = getStaticFieldValueInternalTargets.Length == 3 ? getStaticFieldValueInternalTargets.Last() : getStaticFieldValueInternalTargets.First();
             }
             return classGetDefaultFieldValue;
+        }
+
+        /// <summary>
+        /// The target of the only direct call in <paramref name="function"/> (up to its first return) whose second
+        /// System V argument (rsi) was just set to the address of a stack slot (lea or mov from rsp/rbp); 0 if there is none or more than one.
+        /// </summary>
+        private static nint FindCallWithStackAddressInSecondArgument(nint function)
+        {
+            var decoder = XrefScanner.DecoderForAddress(function);
+            nint found = 0;
+            var secondArgumentIsStackAddress = false;
+            while (true)
+            {
+                decoder.Decode(out var instruction);
+                if (decoder.LastError == DecoderError.NoMoreBytes || instruction.Mnemonic == Mnemonic.Int3 ||
+                    instruction.FlowControl == FlowControl.Return)
+                    break;
+
+                if (instruction.FlowControl == FlowControl.Call)
+                {
+                    if (secondArgumentIsStackAddress && instruction.Op0Kind is OpKind.NearBranch32 or OpKind.NearBranch64)
+                    {
+                        if (found != 0)
+                            return 0;
+                        found = (nint)instruction.NearBranchTarget;
+                    }
+                    secondArgumentIsStackAddress = false;
+                }
+                else if (instruction.Mnemonic == Mnemonic.Lea && instruction.Op0Register == Register.RSI)
+                {
+                    secondArgumentIsStackAddress = instruction.MemoryBase is Register.RSP or Register.RBP;
+                }
+                else if (instruction.Mnemonic == Mnemonic.Mov && instruction.Op0Register == Register.RSI &&
+                         instruction.Op1Kind == OpKind.Register && instruction.Op1Register is Register.RSP or Register.RBP)
+                {
+                    // Some clang builds (seen on Linux, Unity 6000.0) pass the address of the slot at [rsp] as "mov rsi, rsp".
+                    secondArgumentIsStackAddress = true;
+                }
+                else if (instruction.FlowControl != FlowControl.Next ||
+                         (instruction.Op0Kind == OpKind.Register && instruction.Op0Register.GetFullRegister() == Register.RSI))
+                {
+                    secondArgumentIsStackAddress = false;
+                }
+            }
+            return found;
         }
 
         public override IntPtr FindTargetMethod()
