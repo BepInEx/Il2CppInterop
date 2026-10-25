@@ -1,95 +1,60 @@
 ﻿using System.Text.RegularExpressions;
+using AssetRipper.Primitives;
 using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
-using Il2CppInterop.StructGenerator.Resources;
-using Il2CppInterop.StructGenerator.Utilities;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.StructGenerator;
 
-public record Il2CppStructWrapperGeneratorOptions(
-    string HeadersDirectory,
-    string OutputDirectory,
-    ILogger? Logger
-);
-
-// TODO: Instead expose as source generator (might not be viable since clang is platform-dependent)
-public static class Il2CppStructWrapperGenerator
+public static partial class Il2CppStructWrapperGenerator
 {
-    private static readonly Dictionary<int, List<VersionSpecificGenerator>> SGenerators = new();
+    private static readonly Dictionary<string, Dictionary<int, List<VersionSpecificGenerator>>> SClassNameToGenerators = [];
     internal static ILogger? Logger { get; set; }
 
-    private static int GetMetadataVersion(string libil2CppPath)
+    private static VersionSpecificGenerator? VisitClass(CppClass @class, int metadataVersion, UnityVersion unityVersion)
     {
-        var metadataVersion = -1;
-        foreach (var versionContainer in Config.MetadataVersionContainers)
+        if (Config.ClassForcedIgnores.Contains(@class.Name))
+            return null;
+        if (Config.ClassRenames.TryGetValue(@class.Name, out var rename))
+            @class.Name = rename;
+        if (!Config.ClassNames.Contains(@class.Name))
+            return null;
+
+        var generatorsByMetadataVersion = SClassNameToGenerators.GetOrAdd(@class.Name);
+        var generatorsForMetadataVersion = generatorsByMetadataVersion.GetOrAdd(metadataVersion);
+
+        var existingVersionGeneratorCount = generatorsForMetadataVersion.Count;
+        if (!Config.TryCreateGenerator(@class, $"{metadataVersion}_{existingVersionGeneratorCount}", out var generator))
+            return null;
+
+        foreach ((var field, var cppField) in generator.NativeStructGenerator.FieldsToImport)
         {
-            var fullPath = Path.Combine(libil2CppPath, versionContainer);
-            if (File.Exists(fullPath))
-            {
-                var metadataMatch = Regex.Match(File.ReadAllText(fullPath),
-                    @"\(s_GlobalMetadataHeader->version == ([0-9]+)\);");
+            var typeClass = cppField.Type.AsClass();
 
-                if (metadataMatch.Success)
-                {
-                    metadataVersion = int.Parse(metadataMatch.Groups[1].Value);
-                    break;
-                }
-            }
-        }
-
-        return metadataVersion;
-    }
-
-    private static VersionSpecificGenerator? VisitClass(CppClass @class, int metadataVersion,
-        UnityVersion unityVersion, CppClass[] classes)
-    {
-        if (Config.ClassForcedIgnores.Contains(@class.Name)) return null;
-        if (Config.ClassRenames.TryGetValue(@class.Name, out var rename)) @class.Name = rename;
-        if (!Config.ClassToGenerator.TryGetValue(@class.Name, out var generatorType)) return null;
-        if (!typeof(VersionSpecificGenerator).IsAssignableFrom(generatorType))
-            throw new Exception($"{@class.Name} has an invalid generator");
-
-        var existingVersionGeneratorCount =
-            SGenerators[metadataVersion].Count(x => x.GetType() == generatorType);
-        var existingGenerators =
-            SGenerators.Values.SelectMany(x => x).Where(x => x.GetType() == generatorType).ToList();
-        var generator = (VersionSpecificGenerator)Activator.CreateInstance(generatorType,
-            $"{metadataVersion}_{existingVersionGeneratorCount}", @class,
-            new Func<string, CppClass>(dependencyName => { return classes.Single(x => x.Name == dependencyName); }))!;
-
-        foreach (var field in generator.NativeStructGenerator.FieldsToImport.ToList())
-        {
-            var cppField = generator.NativeStructGenerator.CppClass.Fields.Single(x => x.Name == field.Name);
-
-            CppClass? typeClass = null;
-            if (cppField.Type is CppClass)
-                typeClass = (CppClass)cppField.Type;
-            if (cppField.Type is CppTypedef typeDef && typeDef.ElementType is CppClass)
-                typeClass = (CppClass)typeDef.ElementType;
             if (typeClass != null)
             {
-                var gen = VisitClass(typeClass, metadataVersion, unityVersion, classes);
-                if (gen == null) continue;
-                field.FieldType =
-                    $"{gen.HandlerGenerator.HandlerClass.Name}.{gen.NativeStructGenerator.NativeStruct.Name}";
-                generator.NativeStructGenerator.FieldsToImport.Remove(field);
-                if (Config.ClassToGenerator.ContainsKey(gen.NativeStructGenerator.CppClass.Name))
-                    generator.AddExtraUsing(
-                        $"Il2CppInterop.Runtime.Runtime.VersionSpecific.{gen.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", string.Empty)}");
+                var gen = VisitClass(typeClass, metadataVersion, unityVersion);
+                if (gen == null)
+                    continue;
+                field.FieldType = $"{gen.HandlerGenerator.HandlerClass.Name}.{gen.NativeStructGenerator.NativeStruct.Name}";
+                generator.ExtraUsings.Add(gen.Namespace);
             }
         }
-
+        generator.NativeStructGenerator.FieldsToImport.Clear();
         generator.SetupElements();
+
+        var existingGenerators = generatorsByMetadataVersion.SelectMany(x => x.Value);
         foreach (var existingGenerator in existingGenerators)
+        {
             if (existingGenerator.NativeStructGenerator.NativeStruct == generator.NativeStructGenerator.NativeStruct)
             {
                 existingGenerator.ApplicableVersions.Add(unityVersion);
                 return existingGenerator;
             }
+        }
 
         generator.ApplicableVersions.Add(unityVersion);
-        SGenerators[metadataVersion].Add(generator);
+        generatorsForMetadataVersion.Add(generator);
         return generator;
     }
 
@@ -99,130 +64,230 @@ public static class Il2CppStructWrapperGenerator
         if (Directory.Exists(options.OutputDirectory))
             Directory.Delete(options.OutputDirectory, true);
         Directory.CreateDirectory(options.OutputDirectory);
-        foreach (var (libil2CppDir, version) in Directory.GetDirectories(options.HeadersDirectory)
-                     .Select(x => (x, new UnityVersion(Path.GetFileName(x)))).OrderBy(x => x.Item2))
+        var previousVersion = UnityVersion.MinVersion;
+        foreach (var (headerPath, version) in Directory.GetFiles(options.HeadersDirectory, "*.h")
+                     .Select(x => (x, UnityVersion.Parse(Path.GetFileNameWithoutExtension(x)))).OrderBy(x => x.Item2))
         {
-            var classInternalsPath = Path.Combine(libil2CppDir, "il2cpp-class-internals.h");
-            if (!File.Exists(classInternalsPath))
-            {
-                Logger?.LogWarning(
-                    "{} doesn't have il2cpp-class-internals.h - falling back to class-internals.h", version);
-                classInternalsPath = Path.Combine(libil2CppDir, "class-internals.h");
-                if (!File.Exists(classInternalsPath))
-                {
-                    Logger?.LogWarning("{} doesn't have class-internals.h", version);
-                    continue;
-                }
-            }
+            var headerText = File.ReadAllText(headerPath);
 
-            var objectInternalsPath = Path.Combine(libil2CppDir, "il2cpp-object-internals.h");
-            if (!File.Exists(objectInternalsPath))
-            {
-                Logger?.LogWarning(
-                    "{} doesn't have il2cpp-object-internals.h - falling back to object-internals.h", version);
-                objectInternalsPath = Path.Combine(libil2CppDir, "object-internals.h");
-                if (!File.Exists(objectInternalsPath))
-                {
-                    Logger?.LogWarning("{} doesn't have object-internals.h", version);
-                    continue;
-                }
-            }
-
-            var metadataVersion = GetMetadataVersion(libil2CppDir);
-            if (metadataVersion == -1)
+            if (!TryGetMetadataVersion(headerText, out var metadataVersion))
             {
                 Logger?.LogWarning("{} has an invalid metadata version", version);
                 continue;
             }
 
-            var classInternalsIsTmp = true;
-            // Graduated top of my class by the way
-            {
-                if (!File.Exists($"{classInternalsPath}_backup"))
-                {
-                    var classInternalsData = File.ReadAllText(classInternalsPath);
-                    // I have to do this because the lib I use doesn't recognize these unions, so I have to name them in the most disgusting way imaginable
-                    classInternalsData = Regex.Replace(classInternalsData,
-                        @"(union.{0,60}?rgctx_data;.*?method(?:Definition|MetadataHandle);.*?});", "$1 runtime_data;",
-                        RegexOptions.Singleline);
-                    classInternalsData = Regex.Replace(classInternalsData,
-                        @"(union.{0,60}?genericMethod;.*?genericContainer(?:Handle)?;.*?});", "$1 generic_data;",
-                        RegexOptions.Singleline);
-
-                    File.Move(classInternalsPath, $"{classInternalsPath}_backup");
-                    File.WriteAllText(classInternalsPath, classInternalsData);
-                }
-            }
-            if (!SGenerators.ContainsKey(metadataVersion))
-                SGenerators[metadataVersion] = new List<VersionSpecificGenerator>();
-            var compilation = CppParser.ParseFiles(new List<string> { objectInternalsPath, classInternalsPath },
+            var compilation = CppParser.Parse(ProcessHeaderText(headerText),
                 new CppParserOptions
                 {
-                    ParseAsCpp = true,
+                    ParserKind = CppParserKind.Cpp,
                     AutoSquashTypedef = false,
-                    ParseMacros = true
+                    ParseMacros = false
                 });
             Logger?.LogInformation("Parsing {}", version);
-            var classes = compilation.Classes.ToArray();
-            foreach (var @class in classes) VisitClass(@class, metadataVersion, version, classes);
-            if (classInternalsIsTmp)
+            if (compilation.HasErrors)
             {
-                File.Delete(classInternalsPath);
-                File.Move($"{classInternalsPath}_backup", classInternalsPath);
+                Logger?.LogError("Failed to parse {}", version);
+                continue;
             }
+            // If this is the first version with this major.minor.build, strip the rest of the information.
+            var actualVersion = version.Equals(previousVersion.Major, previousVersion.Minor, previousVersion.Build)
+                ? version
+                : new UnityVersion(version.Major, version.Minor, version.Build);
+            foreach (var @class in compilation.Classes)
+            {
+                VisitClass(@class, metadataVersion, actualVersion);
+            }
+            previousVersion = version;
         }
 
         Logger?.LogInformation("Building version specific classes");
-        // In the eyes of god - I am a disappointment
-        Dictionary<Type, Dictionary<UnityVersion, VersionSpecificGenerator>> versionToGeneratorLookup = new();
-        foreach (var generator in SGenerators.Values.SelectMany(x => x))
-        {
-            if (!versionToGeneratorLookup.ContainsKey(generator.GetType()))
-                versionToGeneratorLookup[generator.GetType()] =
-                    new Dictionary<UnityVersion, VersionSpecificGenerator>();
 
-            foreach (var version in generator.ApplicableVersions)
-                versionToGeneratorLookup[generator.GetType()][version] = generator;
-        }
-
-        foreach (var kvp in versionToGeneratorLookup)
+        foreach ((var className, var generatorsByMetadataVersion) in SClassNameToGenerators)
         {
-            VersionSpecificGenerator? last = null;
-            foreach (var kvp2 in kvp.Value.Where(kvp2 => last is null || last != kvp2.Value))
+            Dictionary<UnityVersion, VersionSpecificGenerator> versionToGeneratorLookup = [];
+            foreach (var generator in generatorsByMetadataVersion.SelectMany(x => x.Value))
             {
-                kvp2.Value.HandlerGenerator.HandlerClass.Attributes.Add(
-                    $"ApplicableToUnityVersionsSince(\"{kvp2.Key.ToStringShort()}\")");
-                last = kvp2.Value;
-            }
-        }
-
-        foreach (var generator in SGenerators.Values.SelectMany(x => x))
-        {
-            var generatorOutputDir =
-                Path.Combine(options.OutputDirectory,
-                    generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", string.Empty));
-            if (!Directory.Exists(generatorOutputDir))
-                Directory.CreateDirectory(generatorOutputDir);
-            CodeGenFile file = new()
-            {
-                Namespace =
-                    $"Il2CppInterop.Runtime.Runtime.VersionSpecific.{generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", string.Empty)}",
-                Usings =
+                foreach (var version in generator.ApplicableVersions)
                 {
-                    "System",
-                    "System.Runtime.InteropServices"
-                },
-                Elements =
-                {
-                    generator.HandlerGenerator.HandlerClass
+                    versionToGeneratorLookup.Add(version, generator);
                 }
-            };
-            foreach (var extraUsing in generator.ExtraUsings)
-                file.Usings.Add(extraUsing);
-            file.WriteTo(Path.Combine(generatorOutputDir,
-                $"{generator.NativeStructGenerator.NativeStruct.Name.Replace("Il2Cpp", string.Empty)}.cs"));
+            }
+
+            VersionSpecificGenerator? last = null;
+            List<(UnityVersion Version, VersionSpecificGenerator Generator)> list = [];
+            foreach ((var version, var generator) in versionToGeneratorLookup.OrderBy(kvp => kvp.Key))
+            {
+                if (last is not null && last == generator)
+                    continue;
+
+                var versionString = version is { Type: UnityVersionType.Alpha, TypeNumber: 0 }
+                    ? version.ToStringWithoutType()
+                    : version.ToString();
+                generator.HandlerGenerator.HandlerClass.Attributes.Add($"ApplicableToUnityVersionsSince(\"{versionString}\")");
+                last = generator;
+                list.Add((version, generator));
+            }
+
+            var generatorOutputDirectory = Path.Join(options.OutputDirectory, className.Replace("Il2Cpp", null));
+            foreach (var generator in generatorsByMetadataVersion.SelectMany(x => x.Value))
+            {
+                Directory.CreateDirectory(generatorOutputDirectory);
+                CodeGenFile file = new()
+                {
+                    Namespace = generator.Namespace,
+                    Usings =
+                    {
+                        "System.Runtime.InteropServices"
+                    },
+                    Elements =
+                    {
+                        generator.HandlerGenerator.HandlerClass
+                    }
+                };
+                file.Usings.AddRange(generator.ExtraUsings);
+                file.WriteTo(Path.Join(generatorOutputDirectory, $"{generator.GeneratorName}_{generator.MetadataSuffix}.cs"));
+            }
+
+            // Use the first generator for this class to generate the interface file, since all generators for a given class will have the same interface.
+            var firstGenerator = list[0].Generator;
+            {
+                var interfacesFile = firstGenerator.GenerateInterfacesFile();
+                interfacesFile.WriteTo(Path.Join(generatorOutputDirectory, "Interfaces.cs"));
+            }
+
+            // Generate the UnityVersionHandler partial class for this class
+            {
+                var unityVersionHandlerClass = new CodeGenClass(ElementProtection.Public, "UnityVersionHandler")
+                {
+                    IsPartial = true,
+                    IsStatic = true,
+                    Properties =
+                    {
+                        new CodeGenProperty(firstGenerator.HandlerInterface, ElementProtection.Private, $"{firstGenerator.GeneratorName}StructHandler")
+                        {
+                            EmptyGet = true,
+                            EmptySet = true,
+                            IsStatic = true,
+                            Initializer = $"{firstGenerator.HandlerName}.Instance"
+                        }
+                    },
+                    Methods =
+                    {
+                        new CodeGenMethod("void", ElementProtection.Private, $"Set{firstGenerator.GeneratorName}StructHandler")
+                        {
+                            IsStatic = true,
+                            Parameters =
+                            {
+                                new CodeGenParameter("UnityVersion", "version")
+                            },
+                            MethodBodyBuilder = writer =>
+                            {
+                                if (list.Count == 1)
+                                {
+                                    writer.WriteLine($"{firstGenerator.GeneratorName}StructHandler = {firstGenerator.HandlerName}.Instance;");
+                                    return;
+                                }
+
+                                for (var i = list.Count - 1; i >= 0; i--)
+                                {
+                                    var (version, generator) = list[i];
+                                    if (i == 0)
+                                    {
+                                        writer.WriteLine("else");
+                                    }
+                                    else
+                                    {
+                                        writer.Write(i == list.Count - 1 ? "if" : "else if");
+                                        writer.WriteLine($" (version >= new UnityVersion({version.Major}, {version.Minor}, {version.Build}, UnityVersionType.{version.Type}, {version.TypeNumber}))");
+                                    }
+                                    writer.WriteLine("{");
+                                    writer.Indent++;
+                                    writer.WriteLine($"{generator.GeneratorName}StructHandler = {generator.HandlerName}.Instance;");
+                                    writer.Indent--;
+                                    writer.WriteLine("}");
+                                }
+                            }
+                        }
+                    }
+                };
+                var unityVersionHandlerFile = new CodeGenFile()
+                {
+                    Namespace = "Il2CppInterop.Runtime.Structs",
+                    Usings =
+                    {
+                        "AssetRipper.Primitives",
+                        firstGenerator.Namespace,
+                    },
+                    Elements =
+                    {
+                        unityVersionHandlerClass
+                    }
+                };
+                unityVersionHandlerFile.WriteTo(Path.Join(generatorOutputDirectory, "UnityVersionHandler.cs"));
+            }
         }
 
         Logger = null;
     }
+
+    private static string ProcessHeaderText(string headerText)
+    {
+        const string HeaderPrefix = """
+            #line 1 "Prefix.h"
+            typedef int int32_t;
+            typedef unsigned int uint32_t;
+            typedef short int16_t;
+            typedef unsigned short uint16_t;
+            typedef char int8_t;
+            typedef unsigned char uint8_t;
+            typedef long long int64_t;
+            typedef unsigned long long uint64_t;
+            typedef long intptr_t;
+            typedef unsigned long uintptr_t;
+            """;
+
+        string processedHeaderText;
+        if (headerText.Contains("struct ParameterInfo", StringComparison.Ordinal))
+        {
+            processedHeaderText = $"""
+                {HeaderPrefix}
+                #line 1 "Header.h"
+                {headerText}
+                """;
+        }
+        else
+        {
+            // ParameterInfo was removed in v27, but we add it back in manually.
+            processedHeaderText = $$"""
+                {{HeaderPrefix}}
+                #line 1 "ParameterInfo.h"
+                typedef struct Il2CppType Il2CppType;
+                typedef struct ParameterInfo
+                {
+                    const Il2CppType* parameter_type;
+                } ParameterInfo;
+                #line 1 "Header.h"
+                {{headerText.Replace("const Il2CppType** parameters;", "const ParameterInfo* parameters;")}}
+                """;
+        }
+
+        return processedHeaderText;
+    }
+
+    private static bool TryGetMetadataVersion(string headerText, out int metadataVersion)
+    {
+        var match = MetadataVersionRegex.Match(headerText);
+        if (match.Success)
+        {
+            return int.TryParse(match.Groups[1].Value, out metadataVersion);
+        }
+        else
+        {
+            metadataVersion = default;
+            return false;
+        }
+    }
+
+    [GeneratedRegex(@"const int METADATA_VERSION = ([0-9]+);")]
+    private static partial Regex MetadataVersionRegex { get; }
 }

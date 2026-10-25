@@ -2,7 +2,7 @@
 
 public abstract class BaseHost : IDisposable
 {
-    private static BaseHost s_instance;
+    private static BaseHost? s_instance;
 
     protected static T GetInstance<T>() where T : BaseHost
     {

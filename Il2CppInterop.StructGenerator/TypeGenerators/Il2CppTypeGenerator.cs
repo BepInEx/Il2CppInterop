@@ -1,40 +1,37 @@
 ﻿using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
-using Il2CppInterop.StructGenerator.CodeGen.Enums;
 
 namespace Il2CppInterop.StructGenerator.TypeGenerators;
 
 internal class Il2CppTypeGenerator : VersionSpecificGenerator
 {
-    public Il2CppTypeGenerator(string metadataSuffix, CppClass nativeClass,
-        Func<string, CppClass>? dependencyResolver = null) : base(metadataSuffix, nativeClass, dependencyResolver)
+    public Il2CppTypeGenerator(string metadataSuffix, CppClass nativeClass) : base(metadataSuffix, nativeClass)
     {
     }
 
-    protected override string HandlerName => "NativeTypeStructHandler";
-    protected override string HandlerInterface => "INativeTypeStructHandler";
-    protected override string NativeInterface => "INativeTypeStruct";
+    public override string GeneratorName => "Type";
     protected override string NativeStub => "Il2CppTypeStruct";
-    protected override List<CodeGenField>? WrapperFields => null;
 
-    protected override List<CodeGenProperty>? WrapperProperties => new()
-    {
+    protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
+    [
         new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "TypePointer")
-        { ImmediateGet = $"({NativeStub}*)Pointer" }
-    };
+        {
+            ImmediateGet = $"({NativeStub}*)Pointer"
+        }
+    ];
 
-    protected override List<ByRefWrapper>? ByRefWrappers => new()
-    {
-        new ByRefWrapper("IntPtr", "Data", new[] { "data" }),
-        new ByRefWrapper("ushort", "Attrs", new[] { "attrs" }),
-        new ByRefWrapper("Il2CppTypeEnum", "Type", new[] { "type" })
-    };
+    protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
+    [
+        new ByRefWrapper("nint", "Data", ["data"]),
+        new ByRefWrapper("ushort", "Attrs", ["attrs"]),
+        new ByRefWrapper("Il2CppTypeEnum", "Type", ["type"])
+    ];
 
-    protected override List<BitfieldAccessor>? BitfieldAccessors => new()
-    {
+    protected override IReadOnlyList<BitfieldAccessor>? BitfieldAccessors =>
+    [
         new BitfieldAccessor("ByRef", "byref"),
         new BitfieldAccessor("Pinned", "pinned"),
         // maybe throw if not exist
         new BitfieldAccessor("ValueType", "valuetype", defaultGetter: "false")
-    };
+    ];
 }

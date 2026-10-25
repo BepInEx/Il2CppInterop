@@ -1,7 +1,6 @@
-﻿using CppAst;
+﻿using System.Diagnostics;
+using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
-using Il2CppInterop.StructGenerator.CodeGen.Enums;
-using Il2CppInterop.StructGenerator.Utilities;
 
 namespace Il2CppInterop.StructGenerator;
 
@@ -17,13 +16,16 @@ internal class NativeStructGenerator
         FillStruct();
     }
 
-    public List<CodeGenField> FieldsToImport { get; } = new();
+    /// <summary>
+    /// Fields whose types might need to be imported from other namespaces
+    /// </summary>
+    public List<(CodeGenField, CppField)> FieldsToImport { get; } = [];
     public CodeGenStruct NativeStruct { get; }
     public CppClass CppClass { get; }
 
     private void FillStruct()
     {
-        List<CodeGenEnum> bitfields = new();
+        List<CodeGenEnum> bitfields = [];
         CodeGenEnum? lastBitfield = null;
         var bitfieldNextBit = 0;
 
@@ -69,15 +71,7 @@ internal class NativeStructGenerator
             bitfieldNextBit = 0;
         }
 
-        foreach (var baseType in CppClass.BaseTypes)
-        {
-            var normalizedType = ConversionUtils.CppTypeToCSharpName(baseType.Type, out var needsImport);
-            CodeGenField field = new(normalizedType, ElementProtection.Public,
-                ConversionUtils.NormalizeName(baseType.Type.GetDisplayName().Replace("Il2Cpp", string.Empty)
-                    .ToLower()));
-            if (needsImport) FieldsToImport.Add(field);
-            NativeStruct.Fields.Add(field);
-        }
+        Debug.Assert(CppClass.BaseTypes.Count == 0);
 
         foreach (var field in CppClass.Fields)
         {
@@ -92,9 +86,9 @@ internal class NativeStructGenerator
             else
             {
                 FinalizeBitfield();
-                CodeGenField codeGenField = new(normalizedType, ElementProtection.Public,
-                    ConversionUtils.NormalizeName(field.Name));
-                if (needsImport) FieldsToImport.Add(codeGenField);
+                CodeGenField codeGenField = new(normalizedType, ElementProtection.Public, GetFieldName(field));
+                if (needsImport)
+                    FieldsToImport.Add((codeGenField, field));
                 NativeStruct.Fields.Add(codeGenField);
             }
         }
@@ -103,8 +97,32 @@ internal class NativeStructGenerator
         NativeStruct.NestedElements.AddRange(bitfields);
     }
 
-    public string Build()
+    private static string GetFieldName(CppField field)
     {
-        return NativeStruct.Build();
+        var name = field.Name;
+        if (name is "object" or "class" or "struct" or "base")
+        {
+            return $"_{name}";
+        }
+        else if (name.Length == 0)
+        {
+            if (field.Parent is CppClass { Name: "Il2CppMethodInfo" } && field.Type is CppClass { ClassKind: CppClassKind.Union } unionType)
+            {
+                // IlCppMethodInfo has two unnamed union fields
+                if (unionType.Fields.Any(f => f.Name is "rgctx_data"))
+                {
+                    return "runtime_data";
+                }
+                if (unionType.Fields.Any(f => f.Name is "genericMethod"))
+                {
+                    return "generic_data";
+                }
+            }
+            throw new ArgumentException("Field has no name and is not part of a known union", nameof(field));
+        }
+        else
+        {
+            return name;
+        }
     }
 }

@@ -4,30 +4,30 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Il2CppInterop.Common;
 
-public static class LoggerExtensions
-{
-    public static T AddLogger<T>(this T host, ILogger logger) where T : BaseHost
-    {
-        host.AddComponent(new Logger(logger));
-        return host;
-    }
-}
-
-internal class Logger : IHostComponent
+public static class Logger
 {
     public static ILogger Instance { get; private set; } = NullLogger.Instance;
 
-    public Logger(ILogger logger)
+    public static T AddLogger<T>(this T host, ILogger logger) where T : BaseHost
     {
-        Instance = logger;
+        host.AddComponent(new LoggerComponent(logger));
+        return host;
     }
 
-    public void Start()
+    private sealed class LoggerComponent : IHostComponent
     {
-    }
+        public LoggerComponent(ILogger logger)
+        {
+            Instance = logger;
+        }
 
-    public void Dispose()
-    {
-        Instance = NullLogger.Instance;
+        public void Start()
+        {
+        }
+
+        public void Dispose()
+        {
+            Instance = NullLogger.Instance;
+        }
     }
 }

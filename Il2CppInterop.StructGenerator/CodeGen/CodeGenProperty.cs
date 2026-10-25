@@ -1,16 +1,14 @@
-﻿using System.Text;
-using Il2CppInterop.StructGenerator.CodeGen.Enums;
+﻿using System.CodeDom.Compiler;
 
 namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal class CodeGenProperty : CodeGenElement
 {
-    public CodeGenProperty(string propertyType, ElementProtection protection, string name) : base(protection, name)
+    public CodeGenProperty(string propertyType, ElementProtection? protection, string name) : base(protection, name)
     {
         Type = propertyType;
     }
 
-    public override byte IndentAmount { get; set; } = 1;
     public override string Type { get; }
 
     public string? ImmediateGet { get; set; }
@@ -21,42 +19,59 @@ internal class CodeGenProperty : CodeGenElement
     public bool EmptySet { get; set; }
     public CodeGenMethod? SetMethod { get; set; }
 
-    public override string Build()
+    public bool HasGet => GetMethod != null || ImmediateGet != null || EmptyGet;
+    public bool HasSet => SetMethod != null || EmptySet;
+
+    /// <summary>
+    /// An optional initializer for the property. If provided, this will be used to initialize the property with a default value.
+    /// </summary>
+    /// <remarks>
+    /// This is only used if either <see cref="EmptyGet"/> or <see cref="EmptySet"/> is <see langword="true"/>.
+    /// </remarks>
+    public string? Initializer { get; set; }
+
+    public override void Build(IndentedTextWriter writer)
     {
-        StringBuilder builder = new(base.Build());
-        if ((SetMethod == null && GetMethod != null && GetMethod.ImmediateReturn != null) || ImmediateGet != null)
+        base.Build(writer);
+        if (ImmediateGet != null)
         {
-            if (ImmediateGet != null)
-                builder.AppendLine($" => {ImmediateGet};");
+            writer.WriteLine($" => {ImmediateGet};");
+        }
+        else if (SetMethod == null && GetMethod != null && GetMethod.ImmediateReturn != null)
+        {
+            GetMethod.BuildBody(writer);
+        }
+        else if (EmptyGet || EmptySet)
+        {
+            writer.Write(" {");
+            if (EmptyGet) writer.Write(" get;");
+            if (EmptySet) writer.Write(" set;");
+            if (!string.IsNullOrEmpty(Initializer))
+            {
+                writer.WriteLine($" }} = {Initializer};");
+            }
             else
-                builder.Append(GetMethod.BuildBody());
-            return builder.ToString();
-        }
+            {
 
-        if (EmptyGet || EmptySet)
+                writer.WriteLine(" }");
+            }
+        }
+        else
         {
-            builder.Append(" {");
-            if (EmptyGet) builder.Append(" get;");
-            if (EmptySet) builder.Append(" set;");
-            builder.AppendLine(" }");
-            return builder.ToString();
+            writer.WriteLine();
+            using (new CurlyBrackets(writer))
+            {
+                if (GetMethod != null)
+                {
+                    writer.Write("get");
+                    GetMethod.BuildBody(writer);
+                }
+                if (SetMethod != null)
+                {
+                    writer.Write("set");
+                    SetMethod.BuildBody(writer);
+                }
+            }
         }
-
-        builder.AppendLine();
-        builder.AppendLine($"{Indent}{{");
-        if (GetMethod != null)
-        {
-            GetMethod.IndentAmount = (byte)(IndentAmount + 1);
-            builder.Append($"{IndentInner}get{GetMethod.BuildBody()}");
-        }
-
-        if (SetMethod != null)
-        {
-            SetMethod.IndentAmount = (byte)(IndentAmount + 1);
-            builder.Append($"{IndentInner}set{SetMethod.BuildBody()}");
-        }
-
-        builder.AppendLine($"{Indent}}}");
-        return builder.ToString();
     }
 }

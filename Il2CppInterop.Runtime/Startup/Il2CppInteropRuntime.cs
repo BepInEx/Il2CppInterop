@@ -1,17 +1,9 @@
-﻿using System;
+﻿using AssetRipper.Primitives;
 using Il2CppInterop.Common.Host;
-using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Runtime.Injection;
-using Il2CppInterop.Runtime.Runtime;
-using Il2CppInterop.Runtime.XrefScans;
+using Il2CppInterop.Runtime.Structs;
 
 namespace Il2CppInterop.Runtime.Startup;
-
-public record RuntimeConfiguration
-{
-    public Version UnityVersion { get; init; }
-    public IDetourProvider DetourProvider { get; init; }
-}
 
 public sealed class Il2CppInteropRuntime : BaseHost
 {
@@ -21,9 +13,9 @@ public sealed class Il2CppInteropRuntime : BaseHost
 
     public static Il2CppInteropRuntime Instance => GetInstance<Il2CppInteropRuntime>();
 
-    public Version UnityVersion { get; private init; }
+    public UnityVersion UnityVersion { get; private init; }
 
-    public IDetourProvider DetourProvider { get; private init; }
+    public IDetourProvider DetourProvider { get; private init; } = null!;
 
     public static Il2CppInteropRuntime Create(RuntimeConfiguration configuration)
     {
@@ -33,7 +25,6 @@ public sealed class Il2CppInteropRuntime : BaseHost
             DetourProvider = configuration.DetourProvider
         };
         SetInstance(res);
-        res.AddXrefScanner<Il2CppInteropRuntime, XrefScanImpl>();
         return res;
     }
 
