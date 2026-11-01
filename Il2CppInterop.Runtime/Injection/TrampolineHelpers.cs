@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime.InteropTypes;
 
 namespace Il2CppInterop.Runtime.Injection;
@@ -28,6 +29,47 @@ internal static class TrampolineHelpers
         return _fixedStructCache[size] = type;
     }
 
+    internal static bool IsArm64 => RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
+
+    // AAPCS64 passes composites of up to 16 bytes in registers and copies larger ones to memory, passing a pointer
+    private const int Arm64MaxRegisterStructSize = 16;
+
+    internal static int GetValueTypeSize(Type managedType)
+    {
+        uint align = 0;
+        return IL2CPP.il2cpp_class_value_size(Il2CppClassPointerStore.GetNativeClassPointer(managedType), ref align);
+    }
+
+    /// <summary>
+    /// Whether native code passes a by-value struct wrapper (a subclass of Il2CppSystem.ValueType) as the struct's bytes,
+    /// rather than as a pointer to them
+    /// </summary>
+    internal static bool IsStructWrapperPassedByValue(Type managedType)
+    {
+        // x86 passes structs on the stack
+        if (!Environment.Is64BitProcess)
+            return true;
+
+        if (IsArm64)
+            return GetValueTypeSize(managedType) <= Arm64MaxRegisterStructSize;
+
+        // Win64 passes structs that aren't 1, 2, 4 or 8 bytes by reference, and IL2CPP's struct wrappers are treated that way
+        return false;
+    }
+
+    /// <summary>
+    /// The type native code returns for a managed return type. On ARM64 a struct wrapper is returned as its bytes:
+    /// up to 16 bytes come back in x0/x1, and larger ones go through the buffer the caller passes in x8, which CoreCLR
+    /// fills in itself when the method's return type is a struct of that size
+    /// </summary>
+    internal static Type NativeReturnType(this Type managedType)
+    {
+        if (IsArm64 && managedType.IsSubclassOf(typeof(Il2CppSystem.ValueType)))
+            return GetFixedSizeStructType(GetValueTypeSize(managedType));
+
+        return managedType.NativeType();
+    }
+
     internal static Type NativeType(this Type managedType)
     {
         if (managedType.IsByRef)
@@ -45,12 +87,10 @@ internal static class TrampolineHelpers
                 return typeof(IntPtr*);
             }
         }
-        else if (managedType.IsSubclassOf(typeof(Il2CppSystem.ValueType)) && !Environment.Is64BitProcess)
+        else if (managedType.IsSubclassOf(typeof(Il2CppSystem.ValueType)) && IsStructWrapperPassedByValue(managedType))
         {
-            // Struct that's passed on the stack => handle as general struct
-            uint align = 0;
-            var fixedSize = IL2CPP.il2cpp_class_value_size(Il2CppClassPointerStore.GetNativeClassPointer(managedType), ref align);
-            return GetFixedSizeStructType(fixedSize);
+            // Struct that's passed on the stack or in registers => handle as general struct
+            return GetFixedSizeStructType(GetValueTypeSize(managedType));
         }
         else if (managedType == typeof(string) || managedType.IsSubclassOf(typeof(Il2CppObjectBase))) // General reference type
         {

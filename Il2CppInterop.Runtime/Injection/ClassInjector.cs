@@ -848,7 +848,7 @@ public static unsafe partial class ClassInjector
         }
 
         body.Emit(OpCodes.Ldarg_0);
-        body.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, monoMethod.ReturnType.NativeType(),
+        body.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, monoMethod.ReturnType.NativeReturnType(),
             new[] { typeof(IntPtr) }.Concat(monoMethod.GetParameters().Select(it => it.ParameterType.NativeType()))
                 .ToArray());
 
@@ -856,7 +856,7 @@ public static unsafe partial class ClassInjector
         {
             if (monoMethod.ReturnType != typeof(void))
             {
-                var returnValue = body.DeclareLocal(monoMethod.ReturnType.NativeType());
+                var returnValue = body.DeclareLocal(monoMethod.ReturnType.NativeReturnType());
                 body.Emit(OpCodes.Stloc, returnValue);
                 body.Emit(OpCodes.Ldarg_S, (byte)4);
                 body.Emit(OpCodes.Ldloc, returnValue);
@@ -877,6 +877,17 @@ public static unsafe partial class ClassInjector
                 var classField = typeof(Il2CppClassPointerStore<>).MakeGenericType(monoMethod.ReturnType)
                     .GetField(nameof(Il2CppClassPointerStore<int>.NativeClassPtr));
                 body.Emit(OpCodes.Ldsfld, classField);
+                body.Emit(OpCodes.Ldloca, returnValue);
+                body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_value_box))!);
+            }
+            else if (monoMethod.ReturnType.IsSubclassOf(typeof(ValueType)) &&
+                     monoMethod.ReturnType.NativeReturnType() != typeof(IntPtr))
+            {
+                // The struct came back by value, so box it for the caller
+                var returnValue = body.DeclareLocal(monoMethod.ReturnType.NativeReturnType());
+                body.Emit(OpCodes.Stloc, returnValue);
+                body.Emit(OpCodes.Ldc_I8, Il2CppClassPointerStore.GetNativeClassPointer(monoMethod.ReturnType).ToInt64());
+                body.Emit(OpCodes.Conv_I);
                 body.Emit(OpCodes.Ldloca, returnValue);
                 body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_value_box))!);
             }
@@ -922,10 +933,12 @@ public static unsafe partial class ClassInjector
         var managedParameters = new[] { monoMethod.DeclaringType }
             .Concat(monoMethod.GetParameters().Select(it => it.ParameterType)).ToArray();
 
+        var nativeReturnType = monoMethod.ReturnType.NativeReturnType();
+
         var method = new DynamicMethod(
             "Trampoline_" + ExtractSignature(monoMethod) + monoMethod.DeclaringType + monoMethod.Name,
             MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard,
-            monoMethod.ReturnType.NativeType(), nativeParameterTypes,
+            nativeReturnType, nativeParameterTypes,
             monoMethod.DeclaringType, true);
 
         var signature = new DelegateSupport.MethodSignature(monoMethod, true);
@@ -949,7 +962,8 @@ public static unsafe partial class ClassInjector
             {
                 body.Emit(OpCodes.Ldc_I8, Il2CppClassPointerStore.GetNativeClassPointer(parameter).ToInt64());
                 body.Emit(OpCodes.Conv_I);
-                body.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga_S, i);
+                // A struct passed by value arrives as its bytes, so box from their address; otherwise it's already a pointer
+                body.Emit(TrampolineHelpers.IsStructWrapperPassedByValue(parameter) ? OpCodes.Ldarga : OpCodes.Ldarg, (short)i);
                 body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_value_box)));
             }
             else
@@ -1047,6 +1061,8 @@ public static unsafe partial class ClassInjector
             body.Emit(OpCodes.Ldloc, managedReturnVariable);
             if (monoMethod.ReturnType == typeof(string))
                 body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!);
+            else if (monoMethod.ReturnType.IsSubclassOf(typeof(ValueType)) && nativeReturnType != typeof(IntPtr))
+                EmitReturnStructWrapperByValue(body, nativeReturnType);
             else if (!monoMethod.ReturnType.IsValueType)
                 body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectBaseToPtr))!);
         }
@@ -1056,6 +1072,14 @@ public static unsafe partial class ClassInjector
         var @delegate = method.CreateDelegate(delegateType);
         GCHandle.Alloc(@delegate); // pin it forever
         return @delegate;
+    }
+
+    // Replaces the struct wrapper on the stack with a copy of the struct's bytes, for returning it by value
+    internal static void EmitReturnStructWrapperByValue(ILGenerator body, Type nativeReturnType)
+    {
+        body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectBaseToPtrNotNull))!);
+        body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_object_unbox))!);
+        body.Emit(OpCodes.Ldobj, nativeReturnType);
     }
 
     private static void LogError(string message)

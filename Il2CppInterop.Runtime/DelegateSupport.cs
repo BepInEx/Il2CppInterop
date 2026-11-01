@@ -66,7 +66,7 @@ public static class DelegateSupport
         newType.DefineMethod("Invoke",
             MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public,
             CallingConventions.HasThis,
-            managedMethodInner.ReturnType.NativeType(),
+            managedMethodInner.ReturnType.NativeReturnType(),
             parameterTypes).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
         newType.DefineMethod("BeginInvoke",
@@ -79,7 +79,7 @@ public static class DelegateSupport
         newType.DefineMethod("EndInvoke",
             MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public,
             CallingConventions.HasThis,
-            managedMethodInner.ReturnType.NativeType(),
+            managedMethodInner.ReturnType.NativeReturnType(),
             new[] { typeof(IAsyncResult) }).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
         return newType.CreateType();
@@ -114,7 +114,7 @@ public static class DelegateSupport
     private static Delegate GenerateNativeToManagedTrampoline(Il2CppSystem.Reflection.MethodInfo nativeMethod,
         MethodInfo managedMethod, MethodSignature signature)
     {
-        var returnType = managedMethod.ReturnType.NativeType();
+        var returnType = managedMethod.ReturnType.NativeReturnType();
 
         var managedParameters = managedMethod.GetParameters();
         var nativeParameters = nativeMethod.GetParameters();
@@ -142,6 +142,17 @@ public static class DelegateSupport
         {
             var parameterType = managedParameters[i].ParameterType;
 
+            if (parameterType.IsSubclassOf(typeof(ValueType)) && TrampolineHelpers.IsStructWrapperPassedByValue(parameterType))
+            {
+                // The struct arrived as its bytes, so box a copy of them for the wrapper
+                bodyBuilder.Emit(OpCodes.Ldc_I8, Il2CppClassPointerStore.GetNativeClassPointer(parameterType).ToInt64());
+                bodyBuilder.Emit(OpCodes.Conv_I);
+                bodyBuilder.Emit(OpCodes.Ldarga, (short)(i + 1));
+                bodyBuilder.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_value_box))!);
+                bodyBuilder.Emit(OpCodes.Newobj, parameterType.GetConstructor(new[] { typeof(IntPtr) })!);
+                continue;
+            }
+
             bodyBuilder.Emit(OpCodes.Ldarg, i + 1);
             if (parameterType == typeof(string))
             {
@@ -166,6 +177,10 @@ public static class DelegateSupport
         if (managedMethod.ReturnType == typeof(string))
         {
             bodyBuilder.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!);
+        }
+        else if (managedMethod.ReturnType.IsSubclassOf(typeof(ValueType)) && returnType != typeof(IntPtr))
+        {
+            ClassInjector.EmitReturnStructWrapperByValue(bodyBuilder, returnType);
         }
         else if (!managedMethod.ReturnType.IsValueType)
         {
@@ -347,7 +362,7 @@ public static class DelegateSupport
 
             var hashCode = new HashCode();
 
-            hashCode.Add(methodInfo.ReturnType.NativeType());
+            hashCode.Add(methodInfo.ReturnType.NativeReturnType());
             if (hasThis) hashCode.Add(methodInfo.DeclaringType.NativeType());
             foreach (var parameterInfo in methodInfo.GetParameters())
             {
