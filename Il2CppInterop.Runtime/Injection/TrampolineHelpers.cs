@@ -13,8 +13,25 @@ internal static class TrampolineHelpers
     private static ModuleBuilder _fixedStructModuleBuilder;
     private static readonly Dictionary<int, Type> _fixedStructCache = new();
 
+    private static readonly Type[] _precompiledFixedStructs =
+    {
+        typeof(FixedSizeStructs.Size1), typeof(FixedSizeStructs.Size2), typeof(FixedSizeStructs.Size3),
+        typeof(FixedSizeStructs.Size4), typeof(FixedSizeStructs.Size5), typeof(FixedSizeStructs.Size6),
+        typeof(FixedSizeStructs.Size7), typeof(FixedSizeStructs.Size8), typeof(FixedSizeStructs.Size9),
+        typeof(FixedSizeStructs.Size10), typeof(FixedSizeStructs.Size11), typeof(FixedSizeStructs.Size12),
+        typeof(FixedSizeStructs.Size13), typeof(FixedSizeStructs.Size14), typeof(FixedSizeStructs.Size15),
+        typeof(FixedSizeStructs.Size16),
+    };
+
     private static Type GetFixedSizeStructType(int size)
     {
+        // Harmony builds the trampoline's delegate type in a separate in-memory assembly, which can only reference
+        // these types by assembly name. That works for this assembly but not for a run-only dynamic one
+        if (size >= 1 && size <= _precompiledFixedStructs.Length)
+        {
+            return _precompiledFixedStructs[size - 1];
+        }
+
         if (_fixedStructCache.TryGetValue(size, out var result))
         {
             return result;
@@ -104,4 +121,28 @@ internal static class TrampolineHelpers
 
         return managedType;
     }
+}
+
+/// <summary>
+/// Opaque structs of a given size, used by generated trampolines to receive and return IL2CPP structs by value.
+/// Not meant to be used directly
+/// </summary>
+public static class FixedSizeStructs
+{
+    [StructLayout(LayoutKind.Sequential, Size = 1)] public struct Size1 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 2)] public struct Size2 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 3)] public struct Size3 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 4)] public struct Size4 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 5)] public struct Size5 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 6)] public struct Size6 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 7)] public struct Size7 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 8)] public struct Size8 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 9)] public struct Size9 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 10)] public struct Size10 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 11)] public struct Size11 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 12)] public struct Size12 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 13)] public struct Size13 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 14)] public struct Size14 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 15)] public struct Size15 { private byte _; }
+    [StructLayout(LayoutKind.Sequential, Size = 16)] public struct Size16 { private byte _; }
 }
