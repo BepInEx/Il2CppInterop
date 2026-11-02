@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Iced.Intel;
 using Il2CppInterop.Common;
 using Il2CppInterop.Common.Extensions;
 using Il2CppInterop.Common.XrefScans;
-using Iced.Intel;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo;
