@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Common.Extensions;
 using Il2CppInterop.Common.XrefScans;
+using Iced.Intel;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo;
@@ -126,6 +127,13 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 var getStaticFieldValueInternal = getStaticFieldValueTargets[^1];
                 Logger.Instance.LogTrace("Field::StaticGetValueInternal: 0x{GetStaticFieldValueInternalAddress}", getStaticFieldValueInternal.ToInt64().ToString("X2"));
 
+                var outParamCall = FindCallWithStackOutParam(getStaticFieldValueInternal);
+                if (outParamCall != 0)
+                {
+                    Logger.Instance.LogTrace("Found Class::GetDefaultFieldValue by its out parameter");
+                    return outParamCall;
+                }
+
                 var getStaticFieldValueInternalTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).ToArray();
 
                 if (getStaticFieldValueInternalTargets.Length == 0) return FindClassGetFieldDefaultValueXref(true);
@@ -133,6 +141,40 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 classGetDefaultFieldValue = getStaticFieldValueInternalTargets.Length == 3 ? getStaticFieldValueInternalTargets.Last() : getStaticFieldValueInternalTargets.First();
             }
             return classGetDefaultFieldValue;
+        }
+
+        // Field::StaticGetValueInternal calls Class::GetDefaultFieldValue(field, &type) for literal fields. It's the only call
+        // there whose second argument is the address of a local, so look for that instead of relying on call order, which
+        // varies between compilers (e.g. Unity 6000.0 on Linux: [Class::Init, Class::GetDefaultFieldValue, BlobReader::GetConstantValueFromBlob]).
+        private static nint FindCallWithStackOutParam(nint function)
+        {
+            if (IntPtr.Size != 8) return 0;
+
+            var secondArg = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? Register.RDX : Register.RSI;
+            var decoder = XrefScanner.DecoderForAddress(function, 0x400);
+            var secondArgIsLocalAddress = false;
+
+            while (true)
+            {
+                decoder.Decode(out var instruction);
+                if (decoder.LastError == DecoderError.NoMoreBytes || instruction.Mnemonic == Mnemonic.Int3)
+                    return 0;
+
+                if (instruction.FlowControl == FlowControl.Call)
+                {
+                    if (secondArgIsLocalAddress && instruction.Op0Kind == OpKind.NearBranch64)
+                        return (nint)instruction.NearBranch64;
+                    secondArgIsLocalAddress = false;
+                    continue;
+                }
+
+                if (instruction.Op0Kind != OpKind.Register || instruction.Op0Register.GetFullRegister() != secondArg)
+                    continue;
+
+                secondArgIsLocalAddress =
+                    (instruction.Mnemonic == Mnemonic.Mov && instruction.Op1Kind == OpKind.Register && instruction.Op1Register is Register.RSP or Register.RBP) ||
+                    (instruction.Mnemonic == Mnemonic.Lea && instruction.MemoryBase is Register.RSP or Register.RBP);
+            }
         }
 
         public override IntPtr FindTargetMethod()
