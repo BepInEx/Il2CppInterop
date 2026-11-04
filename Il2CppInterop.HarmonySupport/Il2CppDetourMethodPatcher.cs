@@ -190,6 +190,13 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
     // Tries to guess whether a function needs a return buffer for the return struct, in all cases except win64 it's undefined behaviour
     private static bool IsReturnBufferNeeded(int size)
     {
+        // ARM64 passes the return buffer in x8 rather than as the first parameter. CoreCLR handles x8 itself
+        // when the trampoline returns the struct by value (see TrampolineHelpers.NativeReturnType)
+        if (TrampolineHelpers.IsArm64)
+        {
+            return false;
+        }
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             // https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170#return-values
@@ -213,7 +220,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         var paramStartIndex = 0;
 
         var managedReturnType = AccessTools.GetReturnedType(Original);
-        var unmanagedReturnType = managedReturnType.NativeType();
+        var unmanagedReturnType = managedReturnType.NativeReturnType();
 
         var returnSize = IntPtr.Size;
 
@@ -327,6 +334,14 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
                 // Return the same pointer to the return buffer
                 il.Emit(OpCodes.Ldarg_0);
             }
+            else if (isReturnValueType && unmanagedReturnType != typeof(IntPtr))
+            {
+                // The struct is returned by value, so copy it out of the boxed object
+                il.Emit(OpCodes.Ldloc, managedReturnVariable);
+                il.Emit(OpCodes.Call, ObjectBaseToPtrNotNullMethodInfo);
+                EmitUnbox(il);
+                il.Emit(OpCodes.Ldobj, unmanagedReturnType);
+            }
             else
             {
                 il.Emit(OpCodes.Ldloc, managedReturnVariable);
@@ -376,6 +391,12 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         {
             var classPtr = Il2CppClassPointerStore.GetNativeClassPointer(managedParamType);
 
+            // A struct passed by reference arrives as a pointer to its data, so load the argument itself;
+            // one passed by value (x86, and up to 16 bytes on ARM64) arrives as its bytes, so load their address
+            var loadStructData = TrampolineHelpers.IsStructWrapperPassedByValue(managedParamType)
+                ? OpCodes.Ldarga_S
+                : OpCodes.Ldarg;
+
             // il2cpp_value_box uses .NET boxing semantics which boxes Nullable<T> as just T,
             // losing the HasValue field. Manually box Nullable<T> to preserve full data.
             bool isNullable = managedParamType.IsGenericType &&
@@ -391,7 +412,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
                 il.Emit(OpCodes.Call, AccessTools.Method(typeof(IL2CPP), nameof(IL2CPP.il2cpp_object_new)));
                 var objLocal = il.DeclareLocal(typeof(IntPtr));
                 il.Emit(OpCodes.Stloc, objLocal);
-                il.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga_S, argIndex);
+                il.Emit(loadStructData, argIndex);
                 il.Emit(OpCodes.Ldloc, objLocal);
                 il.Emit(OpCodes.Call, AccessTools.Method(typeof(IL2CPP), nameof(IL2CPP.il2cpp_object_unbox)));
                 il.Emit(OpCodes.Ldc_I4, (int)valueSize);
@@ -403,9 +424,8 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
                 // Box struct into object first before conversion
                 il.Emit(OpCodes.Ldc_I8, classPtr.ToInt64());
                 il.Emit(OpCodes.Conv_I);
-                // On x64, struct is always a pointer but it is a non-pointer on x86
                 // We don't handle byref structs on x86 yet but we're yet to encounter those
-                il.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga_S, argIndex);
+                il.Emit(loadStructData, argIndex);
                 il.Emit(OpCodes.Call,
                     AccessTools.Method(typeof(IL2CPP),
                         nameof(IL2CPP.il2cpp_value_box)));
