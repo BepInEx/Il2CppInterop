@@ -111,6 +111,21 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 }
             }
 
+            // On ELF builds (GCC), GetTypeInfoFromHandle stays a function of its own: it turns the handle
+            // into an index and tail-jumps to GetTypeInfoFromTypeDefinitionIndex, once from each of its two
+            // division paths (64-bit and 32-bit). Image::GetType then has that single callee, so it is what
+            // was picked, and the detour got a handle where it expects an index. Follow such a relay, a
+            // function whose jumps all go to one target, to that target. MSVC builds emit a single jump
+            // and are left as they were.
+            while (getTypeInfoFromTypeDefinitionIndex != IntPtr.Zero)
+            {
+                var targets = XrefScannerLowLevel.JumpTargets(getTypeInfoFromTypeDefinitionIndex).ToArray();
+                if (targets.Length < 2 || targets.Distinct().Count() != 1) break;
+                Logger.Instance.LogTrace("0x{From} only relays to 0x{To}, following it",
+                    getTypeInfoFromTypeDefinitionIndex.ToInt64().ToString("X2"), targets[0].ToInt64().ToString("X2"));
+                getTypeInfoFromTypeDefinitionIndex = targets[0];
+            }
+
             return getTypeInfoFromTypeDefinitionIndex;
         }
 
