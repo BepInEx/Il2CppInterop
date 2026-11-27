@@ -22,7 +22,8 @@ public static class Pass79UnstripTypes
             if (processedAssembly == null)
             {
                 var newAssembly = new AssemblyDefinition(unityAssembly.Name, unityAssembly.Version);
-                newAssembly.Modules.Add(new ModuleDefinition(unityAssembly.ManifestModule!.Name));
+                newAssembly.Modules.Add(new ModuleDefinition(unityAssembly.ManifestModule!.Name, CorlibReferences.TargetCorlib));
+                context.OutputRuntimeContext.AddAssembly(newAssembly);
                 var newContext = new AssemblyRewriteContext(context, unityAssembly,
                     newAssembly);
                 context.AddAssemblyContext(unityAssembly.Name!, newContext);
@@ -139,7 +140,7 @@ public static class Pass79UnstripTypes
 
             if (fieldDefinition.Signature.FieldType.Namespace?.StartsWith("System") ?? false)
             {
-                var resolved = fieldDefinition.Signature.FieldType.Resolve();
+                var resolved = fieldDefinition.Signature.FieldType.ResolveInContextOrNull();
                 if (resolved != null && HasNonBlittableFields(resolved))
                     return true;
             }

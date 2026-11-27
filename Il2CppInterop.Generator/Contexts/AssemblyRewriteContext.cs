@@ -58,14 +58,14 @@ public class AssemblyRewriteContext
 
     public IMethodDefOrRef RewriteMethodRef(IMethodDefOrRef methodRef)
     {
-        var newType = GlobalContext.GetNewTypeForOriginal(methodRef.DeclaringType!.Resolve()!);
-        var newMethod = newType.GetMethodByOldMethod(methodRef.Resolve()!).NewMethod;
+        var newType = GlobalContext.GetNewTypeForOriginal(methodRef.DeclaringType!.ResolveInContextOrNull()!);
+        var newMethod = newType.GetMethodByOldMethod(methodRef.ResolveInContextOrNull()!).NewMethod;
         return NewAssembly.ManifestModule!.DefaultImporter.ImportMethod(newMethod);
     }
 
     public ITypeDefOrRef RewriteTypeRef(ITypeDescriptor typeRef)
     {
-        return RewriteTypeRef(typeRef?.ToTypeSignature()).ToTypeDefOrRef();
+        return RewriteTypeRef(typeRef?.ToContextTypeSignature()).ToTypeDefOrRef();
     }
 
     public TypeSignature RewriteTypeRef(TypeSignature? typeRef)
@@ -86,11 +86,11 @@ public class AssemblyRewriteContext
 
             var convertedElementType = RewriteTypeRef(elementType);
             if (elementType is GenericParameterSignature)
-                return new GenericInstanceTypeSignature(Imports.Il2CppArrayBase.ToTypeDefOrRef(), false, convertedElementType);
+                return new GenericInstanceTypeSignature(Imports.Il2CppArrayBase.ToTypeDefOrRef(), false, [convertedElementType]);
 
             return new GenericInstanceTypeSignature(convertedElementType.IsValueType()
                     ? Imports.Il2CppStructArray.ToTypeDefOrRef()
-                    : Imports.Il2CppReferenceArray.ToTypeDefOrRef(), false, convertedElementType);
+                    : Imports.Il2CppReferenceArray.ToTypeDefOrRef(), false, [convertedElementType]);
         }
 
         if (typeRef is GenericParameterSignature genericParameter)
@@ -106,7 +106,7 @@ public class AssemblyRewriteContext
 
         if (typeRef is GenericInstanceTypeSignature genericInstance)
         {
-            var genericType = RewriteTypeRef(genericInstance.GenericType.ToTypeSignature()).ToTypeDefOrRef();
+            var genericType = RewriteTypeRef(genericInstance.GenericType.ToTypeSignature(genericInstance.IsValueType)).ToTypeDefOrRef();
             var newRef = new GenericInstanceTypeSignature(genericType, genericType.IsValueType());
             foreach (var originalParameter in genericInstance.TypeArguments)
                 newRef.TypeArguments.Add(RewriteTypeRef(originalParameter));
@@ -125,17 +125,17 @@ public class AssemblyRewriteContext
 
         if (typeRef.FullName == "System.Object")
             return sourceModule.DefaultImporter.ImportType(GlobalContext.GetAssemblyByName("mscorlib")
-                .GetTypeByName("System.Object").NewType).ToTypeSignature();
+                .GetTypeByName("System.Object").NewType).ToContextTypeSignature();
 
         if (typeRef.FullName == "System.Attribute")
             return sourceModule.DefaultImporter.ImportType(GlobalContext.GetAssemblyByName("mscorlib")
-                .GetTypeByName("System.Attribute").NewType).ToTypeSignature();
+                .GetTypeByName("System.Attribute").NewType).ToContextTypeSignature();
 
-        var originalTypeDef = typeRef.Resolve()!;
+        var originalTypeDef = typeRef.ResolveInContextOrNull()!;
         var targetAssembly = GlobalContext.GetNewAssemblyForOriginal(originalTypeDef.DeclaringModule!.Assembly!);
         var target = targetAssembly.GetContextForOriginalType(originalTypeDef).NewType;
 
-        return sourceModule.DefaultImporter.ImportType(target).ToTypeSignature();
+        return sourceModule.DefaultImporter.ImportType(target).ToContextTypeSignature();
     }
 
     public TypeRewriteContext GetTypeByName(string name)

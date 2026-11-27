@@ -41,7 +41,7 @@ internal static class AsmResolverExtensions
 
     private static Parameter GetArgument(this ILProcessor instructions, int argumentIndex)
     {
-        var method = instructions.Owner.Owner;
+        var method = instructions.Owner.Owner ?? throw new InvalidOperationException("The instruction collection has no owning method.");
         return method.IsStatic
             ? method.Parameters[argumentIndex]
             : argumentIndex == 0
@@ -71,11 +71,31 @@ internal static class AsmResolverExtensions
 
     public static bool IsValueTypeLike(this TypeSignature type) => type.IsValueType() || type.IsPointerLike();
 
+    public static TypeDefinition? ResolveInContextOrNull(this ITypeDescriptor type)
+    {
+        type.Resolve(type.ContextModule?.RuntimeContext, out var definition);
+        return definition;
+    }
+
+    public static MethodDefinition? ResolveInContextOrNull(this IMethodDescriptor method)
+    {
+        method.Resolve(method.ContextModule?.RuntimeContext, out var definition);
+        return definition;
+    }
+
+    public static TypeSignature ToContextTypeSignature(this ITypeDescriptor type)
+    {
+        var context = type.ContextModule?.RuntimeContext;
+        return type is TypeReference reference
+            ? reference.ToTypeSignature(reference.TryGetIsValueType(context) == true)
+            : type.ToTypeSignature(context);
+    }
+
     public static bool IsSystemEnum(this GenericParameterConstraint constraint) => constraint.Constraint?.FullName is "System.Enum";
 
     public static bool IsSystemValueType(this GenericParameterConstraint constraint) => constraint.Constraint?.FullName is "System.ValueType";
 
-    public static bool IsInterface(this GenericParameterConstraint constraint) => constraint.Constraint?.Resolve()?.IsInterface == true;
+    public static bool IsInterface(this GenericParameterConstraint constraint) => constraint.Constraint?.ResolveInContextOrNull()?.IsInterface == true;
 
     public static ITypeDefOrRef? AttributeType(this CustomAttribute attribute) => attribute.Constructor?.DeclaringType;
 

@@ -5,28 +5,25 @@ namespace Il2CppInterop.Generator.MetadataAccess;
 
 public class AssemblyMetadataAccess : IIl2CppMetadataAccess
 {
-    private readonly Il2CppAssemblyResolver myAssemblyResolver = new();
     private readonly List<AssemblyDefinition> myAssemblies = new();
     private readonly Dictionary<string, AssemblyDefinition> myAssembliesByName = new();
     private readonly Dictionary<(string AssemblyName, string TypeName), TypeDefinition> myTypesByName = new();
 
     public AssemblyMetadataAccess(IEnumerable<string> assemblyPaths)
     {
-        Load(assemblyPaths.Select(AssemblyDefinition.FromFile));
+        Load(assemblyPaths.Select(path => AssemblyDefinition.FromFile(path, createRuntimeContext: false)));
     }
 
     public AssemblyMetadataAccess(IEnumerable<AssemblyDefinition> assemblies)
     {
-        // Note: At the moment this assumes that passed assemblies have their own assembly resolver set up
-        // If this is not true, this can cause issues with reference resolving
         Load(assemblies);
     }
 
     public void Dispose()
     {
-        myAssemblyResolver.ClearCache();
         myAssemblies.Clear();
         myAssembliesByName.Clear();
+        myTypesByName.Clear();
     }
 
     public AssemblyDefinition? GetAssemblyBySimpleName(string name)
@@ -58,12 +55,27 @@ public class AssemblyMetadataAccess : IIl2CppMetadataAccess
 
     private void Load(IEnumerable<AssemblyDefinition> assemblies)
     {
-        foreach (var sourceAssembly in assemblies)
+        var sourceAssemblies = assemblies.ToList();
+        if (sourceAssemblies.Count == 0)
+            return;
+
+        var existingContexts = sourceAssemblies.Select(assembly => assembly.RuntimeContext)
+            .OfType<RuntimeContext>().Distinct().ToArray();
+        if (existingContexts.Length > 1)
+            throw new ArgumentException("Source assemblies must belong to a single runtime context or be loaded with createRuntimeContext: false.", nameof(assemblies));
+
+        var corlib = sourceAssemblies.FirstOrDefault(assembly =>
+            assembly.Name == "mscorlib" || assembly.Name == "System.Private.CoreLib");
+        var targetRuntime = (corlib ?? sourceAssemblies[0]).ManifestModule!.OriginalTargetRuntime;
+        var runtimeContext = existingContexts.FirstOrDefault() ??
+            new RuntimeContext(targetRuntime, new Il2CppAssemblyResolver(), corLibReference: corlib);
+
+        foreach (var sourceAssembly in sourceAssemblies)
         {
+            if (sourceAssembly.RuntimeContext is null)
+                runtimeContext.AddAssembly(sourceAssembly);
             myAssemblies.Add(sourceAssembly);
             myAssembliesByName[sourceAssembly.Name!] = sourceAssembly;
-            sourceAssembly.ManifestModule!.MetadataResolver = new DefaultMetadataResolver(myAssemblyResolver);
-            myAssemblyResolver.AddToCache(sourceAssembly);
         }
 
         foreach (var sourceAssembly in myAssemblies)

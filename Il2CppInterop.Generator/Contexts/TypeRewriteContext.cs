@@ -76,7 +76,7 @@ public class TypeRewriteContext
             var genericTypeRef = new GenericInstanceTypeSignature(
                 AssemblyContext.Imports.Il2CppClassPointerStore.ToTypeDefOrRef(),
                 AssemblyContext.Imports.Il2CppClassPointerStore.IsValueType(),
-                SelfSubstitutedRef.ToTypeSignature());
+                [SelfSubstitutedRef.ToContextTypeSignature()]);
             ClassPointerFieldRef = ReferenceCreator.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
                 NewType.DeclaringModule.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
         }
@@ -90,7 +90,7 @@ public class TypeRewriteContext
                 genericTypeRef.TypeArguments.Add(
                     NewType.DeclaringModule!.ImportCorlibReference(OriginalType.FullName));
             else
-                genericTypeRef.TypeArguments.Add(SelfSubstitutedRef.ToTypeSignature());
+                genericTypeRef.TypeArguments.Add(SelfSubstitutedRef.ToContextTypeSignature());
             ClassPointerFieldRef = ReferenceCreator.CreateFieldReference("NativeClassPtr", AssemblyContext.Imports.Module.IntPtr(),
                 NewType.DeclaringModule!.DefaultImporter.ImportType(genericTypeRef.ToTypeDefOrRef()));
         }

@@ -194,7 +194,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
         {
             if (currentBase == null) break;
             var currentBaseContext =
-                obfType.AssemblyContext.GlobalContext.TryGetNewTypeForOriginal(currentBase.Resolve()!);
+                obfType.AssemblyContext.GlobalContext.TryGetNewTypeForOriginal(currentBase.ResolveInContextOrNull()!);
             if (currentBaseContext == null || !currentBaseContext.OriginalNameWasObfuscated) break;
 
             inheritanceDepthOfOriginal++;
@@ -230,7 +230,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
                 if (tryBase?.Name == currentBase?.Name && tryBase?.Namespace == currentBase?.Namespace)
                     break;
 
-                tryBase = tryBase?.Resolve()?.BaseType;
+                tryBase = tryBase?.ResolveInContextOrNull()?.BaseType;
                 actualBaseDepth++;
             }
 
@@ -332,7 +332,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
                 if (b is not GenericInstanceTypeSignature bgi)
                     return -1;
                 if (agi.TypeArguments.Count != bgi.TypeArguments.Count) return -1;
-                Accumulate(TypeMatchWeight(agi.GenericType.ToTypeSignature(), bgi.GenericType.ToTypeSignature(), options));
+                Accumulate(TypeMatchWeight(agi.GenericType.ToTypeSignature(agi.IsValueType), bgi.GenericType.ToTypeSignature(bgi.IsValueType), options));
                 for (var i = 0; i < agi.TypeArguments.Count; i++)
                     Accumulate(TypeMatchWeight(agi.TypeArguments[i], bgi.TypeArguments[i], options));
                 return runningSum * 5;
@@ -349,7 +349,7 @@ internal class DeobfuscationMapGeneratorRunner : IRunner
                     if (a.Name.IsObfuscated(options))
                         return 0;
 
-                    var declMatch = TypeMatchWeight(a.DeclaringType!.ToTypeSignature(), b.DeclaringType!.ToTypeSignature(), options);
+                    var declMatch = TypeMatchWeight(a.DeclaringType!.ToContextTypeSignature(), b.DeclaringType!.ToContextTypeSignature(), options);
                     if (declMatch == -1 || a.Name != b.Name)
                         return -1;
 

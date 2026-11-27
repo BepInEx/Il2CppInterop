@@ -31,7 +31,7 @@ public static class Pass25GenerateNonBlittableValueTypeDefaultCtors
                 bodyBuilder.Add(OpCodes.Ldsfld, typeContext.ClassPointerFieldRef);
                 bodyBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_il2cpp_object_new.Value);
                 bodyBuilder.Add(OpCodes.Call,
-                    new MemberReference(typeContext.NewType.BaseType, ".ctor", MethodSignature.CreateInstance(assemblyContext.Imports.Module.Void(), assemblyContext.Imports.Module.IntPtr())));
+                    new MemberReference(typeContext.NewType.BaseType, ".ctor", MethodSignature.CreateInstance(assemblyContext.Imports.Module.Void(), [assemblyContext.Imports.Module.IntPtr()])));
                 bodyBuilder.Add(OpCodes.Ret);
             }
     }

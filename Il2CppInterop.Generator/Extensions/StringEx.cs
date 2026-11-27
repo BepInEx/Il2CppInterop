@@ -183,7 +183,7 @@ public static class StringEx
         var builder = new StringBuilder();
         if (typeRef is GenericInstanceTypeSignature genericInstance)
         {
-            builder.Append(genericInstance.GenericType.ToTypeSignature().GetUnmangledName(declaringType, declaringMethod));
+            builder.Append(genericInstance.GenericType.ToTypeSignature(genericInstance.IsValueType).GetUnmangledName(declaringType, declaringMethod));
             foreach (var genericArgument in genericInstance.TypeArguments)
             {
                 builder.Append("_");

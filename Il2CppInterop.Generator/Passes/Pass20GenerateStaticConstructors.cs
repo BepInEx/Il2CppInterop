@@ -59,7 +59,7 @@ public static class Pass20GenerateStaticConstructors
 
             ctorBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_il2cpp_class_get_type.Value);
             ctorBuilder.Add(OpCodes.Call,
-                new MemberReference(il2CppSystemTypeRef, "internal_from_handle", MethodSignature.CreateStatic(il2CppSystemTypeRef.ToTypeSignature(), assemblyContext.Imports.Module.IntPtr())));
+                new MemberReference(il2CppSystemTypeRef, "internal_from_handle", MethodSignature.CreateStatic(il2CppSystemTypeRef.ToTypeSignature(false), [assemblyContext.Imports.Module.IntPtr()])));
 
             ctorBuilder.Add(OpCodes.Ldc_I4, oldType.GenericParameters.Count);
 
@@ -72,26 +72,26 @@ public static class Pass20GenerateStaticConstructors
 
                 var param = oldType.GenericParameters[i];
                 var storeRef = assemblyContext.Imports.Il2CppClassPointerStore
-                    .MakeGenericInstanceType(new GenericParameterSignature(GenericParameterType.Type, param.Number));
+                    .MakeGenericInstanceType(false, [new GenericParameterSignature(GenericParameterType.Type, param.Number)]);
                 var fieldRef = new MemberReference(storeRef.ToTypeDefOrRef(), "NativeClassPtr", new FieldSignature(assemblyContext.Imports.Module.IntPtr()));
                 ctorBuilder.Add(OpCodes.Ldsfld, fieldRef);
 
                 ctorBuilder.Add(OpCodes.Call, assemblyContext.Imports.IL2CPP_il2cpp_class_get_type.Value);
 
                 ctorBuilder.Add(OpCodes.Call,
-                    new MemberReference(il2CppSystemTypeRef, "internal_from_handle", MethodSignature.CreateStatic(il2CppSystemTypeRef.ToTypeSignature(), assemblyContext.Imports.Module.IntPtr())));
+                    new MemberReference(il2CppSystemTypeRef, "internal_from_handle", MethodSignature.CreateStatic(il2CppSystemTypeRef.ToTypeSignature(false), [assemblyContext.Imports.Module.IntPtr()])));
                 ctorBuilder.Add(OpCodes.Stelem_Ref);
             }
 
-            var il2CppTypeArray = assemblyContext.Imports.Il2CppReferenceArray.MakeGenericInstanceType(il2CppSystemTypeRef.ToTypeSignature());
+            var il2CppTypeArray = assemblyContext.Imports.Il2CppReferenceArray.MakeGenericInstanceType(false, [il2CppSystemTypeRef.ToTypeSignature(false)]);
             ctorBuilder.Add(OpCodes.Newobj,
-                new MemberReference(il2CppTypeArray.ToTypeDefOrRef(), ".ctor", MethodSignature.CreateInstance(assemblyContext.Imports.Module.Void(), new GenericParameterSignature(GenericParameterType.Type, 0).MakeSzArrayType())));
+                new MemberReference(il2CppTypeArray.ToTypeDefOrRef(), ".ctor", MethodSignature.CreateInstance(assemblyContext.Imports.Module.Void(), [new GenericParameterSignature(GenericParameterType.Type, 0).MakeSzArrayType()])));
             ctorBuilder.Add(OpCodes.Call,
-                ReferenceCreator.CreateInstanceMethodReference(nameof(Type.MakeGenericType), il2CppSystemTypeRef.ToTypeSignature(), il2CppSystemTypeRef, il2CppTypeArray));
+                ReferenceCreator.CreateInstanceMethodReference(nameof(Type.MakeGenericType), il2CppSystemTypeRef.ToTypeSignature(false), il2CppSystemTypeRef, il2CppTypeArray));
 
             ctorBuilder.Add(OpCodes.Call,
                 ReferenceCreator.CreateInstanceMethodReference(typeof(Type).GetProperty(nameof(Type.TypeHandle))!.GetMethod!.Name,
-                    il2CppSystemTypeHandleRef.ToTypeSignature(), il2CppSystemTypeRef));
+                    il2CppSystemTypeHandleRef.ToTypeSignature(il2CppTypeHandleTypeRewriteContext.NewType.IsValueType()), il2CppSystemTypeRef));
             ctorBuilder.Add(OpCodes.Ldfld,
                 ReferenceCreator.CreateFieldReference("value", assemblyContext.Imports.Module.IntPtr(), il2CppSystemTypeHandleRef));
 
@@ -174,7 +174,7 @@ public static class Pass20GenerateStaticConstructors
             ctorBuilder.Add(OpCodes.Call,
                 imports.Module.DefaultImporter.ImportMethod(
                     imports.IL2CPP_RenderTypeName.Value
-                        .MakeGenericInstanceMethod(newTypeReference is ByReferenceTypeSignature ? newTypeReference.GetElementType() : newTypeReference)));
+                        .MakeGenericInstanceMethod([newTypeReference is ByReferenceTypeSignature ? newTypeReference.GetElementType() : newTypeReference])));
         }
     }
 }

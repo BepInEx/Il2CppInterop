@@ -1,18 +1,15 @@
-﻿using AsmResolver.DotNet;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Serialized;
 using AsmResolver.IO;
 
 namespace Il2CppInterop.Generator.MetadataAccess;
 
 internal sealed class Il2CppAssemblyResolver : AssemblyResolverBase
 {
-    public Il2CppAssemblyResolver() : base(new ByteArrayFileService())
+    public Il2CppAssemblyResolver() : base(new ModuleReaderParameters(new ByteArrayFileService()))
     {
     }
 
-    protected override string? ProbeRuntimeDirectories(AssemblyDescriptor assembly) => null;
-
-    public void AddToCache(AssemblyDefinition assembly)
-    {
-        AddToCache(assembly, assembly);
-    }
+    public override string? ProbeAssemblyFilePath(AssemblyDescriptor assembly, ModuleDefinition? originModule) =>
+        ProbeSearchDirectories(assembly, originModule);
 }
