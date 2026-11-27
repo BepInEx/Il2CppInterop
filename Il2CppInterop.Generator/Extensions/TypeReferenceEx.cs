@@ -22,9 +22,9 @@ public static class TypeReferenceEx
                 return array.BaseType.UnmangledNamesMatch(((ArrayBaseTypeSignature)typeRefB).BaseType);
             case GenericInstanceTypeSignature genericInstance:
                 {
-                    var elementA = genericInstance.GenericType.ToTypeSignature();
+                    var elementA = genericInstance.GenericType.ToTypeSignature(genericInstance.IsValueType);
                     var genericInstanceB = (GenericInstanceTypeSignature)typeRefB;
-                    var elementB = genericInstanceB.GenericType.ToTypeSignature();
+                    var elementB = genericInstanceB.GenericType.ToTypeSignature(genericInstanceB.IsValueType);
                     if (!elementA.UnmangledNamesMatch(elementB))
                         return false;
                     if (genericInstance.TypeArguments.Count != genericInstanceB.TypeArguments.Count)
@@ -53,6 +53,6 @@ public static class TypeReferenceEx
     // See https://github.com/BepInEx/Il2CppInterop/issues/211 for the discussion
     public static bool IsValueType(this ITypeDescriptor type)
     {
-        return type.IsValueType && type.FullName != "System.Enum";
+        return type.TryGetIsValueType(type.ContextModule?.RuntimeContext) == true && type.FullName != "System.Enum";
     }
 }

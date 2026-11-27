@@ -10,6 +10,8 @@ namespace Il2CppInterop.Generator.Contexts;
 public class RewriteGlobalContext : IDisposable
 {
     internal readonly List<long> MethodStartAddresses = new();
+    internal readonly RuntimeContext OutputRuntimeContext = new(DotNetRuntimeInfo.NetCoreApp(6, 0),
+        new Il2CppAssemblyResolver(), corLibReference: CorlibReferences.TargetCorlib);
 
     private readonly Dictionary<string, AssemblyRewriteContext> myAssemblies = new();
     private readonly Dictionary<AssemblyDefinition, AssemblyRewriteContext> myAssembliesByOld = new();
@@ -28,8 +30,6 @@ public class RewriteGlobalContext : IDisposable
         GameAssemblies = gameAssemblies;
         UnityAssemblies = unityAssemblies;
 
-        Il2CppAssemblyResolver assemblyResolver = new();
-
         foreach (var sourceAssembly in gameAssemblies.Assemblies)
         {
             var assemblyName = sourceAssembly.Name!;
@@ -42,8 +42,7 @@ public class RewriteGlobalContext : IDisposable
             var newModule = new ModuleDefinition(sourceAssembly.ManifestModule?.Name.UnSystemify(options), CorlibReferences.TargetCorlib);
             newAssembly.Modules.Add(newModule);
 
-            newModule.MetadataResolver = new DefaultMetadataResolver(assemblyResolver);
-            assemblyResolver.AddToCache(newAssembly);
+            OutputRuntimeContext.AddAssembly(newAssembly);
 
             var assemblyRewriteContext = new AssemblyRewriteContext(this, sourceAssembly, newAssembly);
             AddAssemblyContext(assemblyName, assemblyRewriteContext);
@@ -102,7 +101,7 @@ public class RewriteGlobalContext : IDisposable
             or GenericInstanceTypeSignature)
             return TypeRewriteContext.TypeSpecifics.ReferenceType;
 
-        var fieldTypeContext = GetNewTypeForOriginal(typeRef.Resolve() ?? throw new($"Could not resolve {typeRef.FullName}"));
+        var fieldTypeContext = GetNewTypeForOriginal(typeRef.ResolveInContextOrNull() ?? throw new($"Could not resolve {typeRef.FullName}"));
         return fieldTypeContext.ComputedTypeSpecifics;
     }
 
@@ -154,7 +153,7 @@ public class RewriteGlobalContext : IDisposable
 
                 foreach (var constraint in genericParameter.Constraints)
                 {
-                    var newConstraintType = constraint.Constraint != null ? resolve(constraint.Constraint.ToTypeSignature())?.ToTypeDefOrRef() : null;
+                    var newConstraintType = constraint.Constraint != null ? resolve(constraint.Constraint.ToContextTypeSignature())?.ToTypeDefOrRef() : null;
                     var newConstraint = new GenericParameterConstraint(newConstraintType);
 
                     // We don't need to copy custom attributes on constraints for generic parameters because Il2Cpp doesn't support them.

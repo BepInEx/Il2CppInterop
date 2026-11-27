@@ -63,7 +63,7 @@ public static class Pass05CreateRenameGroups
         var firstUnobfuscatedType = typeDefinition.BaseType;
         while (firstUnobfuscatedType != null && firstUnobfuscatedType.Name.IsObfuscated(context.Options))
         {
-            firstUnobfuscatedType = firstUnobfuscatedType.Resolve()?.BaseType?.Resolve();
+            firstUnobfuscatedType = firstUnobfuscatedType.ResolveInContextOrNull()?.BaseType?.ResolveInContextOrNull();
             inheritanceDepth++;
         }
 
@@ -78,7 +78,7 @@ public static class Pass05CreateRenameGroups
         var specialNameString = typeDefinition.IsSpecialName ? "SpecialName" : "";
 
         var nameBuilder = new StringBuilder();
-        nameBuilder.Append(firstUnobfuscatedType?.ToTypeSignature().GenericNameToStrings(context)?.ConcatAll() ?? classifier);
+        nameBuilder.Append(firstUnobfuscatedType?.ToContextTypeSignature().GenericNameToStrings(context)?.ConcatAll() ?? classifier);
         if (inheritanceDepth > 0)
             nameBuilder.Append(inheritanceDepth);
         nameBuilder.Append(compilerGenertaedString);
@@ -87,7 +87,7 @@ public static class Pass05CreateRenameGroups
         nameBuilder.Append(sealedString);
         nameBuilder.Append(specialNameString);
         foreach (var interfaceRef in unobfuscatedInterfacesList)
-            nameBuilder.Append(interfaceRef.ToTypeSignature().GenericNameToStrings(context).ConcatAll());
+            nameBuilder.Append(interfaceRef.ToContextTypeSignature().GenericNameToStrings(context).ConcatAll());
 
         var uniqContext = new UniquificationContext(options);
         foreach (var fieldDef in typeDefinition.Fields)
@@ -156,7 +156,7 @@ public static class Pass05CreateRenameGroups
 
     private static string NameOrRename(this TypeSignature typeRef, RewriteGlobalContext context)
     {
-        var resolved = typeRef.Resolve();
+        var resolved = typeRef.ResolveInContextOrNull();
         if (resolved != null && context.PreviousRenamedTypes.TryGetValue(resolved, out var rename))
             return (rename.StableHash() % (ulong)Math.Pow(10, context.Options.TypeDeobfuscationCharsPerUniquifier))
                 .ToString();
@@ -174,7 +174,7 @@ public static class Pass05CreateRenameGroups
 
         if (typeRef is GenericInstanceTypeSignature genericInstance)
         {
-            var baseTypeName = genericInstance.GenericType.ToTypeSignature().NameOrRename(context);
+            var baseTypeName = genericInstance.GenericType.ToTypeSignature(genericInstance.IsValueType).NameOrRename(context);
             var indexOfBacktick = baseTypeName.IndexOf('`');
             if (indexOfBacktick >= 0)
                 baseTypeName = baseTypeName.Substring(0, indexOfBacktick);

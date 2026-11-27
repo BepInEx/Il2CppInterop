@@ -16,7 +16,7 @@ public static class Pass21GenerateValueTypeFields
             var il2CppTypeTypeRewriteContext = assemblyContext.GlobalContext.GetAssemblyByName("mscorlib")
                 .GetTypeByName("System.Object");
             var il2CppSystemTypeRef =
-                assemblyContext.NewAssembly.ManifestModule!.DefaultImporter.ImportType(il2CppTypeTypeRewriteContext.NewType).ToTypeSignature();
+                assemblyContext.NewAssembly.ManifestModule!.DefaultImporter.ImportType(il2CppTypeTypeRewriteContext.NewType).ToContextTypeSignature();
 
             foreach (var typeContext in assemblyContext.Types)
             {

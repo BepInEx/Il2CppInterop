@@ -20,7 +20,7 @@ public static class Pass60AddImplicitConversions
         var objectTypeContext = assemblyContext.GetTypeByName("System.Object");
 
         var methodFromMonoString = new MethodDefinition("op_Implicit", OperatorAttributes,
-            MethodSignature.CreateStatic(typeContext.NewType.ToTypeSignature(), assemblyContext.Imports.Module.String()));
+            MethodSignature.CreateStatic(typeContext.NewType.ToTypeSignature(), [assemblyContext.Imports.Module.String()]));
         typeContext.NewType.Methods.Add(methodFromMonoString);
         methodFromMonoString.CilMethodBody = new CilMethodBody();
         var fromBuilder = methodFromMonoString.CilMethodBody.Instructions;
@@ -136,7 +136,7 @@ public static class Pass60AddImplicitConversions
                 if (invokeMethod.Parameters.Any(it => it.ParameterType is PointerTypeSignature or ByReferenceTypeSignature))
                     continue;
 
-                var implicitMethod = new MethodDefinition("op_Implicit", OperatorAttributes, MethodSignature.CreateStatic(typeContext.SelfSubstitutedRef.ToTypeSignature()));
+                var implicitMethod = new MethodDefinition("op_Implicit", OperatorAttributes, MethodSignature.CreateStatic(typeContext.SelfSubstitutedRef.ToContextTypeSignature()));
                 typeContext.NewType.Methods.Add(implicitMethod);
                 implicitMethod.CilMethodBody = new CilMethodBody();
 
@@ -173,31 +173,31 @@ public static class Pass60AddImplicitConversions
 
                 bodyBuilder.Add(OpCodes.Ldarg_0);
                 var delegateSupportTypeRef = typeContext.AssemblyContext.Imports.DelegateSupport;
-                var genericConvertSignature = MethodSignature.CreateStatic(new GenericParameterSignature(GenericParameterType.Method, 0), 1, assemblyContext.Imports.Module.Delegate());
+                var genericConvertSignature = MethodSignature.CreateStatic(new GenericParameterSignature(GenericParameterType.Method, 0), 1, [assemblyContext.Imports.Module.Delegate()]);
                 var genericConvertRef = new MemberReference(delegateSupportTypeRef.ToTypeDefOrRef(), "ConvertDelegate", genericConvertSignature);
-                var convertMethodRef = genericConvertRef.MakeGenericInstanceMethod(typeContext.SelfSubstitutedRef.ToTypeSignature());
+                var convertMethodRef = genericConvertRef.MakeGenericInstanceMethod([typeContext.SelfSubstitutedRef.ToContextTypeSignature()]);
                 bodyBuilder.Add(OpCodes.Call, typeContext.NewType.DeclaringModule!.DefaultImporter.ImportMethod(convertMethodRef));
                 bodyBuilder.Add(OpCodes.Ret);
 
                 // public static T operator+(T lhs, T rhs) => Il2CppSystem.Delegate.Combine(lhs, rhs).Cast<T>();
-                var addMethod = new MethodDefinition("op_Addition", OperatorAttributes, MethodSignature.CreateStatic(typeContext.SelfSubstitutedRef.ToTypeSignature()));
+                var addMethod = new MethodDefinition("op_Addition", OperatorAttributes, MethodSignature.CreateStatic(typeContext.SelfSubstitutedRef.ToContextTypeSignature()));
                 typeContext.NewType.Methods.Add(addMethod);
-                addMethod.AddParameter(typeContext.SelfSubstitutedRef.ToTypeSignature());
-                addMethod.AddParameter(typeContext.SelfSubstitutedRef.ToTypeSignature());
+                addMethod.AddParameter(typeContext.SelfSubstitutedRef.ToContextTypeSignature());
+                addMethod.AddParameter(typeContext.SelfSubstitutedRef.ToContextTypeSignature());
                 addMethod.CilMethodBody = new CilMethodBody();
                 var addBody = addMethod.CilMethodBody.Instructions;
                 addBody.Add(OpCodes.Ldarg_0);
                 addBody.Add(OpCodes.Ldarg_1);
                 addBody.Add(OpCodes.Call, assemblyContext.Imports.Il2CppSystemDelegateCombine.Value);
                 addBody.Add(OpCodes.Call,
-                    assemblyContext.Imports.Module.DefaultImporter.ImportMethod(assemblyContext.Imports.Il2CppObjectBase_Cast.Value.MakeGenericInstanceMethod(typeContext.SelfSubstitutedRef.ToTypeSignature())));
+                    assemblyContext.Imports.Module.DefaultImporter.ImportMethod(assemblyContext.Imports.Il2CppObjectBase_Cast.Value.MakeGenericInstanceMethod([typeContext.SelfSubstitutedRef.ToContextTypeSignature()])));
                 addBody.Add(OpCodes.Ret);
 
                 // public static T operator-(T lhs, T rhs) => Il2CppSystem.Delegate.Remove(lhs, rhs)?.Cast<T>();
-                var subtractMethod = new MethodDefinition("op_Subtraction", OperatorAttributes, MethodSignature.CreateStatic(typeContext.SelfSubstitutedRef.ToTypeSignature()));
+                var subtractMethod = new MethodDefinition("op_Subtraction", OperatorAttributes, MethodSignature.CreateStatic(typeContext.SelfSubstitutedRef.ToContextTypeSignature()));
                 typeContext.NewType.Methods.Add(subtractMethod);
-                subtractMethod.AddParameter(typeContext.SelfSubstitutedRef.ToTypeSignature());
-                subtractMethod.AddParameter(typeContext.SelfSubstitutedRef.ToTypeSignature());
+                subtractMethod.AddParameter(typeContext.SelfSubstitutedRef.ToContextTypeSignature());
+                subtractMethod.AddParameter(typeContext.SelfSubstitutedRef.ToContextTypeSignature());
                 subtractMethod.CilMethodBody = new CilMethodBody();
                 var subtractBody = subtractMethod.CilMethodBody.Instructions;
                 subtractBody.Add(OpCodes.Ldarg_0);
@@ -207,7 +207,7 @@ public static class Pass60AddImplicitConversions
                 var ret = new CilInstructionLabel();
                 subtractBody.Add(OpCodes.Brfalse_S, ret);
                 subtractBody.Add(OpCodes.Call,
-                    assemblyContext.Imports.Module.DefaultImporter.ImportMethod(assemblyContext.Imports.Il2CppObjectBase_Cast.Value.MakeGenericInstanceMethod(typeContext.SelfSubstitutedRef.ToTypeSignature())));
+                    assemblyContext.Imports.Module.DefaultImporter.ImportMethod(assemblyContext.Imports.Il2CppObjectBase_Cast.Value.MakeGenericInstanceMethod([typeContext.SelfSubstitutedRef.ToContextTypeSignature()])));
                 ret.Instruction = subtractBody.Add(OpCodes.Ret);
             }
         }

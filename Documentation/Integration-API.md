@@ -9,13 +9,15 @@
 
 Assembly generation can be done either via [the CLI](Command-Line-Usage.md) or directly via [Il2CppInterop.Generator](https://nuget.bepinex.dev/packages/Il2CppInterop.Generator) package.
 
+Source assemblies must either share a single AsmResolver `RuntimeContext` or be loaded without one (`createRuntimeContext: false`).
+
 Example of Il2CppInterop.Generator usage:
 
 ```cs
 var opts = new GeneratorOptions
 {
     GameAssemblyPath = GameAssemblyPath, // Path to GameAssembly.dll
-    Source = sourceAssemblies, // List of Cpp2Il dummy assemblies loaded into Cecil
+    Source = sourceAssemblies, // List of Cpp2IL dummy assemblies
     OutputDir = IL2CPPInteropAssemblyPath, // Path to which generate the assemblies
     UnityBaseLibsDir = Directory.Exists(UnityBaseLibsDirectory) ? UnityBaseLibsDirectory : null // Path to managed Unity core libraries (UnityEngine.dll etc)
 };

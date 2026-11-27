@@ -7,7 +7,7 @@ internal static class Utils
     public static List<AssemblyDefinition> LoadAssembliesFrom(DirectoryInfo directoryInfo)
     {
         var inputAssemblies = directoryInfo.EnumerateFiles("*.dll").Select(f => AssemblyDefinition.FromFile(
-            f.FullName)).ToList();
+            f.FullName, createRuntimeContext: false)).ToList();
 
         return inputAssemblies;
     }

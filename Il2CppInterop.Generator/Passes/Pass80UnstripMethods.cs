@@ -86,7 +86,7 @@ public static class Pass80UnstripMethods
                                 continue;
                             }
 
-                            var newType = ResolveTypeInNewAssemblies(context, genericParameterConstraint.Constraint?.ToTypeSignature(),
+                            var newType = ResolveTypeInNewAssemblies(context, genericParameterConstraint.Constraint?.ToContextTypeSignature(),
                                 imports);
                             if (newType != null)
                                 newParameter.Constraints.Add(new GenericParameterConstraint(newType.ToTypeDefOrRef()));
@@ -206,7 +206,7 @@ public static class Pass80UnstripMethods
                 { IsValueType: true } => imports.Il2CppStructArray,
                 _ => imports.Il2CppReferenceArray
             };
-            return new GenericInstanceTypeSignature(genericBase.ToTypeDefOrRef(), false, resolvedElementType);
+            return new GenericInstanceTypeSignature(genericBase.ToTypeDefOrRef(), false, [resolvedElementType]);
         }
 
         if (unityType is PointerTypeSignature)
@@ -224,7 +224,7 @@ public static class Pass80UnstripMethods
         if (unityType is CustomModifierTypeSignature customModifier)
         {
             var resolvedElementType = ResolveTypeInNewAssemblies(context, customModifier.BaseType, imports);
-            var resolvedModifierType = ResolveTypeInNewAssemblies(context, customModifier.ModifierType.ToTypeSignature(), imports);
+            var resolvedModifierType = ResolveTypeInNewAssemblies(context, customModifier.ModifierType.ToContextTypeSignature(), imports);
             return resolvedElementType is not null && resolvedModifierType is not null
                 ? new CustomModifierTypeSignature(resolvedModifierType.ToTypeDefOrRef(), customModifier.IsRequired, resolvedElementType)
                 : null;
@@ -232,7 +232,7 @@ public static class Pass80UnstripMethods
 
         if (unityType is GenericInstanceTypeSignature genericInstance)
         {
-            var baseRef = ResolveTypeInNewAssembliesRaw(context, genericInstance.GenericType.ToTypeSignature(), imports);
+            var baseRef = ResolveTypeInNewAssembliesRaw(context, genericInstance.GenericType.ToTypeSignature(genericInstance.IsValueType), imports);
             if (baseRef == null) return null;
             var newInstance = new GenericInstanceTypeSignature(baseRef.ToTypeDefOrRef(), baseRef.IsValueType());
             foreach (var unityGenericArgument in genericInstance.TypeArguments)
@@ -256,9 +256,9 @@ public static class Pass80UnstripMethods
 
         if (unityType.DeclaringType != null)
         {
-            var enclosingResolvedType = ResolveTypeInNewAssembliesRaw(context, unityType.DeclaringType.ToTypeSignature(), imports);
+            var enclosingResolvedType = ResolveTypeInNewAssembliesRaw(context, unityType.DeclaringType.ToContextTypeSignature(), imports);
             if (enclosingResolvedType == null) return null;
-            var resolvedNestedType = enclosingResolvedType.Resolve()!.NestedTypes
+            var resolvedNestedType = enclosingResolvedType.ResolveInContextOrNull()!.NestedTypes
                 .FirstOrDefault(it => it.Name == unityType.Name);
 
             return resolvedNestedType?.ToTypeSignature();
